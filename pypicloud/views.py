@@ -51,8 +51,6 @@ def update(request):
 
 @view_config(route_name='simple', request_method='GET',
              renderer='simple.jinja2')
-@view_config(route_name='simple/', request_method='GET',
-             renderer='simple.jinja2')
 def simple(request):
     """ Render the list of all unique package names """
     unique_pkgs = set((pkg.name for pkg in request.packages))
@@ -60,8 +58,6 @@ def simple(request):
 
 
 @view_config(route_name='packages', request_method='GET',
-             renderer='package.jinja2')
-@view_config(route_name='packages/', request_method='GET',
              renderer='package.jinja2')
 def all_packages(request):
     """ Render all package file names """

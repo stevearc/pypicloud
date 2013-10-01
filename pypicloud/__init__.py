@@ -249,11 +249,9 @@ def main(config, **settings):
 
     # Configure routes
     config.add_route('index', '/')
-    config.add_route('simple', '/simple')
-    config.add_route('simple/', '/simple/')
-    config.add_route('packages', '/packages')
-    config.add_route('packages/', '/packages/')
-    config.add_route('package_versions', '/simple/{package:.*}')
+    config.add_route('simple', '/simple{_:/?}')
+    config.add_route('packages', '/packages{_:/?}')
+    config.add_route('package_versions', '/simple/{package:[^/]+}{_:/?}')
 
     config.scan()
     return config.make_wsgi_app()
