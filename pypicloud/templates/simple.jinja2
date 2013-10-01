@@ -4,8 +4,8 @@
   <title>Simple Index</title>
 </head>
 <body>
-  {%- for pkg in pkgs -%}
+  {% for pkg in pkgs %}
     <a href="{{ 'package_versions' | route_url(package=pkg, _='/') }}">{{ pkg }}</a><br>
-  {%- endfor -%}
+  {%- endfor %}
 </body>
 </html>

@@ -4,8 +4,8 @@
   <title>Package Index</title>
 </head>
 <body>
-  {%- for pkg in pkgs -%}
+  {% for pkg in pkgs %}
     <a href="{{ request.create_url(pkg.path) | safe }}">{{ pkg.filename }}</a><br>
-  {%- endfor -%}
+  {%- endfor %}
 </body>
 </html>
