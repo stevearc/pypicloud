@@ -68,8 +68,10 @@ def all_packages(request):
              renderer='package.jinja2')
 def package_versions(request):
     """ Render the links for all versions of a package """
-    package = request.matchdict['package']
-    pkgs = [pkg for pkg in request.packages if pkg.name == package]
+    package_name = request.matchdict['package']
+    package = Package(package_name)
+
+    pkgs = [pkg for pkg in request.packages if pkg.name == package.name]
     if request.registry.use_fallback and not pkgs:
         redirect_url = "%s/%s/" % (
             request.registry.fallback_url.rstrip('/'), package)

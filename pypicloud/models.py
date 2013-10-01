@@ -9,17 +9,17 @@ class Package(object):
     ----------
     name : str
         The name of the package (will be normalized)
-    version : str
+    version : str, optional
         The version number of the package
     path : str, optional
         The absolute S3 path of the package file
 
     """
 
-    def __init__(self, name, version, path=None):
-        self.path = path
+    def __init__(self, name, version=None, path=None):
         self.name = name.lower().replace('-', '_')
         self.version = version
+        self.path = path
 
     @property
     def filename(self):
