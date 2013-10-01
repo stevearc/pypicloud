@@ -74,6 +74,6 @@ def package_versions(request):
     pkgs = [pkg for pkg in request.packages if pkg.name == package.name]
     if request.registry.use_fallback and not pkgs:
         redirect_url = "%s/%s/" % (
-            request.registry.fallback_url.rstrip('/'), package)
+            request.registry.fallback_url.rstrip('/'), package_name)
         return HTTPFound(location=redirect_url)
     return {'pkgs': pkgs}
