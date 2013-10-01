@@ -17,12 +17,6 @@ from pyramid.authorization import ACLAuthorizationPolicy
 from .models import Package
 
 
-# How long the package urls are valid for
-VALID_TIME = 60 * 60
-# How much earlier our cache will expire compared to the S3 url
-BUFFER = 5 * 60
-
-
 class Root(dict):
 
     """ Root context for PyPI Cloud """
@@ -133,7 +127,7 @@ def _cache(request):
 
 def _packages(request):
     """ Accessor for Packages """
-    keys = request.bucket.list(request.registry.path)
+    keys = request.bucket.list(request.registry.prefix)
     packages = []
     for key in keys:
         pkg = Package.from_path(key.name)
@@ -149,14 +143,15 @@ def _create_url(request, path):
             return cached_value
     key = Key(request.bucket)
     key.key = path
-    expire_after = time.time() + VALID_TIME
+    expire_after = time.time() + request.registry.expire_after
     url = key.generate_url(expire_after, expires_in_absolute=True)
     if request.cache:
-        request.cache.store(request, path, url, expire_after - BUFFER)
+        cache_expire_after = expire_after - request.registry.cache_buffer
+        request.cache.store(request, path, url, cache_expire_after)
     return url
 
-NO_ARG = object()
 
+NO_ARG = object()
 
 def _param(request, name, default=NO_ARG):
     """
@@ -221,7 +216,9 @@ def main(config, **settings):
         aws_secret_access_key=settings['aws.secret_key'])
     config.registry.s3bucket = s3conn.get_bucket(settings['aws.bucket'])
 
-    config.registry.path = settings.get('aws.path', '')
+    config.registry.prefix = settings.get('aws.prefix', '')
+    config.registry.expire_after = int(settings.get('aws.expire_after',
+                                                    60 * 60 * 24))
     config.registry.fallback_url = settings.get('pypi.fallback_url',
                                                 'http://pypi.python.org/simple')
     config.registry.use_fallback = asbool(settings.get('pypi.use_fallback',
@@ -238,6 +235,8 @@ def main(config, **settings):
     if cache_type is not None:
         cache_class = name_resolver.resolve(cache_type)
         config.registry.cache = cache_class(settings)
+        config.registry.cache_buffer = int(settings.get('cache.buffer_time',
+                                                        5 * 60))
     else:
         config.registry.cache = None
 

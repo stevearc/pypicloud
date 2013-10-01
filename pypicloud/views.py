@@ -33,7 +33,7 @@ def update(request):
         except ValueError:
             raise HTTPNotFound("Could not find %s==%s" % (name, version))
         key = Key(request.bucket)
-        key.key = request.registry.path + package.filename
+        key.key = request.registry.prefix + package.filename
         key.delete()
         return request.response
     elif action == 'file_upload':
@@ -42,7 +42,7 @@ def update(request):
         if '/' in filename:
             raise HTTPBadRequest("Invalid file path '%s'" % filename)
         key = Key(request.bucket)
-        key.key = request.registry.path + filename
+        key.key = request.registry.prefix + filename
         key.set_contents_from_file(data)
         return request.response
     else:

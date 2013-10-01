@@ -44,7 +44,8 @@ class FilesystemCache(ICache):
     """
     Cache implementation that uses the :mod:`shelve` module
 
-    Requires you to define ``cache.container`` in your config file.
+    Requires you to define ``cache.container`` in your config file, which is a
+    path to a file. For example: "%(here)s/cache"
 
     """
 
@@ -74,7 +75,8 @@ class SqliteDictCache(ICache):
 
     You will need to install the sqlitedict module
 
-    Requires you to define ``cache.url``
+    Requires you to define ``cache.url`` in your config file, which is a SQLite
+    url. For example: "sqlite:///%(here)s/cache.sqlite"
 
     """
 
