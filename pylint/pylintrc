@@ -1,0 +1,14 @@
+[MESSAGES CONTROL]
+disable=E1103,I0011,I0012,C0301,C0302,R0201,R0801,R0901,R0902,R0903,R0904,R0911,R0912,R0913,R0914,R0915,R0924,W0105,W0122,W0141,W0142,W0201,W0212,W0221,W0232,W0511,W0603,W0611,W0622,W0612,W0613,W0702,W0703,W1401,
+
+[BASIC]
+argument-rgx=[a-z_][a-z0-9_]{0,30}$
+variable-rgx=[a-z_][a-z0-9_]{0,30}$
+function-rgx=[a-z_][a-z0-9_]{0,30}$
+attr-rgx=[a-z_][a-z0-9_]{0,30}$
+method-rgx=([a-z_][a-z0-9_]{0,50}|setUp|tearDown|setUpClass|tearDownClass)$
+no-docstring-rgx=((__.*__)|setUp|tearDown)$
+
+[REPORTS]
+include-ids=yes
+reports=no

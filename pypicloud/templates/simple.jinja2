@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Simple Index</title>
+</head>
+<body>
+  {%- for pkg in pkgs -%}
+    <a href="{{ 'package_versions' | route_url(package=pkg) }}">{{ pkg }}</a><br>
+  {%- endfor -%}
+</body>
+</html>
