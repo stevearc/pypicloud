@@ -9,7 +9,7 @@ README = open(os.path.join(HERE, 'README.rst')).read()
 CHANGES = open(os.path.join(HERE, 'CHANGES.txt')).read()
 
 REQUIREMENTS = [
-    'pyramid',
+    'pyramid==1.4',
     'boto',
     'pyramid_jinja2',
     'paste',
