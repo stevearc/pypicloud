@@ -8,7 +8,7 @@ class Package(object):
     Parameters
     ----------
     name : str
-        The normalized name of the package
+        The name of the package (will be normalized)
     version : str
         The version number of the package
     path : str, optional
@@ -18,7 +18,7 @@ class Package(object):
 
     def __init__(self, name, version, path=None):
         self.path = path
-        self.name = name
+        self.name = name.lower().replace('-', '_')
         self.version = version
 
     @property
@@ -31,12 +31,7 @@ class Package(object):
         """ Construct a Package object from the S3 path """
         filename = os.path.basename(path)
         name, version = cls.parse_package_and_version(filename)
-        return cls(cls.normalize_package_name(name), version, path)
-
-    @classmethod
-    def normalize_package_name(cls, pkg):
-        """ Normalized formatting for python package names """
-        return pkg.lower().replace('-', '_')
+        return cls(name, version, path)
 
     @classmethod
     def parse_package_and_version(cls, path):
