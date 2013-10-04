@@ -125,9 +125,9 @@ def _cache(request):
     return request.registry.cache
 
 
-def _packages(request):
+def _packages(request, prefix=''):
     """ Accessor for Packages """
-    keys = request.bucket.list(request.registry.prefix)
+    keys = request.bucket.list(request.registry.prefix + prefix)
     packages = []
     for key in keys:
         pkg = Package.from_path(key.name)
@@ -242,7 +242,7 @@ def main(config, **settings):
 
     config.add_request_method(_bucket, name='bucket', reify=True)
     config.add_request_method(_cache, name='cache', reify=True)
-    config.add_request_method(_packages, name='packages', reify=True)
+    config.add_request_method(_packages, name='packages')
     config.add_request_method(_create_url, name='create_url')
     config.add_request_method(_param, name='param')
 

@@ -28,8 +28,9 @@ def update(request):
         version = request.param("version")
         package = Package(name, version)
         try:
-            index = request.packages.index(package)
-            package = request.packages[index]
+            packages = request.packages()
+            index = packages.index(package)
+            package = packages[index]
         except ValueError:
             raise HTTPNotFound("Could not find %s==%s" % (name, version))
         key = Key(request.bucket)
@@ -53,7 +54,7 @@ def update(request):
              renderer='simple.jinja2')
 def simple(request):
     """ Render the list of all unique package names """
-    unique_pkgs = set((pkg.name for pkg in request.packages))
+    unique_pkgs = set((pkg.name for pkg in request.packages()))
     return {'pkgs': sorted(unique_pkgs)}
 
 
@@ -61,7 +62,7 @@ def simple(request):
              renderer='package.jinja2')
 def all_packages(request):
     """ Render all package file names """
-    return {'pkgs': request.packages}
+    return {'pkgs': request.packages()}
 
 
 @view_config(route_name='package_versions', request_method='GET',
@@ -71,7 +72,8 @@ def package_versions(request):
     package_name = request.matchdict['package']
     package = Package(package_name)
 
-    pkgs = [pkg for pkg in request.packages if pkg.name == package.name]
+    pkgs = [pkg for pkg in request.packages(package_name)
+            if pkg.name == package.name]
     if request.registry.use_fallback and not pkgs:
         redirect_url = "%s/%s/" % (
             request.registry.fallback_url.rstrip('/'), package_name)
