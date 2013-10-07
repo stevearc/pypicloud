@@ -72,7 +72,7 @@ def package_versions(request):
     package_name = request.matchdict['package']
     package = Package(package_name)
 
-    pkgs = [pkg for pkg in request.packages(package_name)
+    pkgs = [pkg for pkg in request.packages(package.name)
             if pkg.name == package.name]
     if request.registry.use_fallback and not pkgs:
         redirect_url = "%s/%s/" % (
