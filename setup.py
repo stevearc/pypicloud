@@ -14,6 +14,9 @@ REQUIREMENTS = [
     'pyramid_jinja2',
     'paste',
     'passlib',
+    'pyramid_tm',
+    'transaction',
+    'zope.sqlalchemy',
 ]
 
 DATA = {
@@ -40,6 +43,8 @@ DATA = {
     'entry_points': {
         'console_scripts': [
             'pypicloud-gen-password = pypicloud:gen_password',
+            'pypicloud-create-schema = pypicloud.scripts:run_create_schema',
+            'pypicloud-drop-schema = pypicloud.scripts:run_drop_schema',
         ],
         'paste.app_factory': [
             'main = pypicloud:main',

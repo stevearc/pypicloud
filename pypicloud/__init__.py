@@ -1,19 +1,22 @@
 """ S3-backed pypi server """
-import boto.s3
-from pyramid.path import DottedNameResolver
-from boto.s3.key import Key
-from pyramid.settings import asbool
-from passlib.hash import sha256_crypt  # pylint: disable=E0611
-import getpass
 import binascii
-from paste.httpheaders import AUTHORIZATION
-from paste.httpheaders import WWW_AUTHENTICATE
+
+import boto.s3
+import getpass
+from passlib.hash import sha256_crypt  # pylint: disable=E0611
+from paste.httpheaders import AUTHORIZATION, WWW_AUTHENTICATE
+from pyramid.authorization import ACLAuthorizationPolicy
+from pyramid.config import Configurator
+from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.security import (Allow, Deny, Authenticated, Everyone,
                               ALL_PERMISSIONS)
-from pyramid.httpexceptions import HTTPBadRequest
-import time
-from pyramid.config import Configurator
-from pyramid.authorization import ACLAuthorizationPolicy
+from pyramid.settings import asbool
+from sqlalchemy import engine_from_config
+from sqlalchemy.orm import sessionmaker
+# pylint: disable=F0401,E0611
+from zope.sqlalchemy import ZopeTransactionExtension
+# pylint: enable=F0401,E0611
+
 from .models import Package
 
 
@@ -120,38 +123,38 @@ def _bucket(request):
     return request.registry.s3bucket
 
 
-def _cache(request):
-    """ Accessor for ICache object """
-    return request.registry.cache
+def _db(request):
+    """ Access a sqlalchemy session """
+    maker = request.registry.dbmaker
+    session = maker()
+
+    def cleanup(request):
+        """ Close the session after the request """
+        session.close()
+    request.add_finished_callback(cleanup)
+
+    return session
 
 
-def _packages(request, prefix=''):
+def _packages(request, name=None):
     """ Accessor for Packages """
-    keys = request.bucket.list(request.registry.prefix + prefix)
-    packages = []
-    for key in keys:
-        pkg = Package.from_path(key.name)
-        packages.append(pkg)
-    return packages
-
-
-def _create_url(request, path):
-    """ Create or return an HTTP url for an S3 path """
-    if request.cache:
-        cached_value = request.cache.fetch(request, path)
-        if cached_value is not None:
-            return cached_value
-    key = Key(request.bucket)
-    key.key = path
-    expire_after = time.time() + request.registry.expire_after
-    url = key.generate_url(expire_after, expires_in_absolute=True)
-    if request.cache:
-        cache_expire_after = expire_after - request.registry.cache_buffer
-        request.cache.store(request, path, url, cache_expire_after)
-    return url
+    if request.db.query(Package).count() == 0:
+        keys = request.bucket.list(request.registry.prefix)
+        packages = []
+        for key in keys:
+            pkg = Package.from_path(key.name)
+            packages.append(pkg)
+            request.db.merge(pkg)
+        return packages
+    else:
+        query = request.db.query(Package)
+        if name is not None:
+            query = query.filter_by(name=name)
+        return query.all()
 
 
 NO_ARG = object()
+
 
 def _param(request, name, default=NO_ARG):
     """
@@ -219,31 +222,20 @@ def main(config, **settings):
     config.registry.prefix = settings.get('aws.prefix', '')
     config.registry.expire_after = int(settings.get('aws.expire_after',
                                                     60 * 60 * 24))
+    config.registry.buffer_time = int(settings.get('aws.buffer_time',
+                                                   300))
     config.registry.fallback_url = settings.get('pypi.fallback_url',
                                                 'http://pypi.python.org/simple')
     config.registry.use_fallback = asbool(settings.get('pypi.use_fallback',
                                                        True))
 
-    # Configure the cache
-    name_resolver = DottedNameResolver(__package__)
-    cache_type = settings.get('cache.type')
-    if cache_type == 'filesystem':
-        cache_type = 'pypicloud.caches.FilesystemCache'
-    elif cache_type == 'sqlitedict':
-        cache_type = 'pypicloud.caches.SqliteDictCache'
-
-    if cache_type is not None:
-        cache_class = name_resolver.resolve(cache_type)
-        config.registry.cache = cache_class(settings)
-        config.registry.cache_buffer = int(settings.get('cache.buffer_time',
-                                                        5 * 60))
-    else:
-        config.registry.cache = None
+    config.add_request_method(_db, name='db', reify=True)
+    engine = engine_from_config(settings, prefix='sqlalchemy.')
+    config.registry.dbmaker = sessionmaker(bind=engine,
+                                           extension=ZopeTransactionExtension())
 
     config.add_request_method(_bucket, name='bucket', reify=True)
-    config.add_request_method(_cache, name='cache', reify=True)
     config.add_request_method(_packages, name='packages')
-    config.add_request_method(_create_url, name='create_url')
     config.add_request_method(_param, name='param')
 
     # Configure routes

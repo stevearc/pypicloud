@@ -31,6 +31,7 @@ def update(request):
             packages = request.packages()
             index = packages.index(package)
             package = packages[index]
+            package.delete()
         except ValueError:
             raise HTTPNotFound("Could not find %s==%s" % (name, version))
         key = Key(request.bucket)
@@ -45,6 +46,8 @@ def update(request):
         key = Key(request.bucket)
         key.key = request.registry.prefix + filename
         key.set_contents_from_file(data)
+        pkg = Package.from_path(key.key)
+        request.db.merge(pkg)
         return request.response
     else:
         raise HTTPBadRequest("Unknown action '%s'" % action)

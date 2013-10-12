@@ -31,21 +31,17 @@ value::
     aws.prefix =
     # How long the generated S3 urls are valid for (optional)
     aws.expire_after = 86400 # (1 day)
+    # Our url cache will expire this long before the S3 urls actually expire,
+    # giving applications time to complete their downloads (optional)
+    aws.buffer_time = 300 # (5 minutes)
 
     # If True, forward requests for unknown packages to another url (optional)
     pypi.use_fallback = True
     # The url to forward unknown package requests to (optional)
     pypi.fallback_url = http://pypi.python.org/simple
 
-    # You can specify a caching mechanism to cache S3 urls so the webserver
-    # doesn't have to recompute them on every page load. This should be a
-    # dotted path to a class that extends ``pypicloud.models.ICache``. Two
-    # simple cache types are available in this package; see the
-    # ``pypicloud.models`` module for details (optional)
-    cache.type =
-    # Our url cache will expire this long before the S3 urls actually expire,
-    # giving applications time to complete their downloads (optional)
-    cache.buffer_time = 300 # (5 minutes)
+    # The sqlalchemy settings for caching package urls
+    sqlalchemy.url =
 
     # To authenticate while uploading packages, provide any number of
     # username/passwords. To generate the password hash, use the
@@ -88,4 +84,3 @@ Now to upload a package you should run::
 TODO
 ====
 * Sqlalchemy models to cache S3 keys
-* Redis logic to cache S3 keys
