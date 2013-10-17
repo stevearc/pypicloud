@@ -45,6 +45,7 @@ DATA = {
             'pypicloud-gen-password = pypicloud:gen_password',
             'pypicloud-create-schema = pypicloud.scripts:run_create_schema',
             'pypicloud-drop-schema = pypicloud.scripts:run_drop_schema',
+            'pypicloud-refresh-packages = pypicloud.scripts:run_refresh_packages',
         ],
         'paste.app_factory': [
             'main = pypicloud:main',
