@@ -40,8 +40,8 @@ value::
     # The url to forward unknown package requests to (optional)
     pypi.fallback_url = http://pypi.python.org/simple
 
-    # The sqlalchemy settings for caching package urls
-    sqlalchemy.url =
+    # The sqlalchemy database url (S3 urls are cached in the db)
+    sqlalchemy.url = <<sqlalchemy url>>
 
     # To authenticate while uploading packages, provide any number of
     # username/passwords. To generate the password hash, use the
@@ -80,7 +80,3 @@ inside your $HOME/.pypirc::
 Now to upload a package you should run::
 
     python setup.py sdist upload -r pypicloud
-
-TODO
-====
-* Sqlalchemy models to cache S3 keys
