@@ -9,7 +9,7 @@ from .models import Package
 @view_config(route_name='index', request_method='GET', renderer='index.jinja2')
 def get_index(request):
     """ Render a home screen """
-    from .__version__ import __version__
+    from . import __version__
     return {'version': __version__}
 
 
