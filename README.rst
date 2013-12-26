@@ -20,8 +20,15 @@ To get started developing pypicloud, run the following command::
     python unbox.py git@github.com:mathcamp/pypicloud
 
 This will clone the repository and install the package into a virtualenv. From
-there you should add your AWS credentials to ``development.ini`` and run the
-server with ``pserve --reload development.ini``.
+there you should add your AWS credentials to ``development.ini`` (details below).
+
+Now you need to create the schema in the default sqlite database, so run::
+
+    pypicloud-create-schema development.ini
+
+Now you can run the server with::
+
+    pserve --reload development.ini
 
 Configuration Options
 =====================
