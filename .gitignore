@@ -37,4 +37,5 @@ nosetests.xml
 .pydevproject
 
 cache
-__version__.py
+_version.py
+pypicloud_env

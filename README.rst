@@ -12,6 +12,17 @@ backing up my package directory and scaling up the number of webservers as our
 cloud grows. Since all pypicloud is doing is serving pages that link to S3, it
 should scale like a motherfucker.
 
+Development
+===========
+To get started developing pypicloud, run the following command::
+
+    wget https://raw.github.com/mathcamp/devbox/master/devbox/unbox.py && \
+    python unbox.py git@github.com:mathcamp/pypicloud
+
+This will clone the repository and install the package into a virtualenv. From
+there you should add your AWS credentials to ``development.ini`` and run the
+server with ``pserve --reload development.ini``.
+
 Configuration Options
 =====================
 Here is the list of options that you can use to customize the behavior. Some

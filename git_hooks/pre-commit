@@ -1,0 +1,3 @@
+#!/bin/bash -e
+git diff-index --check --cached HEAD --
+./pypicloud_env/bin/python git_hooks/hook.py

@@ -1,2 +1,4 @@
 waitress
-pylint==0.28
+pylint>=1.1.0
+pep8
+autopep8

@@ -18,6 +18,10 @@ from zope.sqlalchemy import ZopeTransactionExtension
 # pylint: enable=F0401,E0611
 
 from .models import Package
+try:
+    from ._version import *  # pylint: disable=F0401,W0401
+except ImportError:
+    __version__ = 'unknown'
 
 
 class Root(dict):

@@ -1,2 +1,3 @@
 include *.txt *.ini *.cfg *.rst
 recursive-include pypicloud *.ico *.png *.css *.gif *.jpg *.pt *.txt *.mak *.mako *.js *.html *.xml *.jinja2
+include version_helper.py
