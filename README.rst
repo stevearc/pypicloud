@@ -36,10 +36,13 @@ Here is the list of options that you can use to customize the behavior. Some
 are optional, others are not. Optional keys are listed with their default
 value::
 
-    # Your AWS access key id
+    # Your AWS access key id (if not present the environment variable
+    # AWS_ACCESS_KEY_ID is used)
     aws.access_key = <<AWS access key>>
-    # Your AWS secret access key
+    # Your AWS secret access key (if not present the environment variable
+    # AWS_SECRET_ACCESS_KEY is used)
     aws.secret_key = <<AWS secret key>>
+
     # The name of the S3 bucket to store package in. Note: your bucket must not
     # have "." in it. Amazon's SSL certificate for S3 urls is only valid for
     # *.s3.amazonaws.com

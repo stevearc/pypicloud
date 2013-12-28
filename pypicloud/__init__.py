@@ -219,8 +219,8 @@ def main(config, **settings):
     )
 
     s3conn = boto.connect_s3(
-        aws_access_key_id=settings['aws.access_key'],
-        aws_secret_access_key=settings['aws.secret_key'])
+        aws_access_key_id=settings.get('aws.access_key'),
+        aws_secret_access_key=settings.get('aws.secret_key'))
     config.registry.s3bucket = s3conn.get_bucket(settings['aws.bucket'])
 
     config.registry.prefix = settings.get('aws.prefix', '')

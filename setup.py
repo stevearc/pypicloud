@@ -35,7 +35,7 @@ if __name__ == "__main__":
             'Topic :: Internet :: WWW/HTTP',
             'Topic :: System :: Systems Administration',
         ],
-        licence='MIT',
+        license='MIT',
         author='Steven Arcangeli',
         author_email='steven@highlig.ht',
         url='http://github.com/mathcamp/pypicloud',
