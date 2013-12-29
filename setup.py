@@ -12,6 +12,7 @@ CHANGES = open(os.path.join(HERE, 'CHANGES.rst')).read()
 REQUIREMENTS = [
     'pyramid==1.4',
     'boto',
+    'mock',
     'pyramid_jinja2',
     'paste',
     'passlib',
@@ -27,6 +28,7 @@ if __name__ == "__main__":
         long_description=README + '\n\n' + CHANGES,
         classifiers=[
             'Programming Language :: Python',
+            'Programming Language :: Python :: 2.7',
             'Development Status :: 4 - Beta',
             'Framework :: Pylons',
             'Intended Audience :: System Administrators',
@@ -39,7 +41,7 @@ if __name__ == "__main__":
         author='Steven Arcangeli',
         author_email='steven@highlig.ht',
         url='http://github.com/mathcamp/pypicloud',
-        keywords='pypi s3',
+        keywords='pypi s3 cheeseshop package',
         zip_safe=False,
         include_package_data=True,
         packages=find_packages(),

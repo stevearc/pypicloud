@@ -1,4 +1,6 @@
 """ Model objects """
+from pip.util import normalize_name, splitext
+from functools import total_ordering
 import os
 import time
 from datetime import datetime
@@ -11,14 +13,13 @@ from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base()  # pylint: disable=C0103
 
 
-def create_schema(registry):
+def create_schema(engine):
     """
     Create the database schema if needed
 
     Parameters
     ----------
-    registry : dict
-        The configuration registry
+    engine : :class:`sqlalchemy.Engine`
 
     Notes
     -----
@@ -26,17 +27,16 @@ def create_schema(registry):
     models which extend the ``Base`` object.
 
     """
-    Base.metadata.create_all(bind=registry.dbmaker.kw['bind'])
+    Base.metadata.create_all(bind=engine)
 
 
-def drop_schema(registry):
+def drop_schema(engine):
     """
     Drop the database schema
 
     Parameters
     ----------
-    registry : dict
-        The configuration registry
+    engine : :class:`sqlalchemy.Engine`
 
     Notes
     -----
@@ -44,9 +44,10 @@ def drop_schema(registry):
     models which extend the ``Base`` object.
 
     """
-    Base.metadata.drop_all(bind=registry.dbmaker.kw['bind'])
+    Base.metadata.drop_all(bind=engine)
 
 
+@total_ordering
 class Package(Base):
 
     """
@@ -70,7 +71,7 @@ class Package(Base):
     _expire = Column('expire', DateTime())
 
     def __init__(self, name, version=None, path=None):
-        self.name = name.lower().replace('-', '_')
+        self.name = name
         self.version = version
         self.path = path
         self._url = None
@@ -88,22 +89,23 @@ class Package(Base):
                                                   request.registry.buffer_time)
         return self._url
 
-    @property
-    def filename(self):
-        """ Just the package file name with no leading path """
-        return os.path.basename(self.path)
+    @classmethod
+    def from_key(cls, key):
+        """ Construct a Package object from the S3 key """
+        name = key.get_metadata('name')
+        version = key.get_metadata('version')
+
+        # We used to not store metadata. This is for backwards compatibility
+        if name is None or version is None:
+            filename = os.path.basename(key.key)
+            name, version = cls._parse_package_and_version(filename)
+
+        return cls(normalize_name(name), version, key.key)
 
     @classmethod
-    def from_path(cls, path):
-        """ Construct a Package object from the S3 path """
-        filename = os.path.basename(path)
-        name, version = cls.parse_package_and_version(filename)
-        return cls(name, version, path=path)
-
-    @classmethod
-    def parse_package_and_version(cls, path):
+    def _parse_package_and_version(cls, path):
         """ Parse the package name and version number from a path """
-        filename, _ = os.path.splitext(path)
+        filename = splitext(path)[0]
         if filename.endswith('.tar'):
             filename = filename[:-len('.tar')]
         if '-' not in filename:
@@ -111,15 +113,18 @@ class Package(Base):
         path_components = filename.split('-')
         for i, comp in enumerate(path_components):
             if comp[0].isdigit():
-                return ('-'.join(path_components[:i]),
+                return ('_'.join(path_components[:i]).lower(),
                         '-'.join(path_components[i:]))
-        return filename, ''
+        return filename.lower().replace('-', '_'), ''
 
     def __hash__(self):
-        return hash(self.name, self.version)
+        return hash(self.name) + hash(self.version)
 
     def __eq__(self, other):
         return self.name == other.name and self.version == other.version
+
+    def __lt__(self, other):
+        return (self.name, self.version) < (other.name, other.version)
 
     def __str__(self):
         return unicode(self).encode('utf-8')

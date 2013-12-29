@@ -22,14 +22,14 @@ def setup(description):
 def run_create_schema():
     """ Create the schema for the sqlalchemy database """
     env = setup(run_create_schema.__doc__)
-    create_schema(env['registry'])
+    create_schema(env['registry'].dbmaker.kw['bind'])
     print "Success!"
 
 
 def run_drop_schema():
     """ Drop all tables and schema from the sqlalchemy database """
     env = setup(run_drop_schema.__doc__)
-    drop_schema(env['registry'])
+    drop_schema(env['registry'].dbmaker.kw['bind'])
     print "Success!"
 
 

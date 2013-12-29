@@ -70,7 +70,7 @@ class BasicAuthenticationPolicy(object):
             return effective_principals
         userid = credentials['login']
         groups = self.check(credentials, request)
-        if groups is None:  # is None!
+        if groups is None:
             return effective_principals
         effective_principals.append(Authenticated)
         effective_principals.append(userid)

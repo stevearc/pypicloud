@@ -22,14 +22,18 @@ except ImportError:
     __version__ = 'unknown'
 
 
-class Root(dict):
+class Root(object):
 
     """ Root context for PyPI Cloud """
-    __name__ = __parent__ = None
+    __name__ = ''
+    __parent__ = None
     __acl__ = [
         (Allow, Authenticated, ALL_PERMISSIONS),
         (Deny, Everyone, ALL_PERMISSIONS),
     ]
+
+    def __init__(self, request):
+        self.request = request
 
 
 def _bucket(request):
@@ -50,22 +54,13 @@ def _db(request):
     return session
 
 
-def _packages(request, name=None):
-    """ Accessor for Packages """
+def _fetch_if_needed(request):
+    """ Make sure local database is populated with packages """
     if request.db.query(Package).first() is None:
         keys = request.bucket.list(request.registry.prefix)
-        packages = []
         for key in keys:
-            pkg = Package.from_path(key.name)
-            if name is None or pkg.name == name:
-                packages.append(pkg)
+            pkg = Package.from_key(key)
             request.db.add(pkg)
-        return packages
-    else:
-        query = request.db.query(Package)
-        if name is not None:
-            query = query.filter_by(name=name)
-        return query.all()
 
 
 NO_ARG = object()
@@ -131,7 +126,8 @@ def main(config, **settings):
                                            extension=ZopeTransactionExtension())
 
     config.add_request_method(_bucket, name='bucket', reify=True)
-    config.add_request_method(_packages, name='packages')
+    config.add_request_method(
+        _fetch_if_needed, name='fetch_packages_if_needed')
     config.add_request_method(_param, name='param')
 
     # Configure routes

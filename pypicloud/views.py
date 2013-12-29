@@ -1,4 +1,6 @@
 """ Views """
+from pip.util import normalize_name
+from sqlalchemy import distinct
 from boto.s3.key import Key
 from pyramid.httpexceptions import HTTPBadRequest, HTTPFound, HTTPNotFound
 from pyramid.view import view_config
@@ -17,37 +19,45 @@ def get_index(request):
 def update(request):
     """ Handle update commands """
     action = request.param(':action')
-    if action == 'verify':
-        return request.response
-    elif action == 'submit':
-        return request.response
-    elif action == 'doc_upload':
-        return request.response
-    elif action == 'remove_pkg':
-        name = request.param("name")
+    if action == 'remove_pkg':
+        name = normalize_name(request.param("name"))
         version = request.param("version")
-        package = Package(name, version)
-        try:
-            packages = request.packages()
-            index = packages.index(package)
-            package = packages[index]
-            package.delete()
-        except ValueError:
+        request.fetch_packages_if_needed()
+        package = request.db.query(Package).filter_by(name=name,
+                                                      version=version).first()
+        if package is None:
             raise HTTPNotFound("Could not find %s==%s" % (name, version))
         key = Key(request.bucket)
-        key.key = request.registry.prefix + package.filename
+        key.key = package.path
         key.delete()
+        request.db.delete(package)
         return request.response
     elif action == 'file_upload':
-        filename = request.POST['content'].filename
-        data = request.POST['content'].file
+        request.fetch_packages_if_needed()
+        name = normalize_name(request.param('name'))
+        version = request.param('version')
+        content = request.param('content')
+        filename = content.filename
+        data = content.file
         if '/' in filename:
             raise HTTPBadRequest("Invalid file path '%s'" % filename)
         key = Key(request.bucket)
         key.key = request.registry.prefix + filename
+        key.set_metadata('name', name)
+        key.set_metadata('version', version)
         key.set_contents_from_file(data)
-        pkg = Package.from_path(key.key)
-        request.db.merge(pkg)
+        pkg = request.db.query(Package).filter_by(name=name,
+                                                  version=version).first()
+        if pkg is None:
+            pkg = Package(name, version, key.key)
+            request.db.add(pkg)
+        elif pkg.path != key.key:
+            # If we're overwriting the same package with a different filename,
+            # make sure we delete the old file in S3
+            old_key = Key(request.bucket)
+            old_key.key = pkg.path
+            old_key.delete()
+            pkg.path = key.key
         return request.response
     else:
         raise HTTPBadRequest("Unknown action '%s'" % action)
@@ -57,28 +67,33 @@ def update(request):
              renderer='simple.jinja2')
 def simple(request):
     """ Render the list of all unique package names """
-    unique_pkgs = set((pkg.name for pkg in request.packages()))
-    return {'pkgs': sorted(unique_pkgs)}
+    request.fetch_packages_if_needed()
+    names = request.db.query(distinct(Package.name))\
+        .order_by(Package.name).all()
+    return {'pkgs': [n[0] for n in names]}
 
 
 @view_config(route_name='packages', request_method='GET',
              renderer='package.jinja2')
 def all_packages(request):
     """ Render all package file names """
-    return {'pkgs': request.packages()}
+    request.fetch_packages_if_needed()
+    packages = request.db.query(Package).order_by(Package.name,
+                                                  Package.version).all()
+    return {'pkgs': packages}
 
 
 @view_config(route_name='package_versions', request_method='GET',
              renderer='package.jinja2')
 def package_versions(request):
     """ Render the links for all versions of a package """
-    package_name = request.matchdict['package']
-    package = Package(package_name)
+    name = normalize_name(request.matchdict['package'])
 
-    pkgs = [pkg for pkg in request.packages(package.name)
-            if pkg.name == package.name]
+    request.fetch_packages_if_needed()
+    pkgs = request.db.query(Package).filter_by(name=name)\
+        .order_by(Package.version).all()
     if request.registry.use_fallback and not pkgs:
         redirect_url = "%s/%s/" % (
-            request.registry.fallback_url.rstrip('/'), package_name)
+            request.registry.fallback_url.rstrip('/'), name)
         return HTTPFound(location=redirect_url)
     return {'pkgs': pkgs}
