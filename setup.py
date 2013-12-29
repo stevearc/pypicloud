@@ -28,6 +28,7 @@ if __name__ == "__main__":
         long_description=README + '\n\n' + CHANGES,
         classifiers=[
             'Programming Language :: Python',
+            'Programming Language :: Python :: 2.6',
             'Programming Language :: Python :: 2.7',
             'Development Status :: 4 - Beta',
             'Framework :: Pylons',
