@@ -7,15 +7,18 @@ from pyramid.view import view_config
 
 from . import __version__
 from .models import Package
+from .route import Root, subpath, addslash
 
 
-@view_config(route_name='index', request_method='GET', renderer='index.jinja2')
+@view_config(route_name='root', request_method='GET', renderer='index.jinja2')
+@view_config(context=Root, name='pypi', request_method='GET',
+             renderer='index.jinja2')
 def get_index(request):
     """ Render a home screen """
     return {'version': __version__}
 
 
-@view_config(route_name='index', request_method='POST', permission='update')
+@view_config(route_name='root', request_method='POST', permission='update')
 def update(request):
     """ Handle update commands """
     action = request.param(':action')
@@ -63,8 +66,9 @@ def update(request):
         raise HTTPBadRequest("Unknown action '%s'" % action)
 
 
-@view_config(route_name='simple', request_method='GET',
+@view_config(context=Root, name='simple', request_method='GET',
              renderer='simple.jinja2')
+@addslash
 def simple(request):
     """ Render the list of all unique package names """
     request.fetch_packages_if_needed()
@@ -73,8 +77,9 @@ def simple(request):
     return {'pkgs': [n[0] for n in names]}
 
 
-@view_config(route_name='packages', request_method='GET',
+@view_config(context=Root, name='packages', request_method='GET',
              renderer='package.jinja2')
+@addslash
 def all_packages(request):
     """ Render all package file names """
     request.fetch_packages_if_needed()
@@ -83,11 +88,12 @@ def all_packages(request):
     return {'pkgs': packages}
 
 
-@view_config(route_name='package_versions', request_method='GET',
-             renderer='package.jinja2')
+@view_config(context=Root, name='simple', request_method='GET',
+             renderer='package.jinja2', custom_predicates=(subpath('*'),))
+@addslash
 def package_versions(request):
     """ Render the links for all versions of a package """
-    name = normalize_name(request.matchdict['package'])
+    name = normalize_name(request.subpath[0])
 
     request.fetch_packages_if_needed()
     pkgs = request.db.query(Package).filter_by(name=name)\

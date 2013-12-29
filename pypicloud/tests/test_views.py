@@ -19,6 +19,7 @@ class TestViews(TestCase):
         create_schema(engine)
         self.db = sessionmaker(bind=engine)()
         self.request = DummyRequest()
+        self.request.url = 'http://myserver/path/'
         self.request.bucket = MagicMock()
         self.request.fetch_packages_if_needed = MagicMock()
         self.request.db = self.db
@@ -62,7 +63,7 @@ class TestViews(TestCase):
         p1, p2, _ = self._add_packages()
 
         self.request.registry.use_fallback = False
-        self.request.matchdict['package'] = p1.name
+        self.request.subpath = [p1.name]
         pkgs = package_versions(self.request)
         self.request.fetch_packages_if_needed.assert_called()
         self.assertEquals(len(pkgs), 1)
@@ -73,7 +74,7 @@ class TestViews(TestCase):
         self.request.registry.use_fallback = True
         fallback, pkg = 'http://pypi.com', 'missing'
         self.request.registry.fallback_url = fallback
-        self.request.matchdict['package'] = pkg
+        self.request.subpath = [pkg]
         response = package_versions(self.request)
         self.request.fetch_packages_if_needed.assert_called()
         self.assertEquals(response.location, '%s/%s/' % (fallback, pkg))

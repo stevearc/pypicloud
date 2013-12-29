@@ -1,10 +1,9 @@
 """ S3-backed pypi server """
+from functools import partial
 import boto.s3
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.config import Configurator
 from pyramid.httpexceptions import HTTPBadRequest
-from pyramid.security import (Allow, Deny, Authenticated, Everyone,
-                              ALL_PERMISSIONS)
 from pyramid.settings import asbool
 from sqlalchemy import engine_from_config
 from sqlalchemy.orm import sessionmaker
@@ -14,6 +13,7 @@ from zope.sqlalchemy import ZopeTransactionExtension
 
 from .auth import auth_callback, BasicAuthenticationPolicy
 from .models import Package
+from .route import Root, subpath
 
 
 try:
@@ -22,18 +22,30 @@ except ImportError:
     __version__ = 'unknown'
 
 
-class Root(object):
+class CustomPredicateConfig(Configurator):
 
-    """ Root context for PyPI Cloud """
-    __name__ = ''
-    __parent__ = None
-    __acl__ = [
-        (Allow, Authenticated, ALL_PERMISSIONS),
-        (Deny, Everyone, ALL_PERMISSIONS),
-    ]
+    """
+    Custom Configurator that allows you to add default custom predicates
 
-    def __init__(self, request):
-        self.request = request
+    Parameters
+    ----------
+    custom_predicates : tuple
+        The predicates that will be applied to every view by default
+
+    """
+
+    def __init__(self, *args, **kwargs):
+        custom_predicates = kwargs.pop('custom_predicates', None)
+        if custom_predicates is not None:
+            # We have to set them on the class becase Configurator replicates
+            # itself and we have to keep the args
+            self.__class__.custom_predicates = custom_predicates
+        super(CustomPredicateConfig, self).__init__(*args, **kwargs)
+
+        # Patch the add_view method to add a default argument
+        if self.custom_predicates is not None:
+            self.add_view = partial(self.add_view,
+                                    custom_predicates=self.custom_predicates)
 
 
 def _bucket(request):
@@ -98,11 +110,12 @@ def main(config, **settings):
     """ This function returns a Pyramid WSGI application.
     """
     realm = settings.get('pypi.realm', 'pypicloud')
-    config = Configurator(
+    config = CustomPredicateConfig(
         settings=settings,
         root_factory=Root,
         authorization_policy=ACLAuthorizationPolicy(),
         authentication_policy=BasicAuthenticationPolicy(auth_callback, realm),
+        custom_predicates=(subpath(),),
     )
 
     s3conn = boto.connect_s3(
@@ -131,10 +144,7 @@ def main(config, **settings):
     config.add_request_method(_param, name='param')
 
     # Configure routes
-    config.add_route('index', '/')
-    config.add_route('simple', '/simple{_:/?}')
-    config.add_route('packages', '/packages{_:/?}')
-    config.add_route('package_versions', '/simple/{package:[^/]+}{_:/?}')
+    config.add_route('root', '/')
 
     config.scan()
     return config.make_wsgi_app()
