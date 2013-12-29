@@ -1,12 +1,12 @@
 """ Unit tests for views """
 import re
+
 import pypicloud.views
 from mock import MagicMock, patch
-from pypicloud.models import Package, create_schema
+from pypicloud.models import Package
 from pypicloud.views import update, simple, all_packages, package_versions
-from pyramid.testing import DummyRequest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from pyramid.httpexceptions import HTTPBadRequest
+
 from . import DBTest
 
 
@@ -64,6 +64,7 @@ class TestViews(DBTest):
 
 
 class TestUpdate(DBTest):
+
     """ Tests for update view """
 
     def setUp(self):
@@ -72,6 +73,7 @@ class TestUpdate(DBTest):
         self.prefix = '/mypkgs/'
         self.request.registry.prefix = self.prefix
         self.request.registry.prepend_hash = False
+        self.request.registry.allow_overwrite = True
         self.content = MagicMock()
         self.content.filename = 'a-1.tar.gz'
         self.params = {
@@ -115,6 +117,16 @@ class TestUpdate(DBTest):
 
         self.assertEquals(old_key.key, old_path)
         old_key.delete.assert_called()
+
+    def test_upload_no_overwrite(self):
+        """ If allow_overwrite=False duplicate package throws exception """
+        name, version = self.params['name'], self.params['version']
+        pkg = Package(name, version, 'any/path.tar.gz')
+        self.db.add(pkg)
+        self.params[':action'] = 'file_upload'
+        self.request.registry.allow_overwrite = False
+        with self.assertRaises(HTTPBadRequest):
+            update(self.request)
 
     def test_upload_prepend_hash(self):
         """ If prepend_hash = True, attach a hash to the file path """

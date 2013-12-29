@@ -132,6 +132,10 @@ def main(config, **settings):
                                                 'http://pypi.python.org/simple')
     config.registry.use_fallback = asbool(settings.get('pypi.use_fallback',
                                                        True))
+    config.registry.prepend_hash = asbool(settings.get('pypi.prepend_hash',
+                                                       False))
+    config.registry.allow_overwrite = asbool(
+        settings.get('pypi.allow_overwrite', True))
 
     config.add_request_method(_db, name='db', reify=True)
     engine = engine_from_config(settings, prefix='sqlalchemy.')
@@ -142,9 +146,6 @@ def main(config, **settings):
     config.add_request_method(
         _fetch_if_needed, name='fetch_packages_if_needed')
     config.add_request_method(_param, name='param')
-
-    config.registry.prepend_hash = asbool(settings.get('pypi.prepend_hash',
-                                                       False))
 
     config.add_route('root', '/')
 

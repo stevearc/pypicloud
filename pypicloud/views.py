@@ -54,12 +54,14 @@ def update(request):
         key.key = request.registry.prefix + filename
         key.set_metadata('name', name)
         key.set_metadata('version', version)
-        key.set_contents_from_file(data)
         pkg = request.db.query(Package).filter_by(name=name,
                                                   version=version).first()
         if pkg is None:
             pkg = Package(name, version, key.key)
             request.db.add(pkg)
+        elif not request.registry.allow_overwrite:
+            raise HTTPBadRequest("Package '%s==%s' already exists!" %
+                                 (name, version))
         elif pkg.path != key.key:
             # If we're overwriting the same package with a different filename,
             # make sure we delete the old file in S3
@@ -67,6 +69,8 @@ def update(request):
             old_key.key = pkg.path
             old_key.delete()
             pkg.path = key.key
+
+        key.set_contents_from_file(data)
         return request.response
     else:
         raise HTTPBadRequest("Unknown action '%s'" % action)
