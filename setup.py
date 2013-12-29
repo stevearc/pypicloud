@@ -45,7 +45,7 @@ if __name__ == "__main__":
         packages=find_packages(),
         entry_points={
             'console_scripts': [
-                'pypicloud-gen-password = pypicloud:gen_password',
+                'pypicloud-gen-password = pypicloud.scripts:gen_password',
                 'pypicloud-create-schema = pypicloud.scripts:run_create_schema',
                 'pypicloud-drop-schema = pypicloud.scripts:run_drop_schema',
                 'pypicloud-refresh-packages = pypicloud.scripts:run_refresh_packages',

@@ -3,13 +3,13 @@ from boto.s3.key import Key
 from pyramid.httpexceptions import HTTPBadRequest, HTTPFound, HTTPNotFound
 from pyramid.view import view_config
 
+from . import __version__
 from .models import Package
 
 
 @view_config(route_name='index', request_method='GET', renderer='index.jinja2')
 def get_index(request):
     """ Render a home screen """
-    from . import __version__
     return {'version': __version__}
 
 

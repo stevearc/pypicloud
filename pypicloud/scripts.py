@@ -1,4 +1,7 @@
 """ Commandline scripts """
+import argparse
+import getpass
+from passlib.hash import sha256_crypt  # pylint: disable=E0611
 from pyramid.paster import bootstrap
 from sqlalchemy import engine_from_config
 from sqlalchemy.orm import sessionmaker
@@ -8,7 +11,6 @@ from .models import create_schema, drop_schema, Package
 
 def setup(description):
     """ Parse the config_uri from arguments and bootstrap the script """
-    import argparse
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument('config_uri')
 
@@ -41,3 +43,13 @@ def run_refresh_packages():
     session.commit()
     session.close()
     print "Success!"
+
+
+def gen_password():
+    """ Generate a salted password """
+    password = getpass.getpass()
+    verify = getpass.getpass()
+    if password != verify:
+        print "Passwords do not match!"
+    else:
+        print sha256_crypt.encrypt(password)
