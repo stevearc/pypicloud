@@ -143,7 +143,9 @@ def main(config, **settings):
         _fetch_if_needed, name='fetch_packages_if_needed')
     config.add_request_method(_param, name='param')
 
-    # Configure routes
+    config.registry.prepend_hash = asbool(settings.get('pypi.prepend_hash',
+                                                       False))
+
     config.add_route('root', '/')
 
     config.scan()

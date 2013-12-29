@@ -68,6 +68,9 @@ value::
     pypi.fallback_url = http://pypi.python.org/simple
     # The security realm used for HTTP authentication
     pypi.realm = pypicloud
+    # If true, prepend a hash to all package paths in S3
+    # see: http://docs.aws.amazon.com/AmazonS3/latest/dev/request-rate-perf-considerations.html
+    pypi.prepend_hash = false
 
     # The sqlalchemy database url (S3 urls are cached in the db)
     sqlalchemy.url = <<sqlalchemy url>>

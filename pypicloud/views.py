@@ -1,8 +1,9 @@
 """ Views """
-from sqlalchemy import distinct
 from boto.s3.key import Key
+from hashlib import md5
 from pyramid.httpexceptions import HTTPBadRequest, HTTPFound, HTTPNotFound
 from pyramid.view import view_config
+from sqlalchemy import distinct
 
 from . import __version__
 from .models import Package
@@ -44,6 +45,12 @@ def update(request):
         if '/' in filename:
             raise HTTPBadRequest("Invalid file path '%s'" % filename)
         key = Key(request.bucket)
+        if request.registry.prepend_hash:
+            m = md5()
+            m.update(name)
+            m.update(version)
+            prefix = m.digest().encode('hex')[:4]
+            filename = prefix + '-' + filename
         key.key = request.registry.prefix + filename
         key.set_metadata('name', name)
         key.set_metadata('version', version)
