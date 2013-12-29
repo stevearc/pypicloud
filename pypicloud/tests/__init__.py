@@ -13,7 +13,6 @@ class DBTest(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        super(DBTest, cls).setUpClass()
         engine = create_engine('sqlite:///:memory:')
         create_schema(engine)
         cls.dbmaker = sessionmaker(bind=engine)
