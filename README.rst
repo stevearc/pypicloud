@@ -60,6 +60,8 @@ value::
     pypi.use_fallback = True
     # The url to forward unknown package requests to (optional)
     pypi.fallback_url = http://pypi.python.org/simple
+    # The security realm used for HTTP authentication
+    pypi.realm = pypicloud
 
     # The sqlalchemy database url (S3 urls are cached in the db)
     sqlalchemy.url = <<sqlalchemy url>>

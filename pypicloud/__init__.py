@@ -102,11 +102,12 @@ def _param(request, name, default=NO_ARG):
 def main(config, **settings):
     """ This function returns a Pyramid WSGI application.
     """
+    realm = settings.get('pypi.realm', 'pypicloud')
     config = Configurator(
         settings=settings,
         root_factory=Root,
         authorization_policy=ACLAuthorizationPolicy(),
-        authentication_policy=BasicAuthenticationPolicy(auth_callback),
+        authentication_policy=BasicAuthenticationPolicy(auth_callback, realm),
     )
 
     s3conn = boto.connect_s3(
