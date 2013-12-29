@@ -1,5 +1,6 @@
 """ Setup file """
 import os
+import sys
 
 from setuptools import setup, find_packages
 from version_helper import git_version
@@ -20,6 +21,9 @@ REQUIREMENTS = [
     'transaction',
     'zope.sqlalchemy',
 ]
+
+if sys.version_info[:2] < (2, 7):
+    REQUIREMENTS.extend(['argparse', 'unittest2'])
 
 if __name__ == "__main__":
     setup(

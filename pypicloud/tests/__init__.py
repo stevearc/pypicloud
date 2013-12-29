@@ -4,10 +4,13 @@ from pypicloud.models import create_schema, Package
 from pyramid.testing import DummyRequest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from unittest import TestCase
+try:
+    import unittest2 as unittest  # pylint: disable=F0401
+except ImportError:
+    import unittest
 
 
-class DBTest(TestCase):
+class DBTest(unittest.TestCase):
 
     """ Base class that provides a sqlalchemy database """
 
