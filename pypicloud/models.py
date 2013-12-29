@@ -1,4 +1,5 @@
 """ Model objects """
+from sqlalchemy import distinct
 import os
 import time
 from datetime import datetime
@@ -70,13 +71,17 @@ class Package(Base):
     path = Column(Text(), nullable=False)
     _url = Column('url', Text())
     _expire = Column('expire', DateTime())
+    redis_prefix = 'pypicloud:'
 
-    def __init__(self, name, version=None, path=None):
+    def __init__(self, name, version, path, _url=None, _expire=None):
         self.name = name
         self.version = version
         self.path = path
-        self._url = None
-        self._expire = None
+        self._url = _url
+        if isinstance(_expire, basestring):
+            self._expire = datetime.fromtimestamp(float(_expire))
+        else:
+            self._expire = _expire
 
     def get_url(self, request):
         """ Create or return an HTTP url for an S3 path """
@@ -88,7 +93,29 @@ class Package(Base):
                 expire_after, expires_in_absolute=True)
             self._expire = datetime.fromtimestamp(expire_after -
                                                   request.registry.buffer_time)
+            if request.dbtype == 'redis':
+                self.save(request)
         return self._url
+
+    @property
+    def redis_key(self):
+        """ Get a unique key for redis """
+        return self._redis_key(self.name, self.version)
+
+    @classmethod
+    def _redis_key(cls, name, version):
+        """ Get the key to a redis hash that stores a package """
+        return "%s%s==%s" % (cls.redis_prefix, name, version)
+
+    @classmethod
+    def redis_set(cls):
+        """ Get the key to the redis set of package names """
+        return cls.redis_prefix + 'set'
+
+    @classmethod
+    def redis_version_set(cls, name):
+        """ Get the key to a redis set of versions for a package """
+        return "%sset:%s" % (cls.redis_prefix, name)
 
     @staticmethod
     def normalize_name(name):
@@ -122,6 +149,103 @@ class Package(Base):
                 return ('_'.join(path_components[:i]).lower(),
                         '-'.join(path_components[i:]))
         return filename.lower().replace('-', '_'), ''
+
+    @classmethod
+    def fetch(cls, request, name, version):
+        """ Get matching package if it exists """
+        if request.dbtype == 'sql':
+            return request.db.query(cls).filter_by(name=name,
+                                                   version=version).first()
+        elif request.dbtype == 'redis':
+            data = request.db.hgetall(cls._redis_key(name, version))
+            if not data:
+                return None
+            pkg = cls(**data)
+            return pkg
+
+    @classmethod
+    def all(cls, request, name=None):
+        """ Search for either all packages or all versions of a package """
+        if request.dbtype == 'sql':
+            if name is None:
+                return request.db.query(Package).order_by(Package.name,
+                                                          Package.version).all()
+            else:
+                return request.db.query(Package).filter_by(name=name)\
+                    .order_by(Package.version).all()
+        elif request.dbtype == 'redis':
+            pipe = request.db.pipeline()
+            if name is None:
+                for name in request.db.smembers(cls.redis_set()):
+                    versions = request.db.smembers(cls.redis_version_set(name))
+                    for version in versions:
+                        pipe.hgetall(cls._redis_key(name, version))
+            else:
+                versions = request.db.smembers(cls.redis_version_set(name))
+                for version in versions:
+                    pipe.hgetall(cls._redis_key(name, version))
+            return [cls(**data) for data in pipe.execute()]
+
+    @classmethod
+    def distinct(cls, request):
+        """ Get all distinct package names """
+        if request.dbtype == 'sql':
+            names = request.db.query(distinct(Package.name))\
+                .order_by(Package.name).all()
+            return [n[0] for n in names]
+        elif request.dbtype == 'redis':
+            return request.db.smembers(cls.redis_set())
+
+    @classmethod
+    def any(cls, request):
+        """ Return True if there are any packages in the database """
+        if request.dbtype == 'sql':
+            return request.db.query(Package).first() is not None
+        elif request.dbtype == 'redis':
+            return request.db.scard(cls.redis_set()) > 0
+
+    @classmethod
+    def load(cls, request, keys):
+        """ Load all packages from S3 keys and save to DB """
+        if request.dbtype == 'sql':
+            for key in keys:
+                pkg = Package.from_key(key)
+                pkg.save(request)
+        elif request.dbtype == 'redis':
+            pipe = request.db.pipeline()
+            for key in keys:
+                pkg = Package.from_key(key)
+                pkg.save(request, pipe=pipe)
+            pipe.execute()
+
+    def delete(self, request):
+        """ Delete this package from the database """
+        if request.dbtype == 'sql':
+            request.db.delete(self)
+        elif request.dbtype == 'redis':
+            del request.db[self.redis_key]
+            request.db.srem(self.redis_version_set(self.name), self.version)
+            if request.db.scard(self.redis_version_set(self.name)) == 0:
+                request.db.srem(self.redis_set(), self.name)
+
+    def save(self, request, **kwargs):
+        """ Save this package to the database """
+        if request.dbtype == 'sql':
+            request.db.add(self)
+        elif request.dbtype == 'redis':
+            pipe = kwargs.pop('pipe', request.db)
+            data = {
+                'name': self.name,
+                'version': self.version,
+                'path': self.path,
+            }
+            if self._url is not None:
+                data['_url'] = self._url
+            if self._expire is not None:
+                data['_expire'] = self._expire.strftime('%s.%f')
+            pipe.hmset(self.redis_key, data)
+            pipe.sadd(self.redis_set(), self.name)
+            pipe.sadd(self.redis_version_set(self.name), self.version)
 
     def __hash__(self):
         return hash(self.name) + hash(self.version)

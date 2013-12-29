@@ -1,10 +1,11 @@
 """ S3-backed pypi server """
-from functools import partial
 import boto.s3
+from functools import partial
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.config import Configurator
 from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.settings import asbool
+from redis import StrictRedis
 from sqlalchemy import engine_from_config
 from sqlalchemy.orm import sessionmaker
 # pylint: disable=F0401,E0611
@@ -66,13 +67,16 @@ def _db(request):
     return session
 
 
+def _redis_db(request):
+    """ Access the redis client """
+    return request.registry.redis
+
+
 def _fetch_if_needed(request):
     """ Make sure local database is populated with packages """
-    if request.db.query(Package).first() is None:
+    if not Package.any(request):
         keys = request.bucket.list(request.registry.prefix)
-        for key in keys:
-            pkg = Package.from_key(key)
-            request.db.add(pkg)
+        Package.load(request, keys)
 
 
 NO_ARG = object()
@@ -137,10 +141,20 @@ def main(config, **settings):
     config.registry.allow_overwrite = asbool(
         settings.get('pypi.allow_overwrite', True))
 
-    config.add_request_method(_db, name='db', reify=True)
-    engine = engine_from_config(settings, prefix='sqlalchemy.')
-    config.registry.dbmaker = sessionmaker(bind=engine,
-                                           extension=ZopeTransactionExtension())
+    if 'sqlalchemy.url' in settings:
+        engine = engine_from_config(settings, prefix='sqlalchemy.')
+        config.registry.dbmaker = sessionmaker(
+            bind=engine, extension=ZopeTransactionExtension())
+        config.add_request_method(_db, name='db', reify=True)
+        dbtype = 'sql'
+    elif 'redis.url' in settings:
+        config.registry.redis = StrictRedis.from_url(settings['redis.url'])
+        config.add_request_method(_redis_db, name='db', reify=True)
+        dbtype = 'redis'
+    else:
+        raise ValueError("Config must specify either sqlalchemy.url or "
+                         "redis.url!")
+    config.add_request_method(lambda x: dbtype, name='dbtype', reify=True)
 
     config.add_request_method(_bucket, name='bucket', reify=True)
     config.add_request_method(

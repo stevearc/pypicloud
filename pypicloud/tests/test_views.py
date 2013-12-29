@@ -7,7 +7,7 @@ from pypicloud.models import Package
 from pypicloud.views import update, simple, all_packages, package_versions
 from pyramid.httpexceptions import HTTPBadRequest
 
-from . import DBTest
+from . import DBTest, RedisTest
 
 
 class TestViews(DBTest):
@@ -63,12 +63,11 @@ class TestViews(DBTest):
         self.assertEquals(response.location, '%s/%s/' % (fallback, pkg))
 
 
-class TestUpdate(DBTest):
-
-    """ Tests for update view """
+class UpdateTestMixin(object):
+    """ Setup method for update tests """
 
     def setUp(self):
-        super(TestUpdate, self).setUp()
+        super(UpdateTestMixin, self).setUp()
         self.Key = patch.object(pypicloud.views, 'Key').start()  # pylint: disable=C0103
         self.prefix = '/mypkgs/'
         self.request.registry.prefix = self.prefix
@@ -81,6 +80,11 @@ class TestUpdate(DBTest):
             'version': '1',
             'content': self.content,
         }
+
+
+class TestUpdate(UpdateTestMixin, DBTest):
+
+    """ Tests for update view """
 
     def test_upload(self):
         """ Uploading package sets metadata and sends to S3 """
@@ -153,3 +157,30 @@ class TestUpdate(DBTest):
         key = self.Key()
         self.assertEquals(key.key, path)
         key.delete.assert_called()
+
+
+class TestUpdateRedis(UpdateTestMixin, RedisTest):
+
+    """ Test the update commands with a redis backend """
+
+    def test_upload(self):
+        """ Uploading with redis backend stores record in redis """
+        name, version = self.params['name'], self.params['version']
+        self.params[':action'] = 'file_upload'
+        update(self.request)
+
+        pkg = Package.fetch(self.request, name, version)
+        self.assertEquals(pkg.name, name)
+        self.assertEquals(pkg.version, version)
+        self.assertEquals(pkg.path, self.prefix + self.content.filename)
+
+    def test_delete(self):
+        """ Can delete from redis backend """
+        path = '/path/to/package.tar.gz'
+        pkg = Package(self.params['name'], self.params['version'], path)
+        pkg.save(self.request)
+        self.params[':action'] = 'remove_pkg'
+        update(self.request)
+
+        new_pkg = Package.fetch(self.request, pkg.name, pkg.version)
+        self.assertIsNone(new_pkg)

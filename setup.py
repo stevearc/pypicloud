@@ -18,6 +18,7 @@ REQUIREMENTS = [
     'paste',
     'passlib',
     'pyramid_tm',
+    'redis',
     'transaction',
     'zope.sqlalchemy',
 ]

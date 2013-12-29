@@ -3,7 +3,6 @@ from boto.s3.key import Key
 from hashlib import md5
 from pyramid.httpexceptions import HTTPBadRequest, HTTPFound, HTTPNotFound
 from pyramid.view import view_config
-from sqlalchemy import distinct
 
 from . import __version__
 from .models import Package
@@ -26,14 +25,13 @@ def update(request):
         name = Package.normalize_name(request.param("name"))
         version = request.param("version")
         request.fetch_packages_if_needed()
-        package = request.db.query(Package).filter_by(name=name,
-                                                      version=version).first()
+        package = Package.fetch(request, name, version)
         if package is None:
             raise HTTPNotFound("Could not find %s==%s" % (name, version))
         key = Key(request.bucket)
         key.key = package.path
         key.delete()
-        request.db.delete(package)
+        package.delete(request)
         return request.response
     elif action == 'file_upload':
         request.fetch_packages_if_needed()
@@ -54,11 +52,10 @@ def update(request):
         key.key = request.registry.prefix + filename
         key.set_metadata('name', name)
         key.set_metadata('version', version)
-        pkg = request.db.query(Package).filter_by(name=name,
-                                                  version=version).first()
+        pkg = Package.fetch(request, name, version)
         if pkg is None:
             pkg = Package(name, version, key.key)
-            request.db.add(pkg)
+            pkg.save(request)
         elif not request.registry.allow_overwrite:
             raise HTTPBadRequest("Package '%s==%s' already exists!" %
                                  (name, version))
@@ -82,9 +79,8 @@ def update(request):
 def simple(request):
     """ Render the list of all unique package names """
     request.fetch_packages_if_needed()
-    names = request.db.query(distinct(Package.name))\
-        .order_by(Package.name).all()
-    return {'pkgs': [n[0] for n in names]}
+    names = Package.distinct(request)
+    return {'pkgs': names}
 
 
 @view_config(context=Root, name='packages', request_method='GET',
@@ -93,8 +89,7 @@ def simple(request):
 def all_packages(request):
     """ Render all package file names """
     request.fetch_packages_if_needed()
-    packages = request.db.query(Package).order_by(Package.name,
-                                                  Package.version).all()
+    packages = Package.all(request)
     return {'pkgs': packages}
 
 
@@ -106,8 +101,7 @@ def package_versions(request):
     name = Package.normalize_name(request.subpath[0])
 
     request.fetch_packages_if_needed()
-    pkgs = request.db.query(Package).filter_by(name=name)\
-        .order_by(Package.version).all()
+    pkgs = Package.all(request, name)
     if request.registry.use_fallback and not pkgs:
         redirect_url = "%s/%s/" % (
             request.registry.fallback_url.rstrip('/'), name)

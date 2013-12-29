@@ -76,6 +76,8 @@ value::
 
     # The sqlalchemy database url (S3 urls are cached in the db)
     sqlalchemy.url = <<sqlalchemy url>>
+    # If you would prefer to use redis, you should specify this option instead
+    redis.url = <<redis url>>
 
     # To authenticate while uploading packages, provide any number of
     # username/passwords. To generate the password hash, use the

@@ -5,6 +5,7 @@ from passlib.hash import sha256_crypt  # pylint: disable=E0611
 from pyramid.paster import bootstrap
 from sqlalchemy import engine_from_config
 from sqlalchemy.orm import sessionmaker
+from redis import StrictRedis
 
 from .models import create_schema, drop_schema, Package
 
@@ -33,15 +34,31 @@ def run_drop_schema():
     print "Success!"
 
 
+def db_and_type(env):
+    """ Get a db instance and the type of the db """
+    settings = env['registry'].settings
+    if 'sqlalchemy.url' in settings:
+        engine = engine_from_config(settings, prefix='sqlalchemy.')
+        session = sessionmaker(bind=engine)()
+        return session, 'sql'
+    elif 'redis.url' in settings:
+        return StrictRedis.from_url(settings['redis.url']), 'redis'
+    else:
+        raise ValueError("Config must specify either sqlalchemy.url or "
+                         "redis.url!")
+
+
 def run_refresh_packages():
     """ Clear the database and refresh packages from S3 """
     env = setup(run_refresh_packages.__doc__)
-    settings = env['registry'].settings
-    engine = engine_from_config(settings, prefix='sqlalchemy.')
-    session = sessionmaker(bind=engine)()
-    session.query(Package).delete()
-    session.commit()
-    session.close()
+    db, db_type = db_and_type(env)
+    if db_type == 'sql':
+        db.query(Package).delete()
+        db.commit()
+        db.close()
+    elif db_type == 'redis':
+        for key in db.keys(Package.redis_prefix + '*'):
+            del db[key]
     print "Success!"
 
 

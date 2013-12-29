@@ -65,6 +65,7 @@ class TestPackage(TestCase):
         request = MagicMock()
         request.registry.expire_after = 1000
         request.registry.buffer_time = 10
+        request.dbtype = 'sql'
         url = 'http://pypicloud.com/package-1.1.tar.gz'
         key().generate_url.return_value = url
         package = Package('a', 'b', 'c')
