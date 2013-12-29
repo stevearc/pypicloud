@@ -1,13 +1,14 @@
 """ Model objects """
-from pip.util import normalize_name, splitext
-from functools import total_ordering
 import os
 import time
 from datetime import datetime
 
 from boto.s3.key import Key
+from pip.util import splitext
 from sqlalchemy import Column, DateTime, Text
 from sqlalchemy.ext.declarative import declarative_base
+
+from .compat import total_ordering
 
 
 Base = declarative_base()  # pylint: disable=C0103
@@ -89,6 +90,11 @@ class Package(Base):
                                                   request.registry.buffer_time)
         return self._url
 
+    @staticmethod
+    def normalize_name(name):
+        """ Normalize a python package name """
+        return name.lower().replace('-', '_')
+
     @classmethod
     def from_key(cls, key):
         """ Construct a Package object from the S3 key """
@@ -100,7 +106,7 @@ class Package(Base):
             filename = os.path.basename(key.key)
             name, version = cls._parse_package_and_version(filename)
 
-        return cls(normalize_name(name), version, key.key)
+        return cls(cls.normalize_name(name), version, key.key)
 
     @classmethod
     def _parse_package_and_version(cls, path):

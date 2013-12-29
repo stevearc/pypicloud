@@ -1,5 +1,4 @@
 """ Views """
-from pip.util import normalize_name
 from sqlalchemy import distinct
 from boto.s3.key import Key
 from pyramid.httpexceptions import HTTPBadRequest, HTTPFound, HTTPNotFound
@@ -23,7 +22,7 @@ def update(request):
     """ Handle update commands """
     action = request.param(':action')
     if action == 'remove_pkg':
-        name = normalize_name(request.param("name"))
+        name = Package.normalize_name(request.param("name"))
         version = request.param("version")
         request.fetch_packages_if_needed()
         package = request.db.query(Package).filter_by(name=name,
@@ -37,7 +36,7 @@ def update(request):
         return request.response
     elif action == 'file_upload':
         request.fetch_packages_if_needed()
-        name = normalize_name(request.param('name'))
+        name = Package.normalize_name(request.param('name'))
         version = request.param('version')
         content = request.param('content')
         filename = content.filename
@@ -93,7 +92,7 @@ def all_packages(request):
 @addslash
 def package_versions(request):
     """ Render the links for all versions of a package """
-    name = normalize_name(request.subpath[0])
+    name = Package.normalize_name(request.subpath[0])
 
     request.fetch_packages_if_needed()
     pkgs = request.db.query(Package).filter_by(name=name)\
