@@ -1,5 +1,11 @@
 PyPI Cloud
 ==========
+:Build: |build|_
+:Source: https://github.com/mathcamp/pypicloud
+
+.. |build| image:: https://travis-ci.org/mathcamp/pypicloud.png?branch=master
+.. _build: https://travis-ci.org/mathcamp/pypicloud
+
 This package is a Pyramid WSGI app that runs a simple PyPI server where all the
 packages are stored on Amazon's Simple Storage Service (S3).
 
