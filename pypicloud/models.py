@@ -98,13 +98,13 @@ class Package(Base):
                 self.save(request)
         return self._url
 
-    @property
-    def pypi_path(self):
+    def pypi_path(self, request):
         """ Getter for pypi_path """
-        if PREFIX.match(self.path):
-            return self.path[5:]
+        filename_path = self.path[len(request.registry.prefix):]
+        if PREFIX.match(filename_path):
+            return filename_path[5:]
         else:
-            return self.path
+            return filename_path
 
     @property
     def redis_key(self):

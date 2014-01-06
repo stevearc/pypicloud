@@ -84,12 +84,23 @@ class TestPackage(TestCase):
     def test_pypi_path(self):
         """ The pypi path should exclude any S3 prefix """
         p1 = Package('a', '1', 'a84f:mypath')
-        self.assertEqual(p1.pypi_path, 'mypath')
+        request = MagicMock()
+        request.registry.prefix = ''
+        self.assertEqual(p1.pypi_path(request), 'mypath')
 
     def test_pypi_path_no_prefix(self):
         """ The pypi path should noop if no S3 prefix """
         p1 = Package('a', '1', 'a84f-mypath')
-        self.assertEqual(p1.pypi_path, p1.path)
+        request = MagicMock()
+        request.registry.prefix = ''
+        self.assertEqual(p1.pypi_path(request), p1.path)
+
+    def test_pypi_path_bucket_prefix(self):
+        """ The pypi path should trim hash prefix ignoring bucket prefix """
+        p1 = Package('a', '1', 'packages/a84f:mypath')
+        request = MagicMock()
+        request.registry.prefix = 'packages/'
+        self.assertEqual(p1.pypi_path(request), 'mypath')
 
 
 class TestSqlOps(DBTest):
