@@ -6,17 +6,16 @@
 [app:main]
 use = egg:pypicloud
 
-pyramid.reload_templates = false
+pyramid.reload_templates = true
 pyramid.debug_authorization = false
 pyramid.debug_notfound = false
 pyramid.debug_routematch = false
 pyramid.default_locale_name = en
-pyramid.includes = 
-    pyramid_jinja2
-    pyramid_tm
 
 jinja2.filters =
     route_url = pyramid_jinja2.filters:route_url_filter
+    static_url = pyramid_jinja2.filters:static_url_filter
+    tojson = pypicloud:to_json
 
 jinja2.directories = pypicloud:templates
 
@@ -25,6 +24,12 @@ aws.secret_key = <<AWS secret key>>
 aws.bucket = <<AWS bucket>>
 
 sqlalchemy.url = sqlite:///%(here)s/db.sqlite
+
+# For beaker
+session.type = cookie
+session.encrypt_key = aaaa
+session.httponly = true
+session.validate_key = bbbb
 
 ###
 # wsgi server configuration
@@ -35,24 +40,13 @@ use = egg:waitress#main
 host = 0.0.0.0
 port = 6543
 
-[uwsgi]
-paste = config:%p
-paste-logger = %p
-socket = 127.0.0.1:3031
-master = true
-processes = 20
-buffer-size = 32000
-reload-mercy = 15
-worker-reload-mercy = 15
-max-requests = 1000
-
 ###
 # logging configuration
 # http://docs.pylonsproject.org/projects/pyramid/en/latest/narr/logging.html
 ###
 
 [loggers]
-keys = root, 
+keys = root, boto
 
 [handlers]
 keys = console
@@ -61,13 +55,18 @@ keys = console
 keys = generic
 
 [logger_root]
-level = WARN
+level = INFO
 handlers = console
 
 [logger_]
-level = WARN
+level = DEBUG
 handlers =
-qualname = 
+qualname =
+
+[logger_boto]
+level = INFO
+handlers =
+qualname =
 
 [handler_console]
 class = StreamHandler

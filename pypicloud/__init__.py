@@ -1,10 +1,8 @@
 """ S3-backed pypi server """
-import boto.s3
-from functools import partial
-from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.config import Configurator
-from pyramid.httpexceptions import HTTPBadRequest
-from pyramid.settings import asbool
+from pyramid.renderers import render
+from pyramid.settings import asbool, aslist
+from pyramid_beaker import session_factory_from_settings
 from redis import StrictRedis
 from sqlalchemy import engine_from_config
 from sqlalchemy.orm import sessionmaker
@@ -12,41 +10,20 @@ from sqlalchemy.orm import sessionmaker
 from zope.sqlalchemy import ZopeTransactionExtension
 # pylint: enable=F0401,E0611
 
-from .auth import auth_callback, BasicAuthenticationPolicy
-from .models import Package
-from .route import Root, subpath
+import boto
+from .models import create_schema
+from .route import Root
 
 
 try:
     from ._version import *  # pylint: disable=F0401,W0401
-except ImportError:
+except ImportError:  # pragma: no cover
     __version__ = 'unknown'
 
 
-class CustomPredicateConfig(Configurator):
-
-    """
-    Custom Configurator that allows you to add default custom predicates
-
-    Parameters
-    ----------
-    custom_predicates : tuple
-        The predicates that will be applied to every view by default
-
-    """
-
-    def __init__(self, *args, **kwargs):
-        custom_predicates = kwargs.pop('custom_predicates', None)
-        if custom_predicates is not None:
-            # We have to set them on the class becase Configurator replicates
-            # itself and we have to keep the args
-            self.__class__.custom_predicates = custom_predicates
-        super(CustomPredicateConfig, self).__init__(*args, **kwargs)
-
-        # Patch the add_view method to add a default argument
-        if self.custom_predicates is not None:
-            self.add_view = partial(self.add_view,
-                                    custom_predicates=self.custom_predicates)
+def to_json(value):
+    """ A json filter for jinja2 """
+    return render('json', value)
 
 
 def _bucket(request):
@@ -72,55 +49,36 @@ def _redis_db(request):
     return request.registry.redis
 
 
-def _fetch_if_needed(request):
-    """ Make sure local database is populated with packages """
-    if not Package.any(request):
-        keys = request.bucket.list(request.registry.prefix)
-        Package.load(request, keys)
+def _app_url(request, *paths):
+    """ Get the base url for the root of the app plus an optional path """
+    path = '/'.join(paths)
+    if not path.startswith('/'):
+        path = '/' + path
+    return request.application_url + path
 
 
-NO_ARG = object()
+def includeme(config):
+    """ Set up and configure the pypicloud app """
+    config.set_root_factory(Root)
+    config.include('pyramid_tm')
+    config.include('pyramid_beaker')
+    config.include('pyramid_duh')
+    config.include('pyramid_duh.auth')
+    config.include('pypicloud.auth')
+    settings = config.get_settings()
 
+    # Jinja2 configuration
+    settings['jinja2.filters'] = {
+        'static_url': 'pyramid_jinja2.filters:static_url_filter',
+        'tojson': to_json,
+    }
+    settings['jinja2.directories'] = ['pypicloud:templates']
+    config.include('pyramid_jinja2')
 
-def _param(request, name, default=NO_ARG):
-    """
-    Access a parameter
-
-    Parameters
-    ----------
-    request : :class:`~pyramid.request.Request`
-    name : str
-        The name of the parameter to retrieve
-    default : object, optional
-        The default value to use if none is found
-
-    Raises
-    ------
-    exc : :class:`~pyramid.httpexceptions.HTTPBadRequest`
-        If a parameter is requested that does not exist and no default was
-        provided
-
-    """
-    try:
-        return request.params[name]
-    except (KeyError, ValueError):
-        if default is NO_ARG:
-            raise HTTPBadRequest('Missing argument %s' % name)
-        else:
-            return default
-
-
-def main(config, **settings):
-    """ This function returns a Pyramid WSGI application.
-    """
-    realm = settings.get('pypi.realm', 'pypicloud')
-    config = CustomPredicateConfig(
-        settings=settings,
-        root_factory=Root,
-        authorization_policy=ACLAuthorizationPolicy(),
-        authentication_policy=BasicAuthenticationPolicy(auth_callback, realm),
-        custom_predicates=(subpath(),),
-    )
+    # BEAKER CONFIGURATION
+    settings.setdefault('session.type', 'cookie')
+    settings.setdefault('session.httponly', 'true')
+    config.set_session_factory(session_factory_from_settings(settings))
 
     s3conn = boto.connect_s3(
         aws_access_key_id=settings.get('aws.access_key'),
@@ -131,37 +89,56 @@ def main(config, **settings):
     config.registry.expire_after = int(settings.get('aws.expire_after',
                                                     60 * 60 * 24))
     config.registry.buffer_time = int(settings.get('aws.buffer_time',
-                                                   300))
+                                                   600))
+
+    # PYPICLOUD SETTINGS
     config.registry.fallback_url = settings.get('pypi.fallback_url',
                                                 'http://pypi.python.org/simple')
     config.registry.use_fallback = asbool(settings.get('pypi.use_fallback',
                                                        True))
     config.registry.prepend_hash = asbool(settings.get('pypi.prepend_hash',
-                                                       False))
+                                                       True))
     config.registry.allow_overwrite = asbool(
-        settings.get('pypi.allow_overwrite', True))
+        settings.get('pypi.allow_overwrite', False))
+    config.registry.admins = aslist(settings.get('pypi.admins', []))
+    config.registry.zero_security_mode = asbool(
+        settings.get('pypi.zero_security_mode', False))
+    realm = settings.get('pypi.realm', 'pypi')
+    config.registry.realm = realm
 
-    if 'sqlalchemy.url' in settings:
-        engine = engine_from_config(settings, prefix='sqlalchemy.')
-        config.registry.dbmaker = sessionmaker(
-            bind=engine, extension=ZopeTransactionExtension())
-        config.add_request_method(_db, name='db', reify=True)
-        dbtype = 'sql'
-    elif 'redis.url' in settings:
-        config.registry.redis = StrictRedis.from_url(settings['redis.url'])
+    # Connect to cache database
+    db_url = settings.get('pypi.db.url')
+    if db_url is None:
+        raise ValueError("Must specify a 'pypi.db.url'")
+    elif db_url.startswith('redis://'):
+        config.registry.redis = StrictRedis.from_url(db_url)
         config.add_request_method(_redis_db, name='db', reify=True)
         dbtype = 'redis'
     else:
-        raise ValueError("Config must specify either sqlalchemy.url or "
-                         "redis.url!")
+        engine = engine_from_config(settings, prefix='pypi.db.')
+        config.registry.dbmaker = sessionmaker(
+            bind=engine, extension=ZopeTransactionExtension())
+        config.add_request_method(_db, name='db', reify=True)
+        create_schema(engine)
+        dbtype = 'sql'
+
+    # Special request methods
     config.add_request_method(lambda x: dbtype, name='dbtype', reify=True)
-
     config.add_request_method(_bucket, name='bucket', reify=True)
-    config.add_request_method(
-        _fetch_if_needed, name='fetch_packages_if_needed')
-    config.add_request_method(_param, name='param')
+    config.add_request_method(_app_url, name='app_url')
 
-    config.add_route('root', '/')
+    cache_max_age = int(settings.get('pyramid.cache_max_age', 3600))
+    config.add_static_view(name='static/%s' % __version__,
+                           path='pypicloud:static',
+                           cache_max_age=cache_max_age)
 
-    config.scan()
+
+def main(config, **settings):
+    """ This function returns a Pyramid WSGI application.
+    """
+    config = Configurator(settings=settings)
+    config.include('pypicloud')
+    config.scan(ignore='pypicloud.tests')
+    if settings.get('unittest'):
+        return config
     return config.make_wsgi_app()

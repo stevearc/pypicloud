@@ -3,3 +3,4 @@ pep8
 nose
 mock
 coverage
+webtest

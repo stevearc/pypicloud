@@ -1,0 +1,112 @@
+[app:main]
+use = egg:pypicloud
+
+pyramid.reload_templates = {{ reload_templates }}
+pyramid.debug_authorization = false
+pyramid.debug_notfound = false
+pyramid.debug_routematch = false
+pyramid.default_locale_name = en
+
+aws.access_key = {{ access_key }}
+aws.secret_key = {{ secret_key }}
+aws.bucket = {{ s3_bucket }}
+
+pypi.db.url = {{ db_url }}
+
+{% if zero_security_mode -%}
+pypi.zero_security_mode = true
+{%- endif %}
+
+pypi.admins =
+  {{ admin }}
+
+user.{{ admin }} = {{ password }}
+
+# For beaker
+session.encrypt_key = {{ encrypt_key }}
+session.validate_key = {{ validate_key }}
+session.secure = {{ session_secure }}
+
+###
+# wsgi server configuration
+###
+
+{% if wsgi == 'waitress' -%}
+[server:main]
+use = egg:waitress#main
+host = 0.0.0.0
+port = 6543
+{%- elif wsgi == 'uwsgi' -%}
+[uwsgi]
+paste = config:%p
+paste-logger = %p
+socket = 127.0.0.1:3031
+master = true
+processes = 20
+reload-mercy = 15
+worker-reload-mercy = 15
+max-requests = 1000
+{% if venv is defined -%}virtualenv = {{ venv }}{%- endif %}
+{%- endif %}
+
+###
+# logging configuration
+# http://docs.pylonsproject.org/projects/pyramid/en/latest/narr/logging.html
+###
+
+{% if env == 'prod' -%}
+
+[loggers]
+keys = root
+
+[handlers]
+keys = file
+
+[formatters]
+keys = generic
+
+[logger_root]
+level = WARN
+handlers = file
+
+[handler_file]
+class = handlers.RotatingFileHandler
+args = ('/var/log/pypicloud.log', 'mode=a', 'maxBytes=1000000', 'backupCount=5')
+level = NOTSET
+formatter = generic
+
+{%- else -%}
+
+[loggers]
+keys = root, boto, pypicloud
+
+[handlers]
+keys = console
+
+[formatters]
+keys = generic
+
+[logger_root]
+level = INFO
+handlers = console
+
+[logger_pypicloud]
+level = DEBUG
+qualname = pypicloud
+handlers =
+
+[logger_boto]
+level = WARN
+qualname = boto
+handlers =
+
+[handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+level = NOTSET
+formatter = generic
+
+{%- endif %}
+
+[formatter_generic]
+format = %(levelname)s %(asctime)s [%(name)s] %(message)s

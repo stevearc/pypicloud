@@ -1,12 +1,11 @@
 """ Model objects """
-from sqlalchemy import distinct
 import os
 import time
 from datetime import datetime
 
 from boto.s3.key import Key
 from pip.util import splitext
-from sqlalchemy import Column, DateTime, Text
+from sqlalchemy import distinct, Column, DateTime, Text
 from sqlalchemy.ext.declarative import declarative_base
 
 from .compat import total_ordering
@@ -151,6 +150,26 @@ class Package(Base):
         return filename.lower().replace('-', '_'), ''
 
     @classmethod
+    def reload_from_s3(cls, request):
+        """ Make sure local database is populated with packages """
+        keys = request.bucket.list(request.registry.prefix)
+        cls._load(request, keys)
+
+    @classmethod
+    def _load(cls, request, keys):
+        """ Load all packages from S3 keys and save to DB """
+        if request.dbtype == 'sql':
+            for key in keys:
+                pkg = Package.from_key(key)
+                pkg.save(request)
+        elif request.dbtype == 'redis':
+            pipe = request.db.pipeline()
+            for key in keys:
+                pkg = Package.from_key(key)
+                pkg.save(request, pipe=pipe)
+            pipe.execute()
+
+    @classmethod
     def fetch(cls, request, name, version):
         """ Get matching package if it exists """
         if request.dbtype == 'sql':
@@ -194,29 +213,7 @@ class Package(Base):
                 .order_by(Package.name).all()
             return [n[0] for n in names]
         elif request.dbtype == 'redis':
-            return request.db.smembers(cls.redis_set())
-
-    @classmethod
-    def any(cls, request):
-        """ Return True if there are any packages in the database """
-        if request.dbtype == 'sql':
-            return request.db.query(Package).first() is not None
-        elif request.dbtype == 'redis':
-            return request.db.scard(cls.redis_set()) > 0
-
-    @classmethod
-    def load(cls, request, keys):
-        """ Load all packages from S3 keys and save to DB """
-        if request.dbtype == 'sql':
-            for key in keys:
-                pkg = Package.from_key(key)
-                pkg.save(request)
-        elif request.dbtype == 'redis':
-            pipe = request.db.pipeline()
-            for key in keys:
-                pkg = Package.from_key(key)
-                pkg.save(request, pipe=pipe)
-            pipe.execute()
+            return list(request.db.smembers(cls.redis_set()))
 
     def delete(self, request):
         """ Delete this package from the database """
@@ -228,12 +225,13 @@ class Package(Base):
             if request.db.scard(self.redis_version_set(self.name)) == 0:
                 request.db.srem(self.redis_set(), self.name)
 
-    def save(self, request, **kwargs):
+    def save(self, request, pipe=None):
         """ Save this package to the database """
         if request.dbtype == 'sql':
             request.db.add(self)
         elif request.dbtype == 'redis':
-            pipe = kwargs.pop('pipe', request.db)
+            if pipe is None:
+                pipe = request.db
             data = {
                 'name': self.name,
                 'version': self.version,
@@ -261,3 +259,10 @@ class Package(Base):
 
     def __unicode__(self):
         return u'Package(%s, %s)' % (self.name, self.version)
+
+    def __json__(self, request):
+        return {
+            'name': self.name,
+            'version': self.version,
+            'url': self.get_url(request),
+        }

@@ -1,91 +1,131 @@
 """ Tools and resources for traversal routing """
-import inspect
 import functools
-from pyramid.httpexceptions import HTTPFound
-import fnmatch
-import itertools
-import re
-
 from pyramid.security import (Allow, Deny, Authenticated, Everyone,
                               ALL_PERMISSIONS)
 
 
-class Root(object):
+class IStaticResource(object):
 
-    """ Root context for PyPI Cloud """
-    __parent__ = None
+    """ Simple resource base class for static-mapping of paths """
     __name__ = ''
-    __acl__ = [
-        (Allow, Authenticated, ALL_PERMISSIONS),
-        (Deny, Everyone, ALL_PERMISSIONS),
-    ]
-    request = None
+    __parent__ = None
+    subobjects = {}
 
     def __init__(self, request):
         self.request = request
 
-
-def subpath(*paths, **kwargs):
-    """
-    Generate a custom predicate that matches subpaths
-
-    Parameters
-    ----------
-    *paths : list
-        List of globs or regexes. The subpaths must match these exactly.
-    pcre : bool
-        Use PCRE's instead of globs (default False)
-
-    Notes
-    -----
-    This view will match ``/simple/foo``, ``/simple/bar/``, and
-    ``/simple/lkjlfkjalkdsf``. It will **not** match ``/simple`` or
-    ``/simple/foo/bar``.
-
-    .. code-block:: python
-
-        @view_config(context=Root, name='simple', custom_predicates=(subpath('*'),))
-        def simple(request):
-            request.response.body = '<h1>Hello</h1>'
-            return request.response
+    def __getitem__(self, name):
+        child = self.subobjects[name](self.request)
+        child.__parent__ = self
+        child.__name__ = name
+        return child
 
 
+class IResourceFactory(object):
 
-    """
-    pcre = kwargs.pop('pcre', False)
-    if pcre:
-        match = lambda pattern, path: bool(re.match('^%s$' % pattern, path))
-    else:
-        match = lambda pattern, path: fnmatch.fnmatch(path, pattern)
+    """ Resource that generates child resources from a factory """
+    __name__ = ''
+    __parent__ = None
+    __factory__ = lambda x: None
 
-    def match_subpath(context, request):
-        """ Match request subpath against provided patterns """
-        if len(request.subpath) != len(paths):
-            return False
-        for pattern, path in itertools.izip(paths, request.subpath):
-            if not match(pattern, path):
-                return False
-        return True
+    def __init__(self, request):
+        self.request = request
 
-    return match_subpath
+    def __getitem__(self, name):
+        child = self.__factory__(name)
+        child.__name__ = name
+        child.__parent__ = self
+        return child
 
 
-def addslash(fxn):
-    """ View decorator that adds a trailing slash """
-    argspec = inspect.getargspec(fxn)
+class SimpleResource(object):
 
-    @functools.wraps(fxn)
-    def slash_redirect(*args):
-        """ Perform the redirect or pass though to view """
-        if len(args) == 1:
-            request = args[0]
+    """ Resource for simple pip calls """
+
+    def __init__(self, request):
+        self.request = request
+
+    def __getitem__(self, name):
+        child = SimplePackageResource(self.request, name)
+        child.__parent__ = self
+        child.__name__ = name
+        return child
+
+
+class SimplePackageResource(object):
+
+    """ Resource for requesting simple endpoint package versions """
+
+    __parent__ = None
+    __name__ = None
+
+    def __init__(self, request, name):
+        self.request = request
+        self.name = name
+        self.__acl__ = request.get_acl(self.name)
+
+
+class APIPackagingResource(IResourceFactory):
+
+    """ Resource for api package queries """
+
+    def __init__(self, request):
+        super(APIPackagingResource, self).__init__(request)
+        self.__factory__ = functools.partial(APIPackageResource, self.request)
+
+
+class APIPackageResource(IResourceFactory):
+
+    """ Resource for requesting package versions """
+
+    def __init__(self, request, name):
+        super(APIPackageResource, self).__init__(request)
+        self.name = name
+        self.__factory__ = functools.partial(
+            APIPackageVersionResource, self.request, self.name)
+        self.__acl__ = request.get_acl(self.name)
+
+
+class APIPackageVersionResource(object):
+
+    """ Resource for api endpoints dealing with a single package version """
+
+    __parent__ = None
+    __name__ = None
+
+    def __init__(self, request, name, version):
+        self.request = request
+        self.name = name
+        self.version = version
+
+
+class APIResource(IStaticResource):
+
+    """ Resource for api calls """
+    subobjects = {
+        'package': APIPackagingResource,
+    }
+
+
+class Root(IStaticResource):
+
+    """ Root context for PyPI Cloud """
+    subobjects = {
+        'api': APIResource,
+        'simple': SimpleResource,
+        'pypi': SimpleResource,
+    }
+
+    def __init__(self, request):
+        super(Root, self).__init__(request)
+        acl = []
+
+        if request.registry.zero_security_mode:
+            acl.append((Allow, Everyone, 'login'))
+            acl.append((Allow, Everyone, 'read'))
+            acl.append((Allow, Authenticated, 'write'))
         else:
-            request = args[1]
-        if not request.url.endswith('/'):
-            return HTTPFound(location=request.url + '/')
-        if len(argspec.args) == 1 and argspec.varargs is None:
-            return fxn(request)
-        else:
-            return fxn(*args)
-
-    return slash_redirect
+            acl.append((Allow, Authenticated, 'login'))
+        acl.append((Allow, 'admin', ALL_PERMISSIONS))
+        acl.append((Deny, Everyone, ALL_PERMISSIONS))
+        self.__acl__ = acl

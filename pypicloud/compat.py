@@ -1,5 +1,6 @@
-""" Compatibility for python 2.6 """
+""" Compatibility for different python versions """
 
+# pylint: disable=C0103
 try:
     from functools import total_ordering
 except ImportError:

@@ -1,0 +1,63 @@
+<div ng-controller="IndexCtrl">
+  <div class="row" ng-show="!$cookies.seenPipHelp">
+    <div class="col-xs-12 col-md-offset-3 col-md-6">
+      Cookie: {{ $cookies.seenPipHelp }}
+      <alert type="'success'" close="closePipHelp()">
+        You can install packages using:
+        <code>
+          pip install -i {{ ROOT }}pypi/ PACKAGE1 [PACKAGE2 ...]
+        </code>
+      </alert>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top: 10px; margin-bottom: 10px;">
+    <div class="col-xs-12 col-md-offset-3 col-md-4">
+      <div class="input-group">
+        <span class="input-group-addon"><i class="fa fa-search"></i></span>
+        <input class="form-control" ng-model="searchText" ng-change="currentPage = 0" type="text" placeholder="Search">
+      </div>
+    </div>
+    <div class="col-xs-12 col-md-2 hidden-xs hidden-sm">
+      <div ng-show="USER">
+        <button class="btn btn-default pull-right" ng-init="uploadCollapsed = true" ng-click="uploadCollapsed = !uploadCollapsed">
+          {{ uploadCollapsed ? 'Upload' : 'Cancel' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="row" style="margin-bottom: 10px">
+    <div ng-include="PARTIAL + 'upload.html'"></div>
+  </div>
+
+  <div class="row" ng-if="packages">
+    <div class="col-xs-12 col-md-offset-3 col-md-6">
+      <table class="table table-striped table-bordered table-clickable">
+        <thead>
+          <tr>
+            <th>Package</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr ng-repeat="package in packages | filter:searchText | orderBy:'toString()' | startFrom:(currentPage - 1)*pageSize | limitTo:pageSize" ng-click="showPackage(package)">
+            <td>{{ package }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="text-center">
+        <pagination direction-links="true" total-items="packages.length" rotate="false" max-size="maxSize" items-per-page="pageSize" page="currentPage"></pagination>
+      </div>
+    </div>
+  </div>
+
+  <div class="row" ng-show="ADMIN && packages !== null && packages.length === 0">
+    <div class="col-xs-12 col-md-offset-3 col-md-6">
+      <p style="font-size: 130%">
+        Don't see any packages? If your redis/sql database was cleared, you may need to <a href="#/admin">rebuild the package list</a> from S3.
+      </p>
+    </div>
+  </div>
+
+  <small>version: {{ VERSION }}</small>
+</div>

@@ -39,3 +39,5 @@ nosetests.xml
 cache
 _version.py
 pypicloud_env
+_build
+*.ini

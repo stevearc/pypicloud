@@ -1,15 +1,7 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>PyPI Cloud</title>
-</head>
-<body style='text-align: center'>
-    <h1>PyPI Cloud</h1>
+{% extends 'base.jinja2' %}
 
-    See the README for instructions, or find the package index <a href="{{ 'root' | route_url }}simple/">here</a>
-
-    <p>
-        <small>version: {{ version }}</small>
-    </p>
-</body>
-</html>
+{% block scripts %}
+  <script type="text/javascript" charset="utf-8">
+    var VERSION = {{ version | tojson | safe }};
+  </script>
+{% endblock scripts %}

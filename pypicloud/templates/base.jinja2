@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html ng-app="{% block ng_app %}pypicloud{% endblock %}">
+<head>
+  <title>Pypicloud</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+{% block head -%}
+  {%- block all_css -%}
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css" rel="stylesheet">
+    <style type="text/css" media="screen">
+      table.table-clickable tbody tr:hover td {
+        background-color: #d9edf7;
+        cursor: pointer;
+      }
+      /* Use pointer for nav tabs */
+      .nav-tabs a:hover {
+        cursor: pointer;
+      }
+      a.ng-binding:hover {
+        cursor: pointer;
+      }
+
+      .upload {
+        background-color: #f7f7f7;
+        padding: 10px;
+        border-radius: 4px
+      }
+    </style>
+    {% block css %}
+    {% endblock %}
+  {%- endblock -%}
+{%- endblock %}
+</head>
+<body>
+{% block body %}
+
+{% block navbar %}
+<nav class="navbar navbar-default"
+ng-include="'{{ 'pypicloud:static/partial/navbar.html' | static_url }}'"
+role="navigation">
+</nav>
+{% endblock %}
+
+<div class='container' ng-controller="BaseCtrl">
+  {% block content %}
+    <div ng-view></div>
+  {% endblock %}
+</div>
+
+{% endblock %}
+{% block all_scripts %}
+  <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.2.6/angular.min.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.2.6/angular-route.min.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.2.6/angular-cookies.min.js"></script>
+  <script src="{{ 'pypicloud:static/js/ui-bootstrap-tpls-0.8.0-SNAPSHOT.min.js' | static_url }}"></script>
+  <script src="{{ 'pypicloud:static/js/angular-file-upload.min.js' | static_url }}"></script>
+  <script src="{{ 'pypicloud:static/js/pypicloud.js' | static_url }}"></script>
+  <script type="text/javascript" charset="utf-8">
+    var USER = {{ request.userid | tojson | safe }};
+    var ADMIN = {{ request.is_admin(request.userid) | tojson | safe }};
+    var ROOT = {{ request.app_url() | tojson | safe }};
+    var STATIC = {{ 'pypicloud:static/' | static_url | tojson | safe }};
+  </script>
+  {% block scripts %}
+  {% endblock %}
+{% endblock %}
+</body>
+</html>

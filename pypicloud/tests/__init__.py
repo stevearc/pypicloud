@@ -1,10 +1,12 @@
 """ Tests for pypicloud """
-from redis import StrictRedis
 from mock import MagicMock, patch
 from pypicloud.models import create_schema, Package
 from pyramid.testing import DummyRequest
+from redis import StrictRedis
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
+
 try:
     import unittest2 as unittest  # pylint: disable=F0401
 except ImportError:
@@ -25,7 +27,7 @@ class DBTest(unittest.TestCase):
         super(DBTest, self).setUp()
         self.db = self.dbmaker()
         self.request = DummyRequest()
-        self.request.url = 'http://myserver/path/'
+        self.request.path_url = '/path/'
         self.request.bucket = MagicMock()
         self.request.fetch_packages_if_needed = MagicMock()
         self.request.db = self.db
@@ -35,7 +37,9 @@ class DBTest(unittest.TestCase):
 
     def tearDown(self):
         super(DBTest, self).tearDown()
+        self.db.rollback()
         self.db.query(Package).delete()
+        self.db.commit()
         self.db.close()
         patch.stopall()
 

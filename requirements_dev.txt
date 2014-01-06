@@ -4,3 +4,6 @@ pep8
 autopep8
 nose
 mock
+webtest
+sphinx
+numpydoc
