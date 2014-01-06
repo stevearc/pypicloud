@@ -1,4 +1,5 @@
 """ Model objects """
+import re
 import os
 import time
 from datetime import datetime
@@ -12,6 +13,7 @@ from .compat import total_ordering
 
 
 Base = declarative_base()  # pylint: disable=C0103
+PREFIX = re.compile(r'^[A-Fa-f0-9]{4}:')
 
 
 def create_schema(engine):
@@ -95,6 +97,14 @@ class Package(Base):
             if request.dbtype == 'redis':
                 self.save(request)
         return self._url
+
+    @property
+    def pypi_path(self):
+        """ Getter for pypi_path """
+        if PREFIX.match(self.path):
+            return self.path[5:]
+        else:
+            return self.path
 
     @property
     def redis_key(self):

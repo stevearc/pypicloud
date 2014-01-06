@@ -79,7 +79,7 @@ class TestUpdate(UpdateTestMixin, DBTest):
 
         pkg = self.db.query(Package).first()
         filename = pkg.path[len(self.prefix):]
-        match = re.match(r'^[0-9a-f]{4}-.+$', filename)
+        match = re.match(r'^[0-9a-f]{4}:.+$', filename)
         self.assertIsNotNone(match)
 
     def test_delete(self):

@@ -81,6 +81,16 @@ class TestPackage(TestCase):
         got_url = package.get_url(request)
         self.assertEquals(got_url, url)
 
+    def test_pypi_path(self):
+        """ The pypi path should exclude any S3 prefix """
+        p1 = Package('a', '1', 'a84f:mypath')
+        self.assertEqual(p1.pypi_path, 'mypath')
+
+    def test_pypi_path_no_prefix(self):
+        """ The pypi path should noop if no S3 prefix """
+        p1 = Package('a', '1', 'a84f-mypath')
+        self.assertEqual(p1.pypi_path, p1.path)
+
 
 class TestSqlOps(DBTest):
 

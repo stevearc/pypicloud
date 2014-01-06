@@ -47,7 +47,7 @@ def upload_package(request, name, version, content):
         m.update(name)
         m.update(version)
         prefix = m.digest().encode('hex')[:4]
-        filename = prefix + '-' + filename
+        filename = prefix + ':' + filename
     key.key = request.registry.prefix + filename
     key.set_metadata('name', name)
     key.set_metadata('version', version)
