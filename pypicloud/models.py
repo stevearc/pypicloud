@@ -97,7 +97,8 @@ class Package(Base):
                 self.save(request)
         return self._url
 
-    def filename(self, request):
+    @property
+    def filename(self):
         """ Getter for raw filename with no prefixes """
         filename = self.path.split('/')[-1]
         return filename
