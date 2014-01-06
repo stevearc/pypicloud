@@ -13,7 +13,6 @@ from .compat import total_ordering
 
 
 Base = declarative_base()  # pylint: disable=C0103
-PREFIX = re.compile(r'^[A-Fa-f0-9]{4}:')
 
 
 def create_schema(engine):
@@ -100,11 +99,8 @@ class Package(Base):
 
     def filename(self, request):
         """ Getter for raw filename with no prefixes """
-        filename = self.path[len(request.registry.prefix):]
-        if PREFIX.match(filename):
-            return filename[5:]
-        else:
-            return filename
+        filename = self.path.split('/')[-1]
+        return filename
 
     @property
     def redis_key(self):
