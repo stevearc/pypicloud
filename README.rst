@@ -6,8 +6,8 @@ PyPI Cloud
 
 .. |build| image:: https://travis-ci.org/mathcamp/pypicloud.png?branch=master
 .. _build: https://travis-ci.org/mathcamp/pypicloud
-.. |coverage| image:: https://coveralls.io/repos/stevearc/pypicloud/badge.png?branch=master
-.. _coverage: https://coveralls.io/r/stevearc/pypicloud?branch=master
+.. |coverage| image:: https://coveralls.io/repos/mathcamp/pypicloud/badge.png?branch=master
+.. _coverage: https://coveralls.io/r/mathcamp/pypicloud?branch=master
 
 This package is a Pyramid app that runs a simple PyPI server where all the
 packages are stored on Amazon's Simple Storage Service (S3).

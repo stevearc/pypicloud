@@ -3,7 +3,7 @@
 # pylint: disable=C0103
 try:
     from functools import total_ordering
-except ImportError:
+except ImportError:  # pragma: no cover
     def total_ordering(cls):
         """Class decorator that fills in missing ordering methods"""
         convert = {
