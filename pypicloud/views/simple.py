@@ -9,9 +9,9 @@ from pyramid_duh import argify, addslash
 
 
 @view_config(context=Root, request_method='POST', subpath=(),
-             permission='login')
+             permission='login', renderer='json')
 @view_config(context=SimpleResource, request_method='POST', subpath=(),
-             permission='login')
+             permission='login', renderer='json')
 @argify
 def upload(request, name, version, content):
     """ Handle update commands """
