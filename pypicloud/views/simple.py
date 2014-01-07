@@ -35,7 +35,7 @@ def simple(request):
 
 
 @view_config(context=SimplePackageResource, request_method='GET', subpath=(),
-             renderer='package.jinja2', permission='read')
+             renderer='package.jinja2')
 @addslash
 def package_versions(context, request):
     """ Render the links for all versions of a package """
@@ -46,4 +46,6 @@ def package_versions(context, request):
         redirect_url = "%s/%s/" % (
             request.registry.fallback_url.rstrip('/'), name)
         return HTTPFound(location=redirect_url)
+    if not request.has_permission(name, 'r'):
+        raise HTTPForbidden()
     return {'pkgs': pkgs}

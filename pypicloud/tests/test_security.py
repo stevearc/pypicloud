@@ -247,6 +247,14 @@ class TestEndpointSecurity(unittest.TestCase):
         response = self.app.get('/simple/pkg1/', expect_errors=True)
         self.assertEqual(response.status_int, 401)
 
+    def test_simple_302(self):
+        """ If simple endpoints unauthorized and package missing, redirect """
+        response = self.app.get('/pypi/pkg2/', expect_errors=True)
+        self.assertEqual(response.status_int, 302)
+
+        response = self.app.get('/simple/pkg2/', expect_errors=True)
+        self.assertEqual(response.status_int, 302)
+
     def test_simple(self):
         """ If simple endpoints authed, return a list of versions """
         response = self.app.get('/pypi/pkg1/',
