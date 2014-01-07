@@ -28,7 +28,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr ng-repeat="package in packages | filter:searchText | orderBy:'version':true | startFrom:(currentPage - 1)*pageSize | limitTo:pageSize">
+          <tr ng-repeat="package in packages | filter:searchText | orderBy:versionPredicates:true | startFrom:(currentPage - 1)*pageSize | limitTo:pageSize">
             <td ng-mouseenter="showDelete = true" ng-mouseleave="showDelete = false">
               <a ng-href="{{ package.url }}">{{ package.version }}</a>
               <button ng-click="deletePackage(package)" ng-show="can_write && (showDelete || package.deleting)" class="btn btn-danger btn-xs pull-right" ng-disabled="package.deleting">

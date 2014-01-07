@@ -1,9 +1,9 @@
 """ Model objects """
-import re
 import os
 import time
 from datetime import datetime
 
+import pkg_resources
 from boto.s3.key import Key
 from pip.util import splitext
 from sqlalchemy import distinct, Column, DateTime, Text
@@ -194,11 +194,11 @@ class Package(Base):
         """ Search for either all packages or all versions of a package """
         if request.dbtype == 'sql':
             if name is None:
-                return request.db.query(Package).order_by(Package.name,
-                                                          Package.version).all()
+                return request.db.query(Package).order_by(Package.name).all()
             else:
-                return request.db.query(Package).filter_by(name=name)\
-                    .order_by(Package.version).all()
+                pkgs = request.db.query(Package).filter_by(name=name).all()
+                pkgs.sort(reverse=True)
+                return pkgs
         elif request.dbtype == 'redis':
             pipe = request.db.pipeline()
             if name is None:
@@ -210,7 +210,7 @@ class Package(Base):
                 versions = request.db.smembers(cls.redis_version_set(name))
                 for version in versions:
                     pipe.hgetall(cls._redis_key(name, version))
-            return [cls(**data) for data in pipe.execute()]
+            return list(sorted((cls(**data) for data in pipe.execute()), reverse=True))
 
     @classmethod
     def distinct(cls, request):
@@ -259,7 +259,7 @@ class Package(Base):
         return self.name == other.name and self.version == other.version
 
     def __lt__(self, other):
-        return (self.name, self.version) < (other.name, other.version)
+        return (self.name, pkg_resources.parse_version(self.version)) < (other.name, pkg_resources.parse_version(other.version))
 
     def __str__(self):
         return unicode(self).encode('utf-8')

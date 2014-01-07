@@ -44,7 +44,6 @@ Indices and tables
 TODO
 ====
 * Filter versions by pre-release
-* Sort versions
 * Cache more metadata for display (last updated, most recent version)
 * Directives for cloning parts of pypi
 * Store user/group configuration in S3/Dynamo?
