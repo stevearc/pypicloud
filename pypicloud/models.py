@@ -3,6 +3,7 @@ import os
 import time
 from datetime import datetime
 
+import logging
 import pkg_resources
 from boto.s3.key import Key
 from pip.util import splitext
@@ -11,6 +12,8 @@ from sqlalchemy.ext.declarative import declarative_base
 
 from .compat import total_ordering
 
+
+LOG = logging.getLogger(__name__)
 
 Base = declarative_base()  # pylint: disable=C0103
 
@@ -168,11 +171,17 @@ class Package(Base):
         if request.dbtype == 'sql':
             for key in keys:
                 pkg = Package.from_key(key)
+                if not pkg.name.strip():
+                    LOG.warning("S3 file %s has no package name", pkg.path)
+                    continue
                 pkg.save(request)
         elif request.dbtype == 'redis':
             pipe = request.db.pipeline()
             for key in keys:
                 pkg = Package.from_key(key)
+                if not pkg.name.strip():
+                    LOG.warning("S3 file %s has no package name", pkg.path)
+                    continue
                 pkg.save(request, pipe=pipe)
             pipe.execute()
 
