@@ -152,7 +152,7 @@ def make_config():
             data['venv'] = sys.prefix
         data['wsgi'] = 'uwsgi'
 
-    tmpl_file = os.path.join(os.path.dirname(__file__), os.pardir,
+    tmpl_file = os.path.join(os.path.dirname(__file__), 'templates',
                              'config.ini.jinja2')
     with open(tmpl_file, 'r') as ifile:
         template = Template(ifile.read())
