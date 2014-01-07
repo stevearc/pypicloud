@@ -12,6 +12,8 @@ PyPI Cloud
 This package is a Pyramid app that runs a simple PyPI server where all the
 packages are stored on Amazon's Simple Storage Service (S3).
 
+`LIVE DEMO <http://pypi.stevearc.com>`_
+
 Quick Start
 ===========
 For more detailed step-by-step instructions, check out the `getting started
