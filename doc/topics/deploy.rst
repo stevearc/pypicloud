@@ -41,6 +41,7 @@ You can run uwsgi with
 
 .. code-block:: bash
 
+    $ pip install uwsgi
     $ uwsgi --ini-paste-logged prod.ini
 
 Now uwsgi is running, but it's not speaking HTTP. It speaks a special uwsgi
@@ -49,20 +50,12 @@ configuration that will listen on port 80 and send traffic to uwsgi.
 
 ::
 
-    upstream pypicloud {
-        server 127.0.0.1:3031;
-    }
-
     server {
         listen 80;
         server_name pypi.myserver.com;
         location / {
-            try_files @pypicloud_proxy;
-        }
-
-        location @pypicloud_proxy {
             include uwsgi_params;
-            uwsgi_pass pypicloud;
+            uwsgi_pass 127.0.0.1:3031;
         }
     }
 
