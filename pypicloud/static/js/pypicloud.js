@@ -1,3 +1,7 @@
+String.prototype.endsWith = function(suffix) {
+    return this.indexOf(suffix, this.length - suffix.length) !== -1;
+};
+
 var pypicloud = angular.module('pypicloud', ['ui.bootstrap', 'ngRoute', 'angularFileUpload', 'ngCookies'])
   .config(['$routeProvider', function($routeProvider) {
     $routeProvider.when('/', {
@@ -152,6 +156,27 @@ pypicloud.controller('UploadCtrl', ['$scope', '$fileUploader', function($scope, 
     item.url = $scope.API + 'package/' + $scope.package_name + '/' + $scope.version;
     item.upload();
   }
+
+  uploader.bind('changedqueue', function (event, items) {
+    if (uploader.queue.length === 0) {
+      $scope.version = '';
+      if (!$scope.package_preset) {
+        $scope.package_name = '';
+      }
+    } else {
+      var pieces = items[0].file.name.split('-');
+      if (!$scope.package_preset) {
+        $scope.package_name = pieces[0];
+      }
+      pieces.splice(0, 1);
+      $scope.version = pieces.join('-');
+      $scope.version = $scope.version.substr(0, $scope.version.lastIndexOf('.'));
+      if ($scope.version.endsWith('.tar')) {
+        $scope.version = $scope.version.slice(0, -4);
+      }
+      $scope.$apply();
+    }
+  });
 
   uploader.bind('success', function (event, xhr, item, response) {
     uploader.clearQueue();
