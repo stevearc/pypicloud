@@ -176,6 +176,8 @@ def _package_owner(request, package):
 
 def _has_permission(request, package, perm):
     """ Check if this user has a permission for a package """
+    if perm == 'r' and request.registry.zero_security_mode:
+        return True
     if request.userid is not None:
         if _is_admin(request, request.userid):
             return True

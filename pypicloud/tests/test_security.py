@@ -111,6 +111,20 @@ class TestPermissionSettings(unittest.TestCase):
         perms = auth._group_permission(self.request, 'mypkg', Authenticated)
         self.assertEqual(perms, 'r')
 
+    def test_zero_security(self):
+        """ In zero_security_mode everyone has 'r' permission """
+        self.request.userid = None
+        self.request.registry.zero_security_mode = True
+        can_read = auth._has_permission(self.request, 'floobydooby', 'r')
+        self.assertTrue(can_read)
+
+    def test_zero_security_write(self):
+        """ zero_security_mode has no impact on 'w' permission """
+        self.request.userid = None
+        self.request.registry.zero_security_mode = True
+        can_write = auth._has_permission(self.request, 'floobydooby', 'w')
+        self.assertFalse(can_write)
+
 
 class TestGetACL(unittest.TestCase):
 
