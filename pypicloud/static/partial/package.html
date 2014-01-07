@@ -15,6 +15,12 @@
     </div>
   </div>
 
+  <div class="row">
+    <div class="col-xs-12 col-md-offset-3 col-md-4">
+      <input type="checkbox" ng-model="showPreRelease"> Show pre-release versions
+    </div>
+  </div>
+
   <div class="row" style="margin-bottom: 10px">
     <div ng-include="PARTIAL + 'upload.html'"></div>
   </div>
@@ -28,7 +34,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr ng-repeat="package in packages | filter:searchText | orderBy:versionPredicates:true | startFrom:(currentPage - 1)*pageSize | limitTo:pageSize">
+          <tr ng-repeat="package in filtered = (packages | filter:filterPreRelease | filter:searchText) | orderBy:versionPredicates:true | startFrom:(currentPage - 1)*pageSize | limitTo:pageSize">
             <td ng-mouseenter="showDelete = true" ng-mouseleave="showDelete = false">
               <a ng-href="{{ package.url }}">{{ package.version }}</a>
               <button ng-click="deletePackage(package)" ng-show="can_write && (showDelete || package.deleting)" class="btn btn-danger btn-xs pull-right" ng-disabled="package.deleting">
@@ -40,7 +46,7 @@
         </tbody>
       </table>
       <div class="text-center">
-        <pagination direction-links="true" total-items="packages.length" rotate="false" max-size="maxSize" items-per-page="pageSize" page="currentPage"></pagination>
+        <pagination direction-links="true" total-items="filtered.length" rotate="false" max-size="maxSize" items-per-page="pageSize" page="currentPage"></pagination>
       </div>
     </div>
   </div>

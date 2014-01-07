@@ -104,13 +104,22 @@ pypicloud.controller('LoginCtrl', ['$scope', '$http', function($scope, $http) {
 pypicloud.controller('PackageCtrl', ['$scope', '$http', '$route', '$fileUploader',
     function($scope, $http, $route, $fileUploader) {
   $scope.package_name = $route.current.params.pkg;
+  $scope.showPreRelease = true;
   $scope.packages = null;
   $scope.pageSize = 10;
   $scope.maxSize = 8;
   $scope.currentPage = 1;
 
+  $scope.filterPreRelease = function(pkg) {
+    if ($scope.showPreRelease) {
+      return true;
+    }
+    return pkg.version.match(/^\d+(\.\d+)*$/);
+  };
+
   $http.get($scope.API + 'package/' + $scope.package_name).success(function(data, status, headers, config) {
     $scope.packages = data.packages;
+    $scope.filtered = data.packages;
     $scope.can_write = data.write;
   })
 
