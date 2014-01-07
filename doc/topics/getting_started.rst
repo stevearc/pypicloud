@@ -36,6 +36,10 @@ If you have not already, create an access key and secret by following the `AWS
 guide
 <http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSGettingStartedGuide/AWSCredentials.html>`_
 
+You need your bucket to grant access to your user account. If you are getting
+permissions errors or 403's, you will need to set :ref:`a policy on your bucket
+<s3_policy>`.
+
 Configuration
 -------------
 Generate a default server configuration

@@ -92,8 +92,8 @@ class Package(Base):
             key = Key(request.bucket)
             key.key = self.path
             expire_after = time.time() + request.registry.expire_after
-            self._url = key.generate_url(
-                expire_after, expires_in_absolute=True)
+            self._url = key.generate_url(expire_after,
+                                         expires_in_absolute=True)
             self._expire = datetime.fromtimestamp(expire_after -
                                                   request.registry.buffer_time)
             if request.dbtype == 'redis':
