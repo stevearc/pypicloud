@@ -17,9 +17,6 @@ generate a default production config file.
 
 Here are the options that you should pay extra attention to:
 
-``zero_security_mode`` should probably be ``false`` (or blank, as false is the
-default). Using explicit access control is much better.
-
 ``pypi.db.url`` should be a real database. You can use sqlite for small
 deploys, but make sure you're using a file instead of ``:memory:``. Redis is
 recommended because it's awesome.

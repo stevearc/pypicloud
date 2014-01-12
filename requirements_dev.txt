@@ -7,3 +7,5 @@ mock
 webtest
 sphinx
 numpydoc
+redis
+requests

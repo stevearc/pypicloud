@@ -14,10 +14,7 @@ class TestSimple(DBTest):
 
     def setUp(self):
         super(TestSimple, self).setUp()
-        self.request.registry.zero_security_mode = True
-        self.request.get_acl = lambda x: []
-        self.request.has_permission = MagicMock()
-        self.request.has_permission.return_value = True
+        self.request.access = MagicMock()
         self.api_call = patch.object(pypicloud.views.simple, 'api').start()
         self.package = patch.object(pypicloud.views.simple, 'Package').start()
 

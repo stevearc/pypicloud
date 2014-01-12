@@ -79,8 +79,8 @@ preferences into the ``$HOME/.pip/pip.conf`` file::
 
 Uploading Packages
 ------------------
-To upload packages to, you will need to add your server as an index server
-inside your ``$HOME/.pypirc``::
+To upload packages, you will need to add your server as an index server inside
+your ``$HOME/.pypirc``::
 
     [distutils]
     index-servers = pypicloud

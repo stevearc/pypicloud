@@ -1,6 +1,5 @@
 """ Render views for logging in and out of the web interface """
 from paste.httpheaders import WWW_AUTHENTICATE
-from pypicloud.auth import verify_user
 from pypicloud.route import Root
 from pyramid.httpexceptions import (HTTPForbidden, HTTPFound, HTTPUnauthorized,
                                     HTTPNotFound)
@@ -54,7 +53,7 @@ def get_login_page(request):
 @argify
 def do_login(request, username, password):
     """ Check credentials and log in """
-    if verify_user(request, username, password):
+    if request.access.verify_user(username, password):
         request.response.headers.extend(remember(request, username))
         next_url = request.session.get('next', request.app_url())
         return {

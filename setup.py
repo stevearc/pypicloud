@@ -20,7 +20,6 @@ REQUIREMENTS = [
     'pyramid_duh',
     'pyramid_jinja2',
     'pyramid_tm',
-    'redis',
     'transaction',
     'zope.sqlalchemy',
 ]

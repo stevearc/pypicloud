@@ -14,6 +14,7 @@ Submodules
 
 .. toctree::
 
+   pypicloud.access
    pypicloud.api
    pypicloud.auth
    pypicloud.compat

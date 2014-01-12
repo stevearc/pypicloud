@@ -8,15 +8,13 @@ from pyramid.httpexceptions import HTTPNotFound, HTTPBadRequest
 def list_packages(request):
     """ Get the names of all unique packages, filtered by read permission """
     names = Package.distinct(request)
-    if (not request.registry.zero_security_mode and
-            not request.is_admin(request.userid)):
-        i = 0
-        while i < len(names):
-            name = names[i]
-            if not request.has_permission(name, 'r'):
-                del names[i]
-                continue
-            i += 1
+    i = 0
+    while i < len(names):
+        name = names[i]
+        if not request.access.has_permission(name, 'read'):
+            del names[i]
+            continue
+        i += 1
 
     return names
 

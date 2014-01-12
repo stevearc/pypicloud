@@ -18,7 +18,7 @@ def upload(request, name, version, content):
     action = request.param(':action')
     name = Package.normalize_name(name)
     if action == 'file_upload':
-        if not request.has_permission(name, 'w'):
+        if not request.access.has_permission(name, 'write'):
             raise HTTPForbidden()
         return api.upload_package(request, name, version, content)
     else:
@@ -46,6 +46,6 @@ def package_versions(context, request):
         redirect_url = "%s/%s/" % (
             request.registry.fallback_url.rstrip('/'), name)
         return HTTPFound(location=redirect_url)
-    if not request.has_permission(name, 'r'):
+    if not request.access.has_permission(name, 'read'):
         raise HTTPForbidden()
     return {'pkgs': pkgs}

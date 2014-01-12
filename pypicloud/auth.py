@@ -1,17 +1,12 @@
 """ Utilities for authentication and authorization """
 import binascii
 
-from collections import defaultdict
-from passlib.hash import sha256_crypt  # pylint: disable=E0611
 from paste.httpheaders import AUTHORIZATION
 from pyramid.authorization import ACLAuthorizationPolicy
-from pyramid.security import (Authenticated, Everyone, unauthenticated_userid,
-                              effective_principals, Allow)
-from pyramid.settings import aslist
+from pyramid.security import Everyone, unauthenticated_userid
 
 
-# Copied from
-# http://docs.pylonsproject.org/projects/pyramid_cookbook/en/latest/auth/basic.html
+# Copied from http://docs.pylonsproject.org/projects/pyramid_cookbook/en/latest/auth/basic.html
 def _get_basicauth_credentials(request):
     """ Get the user/password from HTTP basic auth """
     authorization = AUTHORIZATION(request.environ)
@@ -49,38 +44,32 @@ class BasicAuthenticationPolicy(object):
 
     """
 
-    def __init__(self, check):
-        self.check = check
-
     def authenticated_userid(self, request):
         """ Verify login and return the authed userid """
         credentials = _get_basicauth_credentials(request)
         if credentials is None:
             return None
         userid = credentials['login']
-        if self.check(credentials, request) is not None:  # is not None!
+        if request.access.verify_user(credentials['login'],
+                                      credentials['password']):
             return userid
+        return None
 
     def effective_principals(self, request):
         """ Get the authed groups for the active user """
-        principals = [Everyone]
         credentials = _get_basicauth_credentials(request)
         if credentials is None:
-            return principals
+            return [Everyone]
         userid = credentials['login']
-        groups = self.check(credentials, request)
-        if groups is None:
-            return principals
-        principals.append(Authenticated)
-        principals.append(userid)
-        principals.extend(groups)
-        return principals
+        if request.access.verify_user(userid, credentials['password']):
+            return request.access.user_principals(userid)
+        return [Everyone]
 
     def unauthenticated_userid(self, request):
         """ Return userid without performing auth """
-        creds = _get_basicauth_credentials(request)
-        if creds is not None:
-            return creds['login']
+        credentials = _get_basicauth_credentials(request)
+        if credentials is not None:
+            return credentials['login']
         return None
 
     def remember(self, request, principal, **kw):
@@ -119,15 +108,7 @@ class SessionAuthPolicy(object):
         user, including 'system' groups such as
         ``pyramid.security.Everyone`` and
         ``pyramid.security.Authenticated``. """
-        principals = [Everyone]
-        userid = self.unauthenticated_userid(request)
-        if userid is not None:
-            principals.append(Authenticated)
-            principals.append(userid)
-            if request.is_admin(userid):
-                principals.append('admin')
-            principals.extend(request.registry.groups[userid])
-        return principals
+        return request.session.get('principals', [Everyone])
 
     def remember(self, request, principal, **kw):
         """ Return a set of headers suitable for 'remembering' the
@@ -135,6 +116,8 @@ class SessionAuthPolicy(object):
         individual authentication policy and its consumers can decide
         on the composition and meaning of **kw. """
         request.session['user'] = principal
+        request.session['principals'] = \
+            request.access.user_principals(principal)
         return []
 
     def forget(self, request):
@@ -144,124 +127,11 @@ class SessionAuthPolicy(object):
         return []
 
 
-def auth_callback(credentials, request):
-    """ Our callback to authenticate users """
-    userid = credentials['login']
-    if verify_user(request, userid, credentials['password']):
-        principals = []
-        if request.is_admin(userid):
-            principals.append('admin')
-        principals.extend(request.registry.groups[userid])
-        return principals
-    else:
-        return None
-
-
-def verify_user(request, username, password):
-    """ Validate a username/password """
-    key = "user.%s" % username
-    stored_pw = request.registry.settings.get(key)
-    if stored_pw and sha256_crypt.verify(password, stored_pw):
-        return True
-    else:
-        return False
-
-
-def _package_owner(request, package):
-    """ Get the owner of a package """
-    settings = request.registry.settings
-    key = 'package.%s.owner' % package
-    return settings.get(key)
-
-
-def _has_permission(request, package, perm):
-    """ Check if this user has a permission for a package """
-    if perm == 'r' and request.registry.zero_security_mode:
-        return True
-    if request.userid is not None:
-        if _is_admin(request, request.userid):
-            return True
-        if request.userid == _package_owner(request, package):
-            return True
-    for group in effective_principals(request):
-        if perm in _group_permission(request, package, group):
-            return True
-    return False
-
-
-def _group_permission(request, package, group):
-    """ Get the group permissions for a package """
-    if group.startswith('group:'):
-        group = group[len('group:'):]
-    elif group == Everyone:
-        group = 'everyone'
-    elif group == Authenticated:
-        group = 'authenticated'
-    settings = request.registry.settings
-    key = 'package.%s.group.%s' % (package, group)
-    return settings.get(key, '')
-
-
-def _is_admin(request, user):
-    """ Return True if the user is an admin """
-    return user in request.registry.admins
-
-
-def _get_acl(request, package):
-    """ Construct an ACL for accessing a package """
-    if request.registry.zero_security_mode:
-        return []
-    settings = request.registry.settings
-    acl = []
-    key = 'package.%s.owner' % package
-    owner = settings.get(key)
-    if owner is not None:
-        acl.append((Allow, owner, 'read'))
-        acl.append((Allow, owner, 'write'))
-    group_prefix = 'package.%s.group.' % package
-    for key, value in settings.iteritems():
-        if not key.startswith(group_prefix):
-            continue
-        group = key[len(group_prefix):]
-        if group == 'everyone':
-            group = Everyone
-        elif group == 'authenticated':
-            group = Authenticated
-        else:
-            group = 'group:' + group
-        if 'r' in value:
-            acl.append((Allow, group, 'read'))
-        if 'w' in value:
-            acl.append((Allow, group, 'write'))
-    return acl
-
-
-def _build_group_map(settings):
-    """ Build a mapping of user - list of groups """
-
-    groups = defaultdict(list)
-
-    # Build dict that maps users to list of groups
-    for key, value in settings.iteritems():
-        if not key.startswith('group.'):
-            continue
-        group_name = 'group:' + key[len('group.'):]
-        members = aslist(value)
-        for member in members:
-            groups[member].append(group_name)
-    return groups
-
-
 def includeme(config):
     """ Configure the app """
-    settings = config.get_settings()
     config.set_authorization_policy(ACLAuthorizationPolicy())
     config.set_authentication_policy(config.registry.authentication_policy)
     config.add_authentication_policy(SessionAuthPolicy())
-    config.add_authentication_policy(BasicAuthenticationPolicy(auth_callback))
+    config.add_authentication_policy(BasicAuthenticationPolicy())
     config.add_request_method(unauthenticated_userid, name='userid',
                               reify=True)
-    config.add_request_method(_is_admin, name='is_admin')
-    config.add_request_method(_has_permission, name='has_permission')
-    config.add_request_method(_get_acl, name='get_acl')
-    config.registry.groups = _build_group_map(settings)

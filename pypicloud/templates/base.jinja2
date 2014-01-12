@@ -58,7 +58,7 @@ role="navigation">
   <script src="{{ 'pypicloud:static/js/pypicloud.js' | static_url }}"></script>
   <script type="text/javascript" charset="utf-8">
     var USER = {{ request.userid | tojson | safe }};
-    var ADMIN = {{ request.is_admin(request.userid) | tojson | safe }};
+    var ADMIN = {{ request.access.is_admin(request.userid) | tojson | safe }};
     var ROOT = {{ request.app_url() | tojson | safe }};
     var STATIC = {{ 'pypicloud:static/' | static_url | tojson | safe }};
   </script>

@@ -62,7 +62,7 @@ class SimplePackageResource(object):
     def __init__(self, request, name):
         self.request = request
         self.name = name
-        self.__acl__ = request.get_acl(self.name)
+        self.__acl__ = request.access.get_acl(self.name)
 
 
 class APIPackagingResource(IResourceFactory):
@@ -83,7 +83,7 @@ class APIPackageResource(IResourceFactory):
         self.name = name
         self.__factory__ = functools.partial(
             APIPackageVersionResource, self.request, self.name)
-        self.__acl__ = request.get_acl(self.name)
+        self.__acl__ = request.access.get_acl(self.name)
 
 
 class APIPackageVersionResource(object):
@@ -118,14 +118,4 @@ class Root(IStaticResource):
 
     def __init__(self, request):
         super(Root, self).__init__(request)
-        acl = []
-
-        if request.registry.zero_security_mode:
-            acl.append((Allow, Everyone, 'login'))
-            acl.append((Allow, Everyone, 'read'))
-            acl.append((Allow, Authenticated, 'write'))
-        else:
-            acl.append((Allow, Authenticated, 'login'))
-        acl.append((Allow, 'admin', ALL_PERMISSIONS))
-        acl.append((Deny, Everyone, ALL_PERMISSIONS))
-        self.__acl__ = acl
+        self.__acl__ = request.access.ROOT_ACL

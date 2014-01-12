@@ -219,7 +219,8 @@ class Package(Base):
                 versions = request.db.smembers(cls.redis_version_set(name))
                 for version in versions:
                     pipe.hgetall(cls._redis_key(name, version))
-            return list(sorted((cls(**data) for data in pipe.execute()), reverse=True))
+            return list(sorted((cls(**data) for data in pipe.execute()),
+                               reverse=True))
 
     @classmethod
     def distinct(cls, request):

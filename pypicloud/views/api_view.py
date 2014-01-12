@@ -25,7 +25,7 @@ def package_versions(context, request):
     versions = Package.all(request, context.name)
     return {
         'packages': versions,
-        'write': request.has_permission(context.name, 'w'),
+        'write': request.access.has_permission(context.name, 'write'),
     }
 
 

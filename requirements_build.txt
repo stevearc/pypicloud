@@ -4,3 +4,5 @@ nose
 mock
 coverage
 webtest
+redis
+requests

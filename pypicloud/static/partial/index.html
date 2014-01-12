@@ -43,13 +43,13 @@
           </tr>
         </thead>
         <tbody>
-          <tr ng-repeat="package in packages | filter:searchText | orderBy:'toString()' | startFrom:(currentPage - 1)*pageSize | limitTo:pageSize" ng-click="showPackage(package)">
+          <tr ng-repeat="package in filtered = (packages | filter:searchText) | orderBy:'toString()' | startFrom:(currentPage - 1)*pageSize | limitTo:pageSize" ng-click="showPackage(package)">
             <td>{{ package }}</td>
           </tr>
         </tbody>
       </table>
       <div class="text-center">
-        <pagination direction-links="true" total-items="packages.length" rotate="false" max-size="maxSize" items-per-page="pageSize" page="currentPage"></pagination>
+        <pagination direction-links="true" total-items="filtered.length" rotate="false" max-size="maxSize" items-per-page="pageSize" page="currentPage"></pagination>
       </div>
     </div>
   </div>

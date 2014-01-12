@@ -120,54 +120,14 @@ on the subject.
 Allow users to upload packages that will overwrite an existing version (default
 False)
 
-.. _access_control_config:
-
 Access Control
 ^^^^^^^^^^^^^^
 
-``user.<username>``
-~~~~~~~~~~~~~~~~~~~
-**Argument:** string
+``pypi.access_backend``
+~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
 
-Defines a single user login. You may specify any number of users in the file.
-Use ``pypicloud-gen-password`` to create the password hashes.
-
-``package.<package>.owner``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** string
-
-Define the owner of a package. The value should be a username set in a
-``user.<username>`` field. Package owners always have read/write access to the
-package.
-
-``package.<package>.group.<group>``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** {``r``, ``rw``}
-
-Give read or read/write access on a package to a group of users. The group must
-be defined in a ``group.<group>`` field. There are two special-case group
-names. If you use ``everyone``, it will give that permission to all users; even
-those not logged-in. If you use ``authenticated``, it will give that permission
-to any user defined in the config file.
-
-``pypi.admins``
-~~~~~~~~~~~~~~~
-**Argument:** list
-
-Whitespace-delimited list of users with admin privileges. Admins have
-read/write access to all packages, and can perform maintenance tasks.
-
-``group.<group>``
-~~~~~~~~~~~~~~~~~
-**Argument:** list
-
-Whitespace-delimited list of users that belong to this group. Groups can have
-separately-defined read/write permissions on packages.
-
-``pypi.zero_security_mode``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** bool, optional
-
-Run in a special, limited access-control mode. Any user with valid credentials
-can upload any package. Everyone (even not-logged-in users) can view and
-download all packages. (default False)
+A dotted path to a subclass of :class:`~pypicloud.access.IAccessBackend`. The
+default is :class:`~pypicloud.access.ConfigAccessBackend`. Each backend option
+may have additional configuration options. Documentation for the built-in
+backends can be found at :ref:`access_control`.

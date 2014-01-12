@@ -3,7 +3,6 @@ from pyramid.config import Configurator
 from pyramid.renderers import render
 from pyramid.settings import asbool, aslist
 from pyramid_beaker import session_factory_from_settings
-from redis import StrictRedis
 from sqlalchemy import engine_from_config
 from sqlalchemy.orm import sessionmaker
 # pylint: disable=F0401,E0611
@@ -11,7 +10,7 @@ from zope.sqlalchemy import ZopeTransactionExtension
 # pylint: enable=F0401,E0611
 
 import boto
-from .models import create_schema
+from .models import create_schema, Package
 from .route import Root
 
 
@@ -65,6 +64,7 @@ def includeme(config):
     config.include('pyramid_duh')
     config.include('pyramid_duh.auth')
     config.include('pypicloud.auth')
+    config.include('pypicloud.access')
     settings = config.get_settings()
 
     # Jinja2 configuration
@@ -83,7 +83,8 @@ def includeme(config):
     s3conn = boto.connect_s3(
         aws_access_key_id=settings.get('aws.access_key'),
         aws_secret_access_key=settings.get('aws.secret_key'))
-    config.registry.s3bucket = s3conn.get_bucket(settings['aws.bucket'])
+    config.registry.s3bucket = s3conn.get_bucket(settings['aws.bucket'],
+                                                 validate=False)
 
     config.registry.prefix = settings.get('aws.prefix', '')
     config.registry.expire_after = int(settings.get('aws.expire_after',
@@ -100,17 +101,19 @@ def includeme(config):
                                                        True))
     config.registry.allow_overwrite = asbool(
         settings.get('pypi.allow_overwrite', False))
-    config.registry.admins = aslist(settings.get('pypi.admins', []))
-    config.registry.zero_security_mode = asbool(
-        settings.get('pypi.zero_security_mode', False))
     realm = settings.get('pypi.realm', 'pypi')
     config.registry.realm = realm
 
-    # Connect to cache database
+    # CACHING DATABASE SETTINGS
     db_url = settings.get('pypi.db.url')
     if db_url is None:
         raise ValueError("Must specify a 'pypi.db.url'")
     elif db_url.startswith('redis://'):
+        try:
+            from redis import StrictRedis
+        except ImportError:
+            raise ImportError("You must 'pip install redis' before using "
+                              "redis as the database")
         config.registry.redis = StrictRedis.from_url(db_url)
         config.add_request_method(_redis_db, name='db', reify=True)
         dbtype = 'redis'
