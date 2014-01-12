@@ -56,7 +56,8 @@ class IAccessBackend(object):
 
         """
         principals = ['user:' + username, Everyone, Authenticated]
-        if self.is_admin(unauthenticated_userid(self.request)):
+        current_userid = unauthenticated_userid(self.request)
+        if current_userid is not None and self.is_admin(current_userid):
             principals.append('admin')
         for group in self.user_groups(username):
             principals.append('group:' + group)
@@ -264,11 +265,11 @@ class ConfigAccessBackend(IAccessBackend):
 
     def all_user_permissions(self, package):
         perms = {}
-        group_prefix = 'package.%s.user.' % package
+        user_prefix = 'package.%s.user.' % package
         for key, value in self._settings.iteritems():
-            if not key.startswith(group_prefix):
+            if not key.startswith(user_prefix):
                 continue
-            group = key[len(group_prefix):]
+            group = key[len(user_prefix):]
             perms[group] = self._perms_from_short(value)
         return perms
 

@@ -14,10 +14,10 @@ aws.bucket = {{ s3_bucket }}
 pypi.db.url = {{ db_url }}
 
 {% if zero_security_mode -%}
-pypi.zero_security_mode = true
+auth.zero_security_mode = true
 {%- endif %}
 
-pypi.admins =
+auth.admins =
   {{ admin }}
 
 user.{{ admin }} = {{ password }}
