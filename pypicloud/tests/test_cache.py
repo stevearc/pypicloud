@@ -42,21 +42,21 @@ class TestBaseCache(unittest.TestCase):
     def test_get_url_saves(self, _):
         """ Calls to get_url() saves to caching db if autocommit=True """
         cache = ICache(MagicMock())
-        cache.autocommit = True
-        cache.save = MagicMock()
-        package = Package('mypkg', '1.1', 'mypkg-1.1.tar.gz')
-        cache.get_url(package)
-        cache.save.assert_called_with(package)
+        with patch.object(cache, 'save') as save:
+            cache.autocommit = True
+            package = Package('mypkg', '1.1', 'mypkg-1.1.tar.gz')
+            cache.get_url(package)
+            save.assert_called_with(package)
 
     @patch.object(ICache, 'storage_impl')
     def test_get_url_no_save(self, _):
         """ Calls to get_url() doesn't save if autocommit=False """
         cache = ICache(MagicMock())
         cache.autocommit = False
-        cache.save = MagicMock()
-        package = Package('mypkg', '1.1', 'mypkg-1.1.tar.gz')
-        cache.get_url(package)
-        self.assertFalse(cache.save.called)
+        with patch.object(cache, 'save') as save:
+            package = Package('mypkg', '1.1', 'mypkg-1.1.tar.gz')
+            cache.get_url(package)
+            self.assertFalse(save.called)
 
     def test_upload_overwrite(self):
         """ Uploading a preexisting packages overwrites current package """
