@@ -28,4 +28,4 @@ section of the docs.
     pypicloud-make-config -t server.ini
     pserve server.ini
 
-It's running on port 6543! Go to http://localhost:6543/ to view the web interface.
+It's running! Go to http://localhost:6543/ to view the web interface.

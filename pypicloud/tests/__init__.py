@@ -1,6 +1,9 @@
 """ Tests for pypicloud """
 from mock import MagicMock, patch
-from pypicloud.models import create_schema, Package
+from collections import defaultdict
+from pypicloud.models import create_schema
+from pypicloud.storage import IStorage
+from pypicloud.cache import ICache
 from pyramid.testing import DummyRequest
 from redis import StrictRedis
 from sqlalchemy import create_engine
@@ -13,58 +16,95 @@ except ImportError:
     import unittest
 
 
-class DBTest(unittest.TestCase):
+class DummyStorage(IStorage):
 
-    """ Base class that provides a sqlalchemy database """
+    """ In-memory implementation of IStorage """
+
+    def __init__(self, request=None):
+        super(DummyStorage, self).__init__(request)
+        self.packages = {}
+
+    def __call__(self, *args):
+        return self
+
+    def list(self, factory):
+        """ Return a list or generator of all packages """
+        for args in self.packages.itervalues():
+            yield factory(*args)
+
+    def get_url(self, package):
+        """ Create or return an HTTP url for a package file """
+        return package.path
+
+    def upload(self, name, version, filename, data):
+        self.packages[filename] = (name, version, filename)
+        return filename
+
+    def delete(self, path):
+        del self.packages[path]
+
+    def reset(self):
+        """ Clear all packages """
+        self.packages = {}
+
+
+class DummyCache(ICache):
+
+    """ In-memory implementation of ICache """
+    storage_impl = DummyStorage
+
+    def __init__(self, request=None):
+        super(DummyCache, self).__init__(request)
+        self.packages = defaultdict(dict)
 
     @classmethod
-    def setUpClass(cls):
-        engine = create_engine('sqlite:///:memory:')
-        create_schema(engine)
-        cls.dbmaker = sessionmaker(bind=engine)
+    def configure(cls, config):
+        pass
+
+    def __call__(self, _):
+        return self
+
+    def reset(self):
+        """ Clear all packages from storage and self """
+        self.packages.clear()
+        self.storage.reset()
+
+    def _fetch(self, name, version):
+        """ Override this method to implement 'fetch' """
+        return self.packages[name].get(version)
+
+    def _all(self, name):
+        """ Override this method to implement 'all' """
+        return self.packages[name].values()
+
+    def distinct(self):
+        """ Get all distinct package names """
+        return [name for name, versions in self.packages.iteritems()
+                if len(versions) > 0]
+
+    def clear(self, package):
+        """ Remove this package from the caching database """
+        del self.packages[package.name]
+
+    def clear_all(self):
+        """ Clear all cached packages from the database """
+        self.packages.clear()
+
+    def save(self, package):
+        """ Save this package to the database """
+        self.packages[package.name][package.version] = package
+
+
+class MockServerTest(unittest.TestCase):
+
+    """ Base class for tests that need in-memory ICache objects """
 
     def setUp(self):
-        super(DBTest, self).setUp()
-        self.db = self.dbmaker()
         self.request = DummyRequest()
+        self.request.db = DummyCache(self.request)
         self.request.path_url = '/path/'
-        self.request.bucket = MagicMock()
-        self.request.fetch_packages_if_needed = MagicMock()
-        self.request.db = self.db
-        self.request.dbtype = 'sql'
         self.params = {}
         self.request.param = lambda x: self.params[x]
 
     def tearDown(self):
-        super(DBTest, self).tearDown()
-        self.db.rollback()
-        self.db.query(Package).delete()
-        self.db.commit()
-        self.db.close()
-        patch.stopall()
-
-
-class RedisTest(unittest.TestCase):
-
-    """ Base class that provides a sqlalchemy database """
-
-    @classmethod
-    def setUpClass(cls):
-        cls.db = StrictRedis()
-
-    def setUp(self):
-        super(RedisTest, self).setUp()
-        self.request = DummyRequest()
-        self.request.url = 'http://myserver/path/'
-        self.request.bucket = MagicMock()
-        self.request.fetch_packages_if_needed = MagicMock()
-        self.request.db = self.db
-        self.request.dbtype = 'redis'
-        self.params = {}
-        self.request.param = lambda x: self.params[x]
-
-    def tearDown(self):
-        super(RedisTest, self).tearDown()
-        for key in self.db.keys(Package.redis_prefix + '*'):
-            del self.db[key]
-        patch.stopall()
+        self.request.db.reset()

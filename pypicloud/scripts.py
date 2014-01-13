@@ -53,7 +53,7 @@ def _gen_password():
 NO_DEFAULT = object()
 
 
-def prompt(msg, default=NO_DEFAULT):
+def prompt(msg, default=NO_DEFAULT, validate=None):
     """ Prompt user for input """
     while True:
         response = raw_input(msg + ' ').strip()
@@ -61,7 +61,8 @@ def prompt(msg, default=NO_DEFAULT):
             if default is NO_DEFAULT:
                 continue
             return default
-        return response
+        if validate is None or validate(response):
+            return response
 
 
 def prompt_option(text, choices, default=NO_DEFAULT):
@@ -132,7 +133,16 @@ def make_config():
 
     data['access_key'] = prompt("AWS access key id?")
     data['secret_key'] = prompt("AWS secret access key?")
-    data['s3_bucket'] = prompt("S3 bucket name?")
+
+    def bucket_validate(name):
+        """ Check for valid bucket name """
+        if '.' in name:
+            print "Bucket names cannot contain '.'"
+            return False
+        return True
+
+    data['s3_bucket'] = prompt("S3 bucket name?", 'pypi',
+                               validate=bucket_validate)
 
     data['db_url'] = 'sqlite:///%(here)s/db.sqlite'
 

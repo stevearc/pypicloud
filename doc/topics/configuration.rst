@@ -21,6 +21,13 @@ The name of the S3 bucket to store package in. Note: your bucket must not have
 "." in it. Amazon's SSL certificate for S3 urls is only valid for
 \*.s3.amazonaws.com
 
+``aws.region``
+~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+If the S3 bucket does not exist, it will be created in this region (defaults to
+classic US region)
+
 ``aws.prefix``
 ~~~~~~~~~~~~~~
 **Argument:** string, optional
@@ -119,6 +126,17 @@ on the subject.
 
 Allow users to upload packages that will overwrite an existing version (default
 False)
+
+Cache
+^^^^^
+``pypi.db.url``
+~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+A dotted path to a subclass of :class:`~pypicloud.cache.ICache`. The
+default is :class:`~pypicloud.cache.SQLCache`. Each cache option
+may have additional configuration options. Documentation for the built-in
+backends can be found at :ref:`cache`.
 
 Access Control
 ^^^^^^^^^^^^^^

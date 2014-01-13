@@ -1,14 +1,15 @@
 """ Unit tests for the simple endpoints """
 import pypicloud.views.simple
 from mock import MagicMock, patch
+from pypicloud.models import Package
 from pypicloud.route import SimplePackageResource
 from pypicloud.views.simple import upload, simple, package_versions
 from pyramid.httpexceptions import HTTPBadRequest, HTTPFound
 
-from . import DBTest
+from . import MockServerTest
 
 
-class TestSimple(DBTest):
+class TestSimple(MockServerTest):
 
     """ Unit tests for simple simple """
 
@@ -16,7 +17,6 @@ class TestSimple(DBTest):
         super(TestSimple, self).setUp()
         self.request.access = MagicMock()
         self.api_call = patch.object(pypicloud.views.simple, 'api').start()
-        self.package = patch.object(pypicloud.views.simple, 'Package').start()
 
     def test_upload(self):
         """ Upload endpoint returns the result of api call """
@@ -45,20 +45,17 @@ class TestSimple(DBTest):
     def test_list_versions(self):
         """ Listing package versions should return api call """
         self.request.registry.use_fallback = False
+        pkg = Package('mypkg', '1.1', 'mypkg-1.1.tar.gz')
+        self.request.db.upload(pkg.name, pkg.version, pkg.path, None)
         context = SimplePackageResource(self.request, 'mypkg')
         result = package_versions(context, self.request)
-        self.package.normalize_name.assert_called_with(context.name)
-        self.package.all.assert_called_with(self.request,
-                                            self.package.normalize_name())
-        self.assertEqual(result, {'pkgs': self.package.all()})
+        self.assertEqual(result, {'pkgs': [pkg]})
 
     def test_list_versions_fallback(self):
         """ Listing package versions can fall back to external url """
         self.request.registry.use_fallback = True
         fb = self.request.registry.fallback_url = 'http://pypi.com'
         context = SimplePackageResource(self.request, 'mypkg')
-        self.package.normalize_name.return_value = context.name
-        self.package.all.return_value = []
         result = package_versions(context, self.request)
         url = fb + '/' + context.name + '/'
         self.assertTrue(isinstance(result, HTTPFound))

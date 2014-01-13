@@ -26,19 +26,12 @@ the WSGI server because it's easy to set up.
 
 AWS
 ---
-You will need to go to the `AWS S3 console
-<https://console.aws.amazon.com/s3/home>`_ and create a bucket to contain your
-packages. Make sure the bucket name does not have a "." in it. Amazon's SSL
-certificate is only valid for ``*.s3.amazonaws.com``, and adding more
-subdomains to the url will cause the connection to be rejected by pip.
-
 If you have not already, create an access key and secret by following the `AWS
 guide
 <http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSGettingStartedGuide/AWSCredentials.html>`_
 
-You need your bucket to grant access to your user account. If you are getting
-permissions errors or 403's, you will need to set :ref:`a policy on your bucket
-<s3_policy>`.
+The default configuration should work, but if you get permission errors or
+403's, you will need to set :ref:`a policy on your bucket <s3_policy>`.
 
 Configuration
 -------------
@@ -50,9 +43,9 @@ Generate a default server configuration
 
 .. warning::
 
-    Note that this configuration should only be used for development and
-    testing.  If you want to set up your server for production, read the
-    section on :ref:`deploying <deploy>`.
+    Note that this configuration should only be used for testing.  If you want
+    to set up your server for production, read the section on :ref:`deploying
+    <deploy>`.
 
 Running
 -------

@@ -1,5 +1,5 @@
 """ Views for simple api calls that return json data """
-from pypicloud.models import Package
+from pyramid.httpexceptions import HTTPNotFound
 from pypicloud.route import (APIResource, APIPackageResource,
                              APIPackagingResource, APIPackageVersionResource)
 from pyramid.view import view_config
@@ -22,7 +22,7 @@ def all_packages(request):
 @addslash
 def package_versions(context, request):
     """ List all unique package names """
-    versions = Package.all(request, context.name)
+    versions = request.db.all(context.name)
     return {
         'packages': versions,
         'write': request.access.has_permission(context.name, 'write'),
@@ -41,7 +41,11 @@ def upload_package(context, request, content):
              subpath=(), permission='write')
 def delete_package(context, request):
     """ Delete a package """
-    api.delete_package(request, context.name, context.version)
+    package = request.db.fetch(context.name, context.version)
+    if package is None:
+        return HTTPNotFound("Could not find %s==%s" % (context.name,
+                                                       context.version))
+    request.db.delete(package)
     return request.response
 
 
@@ -49,14 +53,5 @@ def delete_package(context, request):
              permission='admin')
 def rebuild_package_list(request):
     """ Rebuild the package cache in the database """
-    # TODO: (stevearc 2014-01-02) Technically could cause thundering herd
-    # problem. Should fix that at some point.
-    if request.dbtype == 'sql':
-        request.db.query(Package).delete()
-    elif request.dbtype == 'redis':
-        keys = request.db.keys(Package.redis_prefix + '*')
-        if keys:
-            request.db.delete(*keys)
-
-    Package.reload_from_s3(request)
+    request.db.reload_from_storage()
     return request.response

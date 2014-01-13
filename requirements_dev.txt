@@ -9,3 +9,5 @@ sphinx
 numpydoc
 redis
 requests
+httpretty
+moto

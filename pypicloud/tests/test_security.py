@@ -1,14 +1,11 @@
 """ Tests for view security and auth """
 import base64
-import boto.s3.key
-import transaction
 import webtest
-from mock import patch, MagicMock
+from mock import MagicMock
 from passlib.hash import sha256_crypt  # pylint: disable=E0611
-from pypicloud.models import Package
 from pyramid.testing import DummyRequest
 
-import pypicloud
+from . import DummyCache
 from pypicloud import api, main
 
 
@@ -24,25 +21,25 @@ class TestListPackages(unittest.TestCase):
 
     """ Tests for package enumeration api """
 
-    @patch('pypicloud.models.Package.distinct')
-    def test_has_permission(self, distinct):
+    def test_has_permission(self):
         """ If user has permission, package is visible """
         request = DummyRequest()
         request.access = MagicMock()
         request.access.has_permission.return_value = True
+        request.db = MagicMock()
         names = ['a', 'b', 'c']
-        distinct.return_value = names
+        request.db.distinct.return_value = names
         ret = api.list_packages(request)
         self.assertEqual(ret, names)
 
-    @patch('pypicloud.models.Package.distinct')
-    def test_filter_permission(self, distinct):
+    def test_filter_permission(self):
         """ Filter package names by permission """
         request = DummyRequest()
         request.access = MagicMock()
         request.access.has_permission = lambda x, y: x < 'c'
+        request.db = MagicMock()
         names = ['a', 'b', 'c']
-        distinct.return_value = names
+        request.db.distinct.return_value = names
         ret = api.list_packages(request)
         self.assertEqual(ret, ['a', 'b'])
 
@@ -54,6 +51,8 @@ def _simple_auth(username, password):
     return {
         'Authorization': 'Basic %s' % base64string,
     }
+
+test_cache = DummyCache(None)  # pylint: disable=C0103
 
 
 class TestEndpointSecurity(unittest.TestCase):
@@ -67,14 +66,10 @@ class TestEndpointSecurity(unittest.TestCase):
     """
     @classmethod
     def setUpClass(cls):
-        cls.boto = patch.object(pypicloud, 'boto').start()
-        cls.key = patch.object(boto.s3.key, 'Key').start()
-        cls.boto.connect_s3().get_bucket(
-        ).connection.generate_url.return_value = '/mypath'
         settings = {
-            'unittest': True,
             'pyramid.debug_authorization': True,
-            'pypi.db.url': 'sqlite://',
+            'pypi.db': 'pypicloud.tests.test_security.test_cache',
+            'db.url': 'sqlite://',
             'session.validate_key': 'a',
             'aws.access_key': 'abc',
             'aws.secret_key': 'def',
@@ -85,22 +80,13 @@ class TestEndpointSecurity(unittest.TestCase):
             'package.pkg1.group.brotatos': 'rw',
             'group.brotatos': ['user2'],
         }
-        config = main({}, **settings)
-        cls.db = config.registry.dbmaker()
-        cls.app = webtest.TestApp(config.make_wsgi_app())
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.db.close()
-        patch.stopall()
+        cls.app = webtest.TestApp(main({}, **settings))
 
     def setUp(self):
-        self.db.add(Package('pkg1', '1', '/path'))
-        transaction.commit()
+        test_cache.upload('pkg1', '1', '/path', None)
 
     def tearDown(self):
-        self.db.query(Package).delete()
-        transaction.commit()
+        test_cache.reset()
         self.app.reset()
 
     def test_simple_401(self):

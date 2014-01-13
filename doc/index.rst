@@ -23,6 +23,7 @@ User Guide
     topics/getting_started
     topics/configuration
     topics/access_control
+    topics/cache
     topics/deploy
     topics/developing
 
@@ -44,13 +45,11 @@ Indices and tables
 TODO
 ====
 * Auto-rebuild index on app start if needed
-* Split Package access into separate class
-* Default caching database should just be in-memory dicts
-* Use moto in standalone mode for development
 * Store user/group configuration in S3/Dynamo?
 * If storing users dynamically, allow registration
-* Don't require sqlalchemy AND redis to be installed
 * Cache more metadata for display (last updated, most recent version)
 * Support CloudFront
+* Release to pypi
+
 * Auto-archive to glacier after X days or X versions
 * Directives for cloning parts of pypi (from requirements file or package deps, how to handle permissions?)
