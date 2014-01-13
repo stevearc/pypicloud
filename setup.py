@@ -3,7 +3,7 @@ import os
 import sys
 
 from setuptools import setup, find_packages
-from version_helper import git_version
+from pypicloud_version import git_version
 
 
 HERE = os.path.abspath(os.path.dirname(__file__))

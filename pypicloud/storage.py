@@ -99,10 +99,8 @@ class S3Storage(IStorage):
     def parse_package_and_version(path):
         """ Parse the package name and version number from a path """
         filename = splitext(path)[0]
-        if filename.endswith('.tar'):
-            filename = filename[:-len('.tar')]
         if '-' not in filename:
-            return filename, ''
+            return None, None
         path_components = filename.split('-')
         for i, comp in enumerate(path_components):
             if comp[0].isdigit():
