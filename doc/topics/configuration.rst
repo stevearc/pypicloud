@@ -83,14 +83,6 @@ When running a production server, make sure this is always set to ``true``.
 PyPICloud
 ^^^^^^^^^
 
-``pypi.db.url``
-~~~~~~~~~~~~~~~
-**Argument:** string
-
-The database url to use for the caching database. May be a `SQLAlchemy url
-<http://docs.sqlalchemy.org/en/rel_0_9/core/engines.html>`_, or a redis url.
-Redis urls look like ``redis://username:password@localhost:6379/0``
-
 ``pypi.use_fallback``
 ~~~~~~~~~~~~~~~~~~~~~
 **Argument:** bool, optional
@@ -129,7 +121,7 @@ False)
 
 Cache
 ^^^^^
-``pypi.db.url``
+``pypi.db``
 ~~~~~~~~~~~~~~~
 **Argument:** string, optional
 

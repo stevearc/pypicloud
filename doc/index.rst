@@ -6,7 +6,7 @@ for pip.
 
 After generating the S3 urls, pypicloud caches them in a database. Subsequent
 requests to download packages will use the already-generated urls in the db.
-Pypicloud supports using any SQL database or Redis as the cache.
+Pypicloud supports using SQLAlchemy or Redis as the cache.
 
 Pypicloud was designed to be fast and easy to replace in the case of server
 failure. Simply copy your config.ini file to a new server and run pypicloud
@@ -44,9 +44,8 @@ Indices and tables
 
 TODO
 ====
-* Auto-rebuild index on app start if needed
+* Users can edit password (w/mutable access backend)
 * Store user/group configuration in S3/Dynamo?
-* If storing users dynamically, allow registration
 * Cache more metadata for display (last updated, most recent version)
 * Support CloudFront
 * Release to pypi

@@ -1,24 +1,5 @@
 {% extends 'base.jinja2' %}
 
 {% block content %}
-<div class="row" ng-controller="LoginCtrl">
-  <form class="form-horizontal" role="form" ng-submit="submit()">
-    <div class="form-group" ng-class=" error ? 'has-error' : ''">
-      <div class="col-xs-12 col-md-offset-5 col-md-2">
-        <input type="text" class="form-control" ng-model="username" placeholder="Username">
-      </div>
-    </div>
-    <div class="form-group" ng-class=" error ? 'has-error' : ''">
-      <div class="col-xs-12 col-md-offset-5 col-md-2">
-        <input type="password" class="form-control" ng-model="password" placeholder="Password">
-      </div>
-    </div>
-    <div class="col-xs-12 col-md-offset-4 col-md-4 text-center">
-      <div ng-show="error">
-        <alert type="'danger'">Username or password invalid</alert>
-      </div>
-      <button type="submit" class="btn btn-default">Submit</button>
-    </div>
-  </form>
-</div>
+<div ng-include="PARTIAL + 'login.html'"></div>
 {% endblock %}

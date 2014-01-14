@@ -1,11 +1,12 @@
 """ Views for simple api calls that return json data """
-from pyramid.httpexceptions import HTTPNotFound
 from pypicloud.route import (APIResource, APIPackageResource,
                              APIPackagingResource, APIPackageVersionResource)
+from pyramid.httpexceptions import HTTPNotFound
 from pyramid.view import view_config
 
 from pypicloud import api
 from pyramid_duh import argify, addslash
+from pyramid.security import NO_PERMISSION_REQUIRED, remember
 
 
 @view_config(context=APIPackagingResource, request_method='GET',
@@ -49,9 +50,18 @@ def delete_package(context, request):
     return request.response
 
 
-@view_config(context=APIResource, name='rebuild', subpath=(),
-             permission='admin')
-def rebuild_package_list(request):
-    """ Rebuild the package cache in the database """
-    request.db.reload_from_storage()
+@view_config(context=APIResource, name='user', request_method='PUT',
+             subpath=('username/*'), renderer='json',
+             permission=NO_PERMISSION_REQUIRED)
+@argify
+def register(request, password):
+    """ Register a user """
+    if not request.access.allow_register and not request.access.need_admin():
+        raise HTTPNotFound()
+    username = request.named_subpaths['username']
+    request.access.register(username, password)
+    if request.access.need_admin():
+        request.access.approve_user(username)
+        request.access.set_user_admin(username, True)
+        request.response.headers.extend(remember(request, username))
     return request.response

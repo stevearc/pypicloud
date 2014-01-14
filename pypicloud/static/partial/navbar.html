@@ -17,6 +17,9 @@
       <li ng-repeat="option in options" ng-class="location.path === option.path ? 'active' : ''">
         <a ng-href="#{{ option.path }}">{{ option.title }}</a>
       </li>
+      <li ng-if="IS_ADMIN">
+      <a href="#/admin">Admin</a>
+      </li>
       <li>
         <a ng-href="{{ ROOT }}pypi/">Raw</a>
       </li>

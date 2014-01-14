@@ -10,7 +10,7 @@ permanently stored in S3.
 
 SQLAlchemy
 ----------
-Set ``pypi.access_backend = pypicloud.cache.SQLCache``, or leave it out
+Set ``pypi.db = sql`` OR ``pypi.db = pypicloud.cache.SQLCache`` OR leave it out
 completely since this is the default.
 
 ``db.url``
@@ -22,7 +22,7 @@ The database url to use for the caching database. Should be a `SQLAlchemy url
 
 Redis
 -----
-Set ``pypi.db = pypicloud.cache.RedisCache``
+Set ``pypi.db = redis`` OR ``pypi.db = pypicloud.cache.RedisCache``
 
 ``db.url``
 ~~~~~~~~~~

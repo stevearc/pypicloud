@@ -1,0 +1,58 @@
+<div ng-controller="TableCtrl">
+  <div class="row">
+    <div ng-class="searchable ? 'col-xs-5' : 'col-xs-12'">
+      <h4>
+        <button ng-click="toggleShowAdd()" class="btn btn-xs btn-primary" ng-show="!disableEdits && addCallback"><strong>+</strong></button>
+        <span ng-bind-html="compile(title)"></span>
+      </h4>
+    </div>
+    <div class="col-xs-7" ng-show="searchable && items.length > pageSize">
+      <div class="input-group">
+        <span class="input-group-addon"><i class="fa fa-search"></i></span>
+        <input class="form-control" ng-model="searchText" ng-change="currentPage = 1" type="text" placeholder="Search">
+      </div>
+    </div>
+  </div>
+  <div class="row" collapse="!showAdd">
+    <div class="col-xs-12">
+      <div ng-show="addItems !== null" style="margin-bottom: 10px">
+        <input type="text" ng-model="newItem" typeahead="item for item in addItems | filter:$viewValue | limitTo:8"
+              typeahead-on-select="addItem(newItem)" class="form-control" ng-blur="toggleShowAdd()">
+      </div>
+      <div ng-show="addItems === null" class="form-group" ng-class="errorMsg ? 'has-error' : ''">
+        <form ng-submit="addItem(newItem)">
+          <input type="text" ng-model="newItem" class="form-control" ng-blur="toggleShowAdd()">
+        </form>
+      </div>
+      <div ng-show="errorMsg">
+        <alert type="'danger'">{{ errorMsg }}</alert>
+      </div>
+    </div>
+  </div>
+  <table class="table table-striped table-bordered" ng-class="clickable ? 'table-clickable' : ''">
+    <tbody>
+      <tr ng-click="rowClick(item)" ng-repeat="item in filtered = (items | filter:searchText:searchStrict) | orderBy:ordering | startFrom:(currentPage - 1)*pageSize | limitTo:pageSize track by $index"
+         ng-mouseenter="showDelete = true" ng-mouseleave="showDelete = false">
+        <td ng-repeat="col in columns track by $index">
+          <div ng-bind-html="compile(col, item)" ng-class="$last ? 'pull-left' : ''"></div>
+
+          <div ng-if="$last && deleteCallback && !disableEdits" class="pull-right">
+            <div ng-switch on="!!deleteButtonElement">
+              <div ng-switch-when="true">
+                <span compile-unsafe="deleteButtonElement"></span>
+              </div>
+              <div ng-switch-default>
+                <button ng-click="deleteCallback(item); $event.stopPropagation();" ng-show="showDelete" class="btn btn-danger btn-xs">
+                  {{ deleteText }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="text-center" ng-show="filtered.length > pageSize">
+    <pagination direction-links="true" total-items="filtered.length" rotate="false" max-size="maxSize" items-per-page="pageSize" page="currentPage"></pagination>
+  </div>
+</div>

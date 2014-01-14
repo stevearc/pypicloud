@@ -18,16 +18,16 @@ from pyramid_duh import argify
              renderer='login.jinja2')
 def get_login_page(request):
     """ Catch login and redirect to login wall """
+    login_url = request.app_url('login')
     if request.userid is not None:
         # User is logged in and fetching /login, so redirect to /
-        if request.url.endswith('/login'):
+        if request.url == login_url:
             return HTTPFound(location=request.app_url())
         else:
             # If user is not authorized, hide the fact that the page doesn't
             # exist
             request.response.status_code = 404
             return request.response
-    login_url = request.app_url('login')
     if request.url != login_url:
         request.session['next'] = request.url
         # If pip requested a protected package and it's not authed, prompt for
@@ -39,12 +39,11 @@ def get_login_page(request):
                                             request.registry.realm)
             request.response.headers.update(realm)
             return request.response
-        else:
-            request.response.status_code = 403
     elif 'next' in request.GET:
         request.session['next'] = request.GET['next']
     else:
         request.session['next'] = request.app_url()
+    request.response.status_code = 403
     return {}
 
 
@@ -61,6 +60,17 @@ def do_login(request, username, password):
         }
     else:
         raise HTTPForbidden()
+
+
+@view_config(context=Root, name='login', request_method='PUT', subpath=(),
+             renderer='json', permission=NO_PERMISSION_REQUIRED)
+@argify
+def register(request, username, password):
+    """ Check credentials and log in """
+    if request.access.user_data(username) is None:
+        request.access.register(username, password)
+        return request.response
+    raise HTTPForbidden()
 
 
 @view_config(context=Root, name='logout', subpath=())

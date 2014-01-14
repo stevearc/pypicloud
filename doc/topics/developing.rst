@@ -30,3 +30,5 @@ or:
 .. code-block:: bash
 
     $ tox
+
+Note that the unit tests require a redis server to be running on port 6379

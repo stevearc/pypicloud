@@ -61,8 +61,13 @@ def includeme(config):
 
     # CACHING DATABASE SETTINGS
     resolver = DottedNameResolver(__name__)
-    cache_impl = resolver.resolve(settings.get('pypi.db',
-                                               'pypicloud.cache.SQLCache'))
+    dotted_cache = settings.get('pypi.db', 'sql')
+    if dotted_cache == 'sql':
+        dotted_cache = 'pypicloud.cache.SQLCache'
+    elif dotted_cache == 'redis':
+        dotted_cache = 'pypicloud.cache.RedisCache'
+    cache_impl = resolver.resolve(dotted_cache)
+
     cache_impl.configure(config)
     config.add_request_method(cache_impl, name='db', reify=True)
 

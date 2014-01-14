@@ -1,0 +1,22 @@
+<div class="row">
+  <div class="col-xs-12 col-md-offset-3 col-md-6">
+    <div class="text-center">
+      <h2>
+        <i class="fa fa-user" title="User"></i>
+        {{ user.username }}
+      </h2>
+      <a ng-click="toggleAdmin()" class="btn btn-default" ng-disabled="USER === user.username || !ACCESS_MUTABLE">
+        <i class="fa" ng-class="user.admin ? 'fa-lock' : 'fa-unlock'"></i>
+        {{ user.admin ? 'Admin' : (ACCESS_MUTABLE ? 'Promote to admin' : 'Not admin') }}
+      </a>
+    </div>
+  </div>
+</div>
+<div class="row">
+  <div class="col-xs-12 col-md-6" ng-if="groupTableArgs">
+    <div ng-include="PARTIAL + 'pretty_table.html'" ng-init="tableArgs = groupTableArgs"></div>
+  </div>
+  <div class="col-xs-12 col-md-6" ng-if="packageTableArgs">
+    <div ng-include="PARTIAL + 'pretty_table.html'" ng-init="tableArgs = packageTableArgs"></div>
+  </div>
+</div>

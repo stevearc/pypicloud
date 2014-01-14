@@ -9,14 +9,14 @@ var pypicloud = angular.module('pypicloud', ['ui.bootstrap', 'ngRoute', 'angular
       controller: 'IndexCtrl'
     });
 
-    $routeProvider.when('/admin', {
-      templateUrl: STATIC + 'partial/admin.html',
-      controller: 'AdminCtrl'
-    });
-
     $routeProvider.when('/package/:pkg', {
       templateUrl: STATIC + 'partial/package.html',
       controller: 'PackageCtrl'
+    });
+
+    $routeProvider.when('/new_admin', {
+      templateUrl: STATIC + 'partial/new_admin.html',
+      controller: 'NewAdminCtrl'
     });
 
     $routeProvider.otherwise({
@@ -35,25 +35,49 @@ var pypicloud = angular.module('pypicloud', ['ui.bootstrap', 'ngRoute', 'angular
         start = parseInt(start, 10);
         return input.slice(start);
     }
-});
+  }).config(['$compileProvider', function($compileProvider) {
+  $compileProvider.directive('compileUnsafe', ['$compile', function($compile) {
+    return function(scope, element, attrs) {
+      scope.$watch(
+        function(scope) {
+          // watch the 'compile' expression for changes
+          return scope.$eval(attrs.compileUnsafe);
+        },
+        function(value) {
+          // when the 'compile' expression changes
+          // assign it into the current DOM element
+          element.html(value);
 
-pypicloud.controller('BaseCtrl', ['$rootScope', function($rootScope) {
+          // compile the new DOM and link it to the current
+          // scope.
+          // NOTE: we only compile .childNodes so that
+          // we don't get into infinite loop compiling ourselves
+          $compile(element.contents())(scope);
+        }
+      );
+    };
+  }]);
+}]);
+
+pypicloud.controller('BaseCtrl', ['$rootScope', '$location', function($rootScope, $location) {
+  $rootScope._ = _;
   $rootScope.USER = USER;
   $rootScope.ROOT = ROOT;
   $rootScope.API = ROOT + 'api/';
-  $rootScope.ADMIN = ADMIN;
+  $rootScope.ADMIN = ROOT + 'admin/';
+  $rootScope.IS_ADMIN = IS_ADMIN;
+  $rootScope.NEED_ADMIN = NEED_ADMIN;
+  $rootScope.ACCESS_MUTABLE = ACCESS_MUTABLE;
+  $rootScope.ALLOW_REGISTER = ALLOW_REGISTER;
   $rootScope.STATIC = STATIC;
   $rootScope.PARTIAL = STATIC + 'partial/';
+  if (NEED_ADMIN) {
+    $location.path('/new_admin');
+  }
 }]);
 
 pypicloud.controller('NavbarCtrl', ['$scope', function($scope) {
   $scope.options = [];
-  if ($scope.ADMIN) {
-    $scope.options.push({
-      title: 'Admin',
-      path: '/admin',
-    });
-  }
 }]);
 
 pypicloud.controller('IndexCtrl', ['$scope', '$http', '$location', '$cookies',
@@ -64,6 +88,9 @@ pypicloud.controller('IndexCtrl', ['$scope', '$http', '$location', '$cookies',
   $scope.pageSize = 10;
   $scope.maxSize = 8;
   $scope.currentPage = 1;
+  if (NEED_ADMIN) {
+    $location.path('/new_admin');
+  }
 
   $http.get($scope.API + 'package/').success(function(data, status, headers, config) {
     $scope.packages = data.packages;
@@ -87,18 +114,33 @@ pypicloud.controller('IndexCtrl', ['$scope', '$http', '$location', '$cookies',
 
 pypicloud.controller('LoginCtrl', ['$scope', '$http', function($scope, $http) {
   $scope.error = false;
-  $scope.submit = function() {
+  $scope.submit = function(username, password) {
     var data = {
-      username: $scope.username,
-      password: $scope.password
+      username: username,
+      password: password
     };
     $http.post(ROOT + 'login', data).success(function(data, status, headers, config) {
       $scope.error = false;
       window.location = data.next;
     }).error(function(data, status, headers, config) {
       $scope.error = true;
+      $scope.errorMsg = 'Username or password invalid';
     });
-  }
+  };
+
+  $scope.register = function(username, password) {
+    var data = {
+      username: username,
+      password: password
+    };
+    $http.put(ROOT + 'login', data).success(function(data, status, headers, config) {
+      $scope.error = false;
+      $scope.registered = username;
+    }).error(function(data, status, headers, config) {
+      $scope.error = true;
+      $scope.errorMsg = 'User already exists';
+    });
+  };
 }]);
 
 pypicloud.controller('PackageCtrl', ['$scope', '$http', '$route', '$fileUploader',
@@ -205,13 +247,67 @@ pypicloud.controller('UploadCtrl', ['$scope', '$fileUploader', function($scope, 
   });
 }]);
 
-pypicloud.controller('AdminCtrl', ['$scope', '$http', function($scope, $http) {
-  $scope.rebuildPackages = function() {
-    $scope.building = true;
-    $http.get($scope.API + 'rebuild').success(function(data, status, headers, config) {
-      $scope.building = false;
-    }).error(function(data, status, headers, config) {
-      $scope.building = false;
+pypicloud.controller('TableCtrl', ['$scope', '$sce', '$interpolate', function($scope, $sce, $interpolate) {
+  $scope.currentPage = 1;
+  $scope.searchable = false;
+  $scope.searchStrict = false;
+  $scope.pageSize = 10;
+  $scope.maxSize = 8;
+  $scope.items = [];
+  $scope.columns = [];
+  $scope.title = '';
+  $scope.ordering = 'toString()';
+  $scope.rowClick = null;
+
+  // For making the table mutable
+  $scope.disableEdits = false;
+  $scope.addItems = null;
+  $scope.addCallback = null;
+  $scope.deleteText = 'Delete';
+  $scope.deleteCallback = null;
+  $scope.deleteButtonElement = null;
+
+  // Set arguments from parent scope
+  if (_.isObject($scope.tableArgs)) {
+    _.each($scope.tableArgs, function(value, key) {
+      $scope[key] = value;
     });
   }
+
+  if ($scope.rowClick === null) {
+    $scope.rowClick = function(){};
+    $scope.clickable = false;
+  } else {
+    $scope.clickable = true;
+  }
+
+  // TODO: put a scope.watch() on tableArgs
+
+  $scope.compile = function(html, item) {
+    return $sce.trustAsHtml($interpolate(html)({item: item}));
+  };
+
+  $scope.toggleShowAdd = function() {
+    $scope.showAdd = !$scope.showAdd;
+    if (!$scope.showAdd) {
+      $scope.newItem = '';
+      $scope.errorMsg = undefined;
+      $scope.showAdd = false;
+    }
+  };
+
+  $scope.addItem = function() {
+    $scope.errorMsg = $scope.addCallback($scope.newItem);
+    if ($scope.errorMsg === undefined) {
+      $scope.newItem = '';
+    }
+  };
+}]);
+
+pypicloud.controller('NewAdminCtrl', ['$scope', '$http', '$location', function($scope, $http, $location) {
+  $scope.register = function(username, password) {
+    $http.put($scope.API + 'user/' + username, {password:password}).success(function(data, status, headers, config) {
+      window.location = ROOT;
+    });
+  };
 }]);

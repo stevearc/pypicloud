@@ -1,7 +1,5 @@
 """ Tools and resources for traversal routing """
 import functools
-from pyramid.security import (Allow, Deny, Authenticated, Everyone,
-                              ALL_PERMISSIONS)
 
 
 class IStaticResource(object):
@@ -107,11 +105,17 @@ class APIResource(IStaticResource):
     }
 
 
+class AdminResource(IStaticResource):
+
+    """ Resource for admin calls """
+
+
 class Root(IStaticResource):
 
     """ Root context for PyPI Cloud """
     subobjects = {
         'api': APIResource,
+        'admin': AdminResource,
         'simple': SimpleResource,
         'pypi': SimpleResource,
     }

@@ -1,0 +1,36 @@
+<div ng-controller="LoginCtrl" ng-cloak>
+  <div class="row" ng-hide="registered">
+    <div class="col-xs-12 col-md-offset-4 col-md-4">
+      <div class="row well">
+        <form class="form-horizontal" role="form" ng-submit="submit(username, password)">
+          <div class="form-group" ng-class=" error ? 'has-error' : ''">
+            <div class="col-xs-12">
+              <input type="text" class="form-control" ng-model="username" placeholder="Username">
+            </div>
+          </div>
+          <div class="form-group" ng-class=" error ? 'has-error' : ''">
+            <div class="col-xs-12">
+              <input type="password" class="form-control" ng-model="password" placeholder="Password">
+            </div>
+          </div>
+          <div class="col-xs-12" ng-show="error">
+            <alert type="'danger'">{{ errorMsg }}</alert>
+          </div>
+          <div class="col-xs-12">
+            <button type="submit" class="btn btn-default pull-left">Log in</button>
+            <button type="button" ng-click="register(username, password)" class="btn btn-default pull-right" ng-show="ALLOW_REGISTER">Register</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div ng-if="registered">
+    <div class="row">
+      <div class="col-xs-12 text-center">
+        <h2>Registered!</h2>
+        <h4>Hey <strong>{{ registered }}</strong>, chill here until the admin approves you</h4>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+{% set is_admin = request.access.is_admin(request.userid) %}
 <html ng-app="{% block ng_app %}pypicloud{% endblock %}">
 <head>
   <title>Pypicloud</title>
@@ -26,6 +27,9 @@
         padding: 10px;
         border-radius: 4px
       }
+      [ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
+        display: none !important;
+      }
     </style>
     {% block css %}
     {% endblock %}
@@ -50,17 +54,24 @@ role="navigation">
 
 {% endblock %}
 {% block all_scripts %}
+  <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore-min.js"></script>
   <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.2.6/angular.min.js"></script>
   <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.2.6/angular-route.min.js"></script>
   <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.2.6/angular-cookies.min.js"></script>
-  <script src="{{ 'pypicloud:static/js/ui-bootstrap-tpls-0.8.0-SNAPSHOT.min.js' | static_url }}"></script>
+  <script src="{{ 'pypicloud:static/js/ui-bootstrap-tpls-0.10.0.min.js' | static_url }}"></script>
   <script src="{{ 'pypicloud:static/js/angular-file-upload.min.js' | static_url }}"></script>
   <script src="{{ 'pypicloud:static/js/pypicloud.js' | static_url }}"></script>
+  {% if is_admin %}
+  <script src="{{ 'pypicloud:static/js/admin.js' | static_url }}"></script>
+  {% endif %}
   <script type="text/javascript" charset="utf-8">
     var USER = {{ request.userid | tojson | safe }};
-    var ADMIN = {{ request.access.is_admin(request.userid) | tojson | safe }};
+    var IS_ADMIN = {{ is_admin | tojson | safe }};
     var ROOT = {{ request.app_url() | tojson | safe }};
     var STATIC = {{ 'pypicloud:static/' | static_url | tojson | safe }};
+    var NEED_ADMIN = {{ request.access.need_admin() | tojson | safe }};
+    var ACCESS_MUTABLE = {{ request.access.mutable | tojson | safe }};
+    var ALLOW_REGISTER = {{ request.access.allow_register() | tojson | safe }};
   </script>
   {% block scripts %}
   {% endblock %}

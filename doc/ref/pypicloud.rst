@@ -6,6 +6,7 @@ Subpackages
 
 .. toctree::
 
+    pypicloud.access
     pypicloud.tests
     pypicloud.views
 
@@ -14,7 +15,6 @@ Submodules
 
 .. toctree::
 
-   pypicloud.access
    pypicloud.api
    pypicloud.auth
    pypicloud.cache

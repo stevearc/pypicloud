@@ -8,8 +8,8 @@ in a database, they are instead specified in a user-specified backend. The
 default is to store the information in the config file.
 
 
-Config Access Control
----------------------
+Config File
+-----------
 The simplest access control available (which is the default) pulls user, group,
 and package permission information directly from the config file.
 
@@ -60,8 +60,9 @@ everyone  none              none               r (everyone)
 Configuration
 ^^^^^^^^^^^^^
 
-Set ``pypi.access_backend = pypicloud.access.ConfigAccessBackend``, or leave it
-out completely since this is the default.
+Set ``pypi.access_backend = config`` OR ``pypi.access_backend =
+pypicloud.access.ConfigAccessBackend`` OR leave it out completely since this is
+the default.
 
 ``user.<username>``
 ~~~~~~~~~~~~~~~~~~~
@@ -108,15 +109,16 @@ Run in a special, limited access-control mode. Any user with valid credentials
 can upload any package. Everyone (even not-logged-in users) can view and
 download all packages. (default False)
 
-Remote Access Control
----------------------
+Remote Server
+-------------
 This implementation allows you to delegate all access control to another
 server. If you already have an application with a user database, this allows
 you to use that data directly.
 
 Configuration
 ^^^^^^^^^^^^^
-Set ``pypi.access_backend = pypicloud.access.RemoteAccessBackend``
+Set ``pypi.access_backend = remote`` OR ``pypi.access_backend =
+pypicloud.access.RemoteAccessBackend``
 
 ``auth.backend_server``
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -158,6 +160,17 @@ params: ``username``
 
 returns: ``list``
 
+``auth.uri.group_members``
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+The uri to hit to retrieve the list of users in a group (default
+``/group_members``).
+
+params: ``group``
+
+returns: ``list``
+
 ``auth.uri.admin``
 ~~~~~~~~~~~~~~~~~~
 **Argument:** string, optional
@@ -191,3 +204,63 @@ The uri that returns a mapping of users to lists of permissions (default
 params: ``package``
 
 returns: ``dict``
+
+``auth.uri.user_package_permissions``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+The uri that returns a list of all packages a user has permissions on (default
+``/user_package_permissions``). Each element is a dict that contains 'package'
+(str) and 'permissions' (list).
+
+params: ``username``
+
+returns: ``list``
+
+``auth.uri.group_package_permissions``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+The uri that returns a list of all packages a group has permissions on (default
+``/group_package_permissions``). Each element is a dict that contains 'package'
+(str) and 'permissions' (list).
+
+params: ``group``
+
+returns: ``list``
+
+``auth.uri.user_data``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+The uri that returns a list of users (default ``/user_data``). Each user is a
+dict that contains a ``username`` (str) and ``admin`` (bool). If a username is
+passed to the endpoint, return just a single user dict that also contains
+``groups`` (list).
+
+params: ``username``
+
+returns: ``list``
+
+SQL Database
+------------
+You can opt to store all user and group permissions inside a SQL database. The
+advantages are that you can dynamically change these permissions using the web
+interface. The disadvantages are that this information is not stored anywhere
+else, so unlike the :ref:`cache database <cache>`, it actually needs to be
+backed up.
+
+After you set up a new server using this backend, you will need to use the web
+interface to create the initial admin user.
+
+Configuration
+^^^^^^^^^^^^^
+Set ``pypi.access_backend = sql`` OR ``pypi.access_backend =
+pypicloud.access.sql.SQLAccessBackend``
+
+``auth.db.url``
+~~~~~~~~~~~~~~~
+**Argument:** string
+
+The database url to use for storing user and group permissions. This may be the
+same database as ``db.url``.

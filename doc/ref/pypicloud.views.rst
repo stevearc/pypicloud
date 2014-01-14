@@ -6,6 +6,7 @@ Submodules
 
 .. toctree::
 
+   pypicloud.views.admin
    pypicloud.views.api_view
    pypicloud.views.login
    pypicloud.views.simple
