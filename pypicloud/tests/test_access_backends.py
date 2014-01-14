@@ -443,7 +443,7 @@ class TestSQLBackend(unittest.TestCase):
         self.db.query(UserPermission).delete()
         self.db.query(GroupPermission).delete()
         self.db.query(Group).delete()
-        self.db.execute(association_table.delete())
+        self.db.execute(association_table.delete())  # pylint: disable=E1120
         transaction.commit()
         self.access.db.close()
         self.db.close()
