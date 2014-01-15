@@ -47,12 +47,16 @@ class TestBaseBackend(BaseACLTest):
     def setUp(self):
         super(TestBaseBackend, self).setUp()
         self.backend = IAccessBackend(self.request)
-        self.backend.verify_user = MagicMock()
-        self.backend.groups = MagicMock()
-        self.backend.is_admin = MagicMock()
-        self.backend.group_permissions = MagicMock()
-        self.backend.user_permissions = MagicMock()
+        patch.object(self.backend, 'verify_user').start()
+        patch.object(self.backend, 'groups').start()
+        patch.object(self.backend, 'is_admin').start()
+        patch.object(self.backend, 'group_permissions').start()
+        patch.object(self.backend, 'user_permissions').start()
         self.request.access = self.backend
+
+    def tearDown(self):
+        super(TestBaseBackend, self).tearDown()
+        patch.stopall()
 
     def test_root_acl(self):
         """ Root ACL sets login, admin, and DENY ALL """
