@@ -6,6 +6,10 @@
     </button>
   </div>
   <div class="col-xs-12 col-md-offset-1 col-md-4" ng-if="pendingUsers && pendingUsers.length > 0">
+    <h4>
+      <i class="fa fa-gavel"></i>
+      Pending Users
+    </h4>
     <table class="table table-striped table-bordered table-hover">
       <tbody>
         <tr ng-repeat="user in pendingUsers | orderBy:'toString()' | limitTo:pageSize"
@@ -16,9 +20,11 @@
             </div>
             <div class="pull-right">
               <button ng-click="approveUser(user)" ng-show="showOptions" class="btn btn-success btn-xs pull-right" style="margin-left: 10px">
+                <i class="fa fa-thumbs-up"></i>
                 Approve
               </button>
               <button ng-click="rejectUser(user)" ng-show="showOptions" class="btn btn-danger btn-xs pull-right">
+                <i class="fa fa-thumbs-down"></i>
                 Reject
               </button>
             </div>

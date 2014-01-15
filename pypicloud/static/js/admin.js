@@ -203,6 +203,11 @@ pypicloud.controller('AdminCtrl', ['$rootScope', '$scope', '$http', '$location',
     $http.post($scope.ADMIN + 'user/' + username + '/approve');
     var idx = $scope.pendingUsers.indexOf(username);
     $scope.pendingUsers.splice(idx, 1);
+    var newUser = {
+      'username': username,
+      'admin': false
+    };
+    $scope.users.push(newUser);
   }
 
   $scope.rejectUser = function(username) {

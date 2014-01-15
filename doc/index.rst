@@ -45,10 +45,12 @@ Indices and tables
 TODO
 ====
 * Users can edit password (w/mutable access backend)
-* Store user/group configuration in S3/Dynamo?
 * Cache more metadata for display (last updated, most recent version)
 * Support CloudFront
+* More test coverage
 * Release to pypi
 
+* Access backend that stores data in DynamoDB
 * Auto-archive to glacier after X days or X versions
 * Directives for cloning parts of pypi (from requirements file or package deps, how to handle permissions?)
+* Hooks for using celery to make a write-through cache
