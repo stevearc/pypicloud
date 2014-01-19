@@ -183,7 +183,7 @@ pypicloud.controller('AdminCtrl', ['$rootScope', '$scope', '$http', '$location',
     };
   });
 
-  $http.get($scope.API + 'package').success(function(data, status, headers, config) {
+  $http.get($scope.API + 'package/').success(function(data, status, headers, config) {
     $scope.packages = data.packages;
     $scope.packageTableArgs = {
       title: '<i class="fa fa-gift" title="Packages"></i> Packages',

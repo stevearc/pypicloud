@@ -68,12 +68,11 @@ Indices and tables
 TODO
 ----
 * Auto-rebuild cache from S3 if empty
-* Cache more metadata for display (last updated, most recent version)
-* Support CloudFront
 * More test coverage
 * Document HTTP API
 * Release to pypi
 
+* Support CloudFront
 * Access backend that stores data in DynamoDB
 * Auto-archive to glacier after X days or X versions
 * Directives for cloning parts of pypi (from requirements file or package deps, how to handle permissions?)

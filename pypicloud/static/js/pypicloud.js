@@ -40,8 +40,17 @@ var pypicloud = angular.module('pypicloud', ['ui.bootstrap', 'ngRoute', 'angular
         start = parseInt(start, 10);
         return input.slice(start);
     }
-  }).config(['$compileProvider', function($compileProvider) {
-  $compileProvider.directive('compileUnsafe', ['$compile', function($compile) {
+  })
+  .filter('formatDate', function() {
+    return function(ts) {
+      date = new Date(1000 * ts);
+      return date.getFullYear() + '-' +
+        ('00' + (date.getMonth() + 1)).slice(-2) + '-' +
+        ('00' + (date.getDay() + 1)).slice(-2);
+    }
+  })
+  .config(['$compileProvider', function($compileProvider) {
+    $compileProvider.directive('compileUnsafe', ['$compile', function($compile) {
     return function(scope, element, attrs) {
       scope.$watch(
         function(scope) {
@@ -76,6 +85,7 @@ pypicloud.controller('BaseCtrl', ['$rootScope', '$location', function($rootScope
   $rootScope.ALLOW_REGISTER = ALLOW_REGISTER;
   $rootScope.STATIC = STATIC;
   $rootScope.PARTIAL = STATIC + 'partial/';
+  $rootScope.VERSION = VERSION;
   if (NEED_ADMIN) {
     $location.path('/new_admin');
   }
@@ -120,7 +130,6 @@ pypicloud.controller('NavbarCtrl', ['$scope', function($scope) {
 pypicloud.controller('IndexCtrl', ['$scope', '$http', '$location', '$cookies',
     function($scope, $http, $location, $cookies) {
   $scope.$cookies = $cookies;
-  $scope.VERSION = VERSION;
   $scope.packages = null;
   $scope.pageSize = 10;
   $scope.maxSize = 8;
@@ -129,7 +138,8 @@ pypicloud.controller('IndexCtrl', ['$scope', '$http', '$location', '$cookies',
     $location.path('/new_admin');
   }
 
-  $http.get($scope.API + 'package/').success(function(data, status, headers, config) {
+  $http.get($scope.API + 'package/', {params: {verbose: true}})
+      .success(function(data, status, headers, config) {
     $scope.packages = data.packages;
   });
 

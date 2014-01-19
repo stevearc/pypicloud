@@ -1,5 +1,7 @@
 """ S3-backed pypi server """
 from pyramid.config import Configurator
+from pyramid.renderers import JSON
+import datetime
 from pyramid.path import DottedNameResolver
 from pyramid.renderers import render
 from pyramid.settings import asbool
@@ -17,6 +19,10 @@ except ImportError:  # pragma: no cover
 def to_json(value):
     """ A json filter for jinja2 """
     return render('json', value)
+
+json_renderer = JSON()  # pylint: disable=C0103
+json_renderer.add_adapter(datetime.datetime, lambda obj, r:
+                          float(obj.strftime('%s.%f')))
 
 
 def _app_url(request, *paths):
@@ -38,6 +44,7 @@ def includeme(config):
     config.include('pypicloud.access')
     settings = config.get_settings()
 
+    config.add_renderer('json', json_renderer)
     # Jinja2 configuration
     settings['jinja2.filters'] = {
         'static_url': 'pyramid_jinja2.filters:static_url_filter',

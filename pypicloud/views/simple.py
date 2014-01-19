@@ -3,7 +3,6 @@ from pypicloud.route import Root, SimplePackageResource, SimpleResource
 from pyramid.httpexceptions import HTTPBadRequest, HTTPFound, HTTPForbidden
 from pyramid.view import view_config
 
-from pypicloud import api
 from pyramid_duh import argify, addslash
 
 
@@ -19,7 +18,11 @@ def upload(request, name, version, content):
     if action == 'file_upload':
         if not request.access.has_permission(name, 'write'):
             raise HTTPForbidden()
-        return api.upload_package(request, name, version, content)
+        try:
+            return request.db.upload(name, version, content.filename,
+                                     content.file)
+        except ValueError as e:
+            return HTTPBadRequest(*e.args)
     else:
         raise HTTPBadRequest("Unknown action '%s'" % action)
 
@@ -29,7 +32,14 @@ def upload(request, name, version, content):
 @addslash
 def simple(request):
     """ Render the list of all unique package names """
-    names = api.list_packages(request)
+    names = request.db.distinct()
+    i = 0
+    while i < len(names):
+        name = names[i]
+        if not request.access.has_permission(name, 'read'):
+            del names[i]
+            continue
+        i += 1
     return {'pkgs': names}
 
 

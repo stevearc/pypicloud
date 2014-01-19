@@ -1,9 +1,11 @@
 """ Caching database implementations """
 import os
+from datetime import datetime
 
+from pkg_resources import parse_version
 from pyramid.path import DottedNameResolver
 from pyramid.settings import asbool
-from sqlalchemy import distinct, engine_from_config
+from sqlalchemy import engine_from_config, distinct
 from sqlalchemy.orm import sessionmaker
 # pylint: disable=F0401,E0611
 from zope.sqlalchemy import ZopeTransactionExtension
@@ -69,12 +71,13 @@ class ICache(object):
             raise ValueError("Package '%s==%s' already exists!" %
                              (name, version))
         path = self.storage.upload(name, version, filename, data)
-        new_pkg = self.package_class(name, version, path)
+        new_pkg = self.package_class(name, version, path, datetime.utcnow())
         # If we're overwriting the same package but with a different path,
         # delete the old path
         if old_pkg is not None and new_pkg.path != old_pkg.path:
             self.storage.delete(old_pkg.path)
         self.save(new_pkg)
+        return new_pkg
 
     def delete(self, package):
         """ Delete this package from the database and from storage """
@@ -102,6 +105,40 @@ class ICache(object):
     def distinct(self):
         """ Get all distinct package names """
         raise NotImplementedError
+
+    def most_recent(self):
+        """
+        Get all most recent packages unique by package name
+
+        Returns
+        -------
+        packages : list
+            List of package dicts, each of which contains 'name', 'stable',
+            'unstable', and 'last_modified'.
+
+        """
+        packages = []
+        for name in self.distinct():
+            pkg = {
+                'name': name,
+                'stable': None,
+                'unstable': '0',
+                'last_modified': datetime.fromtimestamp(0),
+            }
+            for package in self.all(name):
+                if not package.is_prerelease:
+                    if pkg['stable'] is None:
+                        pkg['stable'] = package.version
+                    else:
+                        pkg['stable'] = max(pkg['stable'], package.version,
+                                            key=parse_version)
+                pkg['unstable'] = max(pkg['unstable'], package.version,
+                                      key=parse_version)
+                pkg['last_modified'] = max(pkg['last_modified'],
+                                           package.last_modified)
+            packages.append(pkg)
+
+        return packages
 
     def clear(self, package):
         """ Remove this package from the caching database """
@@ -157,6 +194,31 @@ class SQLCache(ICache):
             .order_by(SQLPackage.name).all()
         return [n[0] for n in names]
 
+    def most_recent(self):
+        packages = {}
+        for package in self.db.query(SQLPackage):
+            pkg = packages.get(package.name)
+            if pkg is None:
+                pkg = {
+                    'name': package.name,
+                    'stable': None,
+                    'unstable': '0',
+                    'last_modified': datetime.fromtimestamp(0),
+                }
+                packages[package.name] = pkg
+            if not package.is_prerelease:
+                if pkg['stable'] is None:
+                    pkg['stable'] = package.version
+                else:
+                    pkg['stable'] = max(pkg['stable'], package.version,
+                                        key=parse_version)
+            pkg['unstable'] = max(pkg['unstable'], package.version,
+                                  key=parse_version)
+            pkg['last_modified'] = max(pkg['last_modified'],
+                                       package.last_modified)
+
+        return packages.values()
+
     def clear(self, package):
         self.db.delete(package)
 
@@ -182,7 +244,7 @@ class RedisCache(ICache):
         except ImportError:
             raise ImportError("You must 'pip install redis' before using "
                               "redis as the database")
-        db_url = settings.get('pypi.db.url')
+        db_url = settings.get('db.url')
         cls.db = StrictRedis.from_url(db_url)
 
     def redis_key(self, package):
@@ -203,8 +265,6 @@ class RedisCache(ICache):
         return "%sset:%s" % (self.redis_prefix, name)
 
     def reload_from_storage(self):
-        # TODO: (stevearc 2014-01-02) Technically could cause thundering herd
-        # problem. Should fix that at some point.
         self.clear_all()
         packages = self.storage.list(self.package_class)
         pipe = self.db.pipeline()
@@ -216,15 +276,23 @@ class RedisCache(ICache):
         data = self.db.hgetall(self._redis_key(name, version))
         if not data:
             return None
+        return self._load(data)
+
+    def _load(self, data):
+        """ Load a Package class from redis data """
+        data['last_modified'] = datetime.fromtimestamp(
+            float(data['last_modified']))
+        if data.get('expire'):
+            data['expire'] = datetime.fromtimestamp(float(data['expire']))
+
         return self.package_class(**data)
 
     def _all(self, name):
         versions = self.db.smembers(self.redis_version_set(name))
-        packages = []
+        pipe = self.db.pipeline()
         for version in versions:
-            data = self.db.hgetall(self._redis_key(name, version))
-            package = self.package_class(**data)
-            packages.append(package)
+            pipe.hgetall(self._redis_key(name, version))
+        packages = [self._load(data) for data in pipe.execute()]
         packages.sort(reverse=True)
         return packages
 
@@ -249,6 +317,7 @@ class RedisCache(ICache):
             'name': package.name,
             'version': package.version,
             'path': package.path,
+            'last_modified': package.last_modified.strftime('%s.%f'),
         }
         if package.url is not None:
             data['url'] = package.url

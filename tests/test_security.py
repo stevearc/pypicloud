@@ -6,7 +6,7 @@ from passlib.hash import sha256_crypt  # pylint: disable=E0611
 from pyramid.testing import DummyRequest
 
 from . import DummyCache
-from pypicloud import api, main
+from pypicloud import main
 
 
 try:
@@ -15,33 +15,6 @@ except ImportError:
     import unittest
 
 # pylint: disable=W0212
-
-
-class TestListPackages(unittest.TestCase):
-
-    """ Tests for package enumeration api """
-
-    def test_has_permission(self):
-        """ If user has permission, package is visible """
-        request = DummyRequest()
-        request.access = MagicMock()
-        request.access.has_permission.return_value = True
-        request.db = MagicMock()
-        names = ['a', 'b', 'c']
-        request.db.distinct.return_value = names
-        ret = api.list_packages(request)
-        self.assertEqual(ret, names)
-
-    def test_filter_permission(self):
-        """ Filter package names by permission """
-        request = DummyRequest()
-        request.access = MagicMock()
-        request.access.has_permission = lambda x, y: x < 'c'
-        request.db = MagicMock()
-        names = ['a', 'b', 'c']
-        request.db.distinct.return_value = names
-        ret = api.list_packages(request)
-        self.assertEqual(ret, ['a', 'b'])
 
 
 def _simple_auth(username, password):

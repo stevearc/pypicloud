@@ -24,7 +24,14 @@ REQUIREMENTS = [
     'zope.sqlalchemy',
 ]
 
-TEST_REQUIREMENTS = []
+TEST_REQUIREMENTS = [
+    'nose',
+    'mock',
+    'webtest',
+    'requests',
+    'httpretty',
+    'moto',
+]
 
 if sys.version_info[:2] < (2, 7):
     REQUIREMENTS.extend(['argparse'])
@@ -62,8 +69,6 @@ if __name__ == "__main__":
             'console_scripts': [
                 'pypicloud-gen-password = pypicloud.scripts:gen_password',
                 'pypicloud-make-config = pypicloud.scripts:make_config',
-                'pypicloud-create-schema = pypicloud.scripts:run_create_schema',
-                'pypicloud-drop-schema = pypicloud.scripts:run_drop_schema',
             ],
             'paste.app_factory': [
                 'main = pypicloud:main',

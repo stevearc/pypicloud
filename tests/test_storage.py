@@ -21,6 +21,12 @@ except ImportError:
     import unittest
 
 
+def make_package(name='a', version='b', path='path/to/file.tar.gz',
+                 last_modified=datetime.utcnow()):
+    """ Convenience method for constructing a package """
+    return Package(name, version, path, last_modified)
+
+
 class TestS3Storage(unittest.TestCase):
 
     """ Tests for storing packages in S3 """
@@ -88,7 +94,7 @@ class TestS3Storage(unittest.TestCase):
 
     def test_get_url(self):
         """ Mock s3 and test package url generation """
-        package = Package('a', 'b', 'path/to/file.tar.gz')
+        package = make_package()
         url = self.storage.get_url(package)
         self.assertEqual(package.url, url)
         self.assertIsNotNone(package.expire)
@@ -108,7 +114,7 @@ class TestS3Storage(unittest.TestCase):
 
     def test_get_url_cached(self):
         """ If url is cached and valid, get_url() returns cached url """
-        package = Package('a', 'b', 'path/to/file.tar.gz')
+        package = make_package()
         package.url = 'abc'
         package.expire = datetime.utcnow() + timedelta(seconds=10)
         url = self.storage.get_url(package)
@@ -117,7 +123,7 @@ class TestS3Storage(unittest.TestCase):
 
     def test_get_url_expire(self):
         """ If url is cached and invalid, get_url() regenerates the url """
-        package = Package('a', 'b', 'path/to/file.tar.gz')
+        package = make_package()
         package.url = 'abc'
         package.expire = datetime.utcnow() - timedelta(seconds=10)
         url = self.storage.get_url(package)

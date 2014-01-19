@@ -1,10 +1,9 @@
 """ Views for simple api calls that return json data """
 from pypicloud.route import (APIResource, APIPackageResource,
                              APIPackagingResource, APIPackageVersionResource)
-from pyramid.httpexceptions import HTTPNotFound, HTTPForbidden
+from pyramid.httpexceptions import HTTPNotFound, HTTPForbidden, HTTPBadRequest
 from pyramid.view import view_config
 
-from pypicloud import api
 from pyramid_duh import argify, addslash
 from pyramid.security import NO_PERMISSION_REQUIRED, remember
 
@@ -12,10 +11,22 @@ from pyramid.security import NO_PERMISSION_REQUIRED, remember
 @view_config(context=APIPackagingResource, request_method='GET',
              subpath=(), renderer='json')
 @addslash
-def all_packages(request):
-    """ List all unique package names """
-    names = api.list_packages(request)
-    return {'packages': names}
+@argify
+def all_packages(request, verbose=False):
+    """ List all packages """
+    if verbose:
+        packages = request.db.most_recent()
+    else:
+        packages = request.db.distinct()
+    i = 0
+    while i < len(packages):
+        package = packages[i]
+        name = package if isinstance(package, basestring) else package['name']
+        if not request.access.has_permission(name, 'read'):
+            del packages[i]
+            continue
+        i += 1
+    return {'packages': packages}
 
 
 @view_config(context=APIPackageResource, request_method='GET',
@@ -35,7 +46,11 @@ def package_versions(context, request):
 @argify
 def upload_package(context, request, content):
     """ Upload a package """
-    return api.upload_package(request, context.name, context.version, content)
+    try:
+        return request.db.upload(context.name, context.version,
+                                 content.filename, content.file)
+    except ValueError as e:
+        return HTTPBadRequest(*e.args)
 
 
 @view_config(context=APIPackageVersionResource, request_method='DELETE',

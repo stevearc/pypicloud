@@ -8,6 +8,7 @@ from pyramid.testing import DummyRequest
 from redis import StrictRedis
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from datetime import datetime
 
 
 try:
@@ -30,7 +31,8 @@ class DummyStorage(IStorage):
     def list(self, factory):
         """ Return a list or generator of all packages """
         for args in self.packages.itervalues():
-            yield factory(*args)
+            all_args = args + (datetime.utcnow(),)
+            yield factory(*all_args)
 
     def get_url(self, package):
         """ Create or return an HTTP url for a package file """

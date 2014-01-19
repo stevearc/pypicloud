@@ -1,4 +1,5 @@
 """ Tests for database cache implementations """
+from datetime import datetime
 from mock import MagicMock, patch
 from pypicloud.cache import ICache, SQLCache, RedisCache
 from pypicloud.models import Package, SQLPackage, create_schema
@@ -17,25 +18,31 @@ except ImportError:
     import unittest
 
 
+def make_package(name='mypkg', version='1.1', path='mypkg.tar.gz',
+                 last_modified=datetime.utcnow(), factory=Package):
+    """ Convenience method for constructing a package """
+    return factory(name, version, path, last_modified)
+
+
 class TestBaseCache(unittest.TestCase):
 
     """ Tests for the caching base class """
 
     def test_equality(self):
         """ Two packages with same name & version should be equal """
-        p1 = Package('a', '1', 'wibbly')
-        p2 = Package('a', '1', 'wobbly')
+        p1 = make_package(path='wibbly')
+        p2 = make_package(path='wobbly')
         self.assertEquals(hash(p1), hash(p2))
         self.assertEquals(p1, p2)
 
     def test_get_filename(self):
         """ The pypi path should exclude any S3 prefix """
-        p1 = Package('a', '1', 'a84f/asodifja/mypath')
+        p1 = make_package(path='a84f/asodifja/mypath')
         self.assertEqual(p1.filename, 'mypath')
 
     def test_get_filename_no_prefix(self):
         """ The pypi path should noop if no S3 prefix """
-        p1 = Package('a', '1', 'a84f-mypath')
+        p1 = make_package(path='a84f-mypath')
         self.assertEqual(p1.filename, p1.path)
 
     @patch.object(ICache, 'storage_impl')
@@ -44,7 +51,7 @@ class TestBaseCache(unittest.TestCase):
         cache = ICache(MagicMock())
         with patch.object(cache, 'save') as save:
             cache.autocommit = True
-            package = Package('mypkg', '1.1', 'mypkg-1.1.tar.gz')
+            package = make_package()
             cache.get_url(package)
             save.assert_called_with(package)
 
@@ -54,7 +61,7 @@ class TestBaseCache(unittest.TestCase):
         cache = ICache(MagicMock())
         cache.autocommit = False
         with patch.object(cache, 'save') as save:
-            package = Package('mypkg', '1.1', 'mypkg-1.1.tar.gz')
+            package = make_package()
             cache.get_url(package)
             self.assertFalse(save.called)
 
@@ -116,7 +123,7 @@ class TestSQLCache(unittest.TestCase):
 
     def test_upload(self):
         """ upload() saves package and uploads to storage """
-        pkg = SQLPackage('mypkg', '1.1', 'mypkg')
+        pkg = make_package(factory=SQLPackage)
         self.storage.upload.return_value = pkg.path
         self.db.upload(pkg.name, pkg.version, pkg.path, None)
         count = self.sql.query(SQLPackage).count()
@@ -128,7 +135,7 @@ class TestSQLCache(unittest.TestCase):
 
     def test_save(self):
         """ save() puts object into database """
-        pkg = SQLPackage('mypkg', '1.1', 'mypkg')
+        pkg = make_package(factory=SQLPackage)
         self.db.save(pkg)
         count = self.sql.query(SQLPackage).count()
         self.assertEqual(count, 1)
@@ -137,7 +144,7 @@ class TestSQLCache(unittest.TestCase):
 
     def test_delete(self):
         """ delete() removes object from database and deletes from storage """
-        pkg = SQLPackage('mypkg', '1.1', 'mypkg')
+        pkg = make_package(factory=SQLPackage)
         self.sql.add(pkg)
         self.sql.commit()
         self.db.delete(pkg)
@@ -147,7 +154,7 @@ class TestSQLCache(unittest.TestCase):
 
     def test_clear(self):
         """ clear() removes object from database """
-        pkg = SQLPackage('mypkg', '1.1', '/mypkg')
+        pkg = make_package(factory=SQLPackage)
         self.sql.add(pkg)
         self.sql.commit()
         self.db.delete(pkg)
@@ -157,8 +164,9 @@ class TestSQLCache(unittest.TestCase):
     def test_reload(self):
         """ reload_from_storage() inserts packages into the database """
         keys = [
-            SQLPackage('mypkg', '1.1', '/mypath'),
-            SQLPackage('mypkg2', '1.3.4', '/my/other/path'),
+            make_package(factory=SQLPackage),
+            make_package('mypkg2', '1.3.4', 'my/other/path',
+                         factory=SQLPackage),
         ]
         self.storage.list.return_value = keys
         self.db.reload_from_storage()
@@ -167,7 +175,7 @@ class TestSQLCache(unittest.TestCase):
 
     def test_fetch(self):
         """ fetch() retrieves a package from the database """
-        pkg = SQLPackage('mypkg', '1.1', '/mypkg')
+        pkg = make_package(factory=SQLPackage)
         self.sql.add(pkg)
         saved_pkg = self.db.fetch(pkg.name, pkg.version)
         self.assertEqual(saved_pkg, pkg)
@@ -180,9 +188,10 @@ class TestSQLCache(unittest.TestCase):
     def test_all_versions(self):
         """ all() returns all versions of a package """
         pkgs = [
-            SQLPackage('mypkg', '1.1', '/mypath'),
-            SQLPackage('mypkg', '1.3', '/mypath3'),
-            SQLPackage('mypkg2', '1.3.4', '/my/other/path'),
+            make_package(factory=SQLPackage),
+            make_package(version='1.3', path='mypath3', factory=SQLPackage),
+            make_package('mypkg2', '1.3.4', 'my/other/path',
+                         factory=SQLPackage),
         ]
         self.sql.add_all(pkgs)
         saved_pkgs = self.db.all('mypkg')
@@ -191,9 +200,10 @@ class TestSQLCache(unittest.TestCase):
     def test_distinct(self):
         """ distinct() returns all unique package names """
         pkgs = [
-            SQLPackage('mypkg', '1.1', '/mypath'),
-            SQLPackage('mypkg', '1.3', '/mypath3'),
-            SQLPackage('mypkg2', '1.3.4', '/my/other/path'),
+            make_package(factory=SQLPackage),
+            make_package(version='1.3', path='mypath3', factory=SQLPackage),
+            make_package('mypkg2', '1.3.4', 'my/other/path',
+                         factory=SQLPackage),
         ]
         self.sql.add_all(pkgs)
         saved_pkgs = self.db.distinct()
@@ -229,6 +239,7 @@ class TestRedisCache(unittest.TestCase):
             'name': pkg.name,
             'version': pkg.version,
             'path': pkg.path,
+            'last_modified': pkg.last_modified.strftime('%s.%f'),
         }
         if pkg.url is not None:
             pkg_data['url'] = pkg.url
@@ -238,7 +249,7 @@ class TestRedisCache(unittest.TestCase):
 
     def test_delete(self):
         """ delete() removes object from database and deletes from storage """
-        pkg = Package('mypkg', '1.1', 'mypkg-1.1.tar.gz')
+        pkg = make_package()
         key = self.db.redis_key(pkg)
         self.redis[key] = 'foobar'
         self.db.delete(pkg)
@@ -250,7 +261,7 @@ class TestRedisCache(unittest.TestCase):
 
     def test_clear(self):
         """ clear() removes object from database """
-        pkg = Package('mypkg', '1.1', 'mypkg-1.1.tar.gz')
+        pkg = make_package()
         key = self.db.redis_key(pkg)
         self.redis[key] = 'foobar'
         self.db.clear(pkg)
@@ -262,8 +273,9 @@ class TestRedisCache(unittest.TestCase):
     def test_reload(self):
         """ reload_from_storage() inserts packages into the database """
         keys = [
-            Package('mypkg', '1.1', '/mypath'),
-            Package('mypkg2', '1.3.4', '/my/other/path'),
+            make_package(factory=SQLPackage),
+            make_package('mypkg2', '1.3.4', 'my/other/path',
+                         factory=SQLPackage),
         ]
         self.storage.list.return_value = keys
         self.db.reload_from_storage()
@@ -272,7 +284,7 @@ class TestRedisCache(unittest.TestCase):
 
     def test_fetch(self):
         """ fetch() retrieves a package from the database """
-        pkg = Package('mypkg', '1.1', '/mypkg')
+        pkg = make_package()
         self.db.save(pkg)
         saved_pkg = self.db.fetch(pkg.name, pkg.version)
         self.assertEqual(saved_pkg, pkg)
@@ -285,9 +297,10 @@ class TestRedisCache(unittest.TestCase):
     def test_all_versions(self):
         """ all() returns all versions of a package """
         pkgs = [
-            Package('mypkg', '1.1', '/mypath'),
-            Package('mypkg', '1.3', '/mypath3'),
-            Package('mypkg2', '1.3.4', '/my/other/path'),
+            make_package(factory=SQLPackage),
+            make_package(version='1.3', path='mypath3', factory=SQLPackage),
+            make_package('mypkg2', '1.3.4', 'my/other/path',
+                         factory=SQLPackage),
         ]
         for pkg in pkgs:
             self.db.save(pkg)
@@ -297,9 +310,10 @@ class TestRedisCache(unittest.TestCase):
     def test_distinct(self):
         """ distinct() returns all unique package names """
         pkgs = [
-            Package('mypkg', '1.1', '/mypath'),
-            Package('mypkg', '1.3', '/mypath3'),
-            Package('mypkg2', '1.3.4', '/my/other/path'),
+            make_package(factory=SQLPackage),
+            make_package(version='1.3', path='mypath3', factory=SQLPackage),
+            make_package('mypkg2', '1.3.4', 'my/other/path',
+                         factory=SQLPackage),
         ]
         for pkg in pkgs:
             self.db.save(pkg)

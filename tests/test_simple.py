@@ -1,4 +1,5 @@
 """ Unit tests for the simple endpoints """
+from datetime import datetime
 import pypicloud.views.simple
 from mock import MagicMock, patch
 from pypicloud.models import Package
@@ -16,16 +17,16 @@ class TestSimple(MockServerTest):
     def setUp(self):
         super(TestSimple, self).setUp()
         self.request.access = MagicMock()
-        self.api_call = patch.object(pypicloud.views.simple, 'api').start()
 
     def test_upload(self):
         """ Upload endpoint returns the result of api call """
         self.params = {
             ':action': 'file_upload',
         }
-        name, version, content = 'foo', 'bar', 'baz'
-        pkgs = upload(self.request, name, version, content)
-        self.assertEquals(pkgs, self.api_call.upload_package())
+        name, version, content = 'foo', 'bar', MagicMock()
+        pkg = upload(self.request, name, version, content)
+
+        self.assertEquals(pkg, self.request.db.packages[name][version])
 
     def test_upload_bad_action(self):
         """ Upload endpoint only respects 'file_upload' action """
@@ -38,14 +39,16 @@ class TestSimple(MockServerTest):
 
     def test_list(self):
         """ Simple list should return api call """
+        self.request.db = MagicMock()
+        self.request.db.distinct.return_value = ['a', 'b', 'c']
+        self.request.access.has_permission.side_effect = lambda x, _: x == 'b'
         result = simple(self.request)
-        self.api_call.list_packages.assert_called_with(self.request)
-        self.assertEqual(result, {'pkgs': self.api_call.list_packages()})
+        self.assertEqual(result, {'pkgs': ['b']})
 
     def test_list_versions(self):
         """ Listing package versions should return api call """
         self.request.registry.use_fallback = False
-        pkg = Package('mypkg', '1.1', 'mypkg-1.1.tar.gz')
+        pkg = Package('mypkg', '1.1', 'mypkg-1.1.tar.gz', datetime.utcnow())
         self.request.db.upload(pkg.name, pkg.version, pkg.path, None)
         context = SimplePackageResource(self.request, 'mypkg')
         result = package_versions(context, self.request)

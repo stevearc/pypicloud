@@ -127,7 +127,9 @@ class S3Storage(IStorage):
                 LOG.warning("S3 file %s has no package name", key.key)
                 continue
 
-            pkg = factory(name, version, key.key)
+            last_modified = boto.utils.parse_ts(key.last_modified)
+
+            pkg = factory(name, version, key.key, last_modified)
 
             yield pkg
 

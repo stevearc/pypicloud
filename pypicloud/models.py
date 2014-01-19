@@ -1,4 +1,5 @@
 """ Model objects """
+import re
 from datetime import datetime
 
 import logging
@@ -67,6 +68,8 @@ class Package(object):
         The version number of the package
     path : str
         The absolute S3 path of the package file
+    last_modified : datetime
+        The datetime when this package was uploaded
     url : str, optional
         The generated S3 url (may be out of date; access this from
         :meth:`~.get_url`)
@@ -75,10 +78,12 @@ class Package(object):
 
     """
 
-    def __init__(self, name, version, path, url=None, expire=None):
+    def __init__(self, name, version, path, last_modified, url=None,
+                 expire=None):
         self.name = normalize_name(name)
         self.version = version
         self.path = path
+        self.last_modified = last_modified
         self.url = url
         if expire is not None and not isinstance(expire, datetime):
             self.expire = datetime.fromtimestamp(float(expire))
@@ -94,6 +99,11 @@ class Package(object):
     def get_url(self, request):
         """ Pass through to the database cache """
         return request.db.get_url(self)
+
+    @property
+    def is_prerelease(self):
+        """ Returns True if the version is a prerelease version """
+        return re.match(r'^\d+(\.\d+)*$', self.version) is None
 
     def __hash__(self):
         return hash(self.name) + hash(self.version)
@@ -117,6 +127,7 @@ class Package(object):
     def __json__(self, request):
         return {
             'name': self.name,
+            'last_modified': self.last_modified,
             'version': self.version,
             'url': request.db.get_url(self),
         }
@@ -128,6 +139,7 @@ class SQLPackage(Package, Base):
     __tablename__ = 'packages'
     name = Column(Text(), primary_key=True)
     version = Column(Text(), primary_key=True)
+    last_modified = Column(DateTime(), index=True, nullable=False)
     path = Column(Text(), nullable=False)
     url = Column('url', Text())
     expire = Column('expire', DateTime())
