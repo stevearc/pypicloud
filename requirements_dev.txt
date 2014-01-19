@@ -6,6 +6,7 @@ nose
 mock
 webtest
 sphinx
+sphinx_rtd_theme
 numpydoc
 redis
 requests

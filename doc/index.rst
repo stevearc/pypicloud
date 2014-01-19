@@ -27,6 +27,20 @@ User Guide
     topics/deploy
     topics/developing
 
+Versions
+--------
+=========  ===============  ========
+Version    Build            Coverage
+=========  ===============  ========
+master_    |build-master|_  |coverage-master|_
+=========  ===============  ========
+
+.. _master: ../latest/
+.. |build-master| image:: https://travis-ci.org/mathcamp/flywheel.png?branch=master
+.. _build-master: https://travis-ci.org/mathcamp/flywheel
+.. |coverage-master| image:: https://coveralls.io/repos/mathcamp/flywheel/badge.png?branch=master
+.. _coverage-master: https://coveralls.io/r/mathcamp/flywheel?branch=master
+
 API Reference
 -------------
 .. toctree::
@@ -35,16 +49,27 @@ API Reference
 
     ref/pypicloud
 
+Changelog
+---------
+
+.. toctree::
+    :maxdepth: 1
+    :glob:
+
+    changes
+
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
 
 TODO
-====
+----
 * Users can edit password (w/mutable access backend)
+* Use view_defaults on admin views
+* Auto-rebuild cache from S3 if empty
 * Cache more metadata for display (last updated, most recent version)
 * Support CloudFront
 * More test coverage
@@ -54,3 +79,4 @@ TODO
 * Auto-archive to glacier after X days or X versions
 * Directives for cloning parts of pypi (from requirements file or package deps, how to handle permissions?)
 * Hooks for using celery to make a write-through cache
+* Optional captcha on user registration

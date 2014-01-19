@@ -31,6 +31,7 @@ classic US region)
 ``aws.prefix``
 ~~~~~~~~~~~~~~
 **Argument:** string, optional
+
 If present, all packages will be prefixed with this value when stored in S3.
 Use this to store your packages in a subdirectory, such as "packages/"
 
@@ -41,15 +42,15 @@ Use this to store your packages in a subdirectory, such as "packages/"
 How long the generated S3 urls are valid for (default 86400 (1 day)). In
 practice, there is no real reason why these generated urls need to expire at
 all. S3 does it for security, but expiring links isn't part of the python
-package security model. So in theory you can bump this number up a bunch.
+package security model. So in theory you can bump this number up.
 
 ``aws.buffer_time``
 ~~~~~~~~~~~~~~~~~~~
 **Argument:** int, optional
 
-Regenerate our S3 urls this long before they actually expire (default 600 (10
-minutes)). This will help guarantee that if pip pulls down a url, it will be
-valid long enough for it to finish downloading the package.
+Regenerate the cached S3 urls this long before they actually expire (default
+600 (10 minutes)). This will help guarantee that if pip pulls down a url, it
+will be valid long enough for it to finish downloading the package.
 
 Beaker
 ^^^^^^
@@ -68,7 +69,7 @@ Encryption key to use for the AES cipher. Here is a reasonable way to generate o
     $ python -c 'import os, base64; print base64.b64encode(os.urandom(32))'
 
 ``session.validate_key``
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string
 
 Validation key used to sign the AES encrypted data.
