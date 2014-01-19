@@ -1,0 +1,30 @@
+<div class="row" collapse="changingPassword">
+  <div class="col-xs-12 col-md-offset-3 col-md-6">
+    <button ng-click="changingPassword = !changingPassword" class="btn btn-default">Change password</button>
+  </div>
+</div>
+<div class="row" collapse="!changingPassword">
+
+  <div class="col-xs-12 col-sm-offset-3 col-sm-6 col-md-offset-3 col-md-4">
+    <button type="button" class="close pull-left" aria-hidden="true" ng-click="changingPassword = false">&times;</button>
+    <form role="form" ng-submit="changePassword(oldPassword, newPassword)">
+      <div class="form-group" ng-class="passError ? 'has-error' : ''">
+        <label class="sr-only">New Password</label>
+        <input type="password" class="form-control" ng-model="newPassword" placeholder="New Password">
+      </div>
+      <div class="form-group" ng-class="passError ? 'has-error' : ''">
+        <label class="sr-only">Current Password</label>
+        <input type="password" class="form-control" ng-model="oldPassword" placeholder="Current Password">
+      </div>
+      <alert type="'danger'" ng-show="passError">
+        {{ passError }}
+      </alert>
+      <div>
+        <button  class="btn btn-primary" ng-disabled="changingPasswordNetwork">
+          <i class="fa fa-spinner fa-spin" ng-show="changingPasswordNetwork"></i>
+          Change
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

@@ -24,13 +24,45 @@
         <a ng-href="{{ ROOT }}pypi/">Raw</a>
       </li>
     </ul>
-    <ul class="nav navbar-nav navbar-right">
-      <li ng-show="USER">
-        <a ng-href="{{ ROOT }}logout">Log out</a>
-      </li>
-      <li ng-show="!USER">
-        <a ng-href="{{ ROOT }}login">Log in</a>
-      </li>
-    </ul>
+
+    <div ng-switch on="USER">
+      <div ng-switch-when="null">
+        <ul class="nav navbar-nav navbar-right">
+          <li>
+            <a ng-href="{{ ROOT }}login">Log in</a>
+          </li>
+        </ul>
+      </div>
+      <div ng-switch-default>
+        <ul class="nav navbar-nav navbar-right hidden-xs">
+
+          <!-- Destop has a dropdown -->
+          <li class="dropdown">
+            <a class="btn dropdown-toggle">
+              {{ USER }} <span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu" role="menu">
+              <li ng-show="ACCESS_MUTABLE">
+                <a href="#/account">Account</a>
+              </li>
+              <li class="divider" ng-show="ACCESS_MUTABLE"></li>
+              <li style="opacity: 0.6">
+                <a ng-href="{{ ROOT }}logout">Log out</a>
+              </li>
+            </ul>
+          </li>
+        </ul>
+
+          <!-- Mobile puts it inline for the collapsed nav menu -->
+        <ul class="nav navbar-nav navbar-right visible-xs">
+          <li ng-show="ACCESS_MUTABLE">
+            <a href="#/account">Account</a>
+          </li>
+          <li style="opacity: 0.6">
+            <a ng-href="{{ ROOT }}logout">Log out</a>
+          </li>
+        </ul>
+      </div>
+    </div>
   </div>
 </div>

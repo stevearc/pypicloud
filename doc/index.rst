@@ -67,12 +67,12 @@ Indices and tables
 
 TODO
 ----
-* Users can edit password (w/mutable access backend)
 * Use view_defaults on admin views
 * Auto-rebuild cache from S3 if empty
 * Cache more metadata for display (last updated, most recent version)
 * Support CloudFront
 * More test coverage
+* Document HTTP API
 * Release to pypi
 
 * Access backend that stores data in DynamoDB

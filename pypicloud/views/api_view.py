@@ -1,7 +1,7 @@
 """ Views for simple api calls that return json data """
 from pypicloud.route import (APIResource, APIPackageResource,
                              APIPackagingResource, APIPackageVersionResource)
-from pyramid.httpexceptions import HTTPNotFound
+from pyramid.httpexceptions import HTTPNotFound, HTTPForbidden
 from pyramid.view import view_config
 
 from pypicloud import api
@@ -64,4 +64,15 @@ def register(request, password):
         request.access.approve_user(username)
         request.access.set_user_admin(username, True)
         request.response.headers.extend(remember(request, username))
+    return request.response
+
+
+@view_config(context=APIResource, name='user', subpath=('password'),
+             request_method='POST', permission='login')
+@argify
+def change_password(request, old_password, new_password):
+    """ Change a user's password """
+    if not request.access.verify_user(request.userid, old_password):
+        return HTTPForbidden()
+    request.access.edit_user_password(request.userid, new_password)
     return request.response

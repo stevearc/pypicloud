@@ -19,6 +19,11 @@ var pypicloud = angular.module('pypicloud', ['ui.bootstrap', 'ngRoute', 'angular
       controller: 'NewAdminCtrl'
     });
 
+    $routeProvider.when('/account', {
+      templateUrl: STATIC + 'partial/account.html',
+      controller: 'AccountCtrl'
+    });
+
     $routeProvider.otherwise({
       redirectTo: '/',
     });
@@ -74,9 +79,41 @@ pypicloud.controller('BaseCtrl', ['$rootScope', '$location', function($rootScope
   if (NEED_ADMIN) {
     $location.path('/new_admin');
   }
+
+  $rootScope.getDevice = function() {
+    var envs = ['xs', 'sm', 'md', 'lg'];
+
+    var el = document.createElement('div');
+    var body = document.getElementsByTagName('body')[0];
+    body.appendChild(el);
+
+    for (var i = envs.length - 1; i >= 0; i--) {
+      var env = envs[i];
+
+      el.setAttribute('class', 'hidden-' + env);
+      if (el.offsetWidth === 0 && el.offsetHeight === 0) {
+        el.remove();
+        return env
+      }
+    };
+  }
+
+  $rootScope.device = $rootScope.getDevice();
+  $rootScope.getWidth = function() {
+    return window.innerWidth;
+  };
+  $rootScope.$watch($rootScope.getWidth, function(newValue, oldValue) {
+    if (newValue != oldValue) {
+      $rootScope.device = $rootScope.getDevice();
+    }
+  });
+  window.onresize = function(){
+    $rootScope.$apply();
+  }
 }]);
 
 pypicloud.controller('NavbarCtrl', ['$scope', function($scope) {
+  $scope.navCollapsed = $scope.device === 'xs';
   $scope.options = [];
 }]);
 
@@ -308,6 +345,31 @@ pypicloud.controller('NewAdminCtrl', ['$scope', '$http', '$location', function($
   $scope.register = function(username, password) {
     $http.put($scope.API + 'user/' + username, {password:password}).success(function(data, status, headers, config) {
       window.location = ROOT;
+    });
+  };
+}]);
+
+pypicloud.controller('AccountCtrl', ['$scope', '$http', function($scope, $http) {
+
+  $scope.changePassword = function(oldPassword, newPassword) {
+    if (!oldPassword || !newPassword || oldPassword.length === 0 || newPassword.length === 0) {
+      $scope.passError = 'Password cannot be blank!';
+      return;
+    }
+    var data = {
+      new_password: newPassword,
+      old_password: oldPassword
+    };
+    $scope.changingPasswordNetwork = true;
+    $http.post($scope.API + 'user/password', data).success(function(data, status, headers, config) {
+      $scope.changingPasswordNetwork = false;
+      $scope.changingPassword = false;
+      $scope.newPassword = '';
+      $scope.oldPassword = '';
+      $scope.passError = null;
+    }).error(function(data, status, headers, config) {
+      $scope.changingPasswordNetwork = false;
+      $scope.passError = 'Invalid password!';
     });
   };
 }]);
