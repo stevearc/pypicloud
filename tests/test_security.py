@@ -68,7 +68,7 @@ class TestEndpointSecurity(unittest.TestCase):
     def setUpClass(cls):
         settings = {
             'pyramid.debug_authorization': True,
-            'pypi.db': 'pypicloud.tests.test_security.test_cache',
+            'pypi.db': 'tests.test_security.test_cache',
             'db.url': 'sqlite://',
             'session.validate_key': 'a',
             'aws.access_key': 'abc',

@@ -57,7 +57,7 @@ if __name__ == "__main__":
         keywords='pypi s3 cheeseshop package',
         zip_safe=False,
         include_package_data=True,
-        packages=find_packages(),
+        packages=find_packages(exclude=('tests',)),
         entry_points={
             'console_scripts': [
                 'pypicloud-gen-password = pypicloud.scripts:gen_password',
@@ -71,4 +71,5 @@ if __name__ == "__main__":
         },
         install_requires=REQUIREMENTS,
         tests_require=REQUIREMENTS + TEST_REQUIREMENTS,
+        test_suite='tests',
     )

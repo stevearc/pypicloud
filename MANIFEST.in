@@ -1,3 +1,4 @@
+include pypicloud_version.py
 include *.rst *.tmpl
 recursive-include pypicloud *.css *.js *.map *.html *.jinja2
-include pypicloud_version.py
+recursive-exclude tests *
