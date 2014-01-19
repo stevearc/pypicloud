@@ -67,7 +67,6 @@ Indices and tables
 
 TODO
 ----
-* Use view_defaults on admin views
 * Auto-rebuild cache from S3 if empty
 * Cache more metadata for display (last updated, most recent version)
 * Support CloudFront

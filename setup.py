@@ -17,7 +17,7 @@ REQUIREMENTS = [
     'pycrypto',
     'pyramid',
     'pyramid_beaker',
-    'pyramid_duh',
+    'pyramid_duh>=0.1.1',
     'pyramid_jinja2',
     'pyramid_tm',
     'transaction',
