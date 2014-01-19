@@ -36,10 +36,10 @@ master_    |build-master|_  |coverage-master|_
 =========  ===============  ========
 
 .. _master: ../latest/
-.. |build-master| image:: https://travis-ci.org/mathcamp/flywheel.png?branch=master
-.. _build-master: https://travis-ci.org/mathcamp/flywheel
-.. |coverage-master| image:: https://coveralls.io/repos/mathcamp/flywheel/badge.png?branch=master
-.. _coverage-master: https://coveralls.io/r/mathcamp/flywheel?branch=master
+.. |build-master| image:: https://travis-ci.org/mathcamp/pypicloud.png?branch=master
+.. _build-master: https://travis-ci.org/mathcamp/pypicloud
+.. |coverage-master| image:: https://coveralls.io/repos/mathcamp/pypicloud/badge.png?branch=master
+.. _coverage-master: https://coveralls.io/r/mathcamp/pypicloud?branch=master
 
 API Reference
 -------------
