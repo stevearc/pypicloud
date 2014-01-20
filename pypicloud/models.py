@@ -97,7 +97,7 @@ class Package(object):
         return filename
 
     def get_url(self, request):
-        """ Pass through to the database cache """
+        """ Create path to the download link """
         return request.db.get_url(self)
 
     @property
@@ -129,7 +129,7 @@ class Package(object):
             'name': self.name,
             'last_modified': self.last_modified,
             'version': self.version,
-            'url': request.db.get_url(self),
+            'url': self.get_url(request),
         }
 
 

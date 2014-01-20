@@ -108,17 +108,31 @@ def make_config(argv=None):
     }
     data['reload_templates'] = env == 'dev'
 
-    data['access_key'] = prompt("AWS access key id?")
-    data['secret_key'] = prompt("AWS secret access key?")
+    storage = prompt_option("Where do you want to store your packages?",
+                            ['s3', 'filesystem'])
+    if storage == 'filesystem':
+        storage = 'file'
 
-    def bucket_validate(name):
-        """ Check for valid bucket name """
-        if '.' in name:
-            print "Bucket names cannot contain '.'"
-            return False
-        return True
+    data['storage'] = storage
 
-    data['s3_bucket'] = prompt("S3 bucket name?", validate=bucket_validate)
+    if storage == 's3':
+        if 'AWS_ACCESS_KEY_ID' in os.environ:
+            data['access_key'] = os.environ['AWS_ACCESS_KEY_ID']
+        else:
+            data['access_key'] = prompt("AWS access key id?")
+        if 'AWS_SECRET_ACCESS_KEY' in os.environ:
+            data['secret_key'] = os.environ['AWS_SECRET_ACCESS_KEY']
+        else:
+            data['secret_key'] = prompt("AWS secret access key?")
+
+        def bucket_validate(name):
+            """ Check for valid bucket name """
+            if '.' in name:
+                print "Bucket names cannot contain '.'"
+                return False
+            return True
+
+        data['s3_bucket'] = prompt("S3 bucket name?", validate=bucket_validate)
 
     data['db_url'] = 'sqlite:///%(here)s/db.sqlite'
 

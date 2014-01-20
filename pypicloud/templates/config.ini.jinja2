@@ -7,9 +7,14 @@ pyramid.debug_notfound = false
 pyramid.debug_routematch = false
 pyramid.default_locale_name = en
 
+pypi.storage = {{ storage }}
+{% if storage == 'file' -%}
+storage.dir = %(here)s/packages
+{%- else -%}
 aws.access_key = {{ access_key }}
 aws.secret_key = {{ secret_key }}
 aws.bucket = {{ s3_bucket }}
+{%- endif %}
 
 db.url = {{ db_url }}
 

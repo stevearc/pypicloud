@@ -1,14 +1,17 @@
 """ Tests for package storage backends """
+import os
 import re
 import time
 from cStringIO import StringIO
 from datetime import datetime, timedelta
 
+import shutil
+import tempfile
 from boto.s3.key import Key
 from mock import MagicMock, patch
 from moto import mock_s3
 from pypicloud.models import Package
-from pypicloud.storage import S3Storage
+from pypicloud.storage import S3Storage, FileStorage
 from urlparse import urlparse, parse_qs
 
 import boto
@@ -181,3 +184,83 @@ class TestS3Storage(unittest.TestCase):
         S3Storage.configure(config)
         conn.create_bucket.assert_called_with('new_bucket',
                                               location='us-east-1')
+
+
+class TestFileStorage(unittest.TestCase):
+
+    """ Tests for storing packages as local files """
+
+    def setUp(self):
+        super(TestFileStorage, self).setUp()
+        self.tempdir = tempfile.mkdtemp()
+        config = MagicMock()
+        config.get_settings.return_value = {
+            'storage.dir': self.tempdir,
+        }
+        FileStorage.configure(config)
+        self.request = MagicMock()
+        self.storage = FileStorage(self.request)
+
+    def tearDown(self):
+        super(TestFileStorage, self).tearDown()
+        shutil.rmtree(self.tempdir)
+
+    def test_upload(self):
+        """ Uploading package saves file """
+        name, version, path = 'a', '1', 'my/path.tar.gz'
+        datastr = 'foobar'
+        data = StringIO(datastr)
+        path = self.storage.upload(name, version, path, data)
+        filename = os.path.join(self.tempdir, 'a', '1', 'path.tar.gz')
+        self.assertTrue(os.path.exists(filename))
+        with open(filename, 'r') as ifile:
+            self.assertEqual(ifile.read(), 'foobar')
+
+    def test_list(self):
+        """ Can iterate over uploaded packages """
+        name, version, shortpath = 'a', '1', 'path.tar.gz'
+        path = os.path.join(name, version, shortpath)
+        filename = os.path.join(self.tempdir, path)
+        os.makedirs(os.path.dirname(filename))
+        with open(filename, 'w') as ofile:
+            ofile.write('foobar')
+
+        package = list(self.storage.list(Package))[0]
+        self.assertEquals(package.name, name)
+        self.assertEquals(package.version, version)
+        self.assertEquals(package.path, path)
+
+    def test_get_url(self):
+        """ Test package url generation """
+        package = make_package()
+        self.request.app_url.side_effect = lambda *x: '/'.join(x)
+        url = self.storage.get_url(package)
+        expected = 'api/package/%s/%s/download/%s' % (package.name,
+                                                      package.version,
+                                                      package.filename)
+        self.assertEqual(url, expected)
+
+    def test_delete(self):
+        """ delete() should remove package from storage """
+        name, version, shortpath = 'a', '1', 'path.tar.gz'
+        path = os.path.join(name, version, shortpath)
+        filename = os.path.join(self.tempdir, path)
+        os.makedirs(os.path.dirname(filename))
+        with open(filename, 'w') as ofile:
+            ofile.write('foobar')
+        self.storage.delete(path)
+        self.assertFalse(os.path.exists(filename))
+
+    def test_create_package_dir(self):
+        """ configure() will create the package dir if it doesn't exist """
+        tempdir = tempfile.mkdtemp()
+        os.rmdir(tempdir)
+        config = MagicMock()
+        config.get_settings.return_value = {
+            'storage.dir': tempdir,
+        }
+        FileStorage.configure(config)
+        try:
+            self.assertTrue(os.path.exists(tempdir))
+        finally:
+            os.rmdir(tempdir)

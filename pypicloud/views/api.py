@@ -1,7 +1,11 @@
 """ Views for simple api calls that return json data """
+import os
+
 from pypicloud.route import (APIResource, APIPackageResource,
                              APIPackagingResource, APIPackageVersionResource)
-from pyramid.httpexceptions import HTTPNotFound, HTTPForbidden, HTTPBadRequest
+from pyramid.httpexceptions import (HTTPNotFound, HTTPForbidden,
+                                    HTTPBadRequest, HTTPFound)
+from pyramid.response import FileResponse
 from pyramid.security import NO_PERMISSION_REQUIRED, remember
 from pyramid.view import view_config
 
@@ -39,6 +43,24 @@ def package_versions(context, request):
         'packages': versions,
         'write': request.access.has_permission(context.name, 'write'),
     }
+
+
+@view_config(context=APIPackageVersionResource, name='download',
+             request_method='GET', subpath=('filename/*/?'), permission='read')
+def package_redirect(context, request):
+    """ Redirect to the package download link """
+    package = request.db.fetch(context.name, context.version)
+    if not package:
+        return HTTPNotFound()
+    response = request.db.download_response(package)
+    # If the response is a file, redirect it to have the appropriate filename
+    if isinstance(response, FileResponse):
+        if request.named_subpaths.get('filename') is None:
+            newloc = package.filename
+            if not request.path_url.endswith('/'):
+                newloc = os.path.join(request.path_url, newloc)
+            return HTTPFound(location=newloc)
+    return response
 
 
 @view_config(context=APIPackageVersionResource, request_method='POST',

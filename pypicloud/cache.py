@@ -52,9 +52,11 @@ class ICache(object):
         """ Configure the cache method with app settings """
         settings = config.get_settings()
         resolver = DottedNameResolver(__name__)
-        storage = settings.get('pypi.storage', 's3')
+        storage = settings.get('pypi.storage', 'file')
         if storage == 's3':
             storage = 'pypicloud.storage.S3Storage'
+        elif storage == 'file':
+            storage = 'pypicloud.storage.FileStorage'
         storage_impl = resolver.resolve(storage)
         storage_impl.configure(config)
         cls.storage_impl = storage_impl
@@ -62,20 +64,24 @@ class ICache(object):
         cls.allow_overwrite = asbool(settings.get('pypi.allow_overwrite',
                                                   False))
 
+    def get_url(self, package):
+        """ Pass through to storage """
+        url = package.url
+        new_url = self.storage.get_url(package)
+        if self.autocommit and url != new_url:
+            self.save(package)
+        return new_url
+
+    def download_response(self, package):
+        """ Pass through to storage """
+        return self.storage.download_response(package)
+
     def reload_from_storage(self):
         """ Make sure local database is populated with packages """
         self.clear_all()
         packages = self.storage.list(self.package_class)
         for pkg in packages:
             self.save(pkg)
-
-    def get_url(self, package):
-        """ Create or return an HTTP url for an S3 path """
-        url = package.url
-        new_url = self.storage.get_url(package)
-        if self.autocommit and url != new_url:
-            self.save(package)
-        return new_url
 
     @staticmethod
     def normalize_name(name):

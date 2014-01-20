@@ -22,6 +22,7 @@ User Guide
 
     topics/getting_started
     topics/configuration
+    topics/storage
     topics/access_control
     topics/cache
     topics/deploy
@@ -70,7 +71,6 @@ Indices and tables
 
 TODO
 ----
-* Storage backend for flat-files
 * Update getting started & README for pip install
 * *Release to pypi*
 * Tool for migrating packages between storage backends
