@@ -35,6 +35,15 @@ classic US region)
 If present, all packages will be prefixed with this value when stored in S3.
 Use this to store your packages in a subdirectory, such as "packages/"
 
+``aws.prepend_hash``
+~~~~~~~~~~~~~~~~~~~~~
+**Argument:** bool, optional
+
+Prepend a 4-letter hash to all S3 keys (default True). This helps S3 load
+balance when traffic scales. See the `AWS documentation
+<http://docs.aws.amazon.com/AmazonS3/latest/dev/request-rate-perf-considerations.html>`_
+on the subject.
+
 ``aws.expire_after``
 ~~~~~~~~~~~~~~~~~~~~
 **Argument:** int, optional
@@ -105,15 +114,6 @@ http://pypi.python.org/simple)
 **Argument:** string, optional
 
 The HTTP Basic Auth realm (default 'pypi')
-
-``pypi.prepend_hash``
-~~~~~~~~~~~~~~~~~~~~~
-**Argument:** bool, optional
-
-Prepend a 4-letter hash to all S3 keys (default True). This helps S3 load
-balance when traffic scales. See the `AWS documentation
-<http://docs.aws.amazon.com/AmazonS3/latest/dev/request-rate-perf-considerations.html>`_
-on the subject.
 
 ``pypi.allow_overwrite``
 ~~~~~~~~~~~~~~~~~~~~~~~~

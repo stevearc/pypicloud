@@ -150,6 +150,11 @@ class IAccessBackend(object):
             True if user credentials are valid, false otherwise
 
         """
+        stored_pw = self._get_password_hash(username)
+        return stored_pw and pwd_context.verify(password, stored_pw)
+
+    def _get_password_hash(self, username):
+        """ Get the stored password hash for a user """
         raise NotImplementedError
 
     def groups(self, username=None):
@@ -381,6 +386,19 @@ class IMutableAccessBackend(IAccessBackend):
         password : str
 
         """
+        self._set_password_hash(username, pwd_context.encrypt(password))
+
+    def _set_password_hash(self, username, password_hash):
+        """
+        Change a user's password
+
+        Parameters
+        ----------
+        username : str
+        password_hash : str
+            The hashed password to store
+
+        """
         raise NotImplementedError
 
     def delete_user(self, username):
@@ -509,13 +527,9 @@ class ConfigAccessBackend(IAccessBackend):
             for member in members:
                 cls.user_groups[member].append(group_name)
 
-    def verify_user(self, username, password):
+    def _get_password_hash(self, username):
         key = "user.%s" % username
-        stored_pw = self._settings.get(key)
-        if stored_pw and pwd_context.verify(password, stored_pw):
-            return True
-        else:
-            return False
+        return self._settings.get(key)
 
     def groups(self, username=None):
         if username is None:
@@ -662,6 +676,10 @@ class RemoteAccessBackend(IAccessBackend):
         uri = self._settings.get('auth.uri.verify', '/verify')
         params = {'username': username, 'password': password}
         return self._req(uri, params)
+
+    def _get_password_hash(self, username):
+        # We don't have to do anything here because we overrode 'verify_user'
+        pass
 
     def groups(self, username=None):
         uri = self._settings.get('auth.uri.groups', '/groups')

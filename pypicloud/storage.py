@@ -83,7 +83,7 @@ class S3Storage(IStorage):
         cls.expire_after = int(settings.get('aws.expire_after', 60 * 60 * 24))
         cls.buffer_time = int(settings.get('aws.buffer_time', 600))
         cls.bucket_prefix = settings.get('aws.prefix', '')
-        cls.prepend_hash = asbool(settings.get('pypi.prepend_hash', True))
+        cls.prepend_hash = asbool(settings.get('aws.prepend_hash', True))
 
         s3conn = boto.connect_s3(
             aws_access_key_id=settings.get('aws.access_key'),

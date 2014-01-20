@@ -72,14 +72,13 @@ TODO
 ----
 * Storage backend for flat-files
 * Update getting started & README for pip install
-* Release to pypi
-
-* Support CloudFront
-* Access backend that stores data in DynamoDB
-* Auto-archive to glacier after X days or X versions
-* Directives for cloning parts of pypi (from requirements file or package deps, how to handle permissions?)
-* Hooks for using celery to make a write-through cache
-* Optional captcha on user registration
+* *Release to pypi*
 * Tool for migrating packages between storage backends
 * Tool for migrating user/group/package data between access control backends
-    * Should move password validation into IAccessBackend
+* Auto-backup mutable access control backends to S3
+* Access backend that stores data in DynamoDB
+* Support CloudFront
+* Auto-archive to glacier after X days or X versions
+* Hooks for using celery to make a write-through cache
+* Directives for cloning parts of pypi (from requirements file or package deps, how to handle permissions?)
+* Optional captcha on user registration

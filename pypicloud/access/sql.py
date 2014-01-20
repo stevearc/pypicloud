@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker, relationship, backref
 from zope.sqlalchemy import ZopeTransactionExtension
 # pylint: enable=F0401,E0611
 
-from . import IMutableAccessBackend, pwd_context
+from . import IMutableAccessBackend
 
 
 # pylint: disable=C0103
@@ -38,7 +38,7 @@ class User(Base):
     """ User record """
     __tablename__ = 'pypicloud_users'
     username = Column(Text(), primary_key=True)
-    _password = Column('password', Text(), nullable=False)
+    password = Column('password', Text(), nullable=False)
     admin = Column(Boolean(), nullable=False)
     pending = Column(Boolean(), nullable=False)
     groups = relationship('Group', secondary=association_table, cascade='all',
@@ -52,21 +52,6 @@ class User(Base):
         self.permissions = []
         self.admin = False
         self.pending = pending
-
-    @property
-    def password(self):
-        """ Getter for password """
-        return self._password
-
-    @password.setter
-    def password(self, password):
-        """ Setter for password """
-        self._password = pwd_context.encrypt(password)
-
-    def verify(self, password):
-        """ Verify a password against the stored password hash """
-        return (not self.pending and
-                pwd_context.verify(password, self._password))
 
 
 class Group(Base):
@@ -170,9 +155,10 @@ class SQLAccessBackend(IMutableAccessBackend):
             k = KeyVal('allow_register', 'false')
             self.db.add(k)
 
-    def verify_user(self, username, password):
+    def _get_password_hash(self, username):
         user = self.db.query(User).filter_by(username=username).first()
-        return user and user.verify(password)
+        if user and not user.pending:
+            return user.password
 
     def groups(self, username=None):
         if username is None:
@@ -277,10 +263,10 @@ class SQLAccessBackend(IMutableAccessBackend):
         if user is not None:
             user.pending = False
 
-    def edit_user_password(self, username, password):
+    def _set_password_hash(self, username, password_hash):
         user = self.db.query(User).filter_by(username=username).first()
         if user is not None:
-            user.password = password
+            user.password = password_hash
 
     def delete_user(self, username):
         self.db.query(User).filter_by(username=username).delete()

@@ -19,6 +19,11 @@ except ImportError:
     import unittest
 
 
+def make_user(name, password, pending=True):
+    """ Convenience method for creating a User """
+    return User(name, pwd_context.encrypt(password), pending)
+
+
 class BaseACLTest(unittest.TestCase):
 
     """ Base test for anything checking ACLs """
@@ -595,8 +600,9 @@ class TestRemoteBackend(unittest.TestCase):
         """ Fetch all packages a group has permissions on """
         groups = self.backend.group_package_permissions('g1')
         params = {'group': 'g1'}
-        self.requests.get.assert_called_with('server/group_package_permissions',
-                                             params=params, auth=self.auth)
+        self.requests.get.assert_called_with(
+            'server/group_package_permissions',
+            params=params, auth=self.auth)
         self.assertEqual(groups, self.requests.get().json())
 
 
@@ -630,7 +636,7 @@ class TestSQLBackend(unittest.TestCase):
 
     def test_verify(self):
         """ Verify login credentials against database """
-        user = User('foo', 'bar', False)
+        user = make_user('foo', 'bar', False)
         self.db.add(user)
         transaction.commit()
         valid = self.access.verify_user('foo', 'bar')
@@ -641,7 +647,7 @@ class TestSQLBackend(unittest.TestCase):
 
     def test_verify_pending(self):
         """ Pending users fail to verify """
-        user = User('foo', 'bar')
+        user = make_user('foo', 'bar')
         self.db.add(user)
         transaction.commit()
         valid = self.access.verify_user('foo', 'bar')
@@ -649,7 +655,7 @@ class TestSQLBackend(unittest.TestCase):
 
     def test_admin(self):
         """ Retrieve admin status from database """
-        user = User('foo', 'bar', False)
+        user = make_user('foo', 'bar', False)
         user.admin = True
         self.db.add(user)
         transaction.commit()
@@ -658,7 +664,7 @@ class TestSQLBackend(unittest.TestCase):
 
     def test_admin_default_false(self):
         """ The default admin status is False """
-        user = User('foo', 'bar', False)
+        user = make_user('foo', 'bar', False)
         self.db.add(user)
         transaction.commit()
         is_admin = self.access.is_admin('foo')
@@ -666,7 +672,7 @@ class TestSQLBackend(unittest.TestCase):
 
     def test_user_groups(self):
         """ Retrieve a user's groups from database """
-        user = User('foo', 'bar', False)
+        user = make_user('foo', 'bar', False)
         g1 = Group('brotatos')
         g2 = Group('sharkfest')
         user.groups.update([g1, g2])
@@ -677,7 +683,7 @@ class TestSQLBackend(unittest.TestCase):
 
     def test_groups(self):
         """ Retrieve all groups from database """
-        user = User('foo', 'bar', False)
+        user = make_user('foo', 'bar', False)
         g1 = Group('brotatos')
         g2 = Group('sharkfest')
         user.groups.add(g1)
@@ -689,9 +695,9 @@ class TestSQLBackend(unittest.TestCase):
 
     def test_group_members(self):
         """ Fetch all members of a group """
-        u1 = User('u1', 'bar', False)
-        u2 = User('u2', 'bar', False)
-        u3 = User('u3', 'bar', False)
+        u1 = make_user('u1', 'bar', False)
+        u2 = make_user('u2', 'bar', False)
+        u3 = make_user('u3', 'bar', False)
         g1 = Group('g1')
         g1.users.update([u1, u2])
         self.db.add_all([u1, u2, u3, g1])
@@ -701,8 +707,8 @@ class TestSQLBackend(unittest.TestCase):
 
     def test_all_user_permissions(self):
         """ Retrieve all user permissions on package from database """
-        user = User('foo', 'bar', False)
-        user2 = User('foo2', 'bar', False)
+        user = make_user('foo', 'bar', False)
+        user2 = make_user('foo2', 'bar', False)
         p1 = UserPermission('pkg1', 'foo', True, False)
         p2 = UserPermission('pkg1', 'foo2', True, True)
         self.db.add_all([user, user2, p1, p2])
@@ -715,8 +721,8 @@ class TestSQLBackend(unittest.TestCase):
 
     def test_user_permissions(self):
         """ Retrieve a user's permissions on package from database """
-        user = User('foo', 'bar', False)
-        user2 = User('foo2', 'bar', False)
+        user = make_user('foo', 'bar', False)
+        user2 = make_user('foo2', 'bar', False)
         p1 = UserPermission('pkg1', 'foo', True, False)
         p2 = UserPermission('pkg1', 'foo2', True, True)
         self.db.add_all([user, user2, p1, p2])
@@ -751,7 +757,7 @@ class TestSQLBackend(unittest.TestCase):
 
     def test_user_package_perms(self):
         """ Fetch all packages a user has permissions on """
-        user = User('foo', 'bar', False)
+        user = make_user('foo', 'bar', False)
         p1 = UserPermission('pkg1', 'foo', True, False)
         p2 = UserPermission('pkg2', 'foo', True, True)
         self.db.add_all([user, p1, p2])
@@ -777,9 +783,9 @@ class TestSQLBackend(unittest.TestCase):
 
     def test_user_data(self):
         """ Retrieve all users """
-        u1 = User('foo', 'bar', False)
+        u1 = make_user('foo', 'bar', False)
         u1.admin = True
-        u2 = User('bar', 'bar', False)
+        u2 = make_user('bar', 'bar', False)
         g1 = Group('foobars')
         u2.groups.add(g1)
         self.db.add_all([u1, u2, g1])
@@ -792,7 +798,7 @@ class TestSQLBackend(unittest.TestCase):
 
     def test_single_user_data(self):
         """ Retrieve a single user's data """
-        u1 = User('foo', 'bar', False)
+        u1 = make_user('foo', 'bar', False)
         u1.admin = True
         g1 = Group('foobars')
         u1.groups.add(g1)
@@ -807,7 +813,7 @@ class TestSQLBackend(unittest.TestCase):
 
     def test_no_need_admin(self):
         """ If admin exists, don't need an admin """
-        user = User('foo', 'bar', False)
+        user = make_user('foo', 'bar', False)
         user.admin = True
         self.db.add(user)
         transaction.commit()
@@ -815,7 +821,7 @@ class TestSQLBackend(unittest.TestCase):
 
     def test_need_admin(self):
         """ If admin doesn't exist, need an admin """
-        user = User('foo', 'bar', False)
+        user = make_user('foo', 'bar', False)
         self.db.add(user)
         transaction.commit()
         self.assertTrue(self.access.need_admin())
@@ -831,7 +837,7 @@ class TestSQLBackend(unittest.TestCase):
 
     def test_pending(self):
         """ Registering a user puts them in pending list """
-        user = User('foo', 'bar')
+        user = make_user('foo', 'bar')
         self.db.add(user)
         transaction.commit()
         users = self.access.pending_users()
@@ -839,7 +845,7 @@ class TestSQLBackend(unittest.TestCase):
 
     def test_pending_not_in_users(self):
         """ Pending users are not listed in all_users """
-        user = User('foo', 'bar')
+        user = make_user('foo', 'bar')
         self.db.add(user)
         transaction.commit()
         users = self.access.user_data()
@@ -847,7 +853,7 @@ class TestSQLBackend(unittest.TestCase):
 
     def test_approve(self):
         """ Approving user marks them as not pending """
-        user = User('foo', 'bar')
+        user = make_user('foo', 'bar')
         self.db.add(user)
         transaction.commit()
         self.access.approve_user('foo')
@@ -857,17 +863,17 @@ class TestSQLBackend(unittest.TestCase):
 
     def test_edit_password(self):
         """ Users can edit their passwords """
-        user = User('foo', 'bar', False)
+        user = make_user('foo', 'bar', False)
         self.db.add(user)
         transaction.commit()
         self.access.edit_user_password('foo', 'baz')
         transaction.commit()
         user = self.db.query(User).first()
-        self.assertTrue(user.verify('baz'))
+        self.assertTrue(self.access.verify_user('foo', 'baz'))
 
     def test_delete_user(self):
         """ Can delete users """
-        user = User('foo', 'bar', False)
+        user = make_user('foo', 'bar', False)
         group = Group('foobar')
         user.groups.add(group)
         self.db.add_all([user, group])
@@ -881,7 +887,7 @@ class TestSQLBackend(unittest.TestCase):
 
     def test_make_admin(self):
         """ Can make a user an admin """
-        user = User('foo', 'bar', False)
+        user = make_user('foo', 'bar', False)
         self.db.add(user)
         transaction.commit()
         self.access.set_user_admin('foo', True)
@@ -891,7 +897,7 @@ class TestSQLBackend(unittest.TestCase):
 
     def test_remove_admin(self):
         """ Can demote an admin to normal user """
-        user = User('foo', 'bar', False)
+        user = make_user('foo', 'bar', False)
         user.admin = True
         self.db.add(user)
         transaction.commit()
@@ -902,7 +908,7 @@ class TestSQLBackend(unittest.TestCase):
 
     def test_add_user_to_group(self):
         """ Can add a user to a group """
-        user = User('foo', 'bar', False)
+        user = make_user('foo', 'bar', False)
         group = Group('g1')
         self.db.add_all([user, group])
         transaction.commit()
@@ -913,7 +919,7 @@ class TestSQLBackend(unittest.TestCase):
 
     def test_remove_user_from_group(self):
         """ Can remove a user from a group """
-        user = User('foo', 'bar', False)
+        user = make_user('foo', 'bar', False)
         group = Group('g1')
         user.groups.add(group)
         self.db.add_all([user, group])
@@ -933,7 +939,7 @@ class TestSQLBackend(unittest.TestCase):
 
     def test_delete_group(self):
         """ Can delete groups """
-        user = User('foo', 'bar')
+        user = make_user('foo', 'bar')
         group = Group('foobar')
         user.groups.add(group)
         self.db.add_all([user, group])
@@ -947,7 +953,7 @@ class TestSQLBackend(unittest.TestCase):
 
     def test_grant_user_permission(self):
         """ Can give users permissions on a package """
-        user = User('foo', 'bar', False)
+        user = make_user('foo', 'bar', False)
         self.db.add(user)
         transaction.commit()
         self.access.edit_user_permission('pkg1', 'foo', 'read', True)
@@ -961,7 +967,7 @@ class TestSQLBackend(unittest.TestCase):
 
     def test_revoke_user_permission(self):
         """ Can revoke user permissions on a package """
-        user = User('foo', 'bar', False)
+        user = make_user('foo', 'bar', False)
         perm = UserPermission('pkg1', 'foo', read=True)
         self.db.add_all([user, perm])
         transaction.commit()
