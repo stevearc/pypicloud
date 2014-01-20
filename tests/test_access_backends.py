@@ -1,8 +1,10 @@
 """ Tests for access backends """
 import transaction
 from mock import MagicMock, patch
-from pypicloud.access import (IAccessBackend, ConfigAccessBackend,
-                              RemoteAccessBackend)
+import pypicloud
+from pypicloud.access import (IAccessBackend, IMutableAccessBackend,
+                              ConfigAccessBackend, RemoteAccessBackend,
+                              includeme, pwd_context)
 from pypicloud.access.sql import (SQLAccessBackend, User, UserPermission,
                                   association_table, GroupPermission, Group)
 from pypicloud.route import Root
@@ -101,6 +103,149 @@ class TestBaseBackend(BaseACLTest):
         self.assert_allowed(acl, 'read', ['group:brotatos'])
         self.assert_allowed(acl, 'write', ['group:brotatos'])
 
+    def test_abstract_methods(self):
+        """ Abstract methods raise NotImplementedError """
+        access = IMutableAccessBackend(None)
+        with self.assertRaises(NotImplementedError):
+            access.verify_user('a', 'b')
+        with self.assertRaises(NotImplementedError):
+            access.groups()
+        with self.assertRaises(NotImplementedError):
+            access.group_members('a')
+        with self.assertRaises(NotImplementedError):
+            access.is_admin('a')
+        with self.assertRaises(NotImplementedError):
+            access.group_permissions('a')
+        with self.assertRaises(NotImplementedError):
+            access.user_permissions('a')
+        with self.assertRaises(NotImplementedError):
+            access.user_package_permissions('a')
+        with self.assertRaises(NotImplementedError):
+            access.group_package_permissions('a')
+        with self.assertRaises(NotImplementedError):
+            access.user_data()
+        with self.assertRaises(NotImplementedError):
+            access.allow_register()
+        with self.assertRaises(NotImplementedError):
+            access.set_allow_register(True)
+        with self.assertRaises(NotImplementedError):
+            access.register('a', 'b')
+        with self.assertRaises(NotImplementedError):
+            access.pending_users()
+        with self.assertRaises(NotImplementedError):
+            access.approve_user('a')
+        with self.assertRaises(NotImplementedError):
+            access.edit_user_password('a', 'b')
+        with self.assertRaises(NotImplementedError):
+            access.delete_user('a')
+        with self.assertRaises(NotImplementedError):
+            access.set_user_admin('a', True)
+        with self.assertRaises(NotImplementedError):
+            access.edit_user_group('a', 'a', 'add')
+        with self.assertRaises(NotImplementedError):
+            access.create_group('a')
+        with self.assertRaises(NotImplementedError):
+            access.delete_group('a')
+        with self.assertRaises(NotImplementedError):
+            access.edit_user_permission('a', 'b', 'c', True)
+        with self.assertRaises(NotImplementedError):
+            access.edit_group_permission('a', 'b', 'c', True)
+
+    def test_need_admin(self):
+        """ need_admin is True if no admins """
+        access = IMutableAccessBackend(None)
+        with patch.object(access, 'user_data') as user_data:
+            user_data.return_value = [{'admin': False}]
+            self.assertTrue(access.need_admin())
+
+    def test_no_need_admin(self):
+        """ need_admin is False if 1+ admins """
+        access = IMutableAccessBackend(None)
+        with patch.object(access, 'user_data') as user_data:
+            user_data.return_value = [{'admin': False}, {'admin': True}]
+            self.assertFalse(access.need_admin())
+
+    def test_load_remote_backend(self):
+        """ keyword 'remote' loads RemoteBackend """
+        config = MagicMock()
+        config.get_settings.return_value = {
+            'pypi.access_backend': 'remote',
+            'auth.backend_server': 'http://example.com',
+        }
+        includeme(config)
+        config.add_request_method.assert_called_with(RemoteAccessBackend,
+                                                     name='access', reify=True)
+
+    def test_load_sql_backend(self):
+        """ keyword 'sql' loads SQLBackend """
+        config = MagicMock()
+        config.get_settings.return_value = {
+            'auth.db.url': 'sqlite:///:memory:',
+            'pypi.access_backend': 'sql',
+        }
+        includeme(config)
+        config.add_request_method.assert_called_with(SQLAccessBackend,
+                                                     name='access', reify=True)
+
+    def test_load_arbitrary_backend(self):
+        """ Can pass dotted path to load arbirary backend """
+        config = MagicMock()
+        config.get_settings.return_value = {
+            'auth.db.url': 'sqlite:///:memory:',
+            'pypi.access_backend': 'pypicloud.access.sql.SQLAccessBackend',
+        }
+        includeme(config)
+        config.add_request_method.assert_called_with(SQLAccessBackend,
+                                                     name='access', reify=True)
+
+    def test_admin_permissions(self):
+        """ Admins always have read/write permissions """
+        access = IAccessBackend(None)
+        perms = access.principal_permissions('p1', 'admin')
+        self.assertEqual(perms, ['read', 'write'])
+
+    def test_everyone_permissions(self):
+        """ Everyone gets converted to 'everyone' """
+        access = IAccessBackend(None)
+        with patch.object(access, 'group_permissions') as grp:
+            perms = access.principal_permissions('p1', Everyone)
+            grp.assert_called_with('p1', 'everyone')
+            self.assertEqual(perms, grp())
+
+    def test_authenticated_permissions(self):
+        """ Authenticated gets converted to 'authenticated' """
+        access = IAccessBackend(None)
+        with patch.object(access, 'group_permissions') as grp:
+            perms = access.principal_permissions('p1', Authenticated)
+            grp.assert_called_with('p1', 'authenticated')
+            self.assertEqual(perms, grp())
+
+    def test_group_permissions(self):
+        """ 'group:name' specifier gets turned into 'group' """
+        access = IAccessBackend(None)
+        with patch.object(access, 'group_permissions') as grp:
+            perms = access.principal_permissions('p1', 'group:brotatos')
+            grp.assert_called_with('p1', 'brotatos')
+            self.assertEqual(perms, grp())
+
+    def test_admin_has_permission(self):
+        """ Admins always have permission """
+        access = IAccessBackend(None)
+        access.is_admin = lambda x: True
+        with patch.object(pypicloud.access, 'unauthenticated_userid') as userid:
+            userid.return_value = 'abc'
+            self.assertTrue(access.has_permission('p1', 'write'))
+
+    def test_admin_principal(self):
+        """ Admin user has the 'admin' principal """
+        access = IAccessBackend(None)
+        access.is_admin = lambda x: True
+        with patch.object(access, 'groups') as groups:
+            groups.return_value = ['brotatos']
+            principals = access.user_principals('abc')
+        self.assertItemsEqual(principals, [Everyone, Authenticated, 'admin',
+                                           'group:brotatos', 'user:abc'])
+
 
 class TestConfigBackend(BaseACLTest):
 
@@ -124,6 +269,24 @@ class TestConfigBackend(BaseACLTest):
         self.assertItemsEqual(self.backend.groups('u2'), ['g1', 'g2'])
         self.assertItemsEqual(self.backend.groups('u3'), ['g1', 'g2'])
         self.assertItemsEqual(self.backend.groups('u4'), ['g2'])
+
+    def test_verify(self):
+        """ Users can log in with correct password """
+        settings = {
+            'user.u1': pwd_context.encrypt('foobar'),
+        }
+        self.backend.configure(settings)
+        valid = self.backend.verify_user('u1', 'foobar')
+        self.assertTrue(valid)
+
+    def test_no_verify(self):
+        """ Verification fails with wrong password """
+        settings = {
+            'user.u1': pwd_context.encrypt('foobar'),
+        }
+        self.backend.configure(settings)
+        valid = self.backend.verify_user('u1', 'foobarz')
+        self.assertFalse(valid)
 
     def test_group_members(self):
         """ Fetch all members of a group """
@@ -193,6 +356,7 @@ class TestConfigBackend(BaseACLTest):
         settings = {
             'package.pkg1.user.u1': 'r',
             'package.pkg2.user.u1': 'rw',
+            'unrelated.field': '',
         }
         self.backend.configure(settings)
         packages = self.backend.user_package_permissions('u1')
@@ -206,6 +370,7 @@ class TestConfigBackend(BaseACLTest):
         settings = {
             'package.pkg1.group.g1': 'r',
             'package.pkg2.group.g1': 'rw',
+            'unrelated.field': '',
         }
         self.backend.configure(settings)
         packages = self.backend.group_package_permissions('g1')
@@ -257,6 +422,17 @@ class TestConfigBackend(BaseACLTest):
         self.backend.configure(settings)
         can_read = self.backend.has_permission('floobydooby', 'read')
         self.assertTrue(can_read)
+
+    def test_zero_security_group(self):
+        """ In zero_security_mode 'everyone' group always can 'read' """
+        settings = {
+            'auth.zero_security_mode': True
+        }
+        self.backend.configure(settings)
+        perms = self.backend.group_permissions('floobydooby')
+        self.assertEqual(perms, {
+            'everyone': ['read'],
+        })
 
     def test_zero_security_write(self):
         """ zero_security_mode has no impact on 'w' permission """

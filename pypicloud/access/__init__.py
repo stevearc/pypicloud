@@ -1,6 +1,6 @@
 """ Classes that provide user and package permissions """
 from collections import defaultdict
-from passlib.hash import sha256_crypt  # pylint: disable=E0611
+from passlib.apps import custom_app_context as pwd_context
 from pyramid.path import DottedNameResolver
 from pyramid.security import (Authenticated, Everyone, unauthenticated_userid,
                               effective_principals, Allow, Deny,
@@ -99,8 +99,7 @@ class IAccessBackend(object):
 
         """
         principals = ['user:' + username, Everyone, Authenticated]
-        current_userid = unauthenticated_userid(self.request)
-        if current_userid is not None and self.is_admin(current_userid):
+        if self.is_admin(username):
             principals.append('admin')
         for group in self.groups(username):
             principals.append('group:' + group)
@@ -311,6 +310,7 @@ class IAccessBackend(object):
 
 
 class IMutableAccessBackend(IAccessBackend):
+
     """ Interface for access backends that can change user/group permissions """
     mutable = True
 
@@ -512,7 +512,7 @@ class ConfigAccessBackend(IAccessBackend):
     def verify_user(self, username, password):
         key = "user.%s" % username
         stored_pw = self._settings.get(key)
-        if stored_pw and sha256_crypt.verify(password, stored_pw):
+        if stored_pw and pwd_context.verify(password, stored_pw):
             return True
         else:
             return False

@@ -1,14 +1,13 @@
 """ Access backend for storing permissions in using SQLAlchemy """
-from passlib.hash import sha512_crypt  # pylint: disable=E0611
 from sqlalchemy import (engine_from_config, Column, Text, Boolean, Table,
-                        Integer, ForeignKey)
+                        ForeignKey)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship, backref
 # pylint: disable=F0401,E0611
 from zope.sqlalchemy import ZopeTransactionExtension
 # pylint: enable=F0401,E0611
 
-from . import IMutableAccessBackend
+from . import IMutableAccessBackend, pwd_context
 
 
 # pylint: disable=C0103
@@ -62,12 +61,12 @@ class User(Base):
     @password.setter
     def password(self, password):
         """ Setter for password """
-        self._password = sha512_crypt.encrypt(password)
+        self._password = pwd_context.encrypt(password)
 
     def verify(self, password):
         """ Verify a password against the stored password hash """
         return (not self.pending and
-                sha512_crypt.verify(password, self._password))
+                pwd_context.verify(password, self._password))
 
 
 class Group(Base):

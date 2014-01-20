@@ -6,7 +6,7 @@ import argparse
 import getpass
 from base64 import b64encode
 from jinja2 import Template
-from passlib.hash import sha256_crypt  # pylint: disable=E0611
+from pypicloud.access import pwd_context
 
 
 def gen_password():
@@ -20,7 +20,7 @@ def _gen_password():
         password = getpass.getpass()
         verify = getpass.getpass()
         if password == verify:
-            return sha256_crypt.encrypt(password)
+            return pwd_context.encrypt(password)
         else:
             print "Passwords do not match!"
 
