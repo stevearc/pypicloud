@@ -67,7 +67,6 @@ Indices and tables
 
 TODO
 ----
-* Auto-rebuild cache from S3 if empty
 * More test coverage
 * Document HTTP API
 * Release to pypi

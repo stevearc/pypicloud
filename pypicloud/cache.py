@@ -2,6 +2,8 @@
 import os
 from datetime import datetime
 
+import logging
+import transaction
 from pkg_resources import parse_version
 from pyramid.path import DottedNameResolver
 from pyramid.settings import asbool
@@ -14,6 +16,9 @@ from zope.sqlalchemy import ZopeTransactionExtension
 from .models import create_schema, Package, SQLPackage, normalize_name
 
 
+LOG = logging.getLogger(__name__)
+
+
 class ICache(object):
 
     """ Interface for a caching database that stores package metadata """
@@ -23,9 +28,24 @@ class ICache(object):
     package_class = Package
     storage_impl = None
 
-    def __init__(self, request):
+    def __init__(self, request=None):
         self.request = request
         self.storage = self.storage_impl(request)
+
+    @classmethod
+    def reload_if_needed(cls):
+        """
+        Reload packages from storage backend if cache is empty
+
+        This will be called when the server first starts
+
+        """
+        cache = cls()
+        if len(cache.distinct()) == 0:
+            LOG.info("Cache is empty. Rebuilding from S3...")
+            cache.reload_from_storage()
+            LOG.info("Cache repopulated")
+        return cache
 
     @classmethod
     def configure(cls, config):
@@ -42,8 +62,6 @@ class ICache(object):
 
     def reload_from_storage(self):
         """ Make sure local database is populated with packages """
-        # TODO: (stevearc 2014-01-02) Technically could cause thundering herd
-        # problem. Should fix that at some point.
         self.clear_all()
         packages = self.storage.list(self.package_class)
         for pkg in packages:
@@ -161,14 +179,21 @@ class SQLCache(ICache):
     package_class = SQLPackage
     dbmaker = None
 
-    def __init__(self, request):
+    def __init__(self, request=None):
         super(SQLCache, self).__init__(request)
         self.db = self.dbmaker()
 
-        def cleanup(_):
-            """ Close the session after the request """
-            self.db.close()
-        request.add_finished_callback(cleanup)
+        if request is not None:
+            def cleanup(_):
+                """ Close the session after the request """
+                self.db.close()
+            request.add_finished_callback(cleanup)
+
+    @classmethod
+    def reload_if_needed(cls):
+        cache = super(SQLCache, cls).reload_if_needed()
+        transaction.commit()
+        cache.db.close()
 
     @classmethod
     def configure(cls, config):

@@ -76,6 +76,8 @@ def includeme(config):
     cache_impl = resolver.resolve(dotted_cache)
 
     cache_impl.configure(config)
+    cache_impl.reload_if_needed()
+
     config.add_request_method(cache_impl, name='db', reify=True)
 
     # Special request methods
