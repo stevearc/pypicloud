@@ -183,21 +183,26 @@ pypicloud.controller('AdminCtrl', ['$rootScope', '$scope', '$http', '$location',
     };
   });
 
-  $http.get($scope.API + 'package/').success(function(data, status, headers, config) {
-    $scope.packages = data.packages;
-    $scope.packageTableArgs = {
-      title: '<i class="fa fa-gift" title="Packages"></i> Packages',
-      items: $scope.packages,
-      searchable: true,
-      columns: [
-        "{{ item }}"
-      ],
-      disableEdits: !ACCESS_MUTABLE,
-      rowClick: function(pkg) {
-        $location.path('/admin/package/' + pkg);
-      }
-    };
-  });
+  var fetchPackages = function() {
+    $scope.packages = null;
+    $scope.packageTableArgs = null;
+    $http.get($scope.API + 'package/').success(function(data, status, headers, config) {
+      $scope.packages = data.packages;
+      $scope.packageTableArgs = {
+        title: '<i class="fa fa-gift" title="Packages"></i> Packages',
+        items: $scope.packages,
+        searchable: true,
+        columns: [
+          "{{ item }}"
+        ],
+        disableEdits: !ACCESS_MUTABLE,
+        rowClick: function(pkg) {
+          $location.path('/admin/package/' + pkg);
+        }
+      };
+    });
+  };
+  fetchPackages();
 
   $scope.approveUser = function(username) {
     $http.post($scope.ADMIN + 'user/' + username + '/approve');
@@ -226,6 +231,7 @@ pypicloud.controller('AdminCtrl', ['$rootScope', '$scope', '$http', '$location',
     $scope.building = true;
     $http.get($scope.ADMIN + 'rebuild').success(function(data, status, headers, config) {
       $scope.building = false;
+      fetchPackages();
     }).error(function(data, status, headers, config) {
       $scope.building = false;
     });
