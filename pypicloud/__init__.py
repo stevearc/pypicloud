@@ -82,6 +82,8 @@ def includeme(config):
 
     # Special request methods
     config.add_request_method(_app_url, name='app_url')
+    config.add_request_method(lambda x: __version__, name='pypicloud_version',
+                              reify=True)
 
     cache_max_age = int(settings.get('pyramid.cache_max_age', 3600))
     config.add_static_view(name='static/%s' % __version__,

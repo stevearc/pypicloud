@@ -72,6 +72,7 @@ role="navigation">
     var NEED_ADMIN = {{ request.access.need_admin() | tojson | safe }};
     var ACCESS_MUTABLE = {{ request.access.mutable | tojson | safe }};
     var ALLOW_REGISTER = {{ request.access.allow_register() | tojson | safe }};
+    var VERSION = {{ request.pypicloud_version | tojson | safe }};
   </script>
   {% block scripts %}
   {% endblock %}
