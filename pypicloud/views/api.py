@@ -15,7 +15,7 @@ from pyramid.security import NO_PERMISSION_REQUIRED, remember
 def all_packages(request, verbose=False):
     """ List all packages """
     if verbose:
-        packages = request.db.most_recent()
+        packages = request.db.summary()
     else:
         packages = request.db.distinct()
     i = 0

@@ -52,8 +52,10 @@ class ICache(object):
         """ Configure the cache method with app settings """
         settings = config.get_settings()
         resolver = DottedNameResolver(__name__)
-        storage_impl = resolver.resolve(
-            settings.get('db', 'pypicloud.storage.S3Storage'))
+        storage = settings.get('pypi.storage', 's3')
+        if storage == 's3':
+            storage = 'pypicloud.storage.S3Storage'
+        storage_impl = resolver.resolve(storage)
         storage_impl.configure(config)
         cls.storage_impl = storage_impl
 
@@ -124,9 +126,9 @@ class ICache(object):
         """ Get all distinct package names """
         raise NotImplementedError
 
-    def most_recent(self):
+    def summary(self):
         """
-        Get all most recent packages unique by package name
+        Summarize package metadata
 
         Returns
         -------
@@ -219,7 +221,7 @@ class SQLCache(ICache):
             .order_by(SQLPackage.name).all()
         return [n[0] for n in names]
 
-    def most_recent(self):
+    def summary(self):
         packages = {}
         for package in self.db.query(SQLPackage):
             pkg = packages.get(package.name)
@@ -266,7 +268,7 @@ class RedisCache(ICache):
         settings = config.get_settings()
         try:
             from redis import StrictRedis
-        except ImportError:
+        except ImportError:  # pragma: no cover
             raise ImportError("You must 'pip install redis' before using "
                               "redis as the database")
         db_url = settings.get('db.url')

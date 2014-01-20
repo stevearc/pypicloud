@@ -1,6 +1,7 @@
 """ Tests for database cache implementations """
+import transaction
 from datetime import datetime
-from mock import MagicMock, patch
+from mock import MagicMock, patch, ANY
 from pypicloud.cache import ICache, SQLCache, RedisCache
 from pypicloud.models import Package, SQLPackage, create_schema
 from pypicloud.storage import IStorage
@@ -9,7 +10,7 @@ from redis import StrictRedis
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from . import DummyCache
+from . import DummyCache, DummyStorage
 
 
 try:
@@ -93,6 +94,73 @@ class TestBaseCache(unittest.TestCase):
         with self.assertRaises(ValueError):
             cache.upload(name, version, new_path, None)
 
+    def test_configure_storage(self):
+        """ Calling configure() sets up storage backend """
+        config = MagicMock()
+        config.get_settings.return_value = {
+            'pypi.storage': 'tests.DummyStorage'
+        }
+        ICache.configure(config)
+        self.assertEqual(ICache.storage_impl, DummyStorage)
+
+    def test_summary(self):
+        """ summary constructs per-package metadata summary """
+        cache = DummyCache()
+        cache.upload('pkg1', '0.3', 'pkg1.tar.gz', None)
+        cache.upload('pkg1', '1.1', 'pkg1.tar.gz', None)
+        p1 = cache.upload('pkg1', '1.1.1a2', 'pkg1a2.tar.gz', None)
+        p2 = cache.upload('pkg2', '0.1dev2', 'pkg2.tar.gz', None)
+        summaries = cache.summary()
+        self.assertItemsEqual(summaries, [
+            {
+                'name': 'pkg1',
+                'stable': '1.1',
+                'unstable': '1.1.1a2',
+                'last_modified': p1.last_modified,
+            },
+            {
+                'name': 'pkg2',
+                'stable': None,
+                'unstable': '0.1dev2',
+                'last_modified': p2.last_modified,
+            },
+        ])
+
+    def test_reload_if_needed(self):
+        """ Reload the cache if it's empty """
+        with patch.object(DummyCache, 'reload_from_storage') as reload_pkgs:
+            DummyCache.reload_if_needed()
+            self.assertTrue(reload_pkgs.called)
+
+    @patch.object(ICache, 'reload_from_storage')
+    @patch.object(ICache, 'distinct')
+    def test_no_reload_if_needed(self, distinct, reload_pkgs):
+        """ Don't reload the cache if it's not necessary """
+        distinct.return_value = ['hi']
+        ICache.reload_if_needed()
+        self.assertFalse(reload_pkgs.called)
+
+    def test_abstract_methods(self):
+        """ Abstract methods raise exception """
+        config = MagicMock()
+        config.get_settings.return_value = {
+            'pypi.storage': 'tests.DummyStorage'
+        }
+        ICache.configure(config)
+        cache = ICache()
+        with self.assertRaises(NotImplementedError):
+            cache.distinct()
+        with self.assertRaises(NotImplementedError):
+            cache.fetch('pkg', '1.1')
+        with self.assertRaises(NotImplementedError):
+            cache.all('pkg')
+        with self.assertRaises(NotImplementedError):
+            cache.clear(make_package())
+        with self.assertRaises(NotImplementedError):
+            cache.clear_all()
+        with self.assertRaises(NotImplementedError):
+            cache.save(make_package())
+
 
 class TestSQLCache(unittest.TestCase):
 
@@ -101,25 +169,26 @@ class TestSQLCache(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super(TestSQLCache, cls).setUpClass()
-        engine = create_engine('sqlite:///:memory:')
-        create_schema(engine)
-        cls.dbmaker = sessionmaker(bind=engine)
+        config = MagicMock()
+        config.get_settings.return_value = {
+            'pypi.storage': 'tests.DummyStorage',
+            'db.url': 'sqlite:///:memory:',
+        }
+        SQLCache.configure(config)
 
     def setUp(self):
         super(TestSQLCache, self).setUp()
-        self.sql = self.dbmaker()
-        dbmaker = patch.object(SQLCache, 'dbmaker').start()
-        storage_impl = patch.object(SQLCache, 'storage_impl').start()
-        self.storage = storage_impl.return_value = MagicMock(spec=IStorage)
-        dbmaker.return_value = self.sql
-        self.db = SQLCache(DummyRequest())
+        self.request = DummyRequest()
+        self.db = SQLCache(self.request)
+        self.sql = self.db.db
+        self.storage = self.db.storage = MagicMock(spec=IStorage)
 
     def tearDown(self):
         super(TestSQLCache, self).tearDown()
-        patch.stopall()
-        self.sql.rollback()
+        transaction.abort()
         self.sql.query(SQLPackage).delete()
-        self.sql.commit()
+        transaction.commit()
+        self.request._process_finished_callbacks()
 
     def test_upload(self):
         """ upload() saves package and uploads to storage """
@@ -146,7 +215,8 @@ class TestSQLCache(unittest.TestCase):
         """ delete() removes object from database and deletes from storage """
         pkg = make_package(factory=SQLPackage)
         self.sql.add(pkg)
-        self.sql.commit()
+        transaction.commit()
+        self.sql.add(pkg)
         self.db.delete(pkg)
         count = self.sql.query(SQLPackage).count()
         self.assertEqual(count, 0)
@@ -156,7 +226,8 @@ class TestSQLCache(unittest.TestCase):
         """ clear() removes object from database """
         pkg = make_package(factory=SQLPackage)
         self.sql.add(pkg)
-        self.sql.commit()
+        transaction.commit()
+        self.sql.add(pkg)
         self.db.delete(pkg)
         count = self.sql.query(SQLPackage).count()
         self.assertEqual(count, 0)
@@ -209,6 +280,39 @@ class TestSQLCache(unittest.TestCase):
         saved_pkgs = self.db.distinct()
         self.assertItemsEqual(saved_pkgs, set([p.name for p in pkgs]))
 
+    def test_summary(self):
+        """ summary constructs per-package metadata summary """
+        self.storage.upload.side_effect = lambda x, y, z, _: z
+        self.db.upload('pkg1', '0.3', 'pkg1.tar.gz', None)
+        self.db.upload('pkg1', '1.1', 'pkg1.tar.gz', None)
+        p1 = self.db.upload('pkg1', '1.1.1a2', 'pkg1a2.tar.gz', None)
+        p2 = self.db.upload('pkg2', '0.1dev2', 'pkg2.tar.gz', None)
+        summaries = self.db.summary()
+        self.assertItemsEqual(summaries, [
+            {
+                'name': 'pkg1',
+                'stable': '1.1',
+                'unstable': '1.1.1a2',
+                'last_modified': p1.last_modified,
+            },
+            {
+                'name': 'pkg2',
+                'stable': None,
+                'unstable': '0.1dev2',
+                'last_modified': p2.last_modified,
+            },
+        ])
+
+    def test_reload_if_needed(self):
+        """ Reload the cache if it's empty """
+        with patch.object(SQLCache, 'storage_impl') as storage_impl:
+            storage_impl().list.return_value = [
+                make_package(factory=SQLPackage)
+            ]
+            SQLCache.reload_if_needed()
+            count = self.sql.query(SQLPackage).count()
+            self.assertEqual(count, 1)
+
 
 class TestRedisCache(unittest.TestCase):
 
@@ -217,19 +321,22 @@ class TestRedisCache(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super(TestRedisCache, cls).setUpClass()
-        cls.redis = StrictRedis()
+        config = MagicMock()
+        config.get_settings.return_value = {
+            'pypi.storage': 'tests.DummyStorage',
+            'db.url': 'redis://localhost',
+        }
+        RedisCache.configure(config)
+        cls.redis = RedisCache.db
 
     def setUp(self):
         super(TestRedisCache, self).setUp()
-        storage_impl = patch.object(RedisCache, 'storage_impl').start()
-        self.storage = storage_impl.return_value = MagicMock(spec=IStorage)
         self.db = RedisCache(DummyRequest())
-        RedisCache.db = self.redis
+        self.storage = self.db.storage = MagicMock(spec=IStorage)
 
     def tearDown(self):
         super(TestRedisCache, self).tearDown()
         self.redis.flushdb()
-        patch.stopall()
 
     def assert_in_redis(self, pkg):
         """ Assert that a package exists in redis """
@@ -246,6 +353,21 @@ class TestRedisCache(unittest.TestCase):
             pkg_data['expire'] = pkg.expire.strftime('%s.%f')
 
         self.assertEqual(data, pkg_data)
+
+    def test_load(self):
+        """ Loading from redis deserializes all fields """
+        pkg = make_package()
+        pkg.url = 'my.url'
+        pkg.expire = datetime.utcnow()
+        self.db.save(pkg)
+
+        loaded = self.db.fetch(pkg.name, pkg.version)
+        self.assertEqual(loaded.name, pkg.name)
+        self.assertEqual(loaded.version, pkg.version)
+        self.assertEqual(loaded.path, pkg.path)
+        self.assertEqual(loaded.last_modified, pkg.last_modified)
+        self.assertEqual(loaded.url, pkg.url)
+        self.assertEqual(loaded.expire, pkg.expire)
 
     def test_delete(self):
         """ delete() removes object from database and deletes from storage """
@@ -265,6 +387,32 @@ class TestRedisCache(unittest.TestCase):
         key = self.db.redis_key(pkg)
         self.redis[key] = 'foobar'
         self.db.clear(pkg)
+        val = self.redis.get(key)
+        self.assertIsNone(val)
+        count = self.redis.scard(self.db.redis_set)
+        self.assertEqual(count, 0)
+
+    def test_clear_leave_distinct(self):
+        """ clear() doesn't remove package from list of distinct """
+        p1 = make_package()
+        p2 = make_package(version='1.2')
+        self.db.save(p1)
+        self.db.save(p2)
+        key = self.db.redis_key(p1)
+        self.db.clear(p1)
+        val = self.redis.get(key)
+        self.assertIsNone(val)
+        count = self.redis.scard(self.db.redis_set)
+        self.assertEqual(count, 1)
+
+    def test_clear_all(self):
+        """ clear_all() removes all packages from db """
+        p1 = make_package()
+        p2 = make_package(version='1.2')
+        self.db.save(p1)
+        self.db.save(p2)
+        key = self.db.redis_key(p1)
+        self.db.clear_all()
         val = self.redis.get(key)
         self.assertIsNone(val)
         count = self.redis.scard(self.db.redis_set)
