@@ -25,6 +25,7 @@ User Guide
     topics/access_control
     topics/cache
     topics/deploy
+    topics/api
     topics/developing
 
 Versions
@@ -40,6 +41,8 @@ master_    |build-master|_  |coverage-master|_
 .. _build-master: https://travis-ci.org/mathcamp/pypicloud
 .. |coverage-master| image:: https://coveralls.io/repos/mathcamp/pypicloud/badge.png?branch=master
 .. _coverage-master: https://coveralls.io/r/mathcamp/pypicloud?branch=master
+
+Code lives here: https://github.com/mathcamp/pypicloud
 
 API Reference
 -------------
@@ -67,8 +70,7 @@ Indices and tables
 
 TODO
 ----
-* More test coverage
-* Document HTTP API
+* Storage backend for flat-files
 * Update getting started & README for pip install
 * Release to pypi
 
@@ -78,3 +80,6 @@ TODO
 * Directives for cloning parts of pypi (from requirements file or package deps, how to handle permissions?)
 * Hooks for using celery to make a write-through cache
 * Optional captcha on user registration
+* Tool for migrating packages between storage backends
+* Tool for migrating user/group/package data between access control backends
+    * Should move password validation into IAccessBackend

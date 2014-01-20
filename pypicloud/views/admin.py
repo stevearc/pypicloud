@@ -78,6 +78,15 @@ class AdminEndpoints(object):
         """ Get the list of groups """
         return self.request.access.groups()
 
+    @view_config(name='group', subpath=('group/*'), request_method='PUT')
+    def create_group(self):
+        """ Create a group """
+        group = self.request.named_subpaths['group']
+        if group in ('everyone', 'authenticated'):
+            return HTTPBadRequest("'%s' is a reserved name" % group)
+        self.request.access.create_group(group)
+        return self.request.response
+
     @view_config(name='group', subpath=('group/*'), request_method='DELETE')
     def delete_group(self):
         """ Delete a group """
@@ -100,7 +109,7 @@ class AdminEndpoints(object):
             'packages': self.request.access.group_package_permissions(group),
         }
 
-    @view_config(name='package', subpath=('package/*'))
+    @view_config(name='package', subpath=('package/*'), request_method='GET')
     def get_package_permissions(self):
         """ Get the user and group permissions set on a package """
         package = self.request.named_subpaths['package']
@@ -112,15 +121,6 @@ class AdminEndpoints(object):
             'user': user_perms,
             'group': group_perms,
         }
-
-    @view_config(name='group', subpath=('group/*'), request_method='PUT')
-    def create_group(self):
-        """ Create a group """
-        group = self.request.named_subpaths['group']
-        if group in ('everyone', 'authenticated'):
-            return HTTPBadRequest("'%s' is a reserved name" % group)
-        self.request.access.create_group(group)
-        return self.request.response
 
     @view_config(name='package',
                  subpath=('package/*', 'type/user|group/r',

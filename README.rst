@@ -1,7 +1,7 @@
 PyPI Cloud
 ==========
 :Build: |build|_ |coverage|_
-:Documentation: http://pypicloud.readthedocs.org/en/latest/
+:Documentation: http://pypicloud.readthedocs.org/
 :Source: https://github.com/mathcamp/pypicloud
 
 .. |build| image:: https://travis-ci.org/mathcamp/pypicloud.png?branch=master

@@ -34,7 +34,7 @@ TEST_REQUIREMENTS = [
 ]
 
 if sys.version_info[:2] < (2, 7):
-    REQUIREMENTS.extend(['argparse'])
+    REQUIREMENTS.append('argparse')
     TEST_REQUIREMENTS.append('unittest2')
 
 if __name__ == "__main__":
@@ -60,7 +60,7 @@ if __name__ == "__main__":
         license='MIT',
         author='Steven Arcangeli',
         author_email='steven@highlig.ht',
-        url='http://github.com/mathcamp/pypicloud',
+        url='http://pypicloud.readthedocs.org/',
         keywords='pypi s3 cheeseshop package',
         zip_safe=False,
         include_package_data=True,

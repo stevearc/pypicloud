@@ -33,7 +33,7 @@ def all_packages(request, verbose=False):
              subpath=(), renderer='json', permission='read')
 @addslash
 def package_versions(context, request):
-    """ List all unique package names """
+    """ List all unique package versions """
     versions = request.db.all(context.name)
     return {
         'packages': versions,

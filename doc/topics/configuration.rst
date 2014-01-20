@@ -84,6 +84,8 @@ When running a production server, make sure this is always set to ``true``.
 PyPICloud
 ^^^^^^^^^
 
+.. _use_fallback:
+
 ``pypi.use_fallback``
 ~~~~~~~~~~~~~~~~~~~~~
 **Argument:** bool, optional
