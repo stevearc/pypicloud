@@ -6,6 +6,7 @@ import argparse
 import getpass
 from base64 import b64encode
 from jinja2 import Template
+from pkg_resources import resource_string
 from pypicloud.access import pwd_context
 
 
@@ -61,16 +62,18 @@ def promptyn(msg, default=None):
         else:
             no = "N"
         confirm = prompt("%s [%s/%s]" % (msg, yes, no), '').lower()
-        if confirm == "y" or confirm == "yes":
+        if confirm in ('y', 'yes'):
             return True
-        elif confirm == "n" or confirm == "no":
+        elif confirm in ('n', 'no'):
             return False
         elif len(confirm) == 0 and default is not None:
             return default
 
 
-def make_config():
+def make_config(argv=None):
     """ Create a server config file """
+    if argv is None:
+        argv = sys.argv[1:]
     parser = argparse.ArgumentParser(description=make_config.__doc__)
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-d', action='store_true',
@@ -83,7 +86,7 @@ def make_config():
     parser.add_argument('outfile', nargs='?', default="config.ini",
                         help="Name of output file (default %(default)s)")
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     if os.path.exists(args.outfile):
         msg = "'%s' already exists. Overwrite?" % args.outfile
@@ -115,8 +118,7 @@ def make_config():
             return False
         return True
 
-    data['s3_bucket'] = prompt("S3 bucket name?", 'pypi',
-                               validate=bucket_validate)
+    data['s3_bucket'] = prompt("S3 bucket name?", validate=bucket_validate)
 
     data['db_url'] = 'sqlite:///%(here)s/db.sqlite'
 
@@ -136,10 +138,8 @@ def make_config():
             data['venv'] = sys.prefix
         data['wsgi'] = 'uwsgi'
 
-    tmpl_file = os.path.join(os.path.dirname(__file__), 'templates',
-                             'config.ini.jinja2')
-    with open(tmpl_file, 'r') as ifile:
-        template = Template(ifile.read())
+    tmpl_str = resource_string('pypicloud', 'templates/config.ini.jinja2')
+    template = Template(tmpl_str)
 
     with open(args.outfile, 'w') as ofile:
         ofile.write(template.render(**data))
