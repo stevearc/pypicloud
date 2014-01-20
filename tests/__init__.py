@@ -35,8 +35,10 @@ class DummyStorage(IStorage):
             yield factory(*all_args)
 
     def get_url(self, package):
-        """ Create or return an HTTP url for a package file """
         return package.path
+
+    def download_response(self, package):
+        return None
 
     def upload(self, name, version, filename, data):
         self.packages[filename] = (name, version, filename)
