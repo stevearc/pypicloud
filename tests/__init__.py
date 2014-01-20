@@ -103,7 +103,7 @@ class MockServerTest(unittest.TestCase):
 
     def setUp(self):
         self.request = DummyRequest()
-        self.request.db = DummyCache(self.request)
+        self.db = self.request.db = DummyCache(self.request)
         self.request.path_url = '/path/'
         self.params = {}
         self.request.param = lambda x: self.params[x]

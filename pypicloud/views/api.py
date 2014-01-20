@@ -2,10 +2,10 @@
 from pypicloud.route import (APIResource, APIPackageResource,
                              APIPackagingResource, APIPackageVersionResource)
 from pyramid.httpexceptions import HTTPNotFound, HTTPForbidden, HTTPBadRequest
+from pyramid.security import NO_PERMISSION_REQUIRED, remember
 from pyramid.view import view_config
 
 from pyramid_duh import argify, addslash
-from pyramid.security import NO_PERMISSION_REQUIRED, remember
 
 
 @view_config(context=APIPackagingResource, request_method='GET',
@@ -49,7 +49,7 @@ def upload_package(context, request, content):
     try:
         return request.db.upload(context.name, context.version,
                                  content.filename, content.file)
-    except ValueError as e:
+    except ValueError as e:  # pragma: no cover
         return HTTPBadRequest(*e.args)
 
 
@@ -59,8 +59,8 @@ def delete_package(context, request):
     """ Delete a package """
     package = request.db.fetch(context.name, context.version)
     if package is None:
-        return HTTPNotFound("Could not find %s==%s" % (context.name,
-                                                       context.version))
+        return HTTPBadRequest("Could not find %s==%s" % (context.name,
+                                                         context.version))
     request.db.delete(package)
     return request.response
 
@@ -72,7 +72,7 @@ def delete_package(context, request):
 def register(request, password):
     """ Register a user """
     if not request.access.allow_register and not request.access.need_admin():
-        raise HTTPNotFound()
+        return HTTPNotFound()
     username = request.named_subpaths['username']
     request.access.register(username, password)
     if request.access.need_admin():

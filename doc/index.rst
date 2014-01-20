@@ -69,6 +69,7 @@ TODO
 ----
 * More test coverage
 * Document HTTP API
+* Update getting started & README for pip install
 * Release to pypi
 
 * Support CloudFront
