@@ -38,7 +38,7 @@ class AdminEndpoints(object):
         return self.request.access.user_data(username)
 
     @view_config(name='user', subpath=('username/*'), request_method='DELETE')
-    def delete_users(self):
+    def delete_user(self):
         """ Delete a user """
         username = self.request.named_subpaths['username']
         self.request.access.delete_user(username)
@@ -63,20 +63,14 @@ class AdminEndpoints(object):
 
     @view_config(name='user', subpath=('username/*', 'group', 'group/*'),
                  request_method='PUT')
-    def add_user_to_group(self):
+    @view_config(name='user', subpath=('username/*', 'group', 'group/*'),
+                 request_method='DELETE')
+    def mutate_group_member(self):
         """ Add a user to a group """
         username = self.request.named_subpaths['username']
         group = self.request.named_subpaths['group']
-        self.request.access.edit_user_group(username, group, True)
-        return self.request.response
-
-    @view_config(name='user', subpath=('username/*', 'group', 'group/*'),
-                 request_method='DELETE')
-    def remove_user_from_group(self):
-        """ Remove a user from a group """
-        username = self.request.named_subpaths['username']
-        group = self.request.named_subpaths['group']
-        self.request.access.edit_user_group(username, group, False)
+        self.request.access.edit_user_group(username, group,
+                                            self.request.method == 'PUT')
         return self.request.response
 
     @view_config(name='group', request_method='GET')
@@ -98,8 +92,8 @@ class AdminEndpoints(object):
         return self.request.access.user_package_permissions(username)
 
     @view_config(name='group', subpath=('group/*'))
-    def get_group_permissions(self):
-        """ Get the package permissions for a group """
+    def get_group(self):
+        """ Get the members and package permissions for a group """
         group = self.request.named_subpaths['group']
         return {
             'members': self.request.access.group_members(group),
@@ -124,7 +118,7 @@ class AdminEndpoints(object):
         """ Create a group """
         group = self.request.named_subpaths['group']
         if group in ('everyone', 'authenticated'):
-            raise HTTPBadRequest("'%s' is a reserved name" % group)
+            return HTTPBadRequest("'%s' is a reserved name" % group)
         self.request.access.create_group(group)
         return self.request.response
 
