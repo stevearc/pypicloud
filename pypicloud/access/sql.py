@@ -2,7 +2,8 @@
 from sqlalchemy import (engine_from_config, Column, Text, Boolean, Table,
                         ForeignKey)
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship, backref
+from sqlalchemy.orm import sessionmaker, backref
+from sqlalchemy import orm
 # pylint: disable=F0401,E0611
 from zope.sqlalchemy import ZopeTransactionExtension
 # pylint: enable=F0401,E0611
@@ -41,9 +42,9 @@ class User(Base):
     password = Column('password', Text(), nullable=False)
     admin = Column(Boolean(), nullable=False)
     pending = Column(Boolean(), nullable=False)
-    groups = relationship('Group', secondary=association_table, cascade='all',
-                          collection_class=set,
-                          backref=backref('users', collection_class=set))
+    groups = orm.relationship('Group', secondary=association_table,
+                              cascade='all', collection_class=set,
+                              backref=backref('users', collection_class=set))
 
     def __init__(self, username, password, pending=True):
         self.username = username
@@ -97,8 +98,9 @@ class UserPermission(Permission):
     """ Permissions for a user on a package """
     __tablename__ = 'pypicloud_user_permissions'
     username = Column(Text(), ForeignKey(User.username), primary_key=True)
-    user = relationship("User", backref=backref('permissions',
-                                                cascade='all, delete-orphan'))
+    user = orm.relationship("User",
+                            backref=backref('permissions',
+                                            cascade='all, delete-orphan'))
 
     def __init__(self, package, username, read=False, write=False):
         super(UserPermission, self).__init__(package, read, write)
@@ -110,8 +112,9 @@ class GroupPermission(Permission):
     """ Permissions for a group on a package """
     __tablename__ = 'pypicloud_group_permissions'
     groupname = Column(Text(), ForeignKey(Group.name), primary_key=True)
-    group = relationship("Group", backref=backref('permissions',
-                                                  cascade='all, delete-orphan'))
+    group = orm.relationship("Group",
+                             backref=backref('permissions',
+                                             cascade='all, delete-orphan'))
 
     def __init__(self, package, groupname, read=False, write=False):
         super(GroupPermission, self).__init__(package, read, write)

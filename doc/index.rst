@@ -35,6 +35,7 @@ Versions
 Version    Build            Coverage
 =========  ===============  ========
 master_    |build-master|_  |coverage-master|_
+0.1.0_     |build-0.1.0|_   |coverage-0.1.0|_
 =========  ===============  ========
 
 .. _master: ../latest/
@@ -42,6 +43,12 @@ master_    |build-master|_  |coverage-master|_
 .. _build-master: https://travis-ci.org/mathcamp/pypicloud
 .. |coverage-master| image:: https://coveralls.io/repos/mathcamp/pypicloud/badge.png?branch=master
 .. _coverage-master: https://coveralls.io/r/mathcamp/pypicloud?branch=master
+
+.. _0.1.0: ../0.1.0/
+.. |build-0.1.0| image:: https://travis-ci.org/mathcamp/pypicloud.png?branch=0.1.0
+.. _build-0.1.0: https://travis-ci.org/mathcamp/pypicloud
+.. |coverage-0.1.0| image:: https://coveralls.io/repos/mathcamp/pypicloud/badge.png?branch=0.1.0
+.. _coverage-0.1.0: https://coveralls.io/r/mathcamp/pypicloud?branch=0.1.0
 
 Code lives here: https://github.com/mathcamp/pypicloud
 
@@ -68,17 +75,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
-TODO
-----
-* Update getting started & README for pip install
-* *Release to pypi*
-* Tool for migrating packages between storage backends
-* Tool for migrating user/group/package data between access control backends
-* Auto-backup mutable access control backends to S3
-* Access backend that stores data in DynamoDB
-* Support CloudFront
-* Auto-archive to glacier after X days or X versions
-* Hooks for using celery to make a write-through cache
-* Directives for cloning parts of pypi (from requirements file or package deps, how to handle permissions?)
-* Optional captcha on user registration

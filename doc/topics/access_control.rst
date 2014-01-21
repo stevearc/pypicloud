@@ -3,10 +3,8 @@
 Access Control
 ==============
 PyPICloud has a complete access control system that allows you to fine-tune who
-has access to your packages. To avoid storing user credentials and access rules
-in a database, they are instead specified in a user-specified backend. The
-default is to store the information in the config file.
-
+has access to your packages. There are several choices for where to store your
+user credentials and access rules.
 
 Config File
 -----------

@@ -8,7 +8,7 @@ long-term.
 Files
 -----
 This will store your packages in a directory. It's much simpler and faster to
-set up if you don't need the redundancy and reliability of S3.
+set up if you don't need the reliability and scalability of S3.
 
 Set ``pypi.storage = file`` OR ``pypi.storage = pypicloud.storage.FileStorage``
 OR leave it out completely since this is the default.

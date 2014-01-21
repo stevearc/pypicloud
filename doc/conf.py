@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """ Sphinx config """
 import sys
+import importlib
+import inspect
 import os
 import sphinx_rtd_theme
 # pylint: disable=C0103
@@ -21,6 +23,7 @@ extensions = ['sphinx.ext.autodoc', 'numpydoc', 'sphinx.ext.intersphinx',
 master_doc = 'index'
 project = u'pypicloud'
 copyright = u'2013, Steven Arcangeli'
+github_user = u'mathcamp'
 
 version_data = git_version_data()
 version = version_data['tag']
@@ -41,4 +44,17 @@ def linkcode_resolve(domain, info):
     if domain != 'py' or not info['module']:
         return None
     filename = info['module'].replace('.', '/')
-    return "https://github.com/mathcamp/pypicloud/blob/%s/%s.py" % (version_data['ref'], filename)
+    mod = importlib.import_module(info['module'])
+    basename = os.path.splitext(mod.__file__)[0]
+    if basename.endswith('__init__'):
+        filename += '/__init__'
+    item = mod
+    lineno = ''
+    for piece in info['fullname'].split('.'):
+        item = getattr(item, piece)
+        try:
+            lineno = '#L%d' % inspect.getsourcelines(item)[1]
+        except (TypeError, IOError):
+            pass
+    return ("https://github.com/%s/%s/blob/%s/%s.py%s" %
+            (github_user, project, version_data['ref'], filename, lineno))
