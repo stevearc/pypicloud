@@ -50,7 +50,7 @@
               <a ng-href="{{ package.url }}">{{ package.version }}</a>
             </td>
             <td>
-              {{ package.last_modified | formatDate }}
+              {{ package.last_modified * 1000 | date:'yyyy-MM-dd HH:mm' }}
               <button ng-click="deletePackage(package)" ng-show="can_write && (showDelete || package.deleting)" class="btn btn-danger btn-xs pull-right" ng-disabled="package.deleting">
                 <i class="fa fa-refresh fa-spin" ng-show="package.deleting"></i>
                 Delete
