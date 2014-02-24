@@ -53,7 +53,7 @@
             <td>{{ package.name }}</td>
             <td>{{ package.stable }}</td>
             <td>{{ package.unstable }}</td>
-            <td>{{ package.last_modified | formatDate }}</td>
+            <td>{{ package.last_modified * 1000 | date:'yyyy-MM-dd HH:mm' }}</td>
           </tr>
         </tbody>
       </table>
