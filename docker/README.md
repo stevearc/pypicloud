@@ -10,11 +10,11 @@ docker run -p 8080:8080 -name pypi stevearc/pypicloud
 
 This will start pypicloud with default settings inside the docker container.
 You can visit the site by going to http://localhost:8080. The default settings
-are sufficient to play with, but they should not be used in production. You
-should use the `config.ini` file in this repository as the jumping-off point,
-but see the [list of configuration
+are sufficient to play with, but they should not be used in production. The
+image ships with a working config file, but you should replace it with your own
+before running in production.  See the [list of configuration
 options](http://pypicloud.readthedocs.org/en/latest/topics/configuration.html)
-for details about the different options.
+for details about the config file.
 
 You can access the `pypicloud-make-config` command by passing `make` in as an
 argument to the container:
