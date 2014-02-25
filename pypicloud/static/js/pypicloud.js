@@ -41,14 +41,6 @@ var pypicloud = angular.module('pypicloud', ['ui.bootstrap', 'ngRoute', 'angular
         return input.slice(start);
     }
   })
-  .filter('formatDate', function() {
-    return function(ts) {
-      date = new Date(1000 * ts);
-      return date.getFullYear() + '-' +
-        ('00' + (date.getMonth() + 1)).slice(-2) + '-' +
-        ('00' + (date.getDay() + 1)).slice(-2);
-    }
-  })
   .config(['$compileProvider', function($compileProvider) {
     $compileProvider.directive('compileUnsafe', ['$compile', function($compile) {
     return function(scope, element, attrs) {
