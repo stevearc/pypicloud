@@ -23,7 +23,11 @@ class RemoteAccessBackend(IAccessBackend):
 
     def _req(self, uri, params=None):
         """ Hit a server endpoint and return the json response """
-        import requests
+        try:
+            import requests
+        except ImportError:  # pragma: no cover
+            raise ImportError("You must 'pip install requests' before using "
+                              "the remote server access backend")
         response = requests.get(self.server + uri, params=params,
                                 auth=self.auth)
         response.raise_for_status()

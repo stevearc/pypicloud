@@ -1,25 +1,3 @@
-pypicloud.config(['$routeProvider', function($routeProvider) {
-  $routeProvider.when('/admin', {
-    templateUrl: STATIC + 'partial/admin/index.html',
-    controller: 'AdminCtrl'
-  });
-
-  $routeProvider.when('/admin/user/:username', {
-    templateUrl: STATIC + 'partial/admin/user.html',
-    controller: 'AdminUserCtrl'
-  });
-
-  $routeProvider.when('/admin/group/:name', {
-    templateUrl: STATIC + 'partial/admin/group.html',
-    controller: 'AdminGroupCtrl'
-  });
-
-  $routeProvider.when('/admin/package/:name', {
-    templateUrl: STATIC + 'partial/admin/package.html',
-    controller: 'AdminPackageCtrl'
-  });
-}]);
-
 function permissionConfig($scope, $http, $location, permissions, allItems, pageType, pageId, itemType) {
   if (itemType === 'package') {
     var itemName = 'package';
@@ -98,7 +76,30 @@ function permissionConfig($scope, $http, $location, permissions, allItems, pageT
   }
 };
 
-pypicloud.controller('AdminCtrl', ['$rootScope', '$scope', '$http', '$location',
+angular.module('pypicloud')
+.config(['$routeProvider', function($routeProvider) {
+  $routeProvider.when('/admin', {
+    templateUrl: STATIC + 'partial/admin/index.html',
+    controller: 'AdminCtrl'
+  });
+
+  $routeProvider.when('/admin/user/:username', {
+    templateUrl: STATIC + 'partial/admin/user.html',
+    controller: 'AdminUserCtrl'
+  });
+
+  $routeProvider.when('/admin/group/:name', {
+    templateUrl: STATIC + 'partial/admin/group.html',
+    controller: 'AdminGroupCtrl'
+  });
+
+  $routeProvider.when('/admin/package/:name', {
+    templateUrl: STATIC + 'partial/admin/package.html',
+    controller: 'AdminPackageCtrl'
+  });
+}])
+
+.controller('AdminCtrl', ['$rootScope', '$scope', '$http', '$location',
     function($rootScope, $scope, $http, $location) {
   $scope.users = null;
   $scope.pendingUsers = null;
@@ -236,9 +237,9 @@ pypicloud.controller('AdminCtrl', ['$rootScope', '$scope', '$http', '$location',
       $scope.building = false;
     });
   }
-}]);
+}])
 
-pypicloud.controller('AdminUserCtrl', ['$scope', '$http', '$routeParams', '$location',
+.controller('AdminUserCtrl', ['$scope', '$http', '$routeParams', '$location',
     function($scope, $http, $routeParams, $location) {
   $scope.username = $routeParams.username;
   $scope.user = null;
@@ -304,9 +305,9 @@ pypicloud.controller('AdminUserCtrl', ['$scope', '$http', '$routeParams', '$loca
                                 'package');
     });
   });
-}]);
+}])
 
-pypicloud.controller('AdminGroupCtrl', ['$scope', '$http', '$routeParams', '$location',
+.controller('AdminGroupCtrl', ['$scope', '$http', '$routeParams', '$location',
     function($scope, $http, $routeParams, $location) {
   $scope.name = $routeParams.name;
   $scope.members = null;
@@ -359,9 +360,9 @@ pypicloud.controller('AdminGroupCtrl', ['$scope', '$http', '$routeParams', '$loc
                                 $scope.packages, 'group', $scope.name, 'package');
     });
   });
-}]);
+}])
 
-pypicloud.controller('AdminPackageCtrl', ['$scope', '$http', '$routeParams', '$location',
+.controller('AdminPackageCtrl', ['$scope', '$http', '$routeParams', '$location',
     function($scope, $http, $routeParams, $location) {
   $scope.name = $routeParams.name;
   $scope.userPermissions = null;

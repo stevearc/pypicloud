@@ -1,18 +1,25 @@
 Configuration Options
 =====================
-This is an exhaustive list of every configuration parameter for pypicloud
+This is a list of all configuration parameters for pypicloud
 
 PyPICloud
 ^^^^^^^^^
 
 .. _use_fallback:
 
-``pypi.use_fallback``
+``pypi.fallback``
 ~~~~~~~~~~~~~~~~~~~~~
-**Argument:** bool, optional
+**Argument:** {'redirect', 'cache', 'none'}, optional
 
-If a requested package is not found in PyPICloud, forward the request to
-another index server (default True)
+This option defines what the behavior is when a requested package is not found
+in the database. (default 'redirect')
+
+``redirect`` - Return a 302 to the package at the ``fallback_url``.
+
+``cache`` - Download the package from ``fallback_url``, store it in the
+backend, and serve it.
+
+``none`` - Return a 404
 
 ``pypi.fallback_url``
 ~~~~~~~~~~~~~~~~~~~~~
@@ -21,11 +28,20 @@ another index server (default True)
 The index server to forward missing requests to (default
 http://pypi.python.org/simple)
 
-``pypi.realm``
-~~~~~~~~~~~~~~
-**Argument:** string, optional
+``pypi.default_read``
+~~~~~~~~~~~~~~~~~~~~~
+**Argument:** list, optional
 
-The HTTP Basic Auth realm (default 'pypi')
+List of groups that are allowed to read packages that have no explicit user or
+group permissions (default ['authenticated'])
+
+``pypi.cache_update``
+~~~~~~~~~~~~~~~~~~~~~
+**Argument:** list, optional
+
+Only used when ``pypi.fallback = cache``. This is the list of groups that are
+allowed to trigger the operation that fetches packages from ``fallback_url``.
+(default ['authenticated'])
 
 ``pypi.allow_overwrite``
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -33,6 +49,12 @@ The HTTP Basic Auth realm (default 'pypi')
 
 Allow users to upload packages that will overwrite an existing version (default
 False)
+
+``pypi.realm``
+~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+The HTTP Basic Auth realm (default 'pypi')
 
 
 Storage

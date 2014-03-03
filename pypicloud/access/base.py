@@ -1,8 +1,36 @@
 """ The access backend object base class """
+from pyramid.settings import aslist
 from passlib.apps import custom_app_context as pwd_context
 from pyramid.security import (Authenticated, Everyone, unauthenticated_userid,
                               effective_principals, Allow, Deny,
                               ALL_PERMISSIONS)
+
+
+def group_to_principal(group):
+    """ Convert a group to its corresponding principal """
+    if group in (Everyone, Authenticated) or group.startswith('group:'):
+        return group
+    elif group == 'everyone':
+        return Everyone
+    elif group == 'authenticated':
+        return Authenticated
+    else:
+        return 'group:' + group
+
+
+def groups_to_principals(groups):
+    """ Convert a list of groups to a list of principals """
+    return [group_to_principal(g) for g in groups]
+
+
+def parse_principal(principal):
+    """ Parse a principal and return type, name """
+    if principal == Everyone:
+        return ['group', 'everyone']
+    elif principal == Authenticated:
+        return ['group', 'authenticated']
+    else:
+        return principal.split(':', 1)
 
 
 class IAccessBackend(object):
@@ -22,54 +50,42 @@ class IAccessBackend(object):
     @classmethod
     def configure(cls, settings):
         """ Configure the access backend with app settings """
+        cls.default_read = aslist(settings.get('pypi.default_read',
+                                               ['authenticated']))
+        cls.cache_update = aslist(settings.get('pypi.cache_update',
+                                               ['authenticated']))
 
-    def principal_permissions(self, package, principal):
+    def allowed_permissions(self, package):
         """
-        Get the list of permissions a principal has for a package
-
-        Parameters
-        ----------
-        package : str
-            The name of a python package managed by pypicloud
-        principal : str
-            The name of the principal
+        Get all allowed permissions for all principals on a package
 
         Returns
         -------
-        permissions : list
-            The list may contain 'read' and/or 'write', or it may be empty.
+        perms : dict
+            Mapping of principal to tuple of permissions
 
         """
-        if principal == 'admin':
-            return ['read', 'write']
-        if principal.startswith('user:'):
-            user = principal[len('user:'):]
-            return self.user_permissions(package, user)
-        else:
-            if principal.startswith('group:'):
-                group = principal[len('group:'):]
-            elif principal == Everyone:
-                group = 'everyone'
-            elif principal == Authenticated:
-                group = 'authenticated'
-            return self.group_permissions(package, group)
+        all_perms = {}
+        for user, perms in self.user_permissions(package).iteritems():
+            all_perms['user:' + user] = tuple(perms)
+
+        for group, perms in self.group_permissions(package).iteritems():
+            all_perms[group_to_principal(group)] = tuple(perms)
+
+        # If there are no group or user specifications for the package, use the
+        # read-default
+        if len(all_perms) == 0:
+            for principal in groups_to_principals(self.default_read):
+                all_perms[principal] = ('read',)
+        return all_perms
 
     def get_acl(self, package):
         """ Construct an ACL for a package """
         acl = []
-        for user, perms in self.user_permissions(package).iteritems():
+        permissions = self.allowed_permissions(package)
+        for principal, perms in permissions.iteritems():
             for perm in perms:
-                acl.append((Allow, 'user:' + user, perm))
-
-        for group, perms in self.group_permissions(package).iteritems():
-            if group == 'everyone':
-                group = Everyone
-            elif group == 'authenticated':
-                group = Authenticated
-            else:
-                group = 'group:' + group
-            for perm in perms:
-                acl.append((Allow, group, perm))
+                acl.append((Allow, principal, perm))
         return acl
 
     def has_permission(self, package, perm):
@@ -77,8 +93,10 @@ class IAccessBackend(object):
         current_userid = unauthenticated_userid(self.request)
         if current_userid is not None and self.is_admin(current_userid):
             return True
+
+        perms = self.allowed_permissions(package)
         for principal in effective_principals(self.request):
-            if perm in self.principal_permissions(package, principal):
+            if perm in perms.get(principal, []):
                 return True
         return False
 
@@ -101,6 +119,60 @@ class IAccessBackend(object):
         for group in self.groups(username):
             principals.append('group:' + group)
         return principals
+
+    def in_group(self, username, group):
+        """
+        Find out if a user is in a group
+
+        Parameters
+        ----------
+        username : str
+            Name of user. May be None for the anonymous user.
+        group : str
+            Name of the group. Supports 'everyone', 'authenticated', and
+            'admin'.
+
+        Returns
+        -------
+        member : bool
+
+        """
+        if group in ('everyone', Everyone):
+            return True
+        elif username is None:
+            return False
+        elif group in ('authenticated', Authenticated):
+            return True
+        elif group == 'admin' and self.is_admin(username):
+            return True
+        else:
+            return group in self.groups(username)
+
+    def in_any_group(self, username, groups):
+        """
+        Find out if a user is in any of a set of groups
+
+        Parameters
+        ----------
+        username : str
+            Name of user. May be None for the anonymous user.
+        groups : list
+            list of group names. Supports 'everyone', 'authenticated', and
+            'admin'.
+
+        Returns
+        -------
+        member : bool
+
+        """
+        return any((self.in_group(username, group) for group in groups))
+
+    def can_update_cache(self):
+        """
+        Return True if the user has permissions to update the pypi cache
+        """
+        userid = unauthenticated_userid(self.request)
+        return self.in_any_group(userid, self.cache_update)
 
     def need_admin(self):
         """

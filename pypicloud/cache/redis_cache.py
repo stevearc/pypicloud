@@ -61,7 +61,7 @@ class RedisCache(ICache):
         return self.package_class(name, version, filename, last_modified,
                                   **kwargs)
 
-    def _all(self, name):
+    def all(self, name):
         filenames = self.db.smembers(self.redis_filename_set(name))
         pipe = self.db.pipeline()
         for filename in filenames:

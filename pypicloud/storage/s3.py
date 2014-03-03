@@ -9,10 +9,9 @@ from pyramid.httpexceptions import HTTPNotFound
 from pyramid.settings import asbool
 
 import boto
-import os
+import posixpath
 from .base import IStorage
 from boto.s3.key import Key
-from pip.util import splitext
 from pypicloud.models import Package
 from pypicloud.util import parse_filename
 
@@ -60,7 +59,7 @@ class S3Storage(IStorage):
             # Moto doesn't send down metadata from bucket.list()
             if self.test:
                 key = self.bucket.get_key(key.key)
-            filename = os.path.basename(key.key)
+            filename = posixpath.basename(key.key)
             name = key.get_metadata('name')
             version = key.get_metadata('version')
 

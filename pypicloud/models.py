@@ -22,7 +22,7 @@ class Package(object):
         The name of the package file
     last_modified : datetime
         The datetime when this package was uploaded
-    data : dict
+    **kwargs : dict
         Metadata about the package
 
     """
@@ -60,7 +60,7 @@ class Package(object):
         return unicode(self).encode('utf-8')
 
     def __unicode__(self):
-        return u'Package(%s, %s)' % (self.name, self.version)
+        return u'Package(%s)' % (self.filename)
 
     def __json__(self, request):
         return {

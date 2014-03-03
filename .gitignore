@@ -35,6 +35,7 @@ htmlcov
 .project
 .pydevproject
 
+.ropeproject
 _version.py
 pypicloud_env
 _build

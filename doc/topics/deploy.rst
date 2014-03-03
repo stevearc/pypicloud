@@ -61,3 +61,8 @@ configuration that will listen on port 80 and send traffic to uwsgi.
     When using access control in production, you may need pip to pass up a
     username/password. Do that by just putting it into the url in the canonical
     way: ``pip install mypkg -i https://username:password@pypi.myserver.com/pypi/``
+
+.. warning::
+
+    If you are using ``pypi.fallback = cache``, make sure your uWSGI settings
+    includes ``enable-threads = true``. The package downloader uses threads.

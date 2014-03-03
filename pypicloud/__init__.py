@@ -1,19 +1,23 @@
 """ S3-backed pypi server """
-from pyramid.config import Configurator
-from pyramid.renderers import JSON
 import datetime
-from pyramid.renderers import render
+
+import logging
+from pyramid.config import Configurator
+from pyramid.renderers import JSON, render
 from pyramid.settings import asbool
 from pyramid_beaker import session_factory_from_settings
+from six.moves.urllib.parse import urlencode  # pylint: disable=F0401,E0611
 
 from .cache import get_cache_impl
 from .route import Root
 
 
 try:
-    from ._version import *  # pylint: disable=F0401,W0401
+    from ._version import __version__  # pylint: disable=F0401
 except ImportError:  # pragma: no cover
     __version__ = 'unknown'
+
+LOG = logging.getLogger(__name__)
 
 
 def to_json(value):
@@ -25,11 +29,13 @@ json_renderer.add_adapter(datetime.datetime, lambda obj, r:
                           float(obj.strftime('%s.%f')))
 
 
-def _app_url(request, *paths):
+def _app_url(request, *paths, **params):
     """ Get the base url for the root of the app plus an optional path """
     path = '/'.join(paths)
     if not path.startswith('/'):
         path = '/' + path
+    if params:
+        path += '?' + urlencode(params)
     return request.application_url + path
 
 
@@ -59,12 +65,21 @@ def includeme(config):
     config.set_session_factory(session_factory_from_settings(settings))
 
     # PYPICLOUD SETTINGS
+    default_url = 'http://pypi.python.org/simple'
     config.registry.fallback_url = settings.get('pypi.fallback_url',
-                                                'http://pypi.python.org/simple')
-    config.registry.use_fallback = asbool(settings.get('pypi.use_fallback',
-                                                       True))
-    realm = settings.get('pypi.realm', 'pypi')
-    config.registry.realm = realm
+                                                default_url)
+
+    fallback_mode = settings.get('pypi.fallback', 'redirect').lower()
+    # Compatibility with the deprecated pypi.use_fallback option
+    if 'pypi.fallback' not in settings and 'pypi.use_fallback' in settings:
+        LOG.warn("Using deprecated option 'pypi.use_fallback'")
+        use_fallback = asbool(settings['pypi.use_fallback'])
+        fallback_mode = 'redirect' if use_fallback else 'none'
+    modes = ('redirect', 'cache', 'none')
+    if fallback_mode not in modes:
+        raise ValueError("Invalid value for 'pypi.fallback'. Must be one of %s"
+                         % ', '.join(modes))
+    config.registry.fallback = fallback_mode
 
     # CACHING DATABASE SETTINGS
     cache_impl = get_cache_impl(settings)

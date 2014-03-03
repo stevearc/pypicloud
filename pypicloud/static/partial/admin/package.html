@@ -13,5 +13,10 @@
 
   <div class="col-xs-12 col-md-6" ng-if="groupTableArgs">
     <div ng-include="PARTIAL + 'pretty_table.html'" ng-init="tableArgs = groupTableArgs"></div>
+    <div ng-show="groupTableArgs.items.length === 0">
+      <p ng-repeat="group in DEFAULT_READ">
+        default group '{{ group }}' has read access
+      </p>
+    </div>
   </div>
 </div>

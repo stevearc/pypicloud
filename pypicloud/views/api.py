@@ -1,11 +1,19 @@
 """ Views for simple api calls that return json data """
+import posixpath
+import logging
+from contextlib import closing
+from pypicloud.util import (normalize_name, BetterScrapingLocator,
+                            FilenameScrapingLocator)
 from pyramid.httpexceptions import HTTPNotFound, HTTPForbidden, HTTPBadRequest
 from pyramid.security import NO_PERMISSION_REQUIRED, remember
 from pyramid.view import view_config
+from six.moves.urllib.request import urlopen  # pylint: disable=F0401,E0611
 
 from pypicloud.route import (APIResource, APIPackageResource,
                              APIPackagingResource, APIPackageFileResource)
 from pyramid_duh import argify, addslash
+
+LOG = logging.getLogger(__name__)
 
 
 @view_config(context=APIPackagingResource, request_method='GET',
@@ -34,11 +42,19 @@ def all_packages(request, verbose=False):
 @addslash
 def package_versions(context, request):
     """ List all unique package versions """
-    versions = request.db.all(context.name)
+    normalized_name = normalize_name(context.name)
+    versions = request.db.all(normalized_name)
     return {
         'packages': versions,
-        'write': request.access.has_permission(context.name, 'write'),
+        'write': request.access.has_permission(normalized_name, 'write'),
     }
+
+
+def fetch_dist(request, dist):
+    """ Fetch a Distribution and upload it to the storage backend """
+    filename = posixpath.basename(dist.source_url)
+    with closing(urlopen(dist.source_url)) as data:
+        return request.db.upload(filename, data, dist.name)
 
 
 @view_config(context=APIPackageFileResource, request_method='GET',
@@ -47,7 +63,19 @@ def download_package(context, request):
     """ Download package, or redirect to the download link """
     package = request.db.fetch(context.filename)
     if not package:
-        return HTTPNotFound()
+        if request.registry.fallback != 'cache':
+            return HTTPNotFound()
+        if not request.access.can_update_cache():
+            return HTTPForbidden()
+        # If we are caching pypi, download the package from pypi and save it
+        locator = FilenameScrapingLocator(request.registry.fallback_url)
+        dists = locator.get_project(context.name)
+        dist = dists.get(context.filename)
+        if dist is None:
+            return HTTPNotFound()
+        LOG.info("Caching %s from %s", context.filename,
+                 request.registry.fallback_url)
+        package = fetch_dist(request, dist)
     return request.db.download_response(package)
 
 
@@ -100,3 +128,41 @@ def change_password(request, old_password, new_password):
         return HTTPForbidden()
     request.access.edit_user_password(request.userid, new_password)
     return request.response
+
+
+@view_config(context=APIResource, name='fetch', renderer='json',
+             permission=NO_PERMISSION_REQUIRED)
+@argify(wheel=bool, prerelease=bool)
+def fetch_requirements(request, requirements, wheel=True, prerelease=False):
+    """
+    Fetch packages from the fallback_url
+
+    Parameters
+    ----------
+    requirements : str
+        Requirements in the requirements.txt format (with newlines)
+    wheel : bool, optional
+        If True, will prefer wheels (default True)
+    prerelease : bool, optional
+        If True, will allow prerelease versions (default False)
+
+    Returns
+    -------
+    pkgs : list
+        List of Package objects
+
+    """
+    if not request.access.can_update_cache():
+        return HTTPForbidden()
+    locator = BetterScrapingLocator(request.registry.fallback_url, wheel=wheel)
+    packages = []
+    for line in requirements.splitlines():
+        dist = locator.locate(line, prerelease)
+        if dist is not None:
+            try:
+                packages.append(fetch_dist(request, dist))
+            except ValueError:
+                pass
+    return {
+        'pkgs': packages,
+    }

@@ -15,13 +15,13 @@ REQUIREMENTS = [
     'distlib',
     'paste',
     'passlib',
-    'pip',
     'pycrypto',
     'pyramid',
     'pyramid_beaker',
     'pyramid_duh>=0.1.1',
     'pyramid_jinja2',
     'pyramid_tm',
+    'six',
     'transaction',
     'zope.sqlalchemy',
 ]
@@ -30,9 +30,10 @@ TEST_REQUIREMENTS = [
     'nose',
     'mock',
     'webtest',
-    'requests',
     'httpretty',
     'moto',
+    'redis',
+    'requests',
 ]
 
 if sys.version_info[:2] < (2, 7):
@@ -64,6 +65,7 @@ if __name__ == "__main__":
         author_email='steven@highlig.ht',
         url='http://pypicloud.readthedocs.org/',
         keywords='pypi s3 cheeseshop package',
+        platforms='any',
         zip_safe=False,
         include_package_data=True,
         packages=find_packages(exclude=('tests',)),

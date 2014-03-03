@@ -1,10 +1,14 @@
 """ Views for simple pip interaction """
-from pypicloud.route import Root, SimplePackageResource, SimpleResource
-from pyramid.httpexceptions import HTTPBadRequest, HTTPFound, HTTPForbidden
+import six
+from pyramid.httpexceptions import (HTTPBadRequest, HTTPFound, HTTPForbidden,
+                                    HTTPNotFound)
+from pyramid.renderers import render
 from pyramid.view import view_config
 
+import posixpath
+from pypicloud.route import Root, SimplePackageResource, SimpleResource
+from pypicloud.util import normalize_name, FilenameScrapingLocator
 from pyramid_duh import argify, addslash
-from pypicloud.util import normalize_name
 
 
 @view_config(context=Root, request_method='POST', subpath=(),
@@ -18,14 +22,14 @@ def upload(request, name, version, content):
     name = normalize_name(name)
     if action == 'file_upload':
         if not request.access.has_permission(name, 'write'):
-            raise HTTPForbidden()
+            return HTTPForbidden()
         try:
             return request.db.upload(content.filename, content.file, name=name,
                                      version=version)
         except ValueError as e:
             return HTTPBadRequest(*e.args)
     else:
-        raise HTTPBadRequest("Unknown action '%s'" % action)
+        return HTTPBadRequest("Unknown action '%s'" % action)
 
 
 @view_config(context=SimpleResource, request_method='GET', subpath=(),
@@ -51,11 +55,30 @@ def package_versions(context, request):
     """ Render the links for all versions of a package """
     normalized_name = normalize_name(context.name)
 
-    pkgs = request.db.all(normalized_name)
-    if request.registry.use_fallback and not pkgs:
-        redirect_url = "%s/%s/" % (
-            request.registry.fallback_url.rstrip('/'), context.name)
-        return HTTPFound(location=redirect_url)
+    packages = request.db.all(normalized_name)
+    if not packages:
+        if request.registry.fallback == 'cache':
+            if not request.access.can_update_cache():
+                return HTTPNotFound()
+            locator = FilenameScrapingLocator(request.registry.fallback_url)
+            dists = locator.get_project(context.name)
+            if not dists:
+                return HTTPNotFound()
+            pkgs = {}
+            for dist in six.itervalues(dists):
+                filename = posixpath.basename(dist.source_url)
+                url = request.app_url('api', 'package', dist.name, filename)
+                pkgs[filename] = url
+            return {'pkgs': pkgs}
+        elif request.registry.fallback == 'redirect':
+            redirect_url = "%s/%s/" % (
+                request.registry.fallback_url.rstrip('/'), context.name)
+            return HTTPFound(location=redirect_url)
+        else:
+            return HTTPNotFound()
     if not request.access.has_permission(normalized_name, 'read'):
         raise HTTPForbidden()
+    pkgs = {}
+    for package in packages:
+        pkgs[package.filename] = package.get_url(request)
     return {'pkgs': pkgs}

@@ -1,6 +1,4 @@
 """ Tests for database cache implementations """
-from datetime import datetime
-
 import transaction
 from mock import MagicMock, patch
 from pyramid.testing import DummyRequest
@@ -8,7 +6,6 @@ from pyramid.testing import DummyRequest
 from . import DummyCache, DummyStorage, make_package
 from pypicloud.cache import ICache, SQLCache, RedisCache
 from pypicloud.cache.sql import SQLPackage
-from pypicloud.models import Package
 from pypicloud.storage import IStorage
 
 

@@ -92,7 +92,7 @@ class TestEndpointSecurity(unittest.TestCase):
         """ /api/package/<pkg> requires read perms """
         response = self.app.get('/api/package/%s/' % self.package.name,
                                 expect_errors=True)
-        self.assertEqual(response.status_int, 403)
+        self.assertEqual(response.status_int, 404)
 
     def test_api_pkg_authed(self):
         """ /api/package/<pkg> requires read perms """

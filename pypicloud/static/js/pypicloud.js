@@ -2,47 +2,34 @@ String.prototype.endsWith = function(suffix) {
     return this.indexOf(suffix, this.length - suffix.length) !== -1;
 };
 
-var pypicloud = angular.module('pypicloud', ['ui.bootstrap', 'ngRoute', 'angularFileUpload', 'ngCookies'])
-  .config(['$routeProvider', function($routeProvider) {
-    $routeProvider.when('/', {
-      templateUrl: STATIC + 'partial/index.html',
-      controller: 'IndexCtrl'
-    });
+angular.module('pypicloud', ['ui.bootstrap', 'ngRoute', 'angularFileUpload', 'ngCookies'])
+.config(['$routeProvider', function($routeProvider) {
+  $routeProvider.when('/', {
+    templateUrl: STATIC + 'partial/index.html',
+    controller: 'IndexCtrl'
+  });
 
-    $routeProvider.when('/package/:pkg', {
-      templateUrl: STATIC + 'partial/package.html',
-      controller: 'PackageCtrl'
-    });
+  $routeProvider.when('/package/:pkg', {
+    templateUrl: STATIC + 'partial/package.html',
+    controller: 'PackageCtrl'
+  });
 
-    $routeProvider.when('/new_admin', {
-      templateUrl: STATIC + 'partial/new_admin.html',
-      controller: 'NewAdminCtrl'
-    });
+  $routeProvider.when('/new_admin', {
+    templateUrl: STATIC + 'partial/new_admin.html',
+    controller: 'NewAdminCtrl'
+  });
 
-    $routeProvider.when('/account', {
-      templateUrl: STATIC + 'partial/account.html',
-      controller: 'AccountCtrl'
-    });
+  $routeProvider.when('/account', {
+    templateUrl: STATIC + 'partial/account.html',
+    controller: 'AccountCtrl'
+  });
 
-    $routeProvider.otherwise({
-      redirectTo: '/',
-    });
-  }])
-  .run(['$rootScope','$location', '$routeParams', function($rootScope, $location, $routeParams) {
-    $rootScope.$on('$routeChangeSuccess', function(scope, current, pre) {
-      $rootScope.location = {
-        path: $location.path()
-      };
-    });
-  }])
-  .filter('startFrom', function() {
-    return function(input, start) {
-        start = parseInt(start, 10);
-        return input.slice(start);
-    }
-  })
-  .config(['$compileProvider', function($compileProvider) {
-    $compileProvider.directive('compileUnsafe', ['$compile', function($compile) {
+  $routeProvider.otherwise({
+    redirectTo: '/',
+  });
+}])
+.config(['$compileProvider', function($compileProvider) {
+  $compileProvider.directive('compileUnsafe', ['$compile', function($compile) {
     return function(scope, element, attrs) {
       scope.$watch(
         function(scope) {
@@ -56,16 +43,27 @@ var pypicloud = angular.module('pypicloud', ['ui.bootstrap', 'ngRoute', 'angular
 
           // compile the new DOM and link it to the current
           // scope.
-          // NOTE: we only compile .childNodes so that
-          // we don't get into infinite loop compiling ourselves
           $compile(element.contents())(scope);
         }
       );
     };
   }]);
-}]);
+}])
+.run(['$rootScope','$location', '$routeParams', function($rootScope, $location, $routeParams) {
+  $rootScope.$on('$routeChangeSuccess', function(scope, current, pre) {
+    $rootScope.location = {
+      path: $location.path()
+    };
+  });
+}])
+.filter('startFrom', function() {
+  return function(input, start) {
+      start = parseInt(start, 10);
+      return input.slice(start);
+  }
+})
 
-pypicloud.controller('BaseCtrl', ['$rootScope', '$location', function($rootScope, $location) {
+.controller('BaseCtrl', ['$rootScope', '$location', function($rootScope, $location) {
   $rootScope._ = _;
   $rootScope.USER = USER;
   $rootScope.ROOT = ROOT;
@@ -75,6 +73,9 @@ pypicloud.controller('BaseCtrl', ['$rootScope', '$location', function($rootScope
   $rootScope.NEED_ADMIN = NEED_ADMIN;
   $rootScope.ACCESS_MUTABLE = ACCESS_MUTABLE;
   $rootScope.ALLOW_REGISTER = ALLOW_REGISTER;
+  $rootScope.CAN_UPDATE_CACHE = CAN_UPDATE_CACHE;
+  $rootScope.FALLBACK_URL = FALLBACK_URL;
+  $rootScope.DEFAULT_READ = DEFAULT_READ;
   $rootScope.STATIC = STATIC;
   $rootScope.PARTIAL = STATIC + 'partial/';
   $rootScope.VERSION = VERSION;
@@ -112,23 +113,66 @@ pypicloud.controller('BaseCtrl', ['$rootScope', '$location', function($rootScope
   window.onresize = function(){
     $rootScope.$apply();
   }
-}]);
+}])
 
-pypicloud.controller('NavbarCtrl', ['$scope', function($scope) {
+.controller('NavbarCtrl', ['$scope', function($scope) {
   $scope.navCollapsed = $scope.device === 'xs';
   $scope.options = [];
-}]);
+}])
 
-pypicloud.controller('IndexCtrl', ['$scope', '$http', '$location', '$cookies',
+.controller('IndexCtrl', ['$scope', '$http', '$location', '$cookies',
     function($scope, $http, $location, $cookies) {
   $scope.$cookies = $cookies;
   $scope.packages = null;
   $scope.pageSize = 10;
   $scope.maxSize = 8;
   $scope.currentPage = 1;
+  $scope.fetchCollapsed = true;
+  $scope.uploadCollapsed = true;
   if (NEED_ADMIN) {
     $location.path('/new_admin');
   }
+
+  var addPackages = function(packages) {
+    var allNames = _.pluck($scope.packages, 'name');
+    _.each(packages, function(pkg) {
+      if (!_.contains(allNames, pkg.name)) {
+        pkg.unstable = pkg.version;
+        if (pkg.version.match(/^\d+(\.\d+)*$/)) {
+          pkg.stable = pkg.version;
+        }
+        $scope.packages.push(pkg);
+      }
+    });
+  };
+
+  $scope.toggleFetch = function() {
+    $scope.fetchCollapsed = !$scope.fetchCollapsed;
+    $scope.uploadCollapsed = true;
+  };
+
+  $scope.toggleUpload = function() {
+    $scope.uploadCollapsed = !$scope.uploadCollapsed;
+    $scope.fetchCollapsed = true;
+  };
+
+  $scope.fetchRequirements = function() {
+    $scope.fetchingRequirements = true;
+    var data = {
+      requirements: $scope.requirements,
+      wheel: $scope.wheel,
+      prerelease: $scope.prerelease
+    };
+    $http.post($scope.API + 'fetch', data).success(function(data, status, headers, config) {
+      addPackages(data.pkgs);
+      $scope.requirements = '';
+      $scope.fetchingRequirements = false;
+      $scope.fetchCollapsed = true;
+    }).error(function(data, status, headers, config) {
+      alert("Fetch operation failed");
+      $scope.fetchingRequirements = false;
+    });
+  };
 
   $http.get($scope.API + 'package/', {params: {verbose: true}})
       .success(function(data, status, headers, config) {
@@ -140,19 +184,16 @@ pypicloud.controller('IndexCtrl', ['$scope', '$http', '$location', '$cookies',
   }
 
   $scope.uploadFinished = function(response) {
-    var all_names = _.pluck($scope.packages, 'name');
-    if (all_names.indexOf(response.name) < 0) {
-      $scope.packages.push(response);
-    }
+    addPackages([response]);
     $scope.uploadCollapsed = true;
   };
 
   $scope.closePipHelp = function() {
     $cookies.seenPipHelp = 'true';
   };
-}]);
+}])
 
-pypicloud.controller('LoginCtrl', ['$scope', '$http', function($scope, $http) {
+.controller('LoginCtrl', ['$scope', '$http', function($scope, $http) {
   $scope.error = false;
   $scope.submit = function(username, password) {
     var data = {
@@ -177,13 +218,18 @@ pypicloud.controller('LoginCtrl', ['$scope', '$http', function($scope, $http) {
       $scope.error = false;
       $scope.registered = username;
     }).error(function(data, status, headers, config) {
-      $scope.error = true;
-      $scope.errorMsg = 'User already exists';
+      if (status === 400) {
+        $scope.error = true;
+        $scope.errorMsg = 'User already exists';
+      } else {
+        $scope.error = true;
+        $scope.errorMsg = 'Registration has been disabled';
+      }
     });
   };
-}]);
+}])
 
-pypicloud.controller('PackageCtrl', ['$scope', '$http', '$route', '$fileUploader',
+.controller('PackageCtrl', ['$scope', '$http', '$route', '$fileUploader',
     function($scope, $http, $route, $fileUploader) {
   $scope.package_name = $route.current.params.pkg;
   $scope.showPreRelease = true;
@@ -223,9 +269,9 @@ pypicloud.controller('PackageCtrl', ['$scope', '$http', '$route', '$fileUploader
     $scope.packages.push(response);
     $scope.uploadCollapsed = true;
   };
-}]);
+}])
 
-pypicloud.controller('UploadCtrl', ['$scope', '$fileUploader', function($scope, $fileUploader) {
+.controller('UploadCtrl', ['$scope', '$fileUploader', function($scope, $fileUploader) {
   if ($scope.package_name) {
     $scope.package_preset = true;
   }
@@ -277,9 +323,9 @@ pypicloud.controller('UploadCtrl', ['$scope', '$fileUploader', function($scope, 
     $scope.uploading = false;
     alert("Error during upload! " + response);
   });
-}]);
+}])
 
-pypicloud.controller('TableCtrl', ['$scope', '$sce', '$interpolate', function($scope, $sce, $interpolate) {
+.controller('TableCtrl', ['$scope', '$sce', '$interpolate', function($scope, $sce, $interpolate) {
   $scope.currentPage = 1;
   $scope.searchable = false;
   $scope.searchStrict = false;
@@ -334,17 +380,17 @@ pypicloud.controller('TableCtrl', ['$scope', '$sce', '$interpolate', function($s
       $scope.newItem = '';
     }
   };
-}]);
+}])
 
-pypicloud.controller('NewAdminCtrl', ['$scope', '$http', '$location', function($scope, $http, $location) {
+.controller('NewAdminCtrl', ['$scope', '$http', '$location', function($scope, $http, $location) {
   $scope.register = function(username, password) {
     $http.put($scope.API + 'user/' + username, {password:password}).success(function(data, status, headers, config) {
       window.location = ROOT;
     });
   };
-}]);
+}])
 
-pypicloud.controller('AccountCtrl', ['$scope', '$http', function($scope, $http) {
+.controller('AccountCtrl', ['$scope', '$http', function($scope, $http) {
 
   $scope.changePassword = function(oldPassword, newPassword) {
     if (!oldPassword || !newPassword || oldPassword.length === 0 || newPassword.length === 0) {

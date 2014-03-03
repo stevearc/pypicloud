@@ -4,7 +4,8 @@ from datetime import datetime
 import logging
 import transaction
 from pkg_resources import parse_version
-from sqlalchemy import engine_from_config, distinct, Column, DateTime, Text
+from sqlalchemy import (engine_from_config, distinct, Column, DateTime, Text,
+                        Boolean)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 # pylint: disable=F0401,E0611
@@ -152,7 +153,7 @@ class SQLCache(ICache):
     def fetch(self, filename):
         return self.db.query(SQLPackage).filter_by(filename=filename).first()
 
-    def _all(self, name):
+    def all(self, name):
         pkgs = self.db.query(SQLPackage).filter_by(name=name).all()
         pkgs.sort(reverse=True)
         return pkgs

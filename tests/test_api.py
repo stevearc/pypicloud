@@ -1,9 +1,10 @@
 """ Tests for API endpoints """
-from mock import MagicMock
-from pypicloud.views import api
+from distlib.database import Distribution
+from mock import MagicMock, patch
 from pyramid.httpexceptions import HTTPBadRequest, HTTPNotFound, HTTPForbidden
 
 from . import MockServerTest, make_package
+from pypicloud.views import api
 
 
 class TestApi(MockServerTest):
@@ -86,3 +87,81 @@ class TestApi(MockServerTest):
         ret = api.change_password(self.request, 'a', 'b')
         self.assertTrue(isinstance(ret, HTTPForbidden))
         self.access.verify_user.assert_called_with('u', 'a')
+
+    def test_download(self):
+        """ Downloading package returns download response from db """
+        db = self.request.db = MagicMock()
+        context = MagicMock()
+        ret = api.download_package(context, self.request)
+        db.fetch.assert_called_with(context.filename)
+        db.download_response.assert_called_with(db.fetch())
+        self.assertEqual(ret, db.download_response())
+
+    def test_download_fallback_no_cache(self):
+        """ Downloading missing package on non-'cache' fallback returns 404 """
+        db = self.request.db = MagicMock()
+        self.request.registry.fallback = 'none'
+        db.fetch.return_value = None
+        context = MagicMock()
+        ret = api.download_package(context, self.request)
+        self.assertEqual(ret.status_code, 404)
+
+    def test_download_fallback_cache_no_perm(self):
+        """ Downloading missing package without cache perm returns 403 """
+        db = self.request.db = MagicMock()
+        self.request.registry.fallback = 'cache'
+        self.request.access.can_update_cache.return_value = False
+        db.fetch.return_value = None
+        context = MagicMock()
+        ret = api.download_package(context, self.request)
+        self.assertEqual(ret.status_code, 403)
+
+    @patch('pypicloud.views.api.FilenameScrapingLocator')
+    def test_download_fallback_cache_missing(self, locator):
+        """ If fallback url is missing dist, return 404 """
+        db = self.request.db = MagicMock()
+        self.request.registry.fallback = 'cache'
+        self.request.registry.fallback_url = 'http://pypi.com'
+        self.request.access.can_update_cache.return_value = True
+        db.fetch.return_value = None
+        context = MagicMock()
+        locator().get_project.return_value = {
+            context.filename: None
+        }
+        ret = api.download_package(context, self.request)
+        self.assertEqual(ret.status_code, 404)
+
+    @patch('pypicloud.views.api.fetch_dist')
+    @patch('pypicloud.views.api.FilenameScrapingLocator')
+    def test_download_fallback_cache(self, locator, fetch_dist):
+        """ Downloading missing package caches result from fallback """
+        db = self.request.db = MagicMock()
+        self.request.registry.fallback = 'cache'
+        self.request.registry.fallback_url = 'http://pypi.com'
+        self.request.access.can_update_cache.return_value = True
+        db.fetch.return_value = None
+        context = MagicMock()
+        dist = MagicMock(spec=Distribution)
+        locator().get_project.return_value = {
+            context.filename: dist,
+        }
+        ret = api.download_package(context, self.request)
+        fetch_dist.assert_called_with(self.request, dist)
+        db.download_response.assert_called_with(fetch_dist())
+        self.assertEqual(ret, db.download_response())
+
+    def test_fetch_requirements_no_perm(self):
+        """ Fetching requirements without perms returns 403 """
+        self.request.access.can_update_cache.return_value = False
+        requirements = 'requests>=2.0'
+        ret = api.fetch_requirements(self.request, requirements)
+        self.assertEqual(ret.status_code, 403)
+
+    @patch('pypicloud.views.api.fetch_dist')
+    @patch('pypicloud.views.api.BetterScrapingLocator')
+    def test_fetch_requirements(self, locator, fetch_dist):
+        """ Fetching requirements without perms returns 403 """
+        requirements = 'requests>=2.0'
+        ret = api.fetch_requirements(self.request, requirements)
+        fetch_dist.assert_called_with(self.request, locator().locate())
+        self.assertEqual(ret, {'pkgs': [fetch_dist()]})

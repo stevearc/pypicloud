@@ -5,7 +5,7 @@ import logging
 from pkg_resources import parse_version
 from pyramid.settings import asbool
 
-import os
+import posixpath
 from pypicloud.models import Package
 from pypicloud.storage import get_storage_impl
 from pypicloud.util import parse_filename, normalize_name
@@ -36,7 +36,7 @@ class ICache(object):
         """
         cache = cls()
         if len(cache.distinct()) == 0:
-            LOG.info("Cache is empty. Rebuilding from S3...")
+            LOG.info("Cache is empty. Rebuilding from storage backend...")
             cache.reload_from_storage()
             LOG.info("Cache repopulated")
         return cache
@@ -49,7 +49,18 @@ class ICache(object):
                                                   False))
 
     def get_url(self, package):
-        """ Pass through to storage """
+        """
+        Get the download url for a package
+
+        Parameters
+        ----------
+        package : :class:`~pypicloud.models.Package`
+
+        Returns
+        -------
+        url : str
+
+        """
         url, changed = self.storage.get_url(package)
         if changed:
             self.save(package)
@@ -67,11 +78,37 @@ class ICache(object):
             self.save(pkg)
 
     def upload(self, filename, data, name=None, version=None):
-        """ Save this package to the storage mechanism and to the cache """
+        """
+        Save this package to the storage mechanism and to the cache
+
+        Parameters
+        ----------
+        filename : str
+            Name of the package file
+        data : file
+            File-like readable object
+        name : str, optional
+            The name of the package (if not provided, will be parsed from
+            filename)
+        version : str, optional
+            The version number of the package (if not provided, will be parsed
+            from filename)
+
+        Returns
+        -------
+        package : :class:`~pypicloud.models.Package`
+            The Package object that was uploaded
+
+        Raises
+        ------
+        e : ValueError
+            If the package already exists and allow_overwrite = False
+
+        """
         if version is None:
             name, version = parse_filename(filename, name)
         name = normalize_name(name)
-        filename = os.path.basename(filename)
+        filename = posixpath.basename(filename)
         old_pkg = self.fetch(filename)
         if old_pkg is not None and not self.allow_overwrite:
             raise ValueError("Package '%s' already exists!" % filename)
@@ -82,26 +119,61 @@ class ICache(object):
         return new_pkg
 
     def delete(self, package):
-        """ Delete this package from the database and from storage """
+        """
+        Delete this package from the database and from storage
+
+        Parameters
+        ----------
+        package : :class:`~pypicloud.models.Package`
+
+        """
         self.storage.delete(package)
         self.clear(package)
 
     def fetch(self, filename):
-        """ Get matching package if it exists """
+        """
+        Get matching package if it exists
+
+        Parameters
+        ----------
+        filename : str
+            Name of the package file
+
+        Returns
+        -------
+        package : :class:`~pypicloud.models.Package`
+
+        """
         raise NotImplementedError
 
     def all(self, name):
-        """ Search for all versions of a package """
-        if name is not None:
-            name = normalize_name(name)
-        return self._all(name)
+        """
+        Search for all versions of a package
 
-    def _all(self, name):
-        """ Override this method to implement 'all' """
+        Parameters
+        ----------
+        name : str
+            The name of the package
+
+        Returns
+        -------
+        packages : list
+            List of all :class:`~pypicloud.models.Package`s with the given
+            name
+
+        """
         raise NotImplementedError
 
     def distinct(self):
-        """ Get all distinct package names """
+        """
+        Get all distinct package names
+
+        Returns
+        -------
+        names : list
+            List of package names
+
+        """
         raise NotImplementedError
 
     def summary(self):
@@ -139,7 +211,14 @@ class ICache(object):
         return packages
 
     def clear(self, package):
-        """ Remove this package from the caching database """
+        """
+        Remove this package from the caching database
+
+        Parameters
+        ----------
+        package : :class:`~pypicloud.models.Package`
+
+        """
         raise NotImplementedError
 
     def clear_all(self):
@@ -147,5 +226,12 @@ class ICache(object):
         raise NotImplementedError
 
     def save(self, package):
-        """ Save this package to the database """
+        """
+        Save this package to the database
+
+        Parameters
+        ----------
+        package : :class:`~pypicloud.models.Package`
+
+        """
         raise NotImplementedError

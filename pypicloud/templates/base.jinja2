@@ -33,7 +33,7 @@ role="navigation">
 
 {% endblock %}
 {% block all_scripts %}
-  <script src="{{ 'pypicloud:static/js/lib/underscore-1.5.2.min.js' | static_url }}"></script>
+  <script src="{{ 'pypicloud:static/js/lib/underscore/1.6.0/underscore-min.js' | static_url }}"></script>
   <script src="{{ 'pypicloud:static/js/lib/angularjs/1.2.14/angular.min.js' | static_url }}"></script>
   <script src="{{ 'pypicloud:static/js/lib/angularjs/1.2.14/angular-route.min.js' | static_url }}"></script>
   <script src="{{ 'pypicloud:static/js/lib/angularjs/1.2.14/angular-cookies.min.js' | static_url }}"></script>
@@ -52,6 +52,9 @@ role="navigation">
     var ACCESS_MUTABLE = {{ request.access.mutable | tojson | safe }};
     var ALLOW_REGISTER = {{ request.access.allow_register() | tojson | safe }};
     var VERSION = {{ request.pypicloud_version | tojson | safe }};
+    var CAN_UPDATE_CACHE = {{ request.access.can_update_cache() | tojson | safe }};
+    var FALLBACK_URL = {{ request.registry.fallback_url | tojson | safe }};
+    var DEFAULT_READ = {{ request.access.default_read | tojson | safe }};
   </script>
   {% block scripts %}
   {% endblock %}

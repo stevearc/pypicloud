@@ -2,6 +2,7 @@
 from datetime import datetime
 
 from collections import defaultdict
+from mock import MagicMock
 from pyramid.testing import DummyRequest
 
 from pypicloud.cache import ICache
@@ -59,6 +60,7 @@ class DummyCache(ICache):
 
     """ In-memory implementation of ICache """
     storage_impl = DummyStorage
+    allow_overwrite = False
 
     def __init__(self, request=None):
         super(DummyCache, self).__init__(request)
@@ -82,7 +84,7 @@ class DummyCache(ICache):
         """ Override this method to implement 'fetch' """
         return self.packages.get(filename)
 
-    def _all(self, name):
+    def all(self, name):
         """ Override this method to implement 'all' """
         return [p for p in self.packages.itervalues() if p.name == name]
 
@@ -109,6 +111,7 @@ class MockServerTest(unittest.TestCase):
 
     def setUp(self):
         self.request = DummyRequest()
+        self.request.registry = MagicMock()
         self.db = self.request.db = DummyCache(self.request)
         self.request.path_url = '/path/'
         self.params = {}

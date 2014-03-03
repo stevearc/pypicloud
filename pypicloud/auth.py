@@ -7,7 +7,7 @@ from pyramid.security import Everyone, unauthenticated_userid
 
 
 # Copied from http://docs.pylonsproject.org/projects/pyramid_cookbook/en/latest/auth/basic.html
-def _get_basicauth_credentials(request):
+def get_basicauth_credentials(request):
     """ Get the user/password from HTTP basic auth """
     authorization = AUTHORIZATION(request.environ)
     try:
@@ -46,7 +46,7 @@ class BasicAuthenticationPolicy(object):
 
     def authenticated_userid(self, request):
         """ Verify login and return the authed userid """
-        credentials = _get_basicauth_credentials(request)
+        credentials = get_basicauth_credentials(request)
         if credentials is None:
             return None
         userid = credentials['login']
@@ -55,22 +55,22 @@ class BasicAuthenticationPolicy(object):
             return userid
         return None
 
+    def unauthenticated_userid(self, request):
+        """ Return userid without performing auth """
+        credentials = get_basicauth_credentials(request)
+        if credentials is not None:
+            return credentials['login']
+        return None
+
     def effective_principals(self, request):
         """ Get the authed groups for the active user """
-        credentials = _get_basicauth_credentials(request)
+        credentials = get_basicauth_credentials(request)
         if credentials is None:
             return [Everyone]
         userid = credentials['login']
         if request.access.verify_user(userid, credentials['password']):
             return request.access.user_principals(userid)
         return [Everyone]
-
-    def unauthenticated_userid(self, request):
-        """ Return userid without performing auth """
-        credentials = _get_basicauth_credentials(request)
-        if credentials is not None:
-            return credentials['login']
-        return None
 
     def remember(self, request, principal, **kw):
         """ HTTP Headers to remember credentials """
@@ -108,16 +108,19 @@ class SessionAuthPolicy(object):
         user, including 'system' groups such as
         ``pyramid.security.Everyone`` and
         ``pyramid.security.Authenticated``. """
-        return request.session.get('principals', [Everyone])
+        userid = self.unauthenticated_userid(request)
+        if userid is None:
+            return [Everyone]
+        return request.access.user_principals(userid)
 
-    def remember(self, request, principal, **kw):
-        """ Return a set of headers suitable for 'remembering' the
-        principal named ``principal`` when set in a response.  An
-        individual authentication policy and its consumers can decide
-        on the composition and meaning of **kw. """
+    def remember(self, request, principal, **_):
+        """
+        This implementation is slightly different than expected. The
+        application should call remember(userid) rather than
+        remember(principal)
+
+        """
         request.session['user'] = principal
-        request.session['principals'] = \
-            request.access.user_principals(principal)
         return []
 
     def forget(self, request):
@@ -135,3 +138,7 @@ def includeme(config):
     config.add_authentication_policy(BasicAuthenticationPolicy())
     config.add_request_method(unauthenticated_userid, name='userid',
                               reify=True)
+
+    settings = config.get_settings()
+    realm = settings.get('pypi.realm', 'pypi')
+    config.registry.realm = realm

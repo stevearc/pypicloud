@@ -107,6 +107,29 @@ Run in a special, limited access-control mode. Any user with valid credentials
 can upload any package. Everyone (even not-logged-in users) can view and
 download all packages. (default False)
 
+SQL Database
+------------
+You can opt to store all user and group permissions inside a SQL database. The
+advantages are that you can dynamically change these permissions using the web
+interface. The disadvantages are that this information is not stored anywhere
+else, so unlike the :ref:`cache database <cache>`, it actually needs to be
+backed up.
+
+After you set up a new server using this backend, you will need to use the web
+interface to create the initial admin user.
+
+Configuration
+^^^^^^^^^^^^^
+Set ``pypi.access_backend = sql`` OR ``pypi.access_backend =
+pypicloud.access.sql.SQLAccessBackend``
+
+``auth.db.url``
+~~~~~~~~~~~~~~~
+**Argument:** string
+
+The database url to use for storing user and group permissions. This may be the
+same database as ``db.url``.
+
 Remote Server
 -------------
 This implementation allows you to delegate all access control to another
@@ -239,26 +262,3 @@ passed to the endpoint, return just a single user dict that also contains
 params: ``username``
 
 returns: ``list``
-
-SQL Database
-------------
-You can opt to store all user and group permissions inside a SQL database. The
-advantages are that you can dynamically change these permissions using the web
-interface. The disadvantages are that this information is not stored anywhere
-else, so unlike the :ref:`cache database <cache>`, it actually needs to be
-backed up.
-
-After you set up a new server using this backend, you will need to use the web
-interface to create the initial admin user.
-
-Configuration
-^^^^^^^^^^^^^
-Set ``pypi.access_backend = sql`` OR ``pypi.access_backend =
-pypicloud.access.sql.SQLAccessBackend``
-
-``auth.db.url``
-~~~~~~~~~~~~~~~
-**Argument:** string
-
-The database url to use for storing user and group permissions. This may be the
-same database as ``db.url``.

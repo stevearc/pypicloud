@@ -5,6 +5,7 @@ import pypicloud
 from pypicloud.access import (IAccessBackend, IMutableAccessBackend,
                               ConfigAccessBackend, RemoteAccessBackend,
                               includeme, pwd_context)
+from pypicloud.access.base import group_to_principal, parse_principal
 from pypicloud.access.sql import (SQLAccessBackend, User, UserPermission,
                                   association_table, GroupPermission, Group)
 from pypicloud.route import Root
@@ -22,6 +23,32 @@ except ImportError:
 def make_user(name, password, pending=True):
     """ Convenience method for creating a User """
     return User(name, pwd_context.encrypt(password), pending)
+
+
+class TestUtilities(unittest.TestCase):
+
+    """ Tests for the access utilities """
+
+    def test_group_to_principal(self):
+        """ group_to_principal formats groups """
+        self.assertEqual(group_to_principal('foo'), 'group:foo')
+        self.assertEqual(group_to_principal('everyone'), Everyone)
+        self.assertEqual(group_to_principal('authenticated'), Authenticated)
+
+    def test_group_to_principal_twice(self):
+        """ Running group_to_principal twice has no effect """
+        for group in ('foo', 'everyone', 'authenticated'):
+            g1 = group_to_principal(group)
+            g2 = group_to_principal(g1)
+            self.assertEqual(g1, g2)
+
+    def test_parse_principal(self):
+        """ parse_principal returns type and value """
+        self.assertEqual(parse_principal('user:aa'), ['user', 'aa'])
+        self.assertEqual(parse_principal('group:aa'), ['group', 'aa'])
+        self.assertEqual(parse_principal(Everyone), ['group', 'everyone'])
+        self.assertEqual(parse_principal(Authenticated), ['group',
+                                                          'authenticated'])
 
 
 class BaseACLTest(unittest.TestCase):
@@ -203,43 +230,20 @@ class TestBaseBackend(BaseACLTest):
         config.add_request_method.assert_called_with(SQLAccessBackend,
                                                      name='access', reify=True)
 
-    def test_admin_permissions(self):
-        """ Admins always have read/write permissions """
-        access = IAccessBackend(None)
-        perms = access.principal_permissions('p1', 'admin')
-        self.assertEqual(perms, ['read', 'write'])
-
-    def test_everyone_permissions(self):
-        """ Everyone gets converted to 'everyone' """
-        access = IAccessBackend(None)
-        with patch.object(access, 'group_permissions') as grp:
-            perms = access.principal_permissions('p1', Everyone)
-            grp.assert_called_with('p1', 'everyone')
-            self.assertEqual(perms, grp())
-
-    def test_authenticated_permissions(self):
-        """ Authenticated gets converted to 'authenticated' """
-        access = IAccessBackend(None)
-        with patch.object(access, 'group_permissions') as grp:
-            perms = access.principal_permissions('p1', Authenticated)
-            grp.assert_called_with('p1', 'authenticated')
-            self.assertEqual(perms, grp())
-
-    def test_group_permissions(self):
-        """ 'group:name' specifier gets turned into 'group' """
-        access = IAccessBackend(None)
-        with patch.object(access, 'group_permissions') as grp:
-            perms = access.principal_permissions('p1', 'group:brotatos')
-            grp.assert_called_with('p1', 'brotatos')
-            self.assertEqual(perms, grp())
-
-    def test_admin_has_permission(self):
+    @patch('pypicloud.access.base.unauthenticated_userid')
+    def test_admin_has_permission(self, u_userid):
         """ Admins always have permission """
+        u_userid.return_value = 'abc'
         access = IAccessBackend(None)
         access.is_admin = lambda x: True
-        with patch.object(pypicloud.access.base, 'unauthenticated_userid') as userid:
-            userid.return_value = 'abc'
-            self.assertTrue(access.has_permission('p1', 'write'))
+        self.assertTrue(access.has_permission('p1', 'write'))
+
+    def test_has_permission_default_read(self):
+        """ If no user/group permissions on a package, use default_read """
+        self.backend.default_read = ['everyone', 'authenticated']
+        perms = self.backend.allowed_permissions('anypkg')
+        self.assertEqual(perms, {Everyone: ('read',),
+                                 Authenticated: ('read',)})
 
     def test_admin_principal(self):
         """ Admin user has the 'admin' principal """
@@ -322,19 +326,23 @@ class TestConfigBackend(BaseACLTest):
         perms = self.backend.group_permissions('mypkg', 'g1')
         self.assertEqual(perms, ['read'])
 
-    def test_everyone_permission(self):
+    @patch('pypicloud.access.base.effective_principals')
+    def test_everyone_permission(self, principals):
         """ All users have 'everyone' permissions """
         settings = {'package.mypkg.group.everyone': 'r'}
+        principals.return_value = [Everyone]
         self.backend.configure(settings)
-        perms = self.backend.principal_permissions('mypkg', Everyone)
-        self.assertEqual(perms, ['read'])
+        self.assertTrue(self.backend.has_permission('mypkg', 'read'))
+        self.assertFalse(self.backend.has_permission('mypkg', 'write'))
 
-    def test_authenticated_permission(self):
+    @patch('pypicloud.access.base.effective_principals')
+    def test_authenticated_permission(self, principals):
         """ All logged-in users have 'authenticated' permissions """
         settings = {'package.mypkg.group.authenticated': 'r'}
+        principals.return_value = [Authenticated]
         self.backend.configure(settings)
-        perms = self.backend.principal_permissions('mypkg', Authenticated)
-        self.assertEqual(perms, ['read'])
+        self.assertTrue(self.backend.has_permission('mypkg', 'read'))
+        self.assertFalse(self.backend.has_permission('mypkg', 'write'))
 
     def test_all_user_perms(self):
         """ Fetch permissions on a package for all users """
@@ -439,14 +447,16 @@ class TestConfigBackend(BaseACLTest):
             'everyone': ['read'],
         })
 
-    def test_zero_security_write(self):
+    @patch('pypicloud.access.base.effective_principals')
+    def test_zero_security_write(self, principals):
         """ zero_security_mode has no impact on 'w' permission """
         settings = {
             'auth.zero_security_mode': True
         }
         self.backend.configure(settings)
-        perms = self.backend.principal_permissions('pkg', Everyone)
-        self.assertEqual(perms, ['read'])
+        principals.return_value = [Everyone]
+        self.assertTrue(self.backend.has_permission('pkg', 'read'))
+        self.assertFalse(self.backend.has_permission('pkg', 'write'))
 
     def test_root_acl_zero_sec(self):
         """ Root ACL is super permissive in zero security mode """
@@ -951,8 +961,8 @@ class TestSQLBackend(unittest.TestCase):
         count = self.db.query(association_table).count()
         self.assertEqual(count, 0)
 
-    def test_grant_user_permission(self):
-        """ Can give users permissions on a package """
+    def test_grant_user_read_permission(self):
+        """ Can give users read permissions on a package """
         user = make_user('foo', 'bar', False)
         self.db.add(user)
         transaction.commit()
@@ -965,6 +975,28 @@ class TestSQLBackend(unittest.TestCase):
         self.assertTrue(perm.read)
         self.assertFalse(perm.write)
 
+    def test_grant_user_write_permission(self):
+        """ Can give users write permissions on a package """
+        user = make_user('foo', 'bar', False)
+        self.db.add(user)
+        transaction.commit()
+        self.access.edit_user_permission('pkg1', 'foo', 'write', True)
+        transaction.commit()
+        self.db.add(user)
+        self.assertEqual(len(user.permissions), 1)
+        perm = user.permissions[0]
+        self.assertEqual(perm.package, 'pkg1')
+        self.assertFalse(perm.read)
+        self.assertTrue(perm.write)
+
+    def test_grant_user_bad_permission(self):
+        """ Attempting to grant a bad permission raises ValueError """
+        user = make_user('foo', 'bar', False)
+        self.db.add(user)
+        transaction.commit()
+        with self.assertRaises(ValueError):
+            self.access.edit_user_permission('pkg1', 'foo', 'wiggle', True)
+
     def test_revoke_user_permission(self):
         """ Can revoke user permissions on a package """
         user = make_user('foo', 'bar', False)
@@ -976,8 +1008,8 @@ class TestSQLBackend(unittest.TestCase):
         self.db.add(user)
         self.assertEqual(len(user.permissions), 0)
 
-    def test_grant_group_permission(self):
-        """ Can give groups permissions on a package """
+    def test_grant_group_read_permission(self):
+        """ Can give groups read permissions on a package """
         g = Group('foo')
         self.db.add(g)
         transaction.commit()
@@ -990,6 +1022,28 @@ class TestSQLBackend(unittest.TestCase):
         self.assertTrue(perm.read)
         self.assertFalse(perm.write)
 
+    def test_grant_group_write_permission(self):
+        """ Can give groups write permissions on a package """
+        g = Group('foo')
+        self.db.add(g)
+        transaction.commit()
+        self.access.edit_group_permission('pkg1', 'foo', 'write', True)
+        transaction.commit()
+        self.db.add(g)
+        self.assertEqual(len(g.permissions), 1)
+        perm = g.permissions[0]
+        self.assertEqual(perm.package, 'pkg1')
+        self.assertFalse(perm.read)
+        self.assertTrue(perm.write)
+
+    def test_grant_group_bad_permission(self):
+        """ Attempting to grant a bad permission raises ValueError """
+        g = Group('foo')
+        self.db.add(g)
+        transaction.commit()
+        with self.assertRaises(ValueError):
+            self.access.edit_group_permission('pkg1', 'foo', 'wiggle', True)
+
     def test_revoke_group_permission(self):
         """ Can revoke group permissions on a package """
         g = Group('foo')
@@ -1000,3 +1054,10 @@ class TestSQLBackend(unittest.TestCase):
         transaction.commit()
         self.db.add(g)
         self.assertEqual(len(g.permissions), 0)
+
+    def test_enable_registration(self):
+        """ Can set the 'enable registration' flag """
+        self.access.set_allow_register(True)
+        self.assertTrue(self.access.allow_register())
+        self.access.set_allow_register(False)
+        self.assertFalse(self.access.allow_register())

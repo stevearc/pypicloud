@@ -4,8 +4,8 @@
   <title>Package Index</title>
 </head>
 <body>
-  {% for pkg in pkgs %}
-    <a href="{{ pkg.get_url(request) | safe }}">{{ pkg.filename }}</a><br>
+  {% for filename, url in pkgs.iteritems() %}
+    <a href="{{ url }}">{{ filename }}</a><br>
   {%- endfor %}
 </body>
 </html>
