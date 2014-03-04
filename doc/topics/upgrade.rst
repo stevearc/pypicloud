@@ -1,3 +1,5 @@
+.. _upgrade:
+
 Upgrading
 =========
 New versions of PyPICloud may require schema changes in up to two locations:
@@ -19,8 +21,8 @@ TODO: (stevearc 2014-03-03) add migration support
 Migrating Packages
 ==================
 If you would like to change your storage backend, you will need to migrate your
-existing packages to the new location. Create a new config file that uses the
-new storage backend, and then run::
+existing packages to the new location. Create a config file that uses the new
+storage backend, and then run::
 
     pypi-migrate-packages old_config.ini new_config.ini
 

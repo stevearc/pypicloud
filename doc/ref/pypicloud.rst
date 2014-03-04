@@ -21,6 +21,7 @@ Submodules
    pypicloud.models
    pypicloud.route
    pypicloud.scripts
+   pypicloud.util
 
 Module contents
 ---------------
