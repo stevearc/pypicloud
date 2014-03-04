@@ -1,7 +1,7 @@
 """ Tests for pypicloud """
 from mock import MagicMock, patch
 from collections import defaultdict
-from pypicloud.models import create_schema
+from pypicloud.cache.sql import create_schema
 from pypicloud.storage import IStorage
 from pypicloud.cache import ICache
 from pyramid.testing import DummyRequest

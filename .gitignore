@@ -37,7 +37,6 @@ htmlcov
 .project
 .pydevproject
 
-cache
 _version.py
 pypicloud_env
 _build

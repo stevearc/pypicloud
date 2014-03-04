@@ -237,7 +237,7 @@ class TestBaseBackend(BaseACLTest):
         """ Admins always have permission """
         access = IAccessBackend(None)
         access.is_admin = lambda x: True
-        with patch.object(pypicloud.access, 'unauthenticated_userid') as userid:
+        with patch.object(pypicloud.access.base, 'unauthenticated_userid') as userid:
             userid.return_value = 'abc'
             self.assertTrue(access.has_permission('p1', 'write'))
 

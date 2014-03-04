@@ -171,7 +171,7 @@ class TestS3Storage(unittest.TestCase):
         match = re.match(r'^[0-9a-f]{4}/.+$', ret)
         self.assertIsNotNone(match)
 
-    @patch.object(pypicloud.storage, 'boto')
+    @patch.object(pypicloud.storage.s3, 'boto')
     def test_create_bucket(self, boto_mock):
         """ If S3 bucket doesn't exist, create it """
         conn = boto_mock.connect_s3()

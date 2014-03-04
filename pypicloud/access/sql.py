@@ -8,7 +8,7 @@ from sqlalchemy import orm
 from zope.sqlalchemy import ZopeTransactionExtension
 # pylint: enable=F0401,E0611
 
-from . import IMutableAccessBackend
+from .base import IMutableAccessBackend
 
 
 # pylint: disable=C0103

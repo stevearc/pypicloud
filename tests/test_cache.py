@@ -3,7 +3,8 @@ import transaction
 from datetime import datetime
 from mock import MagicMock, patch, ANY
 from pypicloud.cache import ICache, SQLCache, RedisCache
-from pypicloud.models import Package, SQLPackage, create_schema
+from pypicloud.cache.sql import SQLPackage, create_schema
+from pypicloud.models import Package
 from pypicloud.storage import IStorage
 from pyramid.testing import DummyRequest
 from redis import StrictRedis

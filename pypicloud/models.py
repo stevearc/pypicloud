@@ -1,57 +1,15 @@
 """ Model objects """
-import re
 from datetime import datetime
 
-import logging
 import pkg_resources
-from sqlalchemy import Column, DateTime, Text
-from sqlalchemy.ext.declarative import declarative_base
 
+import re
 from .compat import total_ordering
-
-
-LOG = logging.getLogger(__name__)
-
-Base = declarative_base()  # pylint: disable=C0103
 
 
 def normalize_name(name):
     """ Normalize a python package name """
     return name.lower().replace('-', '_')
-
-
-def create_schema(engine):
-    """
-    Create the database schema if needed
-
-    Parameters
-    ----------
-    engine : :class:`sqlalchemy.Engine`
-
-    Notes
-    -----
-    The method should only be called after importing all modules containing
-    models which extend the ``Base`` object.
-
-    """
-    Base.metadata.create_all(bind=engine)
-
-
-def drop_schema(engine):
-    """
-    Drop the database schema
-
-    Parameters
-    ----------
-    engine : :class:`sqlalchemy.Engine`
-
-    Notes
-    -----
-    The method should only be called after importing all modules containing
-    models which extend the ``Base`` object.
-
-    """
-    Base.metadata.drop_all(bind=engine)
 
 
 @total_ordering
@@ -131,15 +89,3 @@ class Package(object):
             'version': self.version,
             'url': self.get_url(request),
         }
-
-
-class SQLPackage(Package, Base):
-
-    """ Python package stored in SQLAlchemy """
-    __tablename__ = 'packages'
-    name = Column(Text(), primary_key=True)
-    version = Column(Text(), primary_key=True)
-    last_modified = Column(DateTime(), index=True, nullable=False)
-    path = Column(Text(), nullable=False)
-    url = Column('url', Text())
-    expire = Column('expire', DateTime())
