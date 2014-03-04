@@ -1,10 +1,12 @@
 """ Store packages as files on disk """
 from datetime import datetime
+from contextlib import closing
 
 from pyramid.response import FileResponse
 
 import os
 from .base import IStorage
+from pypicloud.models import Package
 
 
 class FileStorage(IStorage):
@@ -15,13 +17,12 @@ class FileStorage(IStorage):
         super(FileStorage, self).__init__(request)
 
     @classmethod
-    def configure(cls, config):
-        settings = config.get_settings()
+    def configure(cls, settings):
         cls.directory = os.path.abspath(settings['storage.dir']).rstrip('/')
         if not os.path.exists(cls.directory):
             os.makedirs(cls.directory)
 
-    def list(self, factory):
+    def list(self, factory=Package):
         for root, _, files in os.walk(self.directory):
             for filename in files:
                 shortpath = root[len(self.directory):].strip('/')
@@ -66,3 +67,7 @@ class FileStorage(IStorage):
             os.rmdir(package_dir)
         except OSError:
             return
+
+    def open(self, package):
+        filename = os.path.join(self.directory, package.path)
+        return closing(open(filename, 'r'))

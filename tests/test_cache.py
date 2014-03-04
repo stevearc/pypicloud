@@ -1,17 +1,15 @@
 """ Tests for database cache implementations """
-import transaction
 from datetime import datetime
-from mock import MagicMock, patch, ANY
-from pypicloud.cache import ICache, SQLCache, RedisCache
-from pypicloud.cache.sql import SQLPackage, create_schema
-from pypicloud.models import Package
-from pypicloud.storage import IStorage
+
+import transaction
+from mock import MagicMock, patch
 from pyramid.testing import DummyRequest
-from redis import StrictRedis
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 from . import DummyCache, DummyStorage
+from pypicloud.cache import ICache, SQLCache, RedisCache
+from pypicloud.cache.sql import SQLPackage
+from pypicloud.models import Package
+from pypicloud.storage import IStorage
 
 
 try:
@@ -97,11 +95,10 @@ class TestBaseCache(unittest.TestCase):
 
     def test_configure_storage(self):
         """ Calling configure() sets up storage backend """
-        config = MagicMock()
-        config.get_settings.return_value = {
+        settings = {
             'pypi.storage': 'tests.DummyStorage'
         }
-        ICache.configure(config)
+        ICache.configure(settings)
         self.assertEqual(ICache.storage_impl, DummyStorage)
 
     def test_summary(self):
@@ -143,11 +140,10 @@ class TestBaseCache(unittest.TestCase):
 
     def test_abstract_methods(self):
         """ Abstract methods raise exception """
-        config = MagicMock()
-        config.get_settings.return_value = {
+        settings = {
             'pypi.storage': 'tests.DummyStorage'
         }
-        ICache.configure(config)
+        ICache.configure(settings)
         cache = ICache()
         with self.assertRaises(NotImplementedError):
             cache.distinct()
@@ -170,12 +166,11 @@ class TestSQLCache(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super(TestSQLCache, cls).setUpClass()
-        config = MagicMock()
-        config.get_settings.return_value = {
+        settings = {
             'pypi.storage': 'tests.DummyStorage',
             'db.url': 'sqlite:///:memory:',
         }
-        SQLCache.configure(config)
+        SQLCache.configure(settings)
 
     def setUp(self):
         super(TestSQLCache, self).setUp()
@@ -322,12 +317,11 @@ class TestRedisCache(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super(TestRedisCache, cls).setUpClass()
-        config = MagicMock()
-        config.get_settings.return_value = {
+        settings = {
             'pypi.storage': 'tests.DummyStorage',
             'db.url': 'redis://localhost',
         }
-        RedisCache.configure(config)
+        RedisCache.configure(settings)
         cls.redis = RedisCache.db
 
     def setUp(self):

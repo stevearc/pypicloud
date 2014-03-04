@@ -14,6 +14,7 @@ REQUIREMENTS = [
     'boto',
     'paste',
     'passlib',
+    'pip',
     'pycrypto',
     'pyramid',
     'pyramid_beaker',
@@ -69,6 +70,7 @@ if __name__ == "__main__":
             'console_scripts': [
                 'pypicloud-gen-password = pypicloud.scripts:gen_password',
                 'pypicloud-make-config = pypicloud.scripts:make_config',
+                'pypicloud-migrate-packages = pypicloud.scripts:migrate_packages',
             ],
             'paste.app_factory': [
                 'main = pypicloud:main',

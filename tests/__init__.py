@@ -1,14 +1,12 @@
 """ Tests for pypicloud """
-from mock import MagicMock, patch
-from collections import defaultdict
-from pypicloud.cache.sql import create_schema
-from pypicloud.storage import IStorage
-from pypicloud.cache import ICache
-from pyramid.testing import DummyRequest
-from redis import StrictRedis
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from datetime import datetime
+
+from collections import defaultdict
+from pyramid.testing import DummyRequest
+
+from pypicloud.cache import ICache
+from pypicloud.models import Package
+from pypicloud.storage import IStorage
 
 
 try:
@@ -28,7 +26,7 @@ class DummyStorage(IStorage):
     def __call__(self, *args):
         return self
 
-    def list(self, factory):
+    def list(self, factory=Package):
         """ Return a list or generator of all packages """
         for args in self.packages.itervalues():
             all_args = args + (datetime.utcnow(),)
@@ -50,6 +48,9 @@ class DummyStorage(IStorage):
     def reset(self):
         """ Clear all packages """
         self.packages = {}
+
+    def open(self, package):
+        pass
 
 
 class DummyCache(ICache):

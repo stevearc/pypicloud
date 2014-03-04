@@ -141,9 +141,8 @@ class SQLCache(ICache):
         cache.db.close()
 
     @classmethod
-    def configure(cls, config):
-        super(SQLCache, cls).configure(config)
-        settings = config.get_settings()
+    def configure(cls, settings):
+        super(SQLCache, cls).configure(settings)
         engine = engine_from_config(settings, prefix='db.')
         cls.dbmaker = sessionmaker(
             bind=engine, extension=ZopeTransactionExtension())

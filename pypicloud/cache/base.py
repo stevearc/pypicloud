@@ -3,11 +3,11 @@ from datetime import datetime
 
 import logging
 from pkg_resources import parse_version
-from pyramid.path import DottedNameResolver
 from pyramid.settings import asbool
 
 import os
 from pypicloud.models import Package, normalize_name
+from pypicloud.storage import get_storage_impl
 
 
 LOG = logging.getLogger(__name__)
@@ -41,19 +41,9 @@ class ICache(object):
         return cache
 
     @classmethod
-    def configure(cls, config):
+    def configure(cls, settings):
         """ Configure the cache method with app settings """
-        settings = config.get_settings()
-        resolver = DottedNameResolver(__name__)
-        storage = settings.get('pypi.storage', 'file')
-        if storage == 's3':
-            storage = 'pypicloud.storage.S3Storage'
-        elif storage == 'file':
-            storage = 'pypicloud.storage.FileStorage'
-        storage_impl = resolver.resolve(storage)
-        storage_impl.configure(config)
-        cls.storage_impl = storage_impl
-
+        cls.storage_impl = get_storage_impl(settings)
         cls.allow_overwrite = asbool(settings.get('pypi.allow_overwrite',
                                                   False))
 

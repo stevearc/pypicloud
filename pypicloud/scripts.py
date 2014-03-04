@@ -1,5 +1,4 @@
 """ Commandline scripts """
-import os
 import sys
 
 import argparse
@@ -7,6 +6,9 @@ import getpass
 from base64 import b64encode
 from jinja2 import Template
 from pkg_resources import resource_string
+from pyramid.paster import bootstrap
+
+import os
 from pypicloud.access import pwd_context
 
 
@@ -159,3 +161,39 @@ def make_config(argv=None):
         ofile.write(template.render(**data))
 
     print "Config file written to '%s'" % args.outfile
+
+
+def migrate_packages():
+    """
+    Migrate packages from one storage backend to another
+
+    Create two config.ini files that are configured to use different storage
+    backends. All packages will be migrated from the storage backend in the
+    first to the storage backend in the second.
+
+    ex: pypicloud-migrate-packages file_config.ini s3_config.ini
+
+    """
+    parser = argparse.ArgumentParser(
+        description=migrate_packages.__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('config_from',
+                        help="Name of config file to migrate from")
+    parser.add_argument('config_to',
+                        help="Name of config file to migrate to")
+
+    args = parser.parse_args()
+
+    old_env = bootstrap(args.config_from)
+
+    old_storage = old_env['request'].db.storage
+
+    all_packages = old_storage.list()
+
+    new_env = bootstrap(args.config_to)
+    new_storage = new_env['request'].db.storage
+    for package in all_packages:
+        print "Migrating %s" % package
+        with old_storage.open(package) as data:
+            new_storage.upload(package.name, package.version, package.filename,
+                               data)

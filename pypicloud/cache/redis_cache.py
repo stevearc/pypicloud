@@ -13,9 +13,8 @@ class RedisCache(ICache):
     redis_prefix = 'pypicloud:'
 
     @classmethod
-    def configure(cls, config):
-        super(RedisCache, cls).configure(config)
-        settings = config.get_settings()
+    def configure(cls, settings):
+        super(RedisCache, cls).configure(settings)
         try:
             from redis import StrictRedis
         except ImportError:  # pragma: no cover

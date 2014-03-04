@@ -1,21 +1,21 @@
 """ Tests for package storage backends """
-import os
-import re
 import time
 from cStringIO import StringIO
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import shutil
 import tempfile
-from boto.s3.key import Key
 from mock import MagicMock, patch
 from moto import mock_s3
-from pypicloud.models import Package
-from pypicloud.storage import S3Storage, FileStorage
 from urlparse import urlparse, parse_qs
 
 import boto
+import os
 import pypicloud
+import re
+from boto.s3.key import Key
+from pypicloud.models import Package
+from pypicloud.storage import S3Storage, FileStorage
 
 
 try:
@@ -38,17 +38,15 @@ class TestS3Storage(unittest.TestCase):
         super(TestS3Storage, self).setUp()
         self.s3_mock = mock_s3()
         self.s3_mock.start()
-        config = MagicMock()
         self.settings = {
             'aws.bucket': 'mybucket',
             'aws.access_key': 'abc',
             'aws.secret_key': 'bcd',
         }
-        config.get_settings.return_value = self.settings
         conn = boto.connect_s3()
         self.bucket = conn.create_bucket('mybucket')
         patch.object(S3Storage, 'test', True).start()
-        S3Storage.configure(config)
+        S3Storage.configure(self.settings)
         self.storage = S3Storage(MagicMock())
 
     def tearDown(self):
@@ -172,12 +170,11 @@ class TestS3Storage(unittest.TestCase):
         """ If S3 bucket doesn't exist, create it """
         conn = boto_mock.connect_s3()
         conn.lookup.return_value = None
-        config = MagicMock()
-        config.get_settings.return_value = {
+        settings = {
             'aws.bucket': 'new_bucket',
             'aws.region': 'us-east-1',
         }
-        S3Storage.configure(config)
+        S3Storage.configure(settings)
         conn.create_bucket.assert_called_with('new_bucket',
                                               location='us-east-1')
 
@@ -189,11 +186,10 @@ class TestFileStorage(unittest.TestCase):
     def setUp(self):
         super(TestFileStorage, self).setUp()
         self.tempdir = tempfile.mkdtemp()
-        config = MagicMock()
-        config.get_settings.return_value = {
+        settings = {
             'storage.dir': self.tempdir,
         }
-        FileStorage.configure(config)
+        FileStorage.configure(settings)
         self.request = MagicMock()
         self.storage = FileStorage(self.request)
 
@@ -251,11 +247,10 @@ class TestFileStorage(unittest.TestCase):
         """ configure() will create the package dir if it doesn't exist """
         tempdir = tempfile.mkdtemp()
         os.rmdir(tempdir)
-        config = MagicMock()
-        config.get_settings.return_value = {
+        settings = {
             'storage.dir': tempdir,
         }
-        FileStorage.configure(config)
+        FileStorage.configure(settings)
         try:
             self.assertTrue(os.path.exists(tempdir))
         finally:

@@ -2,3 +2,18 @@
 from .base import IStorage
 from .files import FileStorage
 from .s3 import S3Storage
+
+from pyramid.path import DottedNameResolver
+
+
+def get_storage_impl(settings):
+    """ Get and configure the storage backend wrapper """
+    resolver = DottedNameResolver(__name__)
+    storage = settings.get('pypi.storage', 'file')
+    if storage == 's3':
+        storage = 'pypicloud.storage.S3Storage'
+    elif storage == 'file':
+        storage = 'pypicloud.storage.FileStorage'
+    storage_impl = resolver.resolve(storage)
+    storage_impl.configure(settings)
+    return storage_impl

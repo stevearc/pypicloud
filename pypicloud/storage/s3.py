@@ -1,6 +1,8 @@
 """ Store packages in S3 """
 import time
 from datetime import datetime
+from contextlib import contextmanager
+from urllib import urlopen
 
 import logging
 from hashlib import md5
@@ -12,6 +14,7 @@ import os
 from .base import IStorage
 from boto.s3.key import Key
 from pip.util import splitext
+from pypicloud.models import Package
 
 
 LOG = logging.getLogger(__name__)
@@ -24,9 +27,8 @@ class S3Storage(IStorage):
     test = False
 
     @classmethod
-    def configure(cls, config):
-        super(S3Storage, cls).configure(config)
-        settings = config.get_settings()
+    def configure(cls, settings):
+        super(S3Storage, cls).configure(settings)
         cls.expire_after = int(settings.get('aws.expire_after', 60 * 60 * 24))
         cls.buffer_time = int(settings.get('aws.buffer_time', 600))
         cls.bucket_prefix = settings.get('aws.prefix', '')
@@ -55,7 +57,7 @@ class S3Storage(IStorage):
                         '-'.join(path_components[i:]))
         return None, None
 
-    def list(self, factory):
+    def list(self, factory=Package):
         keys = self.bucket.list(self.bucket_prefix)
         for key in keys:
             # Moto doesn't send down metadata from bucket.list()
@@ -116,3 +118,12 @@ class S3Storage(IStorage):
         key = Key(self.bucket)
         key.key = path
         key.delete()
+
+    @contextmanager
+    def open(self, package):
+        url = self.get_url(package)[0]
+        handle = urlopen(url)
+        try:
+            yield handle
+        finally:
+            handle.close()

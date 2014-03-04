@@ -1,4 +1,5 @@
 """ Base class for storage backends """
+from pypicloud.models import Package
 
 
 class IStorage(object):
@@ -9,10 +10,10 @@ class IStorage(object):
         self.request = request
 
     @classmethod
-    def configure(cls, config):
+    def configure(cls, settings):
         """ Configure the storage method with app settings """
 
-    def list(self, factory):
+    def list(self, factory=Package):
         """ Return a list or generator of all packages """
         raise NotImplementedError
 
@@ -77,6 +78,28 @@ class IStorage(object):
         ----------
         path : str
             The unique path to the package
+
+        """
+        raise NotImplementedError
+
+    def open(self, package):
+        """
+        Get a buffer object that can read the package data
+
+        This should be a context manager. It is used in migration scripts, not
+        directly by the web application.
+
+        Parameters
+        ----------
+        package : :class:`~pypicloud.models.Package`
+
+        Examples
+        --------
+        ::
+
+            with storage.open(package) as pkg_data:
+                with open('outfile.tar.gz', 'w') as ofile:
+                    ofile.write(pkg_data.read())
 
         """
         raise NotImplementedError

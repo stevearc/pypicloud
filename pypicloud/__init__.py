@@ -2,11 +2,11 @@
 from pyramid.config import Configurator
 from pyramid.renderers import JSON
 import datetime
-from pyramid.path import DottedNameResolver
 from pyramid.renderers import render
 from pyramid.settings import asbool
 from pyramid_beaker import session_factory_from_settings
 
+from .cache import get_cache_impl
 from .route import Root
 
 
@@ -67,16 +67,7 @@ def includeme(config):
     config.registry.realm = realm
 
     # CACHING DATABASE SETTINGS
-    resolver = DottedNameResolver(__name__)
-    dotted_cache = settings.get('pypi.db', 'sql')
-    if dotted_cache == 'sql':
-        dotted_cache = 'pypicloud.cache.SQLCache'
-    elif dotted_cache == 'redis':
-        dotted_cache = 'pypicloud.cache.RedisCache'
-    cache_impl = resolver.resolve(dotted_cache)
-
-    cache_impl.configure(config)
-    cache_impl.reload_if_needed()
+    cache_impl = get_cache_impl(settings)
 
     config.add_request_method(cache_impl, name='db', reify=True)
 
