@@ -10,6 +10,7 @@ docs_basepath = os.path.abspath(os.path.dirname(__file__))
 
 addtl_paths = (
     os.pardir,
+    'extensions',
 )
 
 for path in addtl_paths:
@@ -18,7 +19,7 @@ for path in addtl_paths:
 from pypicloud_version import git_version_data
 
 extensions = ['sphinx.ext.autodoc', 'numpydoc', 'sphinx.ext.intersphinx',
-              'sphinx.ext.linkcode', 'sphinx.ext.autosummary']
+              'sphinx.ext.linkcode', 'sphinx.ext.autosummary', 'github']
 
 master_doc = 'index'
 project = u'pypicloud'

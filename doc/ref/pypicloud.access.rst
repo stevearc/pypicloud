@@ -6,6 +6,9 @@ Submodules
 
 .. toctree::
 
+   pypicloud.access.base
+   pypicloud.access.config
+   pypicloud.access.remote
    pypicloud.access.sql
 
 Module contents

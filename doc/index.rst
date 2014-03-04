@@ -23,9 +23,11 @@ User Guide
     topics/getting_started
     topics/configuration
     topics/storage
-    topics/access_control
     topics/cache
+    topics/access_control
     topics/deploy
+    topics/upgrade
+    topics/extensions
     topics/api
     topics/developing
 

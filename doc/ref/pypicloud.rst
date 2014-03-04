@@ -7,6 +7,8 @@ Subpackages
 .. toctree::
 
     pypicloud.access
+    pypicloud.cache
+    pypicloud.storage
     pypicloud.views
 
 Submodules
@@ -15,12 +17,10 @@ Submodules
 .. toctree::
 
    pypicloud.auth
-   pypicloud.cache
    pypicloud.compat
    pypicloud.models
    pypicloud.route
    pypicloud.scripts
-   pypicloud.storage
 
 Module contents
 ---------------

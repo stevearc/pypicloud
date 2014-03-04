@@ -188,9 +188,11 @@ Change your password
 These endpoints are used by the admin web interface. Most of them require your
 :ref:`access backend <access_control>` to be mutable.
 
+.. _rest-rebuild:
+
 ``GET`` ``/admin/rebuild/``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Flush the cache database and rebuild it from the package list stored in S3
+Flush the cache database and rebuild it by enumerating the storage backend
 
 **Example**::
 
