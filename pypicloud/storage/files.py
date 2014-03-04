@@ -30,8 +30,7 @@ class FileStorage(IStorage):
                 last_modified = datetime.fromtimestamp(os.path.getmtime(
                     fullpath))
                 path = os.path.join(shortpath, filename)
-                url = self.request.app_url('package', path)
-                yield factory(name, version, path, last_modified, url)
+                yield factory(name, version, path, last_modified)
 
     def download_response(self, package):
         return FileResponse(os.path.join(self.directory, package.path),

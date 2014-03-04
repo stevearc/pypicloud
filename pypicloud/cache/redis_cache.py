@@ -1,6 +1,8 @@
 """ Store package data in redis """
 from datetime import datetime
 
+import json
+
 from .base import ICache
 
 
@@ -55,12 +57,13 @@ class RedisCache(ICache):
 
     def _load(self, data):
         """ Load a Package class from redis data """
-        data['last_modified'] = datetime.fromtimestamp(
-            float(data['last_modified']))
-        if data.get('expire'):
-            data['expire'] = datetime.fromtimestamp(float(data['expire']))
-
-        return self.package_class(**data)
+        name = data.pop('name')
+        version = data.pop('version')
+        path = data.pop('path')
+        last_modified = datetime.fromtimestamp(
+            float(data.pop('last_modified')))
+        kwargs = dict(((k, json.loads(v)) for k, v in data.iteritems()))
+        return self.package_class(name, version, path, last_modified, **kwargs)
 
     def _all(self, name):
         versions = self.db.smembers(self.redis_version_set(name))
@@ -94,10 +97,8 @@ class RedisCache(ICache):
             'path': package.path,
             'last_modified': package.last_modified.strftime('%s.%f'),
         }
-        if package.url is not None:
-            data['url'] = package.url
-        if package.expire is not None:
-            data['expire'] = package.expire.strftime('%s.%f')
+        for key, value in package.data.iteritems():
+            data[key] = json.dumps(value)
         pipe.hmset(self.redis_key(package), data)
         pipe.sadd(self.redis_set, package.name)
         pipe.sadd(self.redis_version_set(package.name), package.version)

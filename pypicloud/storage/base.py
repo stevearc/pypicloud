@@ -24,10 +24,18 @@ class IStorage(object):
 
         /api/package/<package>/<version>/download/<filename>
 
+        Returns
+        -------
+        link : str
+            Link to the location of this package file
+        changed : bool
+            If True, the package needs to be saved to the cache
+
         """
-        return self.request.app_url('api/package', package.name,
-                                    package.version, 'download',
-                                    package.filename)
+        url = self.request.app_url('api/package', package.name,
+                                   package.version, 'download',
+                                   package.filename)
+        return (url, False)
 
     def download_response(self, package):
         """

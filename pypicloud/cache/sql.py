@@ -13,11 +13,63 @@ from zope.sqlalchemy import ZopeTransactionExtension
 
 from .base import ICache
 from pypicloud.models import Package
+from sqlalchemy.types import TypeDecorator, TEXT
+import json
+from sqlalchemy.ext.mutable import Mutable
 
 
 LOG = logging.getLogger(__name__)
 
 Base = declarative_base()  # pylint: disable=C0103
+
+
+class JSONEncodedDict(TypeDecorator):  # pylint: disable=W0223
+
+    "Represents an immutable structure as a json-encoded string."
+
+    impl = TEXT
+
+    def process_bind_param(self, value, dialect):
+        if value is not None:
+            value = json.dumps(value)
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is not None:
+            value = json.loads(value)
+        return value
+
+
+class MutableDict(Mutable, dict):
+
+    """ SQLAlchemy dict field that tracks changes """
+
+    @classmethod
+    def coerce(cls, key, value):
+        "Convert plain dictionaries to MutableDict."
+
+        if not isinstance(value, MutableDict):
+            if isinstance(value, dict):
+                return MutableDict(value)
+
+            # this call will raise ValueError
+            return Mutable.coerce(key, value)
+        else:
+            return value
+
+    def __setitem__(self, key, value):
+        "Detect dictionary set events and emit change events."
+
+        dict.__setitem__(self, key, value)
+        self.changed()
+
+    def __delitem__(self, key):
+        "Detect dictionary del events and emit change events."
+
+        dict.__delitem__(self, key)
+        self.changed()
+
+MutableDict.associate_with(JSONEncodedDict)
 
 
 class SQLPackage(Package, Base):
@@ -28,8 +80,7 @@ class SQLPackage(Package, Base):
     version = Column(Text(), primary_key=True)
     last_modified = Column(DateTime(), index=True, nullable=False)
     path = Column(Text(), nullable=False)
-    url = Column('url', Text())
-    expire = Column('expire', DateTime())
+    data = Column(JSONEncodedDict(), nullable=False)
 
 
 def create_schema(engine):
@@ -70,7 +121,6 @@ class SQLCache(ICache):
 
     """ Caching database that uses SQLAlchemy """
     dbtype = 'sql'
-    autocommit = False
     package_class = SQLPackage
     dbmaker = None
 

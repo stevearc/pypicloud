@@ -35,7 +35,7 @@ class DummyStorage(IStorage):
             yield factory(*all_args)
 
     def get_url(self, package):
-        return package.path
+        return package.path, False
 
     def download_response(self, package):
         return None

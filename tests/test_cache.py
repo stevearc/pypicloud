@@ -21,9 +21,9 @@ except ImportError:
 
 
 def make_package(name='mypkg', version='1.1', path='mypkg.tar.gz',
-                 last_modified=datetime.utcnow(), factory=Package):
+                 last_modified=datetime.utcnow(), factory=Package, **kwargs):
     """ Convenience method for constructing a package """
-    return factory(name, version, path, last_modified)
+    return factory(name, version, path, last_modified, **kwargs)
 
 
 class TestBaseCache(unittest.TestCase):
@@ -49,19 +49,19 @@ class TestBaseCache(unittest.TestCase):
 
     @patch.object(ICache, 'storage_impl')
     def test_get_url_saves(self, _):
-        """ Calls to get_url() saves to caching db if autocommit=True """
+        """ Calls to get_url() saves to caching db if changed=True """
         cache = ICache(MagicMock())
+        cache.storage.get_url.return_value = 'a', True
         with patch.object(cache, 'save') as save:
-            cache.autocommit = True
             package = make_package()
             cache.get_url(package)
             save.assert_called_with(package)
 
     @patch.object(ICache, 'storage_impl')
     def test_get_url_no_save(self, _):
-        """ Calls to get_url() doesn't save if autocommit=False """
+        """ Calls to get_url() doesn't save if changed=False """
         cache = ICache(MagicMock())
-        cache.autocommit = False
+        cache.storage.get_url.return_value = 'a', False
         with patch.object(cache, 'save') as save:
             package = make_package()
             cache.get_url(package)
@@ -349,17 +349,17 @@ class TestRedisCache(unittest.TestCase):
             'path': pkg.path,
             'last_modified': pkg.last_modified.strftime('%s.%f'),
         }
-        if pkg.url is not None:
-            pkg_data['url'] = pkg.url
-            pkg_data['expire'] = pkg.expire.strftime('%s.%f')
+        pkg_data.update(pkg.data)
 
         self.assertEqual(data, pkg_data)
 
     def test_load(self):
         """ Loading from redis deserializes all fields """
-        pkg = make_package()
-        pkg.url = 'my.url'
-        pkg.expire = datetime.utcnow()
+        kwargs = {
+            'url': 'my.url',
+            'expire': 7237,
+        }
+        pkg = make_package(**kwargs)
         self.db.save(pkg)
 
         loaded = self.db.fetch(pkg.name, pkg.version)
@@ -367,8 +367,7 @@ class TestRedisCache(unittest.TestCase):
         self.assertEqual(loaded.version, pkg.version)
         self.assertEqual(loaded.path, pkg.path)
         self.assertEqual(loaded.last_modified, pkg.last_modified)
-        self.assertEqual(loaded.url, pkg.url)
-        self.assertEqual(loaded.expire, pkg.expire)
+        self.assertEqual(loaded.data, kwargs)
 
     def test_delete(self):
         """ delete() removes object from database and deletes from storage """

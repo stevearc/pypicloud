@@ -18,7 +18,6 @@ class ICache(object):
     """ Base class for a caching database that stores package metadata """
 
     dbtype = None
-    autocommit = True
     package_class = Package
     storage_impl = None
 
@@ -60,11 +59,10 @@ class ICache(object):
 
     def get_url(self, package):
         """ Pass through to storage """
-        url = package.url
-        new_url = self.storage.get_url(package)
-        if self.autocommit and url != new_url:
+        url, changed = self.storage.get_url(package)
+        if changed:
             self.save(package)
-        return new_url
+        return url
 
     def download_response(self, package):
         """ Pass through to storage """

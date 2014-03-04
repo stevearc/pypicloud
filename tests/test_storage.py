@@ -25,9 +25,9 @@ except ImportError:
 
 
 def make_package(name='a', version='b', path='path/to/file.tar.gz',
-                 last_modified=datetime.utcnow()):
+                 last_modified=datetime.utcnow(), **kwargs):
     """ Convenience method for constructing a package """
-    return Package(name, version, path, last_modified)
+    return Package(name, version, path, last_modified, **kwargs)
 
 
 class TestS3Storage(unittest.TestCase):
@@ -98,9 +98,9 @@ class TestS3Storage(unittest.TestCase):
     def test_get_url(self):
         """ Mock s3 and test package url generation """
         package = make_package()
-        url = self.storage.get_url(package)
-        self.assertEqual(package.url, url)
-        self.assertIsNotNone(package.expire)
+        url, _ = self.storage.get_url(package)
+        self.assertEqual(package.data['url'], url)
+        self.assertIsNotNone(package.data.get('expire'))
 
         parts = urlparse(url)
         self.assertEqual(parts.scheme, 'https')
@@ -109,29 +109,25 @@ class TestS3Storage(unittest.TestCase):
         query = parse_qs(parts.query)
         self.assertItemsEqual(query.keys(), ['Expires', 'Signature',
                                              'AWSAccessKeyId'])
-        actual_expire = (time.mktime(package.expire.timetuple()) +
+        actual_expire = (package.data['expire'] +
                          self.storage.buffer_time)
-        self.assertEqual(int(query['Expires'][0]), actual_expire)
+        self.assertEqual(int(query['Expires'][0]), int(actual_expire))
         self.assertEqual(query['AWSAccessKeyId'][0],
                          self.settings['aws.access_key'])
 
     def test_get_url_cached(self):
         """ If url is cached and valid, get_url() returns cached url """
-        package = make_package()
-        package.url = 'abc'
-        package.expire = datetime.utcnow() + timedelta(seconds=10)
-        url = self.storage.get_url(package)
-        self.assertEqual(package.url, url)
+        package = make_package(url='abc', expire=time.time() + 10)
+        url, _ = self.storage.get_url(package)
+        self.assertEqual(package.data['url'], url)
         self.assertEqual(url, 'abc')
 
     def test_get_url_expire(self):
         """ If url is cached and invalid, get_url() regenerates the url """
-        package = make_package()
-        package.url = 'abc'
-        package.expire = datetime.utcnow() - timedelta(seconds=10)
-        url = self.storage.get_url(package)
-        self.assertEqual(package.url, url)
-        self.assertIsNotNone(package.expire)
+        package = make_package(url='abc', expire=time.time() - 10)
+        url, _ = self.storage.get_url(package)
+        self.assertEqual(package.data['url'], url)
+        self.assertIsNotNone(package.data['expire'])
 
         parts = urlparse(url)
         self.assertEqual(parts.scheme, 'https')
@@ -234,7 +230,7 @@ class TestFileStorage(unittest.TestCase):
         """ Test package url generation """
         package = make_package()
         self.request.app_url.side_effect = lambda *x: '/'.join(x)
-        url = self.storage.get_url(package)
+        url, _ = self.storage.get_url(package)
         expected = 'api/package/%s/%s/download/%s' % (package.name,
                                                       package.version,
                                                       package.filename)

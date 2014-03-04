@@ -81,16 +81,18 @@ class S3Storage(IStorage):
             yield pkg
 
     def get_url(self, package):
-        if (package.url is None or package.expire is None or
-                datetime.utcnow() > package.expire):
+        expire = package.data.get('expire', 0)
+        changed = False
+        if 'url' not in package.data or time.time() > expire:
             key = Key(self.bucket)
             key.key = package.path
             expire_after = time.time() + self.expire_after
-            package.url = key.generate_url(expire_after,
-                                           expires_in_absolute=True)
-            package.expire = datetime.fromtimestamp(expire_after -
-                                                    self.buffer_time)
-        return package.url
+            url = key.generate_url(expire_after, expires_in_absolute=True)
+            package.data['url'] = url
+            expire = expire_after - self.buffer_time
+            package.data['expire'] = expire
+            changed = True
+        return package.data['url'], changed
 
     def download_response(self, package):
         # Don't need to implement because the download urls go to S3

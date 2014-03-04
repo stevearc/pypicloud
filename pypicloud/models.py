@@ -1,8 +1,7 @@
 """ Model objects """
-from datetime import datetime
-
 import pkg_resources
 
+import os
 import re
 from .compat import total_ordering
 
@@ -28,31 +27,22 @@ class Package(object):
         The absolute S3 path of the package file
     last_modified : datetime
         The datetime when this package was uploaded
-    url : str, optional
-        The generated S3 url (may be out of date; access this from
-        :meth:`~.get_url`)
-    expire : :class:`~datetime.datetime`, optional
-        When the generated S3 url expires
+    data : dict
+        Metadata about the package
 
     """
 
-    def __init__(self, name, version, path, last_modified, url=None,
-                 expire=None):
+    def __init__(self, name, version, path, last_modified, **kwargs):
         self.name = normalize_name(name)
         self.version = version
         self.path = path
         self.last_modified = last_modified
-        self.url = url
-        if expire is not None and not isinstance(expire, datetime):
-            self.expire = datetime.fromtimestamp(float(expire))
-        else:
-            self.expire = expire
+        self.data = kwargs
 
     @property
     def filename(self):
         """ Getter for raw filename with no prefixes """
-        filename = self.path.split('/')[-1]
-        return filename
+        return os.path.basename(self.path)
 
     def get_url(self, request):
         """ Create path to the download link """
