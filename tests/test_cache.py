@@ -5,7 +5,7 @@ import transaction
 from mock import MagicMock, patch
 from pyramid.testing import DummyRequest
 
-from . import DummyCache, DummyStorage
+from . import DummyCache, DummyStorage, make_package
 from pypicloud.cache import ICache, SQLCache, RedisCache
 from pypicloud.cache.sql import SQLPackage
 from pypicloud.models import Package
@@ -18,32 +18,16 @@ except ImportError:
     import unittest
 
 
-def make_package(name='mypkg', version='1.1', path='mypkg.tar.gz',
-                 last_modified=datetime.utcnow(), factory=Package, **kwargs):
-    """ Convenience method for constructing a package """
-    return factory(name, version, path, last_modified, **kwargs)
-
-
 class TestBaseCache(unittest.TestCase):
 
     """ Tests for the caching base class """
 
     def test_equality(self):
         """ Two packages with same name & version should be equal """
-        p1 = make_package(path='wibbly')
-        p2 = make_package(path='wobbly')
+        p1 = make_package(filename='wibbly')
+        p2 = make_package(filename='wobbly')
         self.assertEquals(hash(p1), hash(p2))
         self.assertEquals(p1, p2)
-
-    def test_get_filename(self):
-        """ The pypi path should exclude any S3 prefix """
-        p1 = make_package(path='a84f/asodifja/mypath')
-        self.assertEqual(p1.filename, 'mypath')
-
-    def test_get_filename_no_prefix(self):
-        """ The pypi path should noop if no S3 prefix """
-        p1 = make_package(path='a84f-mypath')
-        self.assertEqual(p1.filename, p1.path)
 
     @patch.object(ICache, 'storage_impl')
     def test_get_url_saves(self, _):
@@ -69,15 +53,14 @@ class TestBaseCache(unittest.TestCase):
         """ Uploading a preexisting packages overwrites current package """
         cache = DummyCache()
         cache.allow_overwrite = True
-        name, version = 'a', '1'
-        old_path = 'old_package_path-1.tar.gz'
-        cache.upload(name, version, old_path, None)
-        new_path = 'new_path-1.tar.gz'
-        cache.upload(name, version, new_path, None)
+        name, filename = 'a', 'a-1.tar.gz'
+        cache.upload(filename, 'old', name)
+        cache.upload(filename, 'new', name)
 
         all_versions = cache.all(name)
         self.assertEqual(len(all_versions), 1)
-        self.assertEquals(all_versions[0].path, new_path)
+        data = cache.storage.open(all_versions[0])
+        self.assertEqual(data, 'new')
 
         stored_pkgs = list(cache.storage.list(cache.package_class))
         self.assertEqual(len(stored_pkgs), 1)
@@ -86,12 +69,25 @@ class TestBaseCache(unittest.TestCase):
         """ If allow_overwrite=False duplicate package throws exception """
         cache = DummyCache()
         cache.allow_overwrite = False
-        name, version = 'a', '1'
-        old_path = 'old_package_path-1.tar.gz'
-        cache.upload(name, version, old_path, None)
-        new_path = 'new_path-1.tar.gz'
+        name, version, filename = 'a', '1', 'a-1.tar.gz'
+        cache.upload(filename, None, name, version)
         with self.assertRaises(ValueError):
-            cache.upload(name, version, new_path, None)
+            cache.upload(filename, None, name, version)
+
+    def test_multiple_packages_same_version(self):
+        """ Can upload multiple packages that have the same version """
+        cache = DummyCache()
+        cache.allow_overwrite = False
+        name, version = 'a', '1'
+        path1 = 'old_package_path-1.tar.gz'
+        cache.upload(path1, None, name, version)
+        path2 = 'new_path-1.whl'
+        cache.upload(path2, None, name, version)
+
+        all_versions = cache.all(name)
+        self.assertEqual(len(all_versions), 2)
+        stored_pkgs = list(cache.storage.list(cache.package_class))
+        self.assertEqual(len(stored_pkgs), 2)
 
     def test_configure_storage(self):
         """ Calling configure() sets up storage backend """
@@ -104,10 +100,10 @@ class TestBaseCache(unittest.TestCase):
     def test_summary(self):
         """ summary constructs per-package metadata summary """
         cache = DummyCache()
-        cache.upload('pkg1', '0.3', 'pkg1.tar.gz', None)
-        cache.upload('pkg1', '1.1', 'pkg1.tar.gz', None)
-        p1 = cache.upload('pkg1', '1.1.1a2', 'pkg1a2.tar.gz', None)
-        p2 = cache.upload('pkg2', '0.1dev2', 'pkg2.tar.gz', None)
+        cache.upload('pkg1-0.3.tar.gz', None)
+        cache.upload('pkg1-1.1.tar.gz', None)
+        p1 = cache.upload('pkg1a2.tar.gz', None, 'pkg1', '1.1.1a2')
+        p2 = cache.upload('pkg2.tar.gz', None, 'pkg2', '0.1dev2')
         summaries = cache.summary()
         self.assertItemsEqual(summaries, [
             {
@@ -148,7 +144,7 @@ class TestBaseCache(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             cache.distinct()
         with self.assertRaises(NotImplementedError):
-            cache.fetch('pkg', '1.1')
+            cache.fetch('pkg-1.1.tar.gz')
         with self.assertRaises(NotImplementedError):
             cache.all('pkg')
         with self.assertRaises(NotImplementedError):
@@ -189,14 +185,12 @@ class TestSQLCache(unittest.TestCase):
     def test_upload(self):
         """ upload() saves package and uploads to storage """
         pkg = make_package(factory=SQLPackage)
-        self.storage.upload.return_value = pkg.path
-        self.db.upload(pkg.name, pkg.version, pkg.path, None)
+        self.db.upload(pkg.filename, None, pkg.name, pkg.version)
         count = self.sql.query(SQLPackage).count()
         self.assertEqual(count, 1)
         saved_pkg = self.sql.query(SQLPackage).first()
         self.assertEqual(saved_pkg, pkg)
-        self.storage.upload.assert_called_with(pkg.name, pkg.version, pkg.path,
-                                               None)
+        self.storage.upload.assert_called_with(pkg, None)
 
     def test_save(self):
         """ save() puts object into database """
@@ -216,7 +210,7 @@ class TestSQLCache(unittest.TestCase):
         self.db.delete(pkg)
         count = self.sql.query(SQLPackage).count()
         self.assertEqual(count, 0)
-        self.storage.delete.assert_called_with(pkg.path)
+        self.storage.delete.assert_called_with(pkg)
 
     def test_clear(self):
         """ clear() removes object from database """
@@ -244,19 +238,19 @@ class TestSQLCache(unittest.TestCase):
         """ fetch() retrieves a package from the database """
         pkg = make_package(factory=SQLPackage)
         self.sql.add(pkg)
-        saved_pkg = self.db.fetch(pkg.name, pkg.version)
+        saved_pkg = self.db.fetch(pkg.filename)
         self.assertEqual(saved_pkg, pkg)
 
     def test_fetch_missing(self):
         """ fetch() returns None if no package exists """
-        saved_pkg = self.db.fetch('missing_pkg', '1.2')
+        saved_pkg = self.db.fetch('missing_pkg-1.2.tar.gz')
         self.assertIsNone(saved_pkg)
 
     def test_all_versions(self):
         """ all() returns all versions of a package """
         pkgs = [
             make_package(factory=SQLPackage),
-            make_package(version='1.3', path='mypath3', factory=SQLPackage),
+            make_package(version='1.3', filename='mypath3', factory=SQLPackage),
             make_package('mypkg2', '1.3.4', 'my/other/path',
                          factory=SQLPackage),
         ]
@@ -268,7 +262,7 @@ class TestSQLCache(unittest.TestCase):
         """ distinct() returns all unique package names """
         pkgs = [
             make_package(factory=SQLPackage),
-            make_package(version='1.3', path='mypath3', factory=SQLPackage),
+            make_package(version='1.3', filename='mypath3', factory=SQLPackage),
             make_package('mypkg2', '1.3.4', 'my/other/path',
                          factory=SQLPackage),
         ]
@@ -278,11 +272,10 @@ class TestSQLCache(unittest.TestCase):
 
     def test_summary(self):
         """ summary constructs per-package metadata summary """
-        self.storage.upload.side_effect = lambda x, y, z, _: z
-        self.db.upload('pkg1', '0.3', 'pkg1.tar.gz', None)
-        self.db.upload('pkg1', '1.1', 'pkg1.tar.gz', None)
-        p1 = self.db.upload('pkg1', '1.1.1a2', 'pkg1a2.tar.gz', None)
-        p2 = self.db.upload('pkg2', '0.1dev2', 'pkg2.tar.gz', None)
+        self.db.upload('pkg1-0.3.tar.gz', None, 'pkg1', '0.3')
+        self.db.upload('pkg1-1.1.tar.gz', None, 'pkg1', '1.1')
+        p1 = self.db.upload('pkg1a2.tar.gz', None, 'pkg1', '1.1.1a2')
+        p2 = self.db.upload('pkg2.tar.gz', None, 'pkg2', '0.1dev2')
         summaries = self.db.summary()
         self.assertItemsEqual(summaries, [
             {
@@ -308,6 +301,18 @@ class TestSQLCache(unittest.TestCase):
             SQLCache.reload_if_needed()
             count = self.sql.query(SQLPackage).count()
             self.assertEqual(count, 1)
+
+    def test_multiple_packages_same_version(self):
+        """ Can upload multiple packages that have the same version """
+        with patch.object(self.db, 'allow_overwrite', False):
+            name, version = 'a', '1'
+            path1 = 'old_package_path-1.tar.gz'
+            self.db.upload(path1, None, name, version)
+            path2 = 'new_path-1.whl'
+            self.db.upload(path2, None, name, version)
+
+            all_versions = self.db.all(name)
+            self.assertEqual(len(all_versions), 2)
 
 
 class TestRedisCache(unittest.TestCase):
@@ -336,11 +341,11 @@ class TestRedisCache(unittest.TestCase):
     def assert_in_redis(self, pkg):
         """ Assert that a package exists in redis """
         self.assertTrue(self.redis.sismember(self.db.redis_set, pkg.name))
-        data = self.redis.hgetall(self.db.redis_key(pkg))
+        data = self.redis.hgetall(self.db.redis_key(pkg.filename))
         pkg_data = {
             'name': pkg.name,
             'version': pkg.version,
-            'path': pkg.path,
+            'filename': pkg.filename,
             'last_modified': pkg.last_modified.strftime('%s.%f'),
         }
         pkg_data.update(pkg.data)
@@ -356,29 +361,29 @@ class TestRedisCache(unittest.TestCase):
         pkg = make_package(**kwargs)
         self.db.save(pkg)
 
-        loaded = self.db.fetch(pkg.name, pkg.version)
+        loaded = self.db.fetch(pkg.filename)
         self.assertEqual(loaded.name, pkg.name)
         self.assertEqual(loaded.version, pkg.version)
-        self.assertEqual(loaded.path, pkg.path)
+        self.assertEqual(loaded.filename, pkg.filename)
         self.assertEqual(loaded.last_modified, pkg.last_modified)
         self.assertEqual(loaded.data, kwargs)
 
     def test_delete(self):
         """ delete() removes object from database and deletes from storage """
         pkg = make_package()
-        key = self.db.redis_key(pkg)
+        key = self.db.redis_key(pkg.filename)
         self.redis[key] = 'foobar'
         self.db.delete(pkg)
         val = self.redis.get(key)
         self.assertIsNone(val)
         count = self.redis.scard(self.db.redis_set)
         self.assertEqual(count, 0)
-        self.storage.delete.assert_called_with(pkg.path)
+        self.storage.delete.assert_called_with(pkg)
 
     def test_clear(self):
         """ clear() removes object from database """
         pkg = make_package()
-        key = self.db.redis_key(pkg)
+        key = self.db.redis_key(pkg.filename)
         self.redis[key] = 'foobar'
         self.db.clear(pkg)
         val = self.redis.get(key)
@@ -389,10 +394,10 @@ class TestRedisCache(unittest.TestCase):
     def test_clear_leave_distinct(self):
         """ clear() doesn't remove package from list of distinct """
         p1 = make_package()
-        p2 = make_package(version='1.2')
+        p2 = make_package(filename='another-1.2.tar.gz')
         self.db.save(p1)
         self.db.save(p2)
-        key = self.db.redis_key(p1)
+        key = self.db.redis_key(p1.filename)
         self.db.clear(p1)
         val = self.redis.get(key)
         self.assertIsNone(val)
@@ -428,19 +433,19 @@ class TestRedisCache(unittest.TestCase):
         """ fetch() retrieves a package from the database """
         pkg = make_package()
         self.db.save(pkg)
-        saved_pkg = self.db.fetch(pkg.name, pkg.version)
+        saved_pkg = self.db.fetch(pkg.filename)
         self.assertEqual(saved_pkg, pkg)
 
     def test_fetch_missing(self):
         """ fetch() returns None if no package exists """
-        saved_pkg = self.db.fetch('missing_pkg', '1.2')
+        saved_pkg = self.db.fetch('missing_pkg-1.2.tar.gz')
         self.assertIsNone(saved_pkg)
 
     def test_all_versions(self):
         """ all() returns all versions of a package """
         pkgs = [
             make_package(factory=SQLPackage),
-            make_package(version='1.3', path='mypath3', factory=SQLPackage),
+            make_package(version='1.3', filename='mypath3', factory=SQLPackage),
             make_package('mypkg2', '1.3.4', 'my/other/path',
                          factory=SQLPackage),
         ]
@@ -453,7 +458,7 @@ class TestRedisCache(unittest.TestCase):
         """ distinct() returns all unique package names """
         pkgs = [
             make_package(factory=SQLPackage),
-            make_package(version='1.3', path='mypath3', factory=SQLPackage),
+            make_package(version='1.3', filename='mypath3', factory=SQLPackage),
             make_package('mypkg2', '1.3.4', 'my/other/path',
                          factory=SQLPackage),
         ]
@@ -461,3 +466,15 @@ class TestRedisCache(unittest.TestCase):
             self.db.save(pkg)
         saved_pkgs = self.db.distinct()
         self.assertItemsEqual(saved_pkgs, set([p.name for p in pkgs]))
+
+    def test_multiple_packages_same_version(self):
+        """ Can upload multiple packages that have the same version """
+        with patch.object(self.db, 'allow_overwrite', False):
+            name, version = 'a', '1'
+            path1 = 'old_package_path-1.tar.gz'
+            self.db.upload(path1, None, name, version)
+            path2 = 'new_path-1.whl'
+            self.db.upload(path2, None, name, version)
+
+            all_versions = self.db.all(name)
+            self.assertEqual(len(all_versions), 2)

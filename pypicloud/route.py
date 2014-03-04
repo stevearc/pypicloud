@@ -80,21 +80,21 @@ class APIPackageResource(IResourceFactory):
         super(APIPackageResource, self).__init__(request)
         self.name = name
         self.__factory__ = functools.partial(
-            APIPackageVersionResource, self.request, self.name)
+            APIPackageFileResource, self.request, self.name)
         self.__acl__ = request.access.get_acl(self.name)
 
 
-class APIPackageVersionResource(object):
+class APIPackageFileResource(object):
 
     """ Resource for api endpoints dealing with a single package version """
 
     __parent__ = None
     __name__ = None
 
-    def __init__(self, request, name, version):
+    def __init__(self, request, name, filename):
         self.request = request
         self.name = name
-        self.version = version
+        self.filename = filename
 
 
 class APIResource(IStaticResource):

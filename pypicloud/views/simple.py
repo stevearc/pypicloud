@@ -4,6 +4,7 @@ from pyramid.httpexceptions import HTTPBadRequest, HTTPFound, HTTPForbidden
 from pyramid.view import view_config
 
 from pyramid_duh import argify, addslash
+from pypicloud.util import normalize_name
 
 
 @view_config(context=Root, request_method='POST', subpath=(),
@@ -14,13 +15,13 @@ from pyramid_duh import argify, addslash
 def upload(request, name, version, content):
     """ Handle update commands """
     action = request.param(':action')
-    name = request.db.normalize_name(name)
+    name = normalize_name(name)
     if action == 'file_upload':
         if not request.access.has_permission(name, 'write'):
             raise HTTPForbidden()
         try:
-            return request.db.upload(name, version, content.filename,
-                                     content.file)
+            return request.db.upload(content.filename, content.file, name=name,
+                                     version=version)
         except ValueError as e:
             return HTTPBadRequest(*e.args)
     else:
@@ -48,7 +49,7 @@ def simple(request):
 @addslash
 def package_versions(context, request):
     """ Render the links for all versions of a package """
-    normalized_name = request.db.normalize_name(context.name)
+    normalized_name = normalize_name(context.name)
 
     pkgs = request.db.all(normalized_name)
     if request.registry.use_fallback and not pkgs:

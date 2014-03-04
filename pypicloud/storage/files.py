@@ -22,6 +22,11 @@ class FileStorage(IStorage):
         if not os.path.exists(cls.directory):
             os.makedirs(cls.directory)
 
+    def get_path(self, package):
+        """ Get the fully-qualified file path for a package """
+        return os.path.join(self.directory, package.name, package.version,
+                            package.filename)
+
     def list(self, factory=Package):
         for root, _, files in os.walk(self.directory):
             for filename in files:
@@ -30,32 +35,29 @@ class FileStorage(IStorage):
                 fullpath = os.path.join(root, filename)
                 last_modified = datetime.fromtimestamp(os.path.getmtime(
                     fullpath))
-                path = os.path.join(shortpath, filename)
-                yield factory(name, version, path, last_modified)
+                yield factory(name, version, filename, last_modified)
 
     def download_response(self, package):
-        return FileResponse(os.path.join(self.directory, package.path),
+        return FileResponse(self.get_path(package),
                             request=self.request,
                             content_type='application/octet-stream')
 
-    def upload(self, name, version, filename, data):
-        filename = os.path.basename(filename)
-        destdir = os.path.join(self.directory, name, version)
+    def upload(self, package, data):
+        destfile = self.get_path(package)
+        destdir = os.path.dirname(destfile)
         if not os.path.exists(destdir):
             os.makedirs(destdir)
         uid = os.urandom(4).encode('hex')
-        tempfile = os.path.join(destdir, '.' + filename + '.' + uid)
+        tempfile = os.path.join(destdir, '.' + package.filename + '.' + uid)
         # Write to a temporary file
         with open(tempfile, 'w') as ofile:
             for chunk in iter(lambda: data.read(16 * 1024), ''):
                 ofile.write(chunk)
 
-        filename = os.path.join(destdir, filename)
-        os.rename(tempfile, filename)
-        return os.path.join(name, version, filename)
+        os.rename(tempfile, destfile)
 
-    def delete(self, path):
-        filename = os.path.join(self.directory, path)
+    def delete(self, package):
+        filename = self.get_path(package)
         os.unlink(filename)
         version_dir = os.path.dirname(filename)
         try:
@@ -69,5 +71,5 @@ class FileStorage(IStorage):
             return
 
     def open(self, package):
-        filename = os.path.join(self.directory, package.path)
+        filename = self.get_path(package)
         return closing(open(filename, 'r'))

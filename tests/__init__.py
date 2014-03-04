@@ -15,6 +15,13 @@ except ImportError:
     import unittest
 
 
+def make_package(name='mypkg', version='1.1', filename=None,
+                 last_modified=datetime.utcnow(), factory=Package, **kwargs):
+    """ Convenience method for constructing a package """
+    filename = filename or '%s-%s.tar.gz' % (name, version)
+    return factory(name, version, filename, last_modified, **kwargs)
+
+
 class DummyStorage(IStorage):
 
     """ In-memory implementation of IStorage """
@@ -29,28 +36,23 @@ class DummyStorage(IStorage):
     def list(self, factory=Package):
         """ Return a list or generator of all packages """
         for args in self.packages.itervalues():
-            all_args = args + (datetime.utcnow(),)
-            yield factory(*all_args)
-
-    def get_url(self, package):
-        return package.path, False
+            yield args[0]
 
     def download_response(self, package):
         return None
 
-    def upload(self, name, version, filename, data):
-        self.packages[filename] = (name, version, filename)
-        return filename
+    def upload(self, package, data):
+        self.packages[package.filename] = (package, data)
 
-    def delete(self, path):
-        del self.packages[path]
+    def delete(self, package):
+        del self.packages[package.filename]
 
     def reset(self):
         """ Clear all packages """
         self.packages = {}
 
     def open(self, package):
-        pass
+        return self.packages[package.filename][1]
 
 
 class DummyCache(ICache):
@@ -66,7 +68,9 @@ class DummyCache(ICache):
     def configure(cls, config):
         pass
 
-    def __call__(self, _):
+    def __call__(self, request):
+        self.request = request
+        self.storage.request = request
         return self
 
     def reset(self):
@@ -74,22 +78,21 @@ class DummyCache(ICache):
         self.packages.clear()
         self.storage.reset()
 
-    def _fetch(self, name, version):
+    def fetch(self, filename):
         """ Override this method to implement 'fetch' """
-        return self.packages[name].get(version)
+        return self.packages.get(filename)
 
     def _all(self, name):
         """ Override this method to implement 'all' """
-        return self.packages[name].values()
+        return [p for p in self.packages.itervalues() if p.name == name]
 
     def distinct(self):
         """ Get all distinct package names """
-        return [name for name, versions in self.packages.iteritems()
-                if len(versions) > 0]
+        return list(set((p.name for p in self.packages.itervalues())))
 
     def clear(self, package):
         """ Remove this package from the caching database """
-        del self.packages[package.name]
+        del self.packages[package.filename]
 
     def clear_all(self):
         """ Clear all cached packages from the database """
@@ -97,7 +100,7 @@ class DummyCache(ICache):
 
     def save(self, package):
         """ Save this package to the database """
-        self.packages[package.name][package.version] = package
+        self.packages[package.filename] = package
 
 
 class MockServerTest(unittest.TestCase):

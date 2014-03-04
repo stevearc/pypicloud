@@ -76,10 +76,10 @@ class SQLPackage(Package, Base):
 
     """ Python package stored in SQLAlchemy """
     __tablename__ = 'packages'
-    name = Column(Text(), primary_key=True)
-    version = Column(Text(), primary_key=True)
+    filename = Column(Text(), primary_key=True)
+    name = Column(Text(), index=True, nullable=False)
+    version = Column(Text(), nullable=False)
     last_modified = Column(DateTime(), index=True, nullable=False)
-    path = Column(Text(), nullable=False)
     data = Column(JSONEncodedDict(), nullable=False)
 
 
@@ -149,9 +149,8 @@ class SQLCache(ICache):
         # Create SQL schema if not exists
         create_schema(engine)
 
-    def _fetch(self, name, version):
-        return self.db.query(SQLPackage).filter_by(name=name,
-                                                   version=version).first()
+    def fetch(self, filename):
+        return self.db.query(SQLPackage).filter_by(filename=filename).first()
 
     def _all(self, name):
         pkgs = self.db.query(SQLPackage).filter_by(name=name).all()

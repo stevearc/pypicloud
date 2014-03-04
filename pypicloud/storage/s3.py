@@ -1,11 +1,10 @@
 """ Store packages in S3 """
+import logging
 import time
-from datetime import datetime
 from contextlib import contextmanager
+from hashlib import md5
 from urllib import urlopen
 
-import logging
-from hashlib import md5
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.settings import asbool
 
@@ -15,6 +14,7 @@ from .base import IStorage
 from boto.s3.key import Key
 from pip.util import splitext
 from pypicloud.models import Package
+from pypicloud.util import parse_filename
 
 
 LOG = logging.getLogger(__name__)
@@ -44,18 +44,15 @@ class S3Storage(IStorage):
                                     boto.s3.connection.Location.DEFAULT)
             cls.bucket = s3conn.create_bucket(aws_bucket, location=location)
 
-    @staticmethod
-    def parse_package_and_version(path):
-        """ Parse the package name and version number from a path """
-        filename = splitext(path)[0]
-        if '-' not in filename:
-            return None, None
-        path_components = filename.split('-')
-        for i, comp in enumerate(path_components):
-            if comp[0].isdigit():
-                return ('_'.join(path_components[:i]).lower(),
-                        '-'.join(path_components[i:]))
-        return None, None
+    def get_path(self, package):
+        """ Get the fully-qualified bucket path for a package """
+        filename = package.name + '/' + package.filename
+        if self.prepend_hash:
+            m = md5()
+            m.update(package.filename)
+            prefix = m.digest().encode('hex')[:4]
+            filename = prefix + '/' + filename
+        return self.bucket_prefix + filename
 
     def list(self, factory=Package):
         keys = self.bucket.list(self.bucket_prefix)
@@ -63,22 +60,22 @@ class S3Storage(IStorage):
             # Moto doesn't send down metadata from bucket.list()
             if self.test:
                 key = self.bucket.get_key(key.key)
+            filename = os.path.basename(key.key)
             name = key.get_metadata('name')
             version = key.get_metadata('version')
 
             # We used to not store metadata. This is for backwards
             # compatibility
             if name is None or version is None:
-                filename = os.path.basename(key.key)
-                name, version = self.parse_package_and_version(filename)
-
-            if name is None or version is None:
-                LOG.warning("S3 file %s has no package name", key.key)
-                continue
+                try:
+                    name, version = parse_filename(filename)
+                except ValueError:
+                    LOG.warning("S3 file %s has no package name", key.key)
+                    continue
 
             last_modified = boto.utils.parse_ts(key.last_modified)
 
-            pkg = factory(name, version, key.key, last_modified)
+            pkg = factory(name, version, filename, last_modified)
 
             yield pkg
 
@@ -87,7 +84,7 @@ class S3Storage(IStorage):
         changed = False
         if 'url' not in package.data or time.time() > expire:
             key = Key(self.bucket)
-            key.key = package.path
+            key.key = self.get_path(package)
             expire_after = time.time() + self.expire_after
             url = key.generate_url(expire_after, expires_in_absolute=True)
             package.data['url'] = url
@@ -100,21 +97,15 @@ class S3Storage(IStorage):
         # Don't need to implement because the download urls go to S3
         return HTTPNotFound()
 
-    def upload(self, name, version, filename, data):
+    def upload(self, package, data):
         key = Key(self.bucket)
-        if self.prepend_hash:
-            m = md5()
-            m.update(name)
-            m.update(version)
-            prefix = m.digest().encode('hex')[:4]
-            filename = prefix + '/' + filename
-        key.key = self.bucket_prefix + filename
-        key.set_metadata('name', name)
-        key.set_metadata('version', version)
+        key.key = self.get_path(package)
+        key.set_metadata('name', package.name)
+        key.set_metadata('version', package.version)
         key.set_contents_from_file(data)
-        return key.key
 
-    def delete(self, path):
+    def delete(self, package):
+        path = self.get_path(package)
         key = Key(self.bucket)
         key.key = path
         key.delete()

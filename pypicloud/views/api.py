@@ -1,14 +1,10 @@
 """ Views for simple api calls that return json data """
-import os
-
-from pypicloud.route import (APIResource, APIPackageResource,
-                             APIPackagingResource, APIPackageVersionResource)
-from pyramid.httpexceptions import (HTTPNotFound, HTTPForbidden,
-                                    HTTPBadRequest, HTTPFound)
-from pyramid.response import FileResponse
+from pyramid.httpexceptions import HTTPNotFound, HTTPForbidden, HTTPBadRequest
 from pyramid.security import NO_PERMISSION_REQUIRED, remember
 from pyramid.view import view_config
 
+from pypicloud.route import (APIResource, APIPackageResource,
+                             APIPackagingResource, APIPackageFileResource)
 from pyramid_duh import argify, addslash
 
 
@@ -45,44 +41,35 @@ def package_versions(context, request):
     }
 
 
-@view_config(context=APIPackageVersionResource, name='download',
-             request_method='GET', subpath=('filename/*/?'), permission='read')
-def package_redirect(context, request):
-    """ Redirect to the package download link """
-    package = request.db.fetch(context.name, context.version)
+@view_config(context=APIPackageFileResource, request_method='GET',
+             permission='read')
+def download_package(context, request):
+    """ Download package, or redirect to the download link """
+    package = request.db.fetch(context.filename)
     if not package:
         return HTTPNotFound()
-    response = request.db.download_response(package)
-    # If the response is a file, redirect it to have the appropriate filename
-    if isinstance(response, FileResponse):
-        if request.named_subpaths.get('filename') is None:
-            newloc = package.filename
-            if not request.path_url.endswith('/'):
-                newloc = os.path.join(request.path_url, newloc)
-            return HTTPFound(location=newloc)
-    return response
+    return request.db.download_response(package)
 
 
-@view_config(context=APIPackageVersionResource, request_method='POST',
+@view_config(context=APIPackageFileResource, request_method='POST',
              subpath=(), renderer='json', permission='write')
 @argify
 def upload_package(context, request, content):
     """ Upload a package """
     try:
-        return request.db.upload(context.name, context.version,
-                                 content.filename, content.file)
+        return request.db.upload(content.filename, content.file,
+                                 name=context.name)
     except ValueError as e:  # pragma: no cover
         return HTTPBadRequest(*e.args)
 
 
-@view_config(context=APIPackageVersionResource, request_method='DELETE',
+@view_config(context=APIPackageFileResource, request_method='DELETE',
              subpath=(), permission='write')
 def delete_package(context, request):
     """ Delete a package """
-    package = request.db.fetch(context.name, context.version)
+    package = request.db.fetch(context.filename)
     if package is None:
-        return HTTPBadRequest("Could not find %s==%s" % (context.name,
-                                                         context.version))
+        return HTTPBadRequest("Could not find %s" % context.filename)
     request.db.delete(package)
     return request.response
 

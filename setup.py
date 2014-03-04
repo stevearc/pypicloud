@@ -12,6 +12,7 @@ CHANGES = open(os.path.join(HERE, 'CHANGES.rst')).read()
 
 REQUIREMENTS = [
     'boto',
+    'distlib',
     'paste',
     'passlib',
     'pip',

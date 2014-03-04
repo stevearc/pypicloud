@@ -195,5 +195,4 @@ def migrate_packages():
     for package in all_packages:
         print "Migrating %s" % package
         with old_storage.open(package) as data:
-            new_storage.upload(package.name, package.version, package.filename,
-                               data)
+            new_storage.upload(package, data)

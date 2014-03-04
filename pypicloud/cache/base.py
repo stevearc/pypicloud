@@ -6,8 +6,9 @@ from pkg_resources import parse_version
 from pyramid.settings import asbool
 
 import os
-from pypicloud.models import Package, normalize_name
+from pypicloud.models import Package
 from pypicloud.storage import get_storage_impl
+from pypicloud.util import parse_filename, normalize_name
 
 
 LOG = logging.getLogger(__name__)
@@ -65,45 +66,34 @@ class ICache(object):
         for pkg in packages:
             self.save(pkg)
 
-    @staticmethod
-    def normalize_name(name):
-        """ Normalize a python package name """
-        return normalize_name(name)
-
-    def upload(self, name, version, filename, data):
+    def upload(self, filename, data, name=None, version=None):
         """ Save this package to the storage mechanism and to the cache """
-        name = self.normalize_name(name)
+        if version is None:
+            name, version = parse_filename(filename, name)
+        name = normalize_name(name)
         filename = os.path.basename(filename)
-        old_pkg = self.fetch(name, version)
+        old_pkg = self.fetch(filename)
         if old_pkg is not None and not self.allow_overwrite:
-            raise ValueError("Package '%s==%s' already exists!" %
-                             (name, version))
-        path = self.storage.upload(name, version, filename, data)
-        new_pkg = self.package_class(name, version, path, datetime.utcnow())
-        # If we're overwriting the same package but with a different path,
-        # delete the old path
-        if old_pkg is not None and new_pkg.path != old_pkg.path:
-            self.storage.delete(old_pkg.path)
+            raise ValueError("Package '%s' already exists!" % filename)
+        new_pkg = self.package_class(name, version, filename,
+                                     datetime.utcnow())
+        self.storage.upload(new_pkg, data)
         self.save(new_pkg)
         return new_pkg
 
     def delete(self, package):
         """ Delete this package from the database and from storage """
-        self.storage.delete(package.path)
+        self.storage.delete(package)
         self.clear(package)
 
-    def fetch(self, name, version):
+    def fetch(self, filename):
         """ Get matching package if it exists """
-        return self._fetch(self.normalize_name(name), version)
-
-    def _fetch(self, name, version):
-        """ Override this method to implement 'fetch' """
         raise NotImplementedError
 
     def all(self, name):
         """ Search for all versions of a package """
         if name is not None:
-            name = self.normalize_name(name)
+            name = normalize_name(name)
         return self._all(name)
 
     def _all(self, name):

@@ -1,14 +1,9 @@
 """ Model objects """
 import pkg_resources
 
-import os
 import re
 from .compat import total_ordering
-
-
-def normalize_name(name):
-    """ Normalize a python package name """
-    return name.lower().replace('-', '_')
+from .util import normalize_name
 
 
 @total_ordering
@@ -23,8 +18,8 @@ class Package(object):
         The name of the package (will be normalized)
     version : str
         The version number of the package
-    path : str
-        The absolute S3 path of the package file
+    filename : str
+        The name of the package file
     last_modified : datetime
         The datetime when this package was uploaded
     data : dict
@@ -32,17 +27,12 @@ class Package(object):
 
     """
 
-    def __init__(self, name, version, path, last_modified, **kwargs):
+    def __init__(self, name, version, filename, last_modified, **kwargs):
         self.name = normalize_name(name)
         self.version = version
-        self.path = path
+        self.filename = filename
         self.last_modified = last_modified
         self.data = kwargs
-
-    @property
-    def filename(self):
-        """ Getter for raw filename with no prefixes """
-        return os.path.basename(self.path)
 
     def get_url(self, request):
         """ Create path to the download link """
@@ -75,6 +65,7 @@ class Package(object):
     def __json__(self, request):
         return {
             'name': self.name,
+            'filename': self.filename,
             'last_modified': self.last_modified,
             'version': self.version,
             'url': self.get_url(request),

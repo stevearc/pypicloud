@@ -14,7 +14,13 @@
     </div>
   </div>
 
-  <div class="row" style="margin-top: 10px; margin-bottom: 10px;" ng-show="packages && packages.length > pageSize">
+  <div class="row" ng-show="USER === null && packages !== null && packages.length === 0">
+    <div class="col-xs-12 col-md-offset-3 col-md-6">
+      <h4>Hmmmm...Looks pretty empty in here. Try <a ng-href="{{ ROOT }}login">logging in?</a></h4>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top: 10px; margin-bottom: 10px;" ng-show="packages !== null">
     <div class="col-xs-12 col-md-offset-3 col-md-4">
       <div class="input-group">
         <span class="input-group-addon"><i class="fa fa-search"></i></span>
@@ -37,7 +43,7 @@
   <div ng-show="packages === null" class="text-center">
     <i class="fa fa-spinner fa-spin fa-4x"></i>
   </div>
-  <div class="row" ng-if="packages">
+  <div class="row" ng-if="packages !== null">
     <div class="col-xs-12 col-md-offset-3 col-md-6">
       <table class="table table-striped table-bordered table-clickable">
         <thead>
@@ -60,20 +66,6 @@
       <div class="text-center">
         <pagination direction-links="true" total-items="filtered.length" rotate="false" max-size="maxSize" items-per-page="pageSize" page="currentPage"></pagination>
       </div>
-    </div>
-  </div>
-
-  <div class="row" ng-show="IS_ADMIN && packages !== null && packages.length === 0">
-    <div class="col-xs-12 col-md-offset-3 col-md-6">
-      <p style="font-size: 130%">
-        Don't see any packages? If your redis/sql database was cleared, you may need to <a href="#/admin">rebuild the package list</a>.
-      </p>
-    </div>
-  </div>
-
-  <div class="row" ng-show="USER === null && packages !== null && packages.length === 0">
-    <div class="col-xs-12 col-md-offset-3 col-md-6">
-      <h4>Hmmmm...Looks pretty empty in here. Try <a ng-href="{{ ROOT }}login">logging in?</a></h4>
     </div>
   </div>
 </div>

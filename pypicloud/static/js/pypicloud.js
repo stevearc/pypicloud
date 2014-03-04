@@ -140,8 +140,9 @@ pypicloud.controller('IndexCtrl', ['$scope', '$http', '$location', '$cookies',
   }
 
   $scope.uploadFinished = function(response) {
-    if ($scope.packages.indexOf(response.name) < 0) {
-      $scope.packages.push(response.name);
+    var all_names = _.pluck($scope.packages, 'name');
+    if (all_names.indexOf(response.name) < 0) {
+      $scope.packages.push(response);
     }
     $scope.uploadCollapsed = true;
   };
@@ -210,7 +211,7 @@ pypicloud.controller('PackageCtrl', ['$scope', '$http', '$route', '$fileUploader
     var data = {
       name: $scope.package_name,
     }
-    var url = $scope.API + 'package/' + $scope.package_name + '/' + pkg.version;
+    var url = $scope.API + 'package/' + $scope.package_name + '/' + pkg.filename;
     $http({method: 'delete', url: url}).success(function(data, status, headers, config) {
       $scope.packages.splice(index, 1);
     }).error(function(data, status, headers, config) {
@@ -235,7 +236,6 @@ pypicloud.controller('UploadCtrl', ['$scope', '$fileUploader', function($scope, 
 
   $scope.canUpload = function() {
     return (uploader.queue.length === 1 &&
-      $scope.version && $scope.version.length > 0 &&
       $scope.package_name && $scope.package_name.length > 0 &&
       !$scope.uploading);
   }
@@ -243,13 +243,13 @@ pypicloud.controller('UploadCtrl', ['$scope', '$fileUploader', function($scope, 
   $scope.uploadPackage = function() {
     $scope.uploading = true;
     var item = uploader.queue[0];
-    item.url = $scope.API + 'package/' + $scope.package_name + '/' + $scope.version;
+    var filename = item.file.name;
+    item.url = $scope.API + 'package/' + $scope.package_name + '/' + filename;
     item.upload();
   }
 
   uploader.bind('changedqueue', function (event, items) {
     if (uploader.queue.length === 0) {
-      $scope.version = '';
       if (!$scope.package_preset) {
         $scope.package_name = '';
       }
@@ -258,19 +258,12 @@ pypicloud.controller('UploadCtrl', ['$scope', '$fileUploader', function($scope, 
       if (!$scope.package_preset) {
         $scope.package_name = pieces[0];
       }
-      pieces.splice(0, 1);
-      $scope.version = pieces.join('-');
-      $scope.version = $scope.version.substr(0, $scope.version.lastIndexOf('.'));
-      if ($scope.version.endsWith('.tar')) {
-        $scope.version = $scope.version.slice(0, -4);
-      }
       $scope.$apply();
     }
   });
 
   uploader.bind('success', function (event, xhr, item, response) {
     uploader.clearQueue();
-    $scope.version = '';
     $scope.uploading = false;
     if (!$scope.package_preset) {
       $scope.package_name = '';

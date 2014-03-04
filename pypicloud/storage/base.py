@@ -23,7 +23,7 @@ class IStorage(object):
 
         By default this will return a link to the download endpoint
 
-        /api/package/<package>/<version>/download/<filename>
+        /api/package/<package>/<filename>
 
         Returns
         -------
@@ -34,7 +34,6 @@ class IStorage(object):
 
         """
         url = self.request.app_url('api/package', package.name,
-                                   package.version, 'download',
                                    package.filename)
         return (url, False)
 
@@ -47,37 +46,28 @@ class IStorage(object):
         """
         raise NotImplementedError
 
-    def upload(self, name, version, filename, data):
+    def upload(self, package, data):
         """
         Upload a package file to the storage backend
 
         Parameters
         ----------
-        name : str
-            The name of the package
-        version : str
-            The version of the package
-        filename : str
-            The name of the package file that was uploaded
+        package : :class:`~pypicloud.models.Package`
+            The package metadata
         data : file
-            A temporary file object that contains the package data
-
-        Returns
-        -------
-        path : str
-            The unique path to the file in the storage backend
+            A file-like object that contains the package data
 
         """
         raise NotImplementedError
 
-    def delete(self, path):
+    def delete(self, package):
         """
         Delete a package file
 
         Parameters
         ----------
-        path : str
-            The unique path to the package
+        package : :class:`~pypicloud.models.Package`
+            The package metadata
 
         """
         raise NotImplementedError

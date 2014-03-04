@@ -16,18 +16,12 @@ import re
 from boto.s3.key import Key
 from pypicloud.models import Package
 from pypicloud.storage import S3Storage, FileStorage
-
+from . import make_package
 
 try:
     import unittest2 as unittest  # pylint: disable=F0401
 except ImportError:
     import unittest
-
-
-def make_package(name='a', version='b', path='path/to/file.tar.gz',
-                 last_modified=datetime.utcnow(), **kwargs):
-    """ Convenience method for constructing a package """
-    return Package(name, version, path, last_modified, **kwargs)
 
 
 class TestS3Storage(unittest.TestCase):
@@ -54,44 +48,30 @@ class TestS3Storage(unittest.TestCase):
         patch.stopall()
         self.s3_mock.stop()
 
-    def test_parse(self):
-        """ Make sure the deprecated parse method works """
-        full_package = 'MyPkg-1.0.1.tgz'
-        package, version = self.storage.parse_package_and_version(full_package)
-        self.assertEquals(package, 'mypkg')
-        self.assertEquals(version, '1.0.1')
-
-    def test_parse_tarball(self):
-        """ Make sure the deprecated parse method works """
-        full_package = 'MyPkg-1.0.1.tar.gz'
-        package, version = self.storage.parse_package_and_version(full_package)
-        self.assertEquals(package, 'mypkg')
-        self.assertEquals(version, '1.0.1')
-
     def test_list(self):
         """ Can construct a package from a S3 Key """
         key = Key(self.bucket)
-        name, version, path = 'mypkg', '1.2', 'path/to/file.tar.gz'
-        key.key = path
+        name, version, filename = 'mypkg', '1.2', 'pkg.tar.gz'
+        key.key = name + '/' + filename
         key.set_metadata('name', name)
         key.set_metadata('version', version)
         key.set_contents_from_string('foobar')
         package = list(self.storage.list(Package))[0]
         self.assertEquals(package.name, name)
         self.assertEquals(package.version, version)
-        self.assertEquals(package.path, path)
+        self.assertEquals(package.filename, filename)
 
     def test_list_no_metadata(self):
         """ Test that list works on old keys with no metadata """
         key = Key(self.bucket)
         name, version = 'mypkg', '1.2'
-        path = 'path/to/%s-%s.tar.gz' % (name, version)
-        key.key = path
+        filename = '%s-%s.tar.gz' % (name, version)
+        key.key = name + '/' + filename
         key.set_contents_from_string('foobar')
         package = list(self.storage.list(Package))[0]
         self.assertEquals(package.name, name)
         self.assertEquals(package.version, version)
-        self.assertEquals(package.path, path)
+        self.assertEquals(package.filename, filename)
 
     def test_get_url(self):
         """ Mock s3 and test package url generation """
@@ -103,7 +83,7 @@ class TestS3Storage(unittest.TestCase):
         parts = urlparse(url)
         self.assertEqual(parts.scheme, 'https')
         self.assertEqual(parts.netloc, 'mybucket.s3.amazonaws.com')
-        self.assertEqual(parts.path, '/' + package.path)
+        self.assertEqual(parts.path, '/' + self.storage.get_path(package))
         query = parse_qs(parts.query)
         self.assertItemsEqual(query.keys(), ['Expires', 'Signature',
                                              'AWSAccessKeyId'])
@@ -130,39 +110,38 @@ class TestS3Storage(unittest.TestCase):
         parts = urlparse(url)
         self.assertEqual(parts.scheme, 'https')
         self.assertEqual(parts.netloc, 'mybucket.s3.amazonaws.com')
-        self.assertEqual(parts.path, '/' + package.path)
+        self.assertEqual(parts.path, '/' + self.storage.get_path(package))
 
     def test_delete(self):
         """ delete() should remove package from storage """
-        key = Key(self.bucket)
-        name, version, path = 'mypkg', '1.2', 'path/to/file.tar.gz'
-        key.key = path
-        key.set_metadata('name', name)
-        key.set_metadata('version', version)
-        key.set_contents_from_string('foobar')
-        self.storage.delete(key.key)
-        new_key = self.bucket.get_key(key.key)
-        self.assertIsNone(new_key)
+        package = make_package()
+        self.storage.upload(package, StringIO())
+        self.storage.delete(package)
+        keys = list(self.bucket.list())
+        self.assertEqual(len(keys), 0)
 
     def test_upload(self):
         """ Uploading package sets metadata and sends to S3 """
-        name, version, path = 'a', '1', 'my/path.tar.gz'
+        package = make_package()
         datastr = 'foobar'
         data = StringIO(datastr)
-        path = self.storage.upload(name, version, path, data)
-        key = self.bucket.get_key(path)
+        self.storage.upload(package, data)
+        key = list(self.bucket.list())[0]
         self.assertEqual(key.get_contents_as_string(), datastr)
-        self.assertEqual(key.get_metadata('name'), name)
-        self.assertEqual(key.get_metadata('version'), version)
+        self.assertEqual(key.get_metadata('name'), package.name)
+        self.assertEqual(key.get_metadata('version'), package.version)
 
     def test_upload_prepend_hash(self):
         """ If prepend_hash = True, attach a hash to the file path """
         self.storage.prepend_hash = True
-        name, version, path = 'a', '1', 'my/path.tar.gz'
+        package = make_package()
         data = StringIO()
-        ret = self.storage.upload(name, version, path, data)
+        self.storage.upload(package, data)
+        key = list(self.bucket.list())[0]
 
-        match = re.match(r'^[0-9a-f]{4}/.+$', ret)
+        pattern = r'^[0-9a-f]{4}/%s/%s$' % (re.escape(package.name),
+                                            re.escape(package.filename))
+        match = re.match(pattern, key.key)
         self.assertIsNotNone(match)
 
     @patch.object(pypicloud.storage.s3, 'boto')
@@ -199,49 +178,45 @@ class TestFileStorage(unittest.TestCase):
 
     def test_upload(self):
         """ Uploading package saves file """
-        name, version, path = 'a', '1', 'my/path.tar.gz'
+        package = make_package()
         datastr = 'foobar'
         data = StringIO(datastr)
-        path = self.storage.upload(name, version, path, data)
-        filename = os.path.join(self.tempdir, 'a', '1', 'path.tar.gz')
+        self.storage.upload(package, data)
+        filename = self.storage.get_path(package)
         self.assertTrue(os.path.exists(filename))
         with open(filename, 'r') as ifile:
             self.assertEqual(ifile.read(), 'foobar')
 
     def test_list(self):
         """ Can iterate over uploaded packages """
-        name, version, shortpath = 'a', '1', 'path.tar.gz'
-        path = os.path.join(name, version, shortpath)
-        filename = os.path.join(self.tempdir, path)
-        os.makedirs(os.path.dirname(filename))
-        with open(filename, 'w') as ofile:
+        package = make_package()
+        path = self.storage.get_path(package)
+        os.makedirs(os.path.dirname(path))
+        with open(path, 'w') as ofile:
             ofile.write('foobar')
 
-        package = list(self.storage.list(Package))[0]
-        self.assertEquals(package.name, name)
-        self.assertEquals(package.version, version)
-        self.assertEquals(package.path, path)
+        pkg = list(self.storage.list(Package))[0]
+        self.assertEquals(pkg.name, package.name)
+        self.assertEquals(pkg.version, package.version)
+        self.assertEquals(pkg.filename, package.filename)
 
     def test_get_url(self):
         """ Test package url generation """
         package = make_package()
         self.request.app_url.side_effect = lambda *x: '/'.join(x)
         url, _ = self.storage.get_url(package)
-        expected = 'api/package/%s/%s/download/%s' % (package.name,
-                                                      package.version,
-                                                      package.filename)
+        expected = 'api/package/%s/%s' % (package.name, package.filename)
         self.assertEqual(url, expected)
 
     def test_delete(self):
         """ delete() should remove package from storage """
-        name, version, shortpath = 'a', '1', 'path.tar.gz'
-        path = os.path.join(name, version, shortpath)
-        filename = os.path.join(self.tempdir, path)
-        os.makedirs(os.path.dirname(filename))
-        with open(filename, 'w') as ofile:
+        package = make_package()
+        path = self.storage.get_path(package)
+        os.makedirs(os.path.dirname(path))
+        with open(path, 'w') as ofile:
             ofile.write('foobar')
-        self.storage.delete(path)
-        self.assertFalse(os.path.exists(filename))
+        self.storage.delete(package)
+        self.assertFalse(os.path.exists(path))
 
     def test_create_package_dir(self):
         """ configure() will create the package dir if it doesn't exist """

@@ -24,9 +24,10 @@ class TestSimple(MockServerTest):
             ':action': 'file_upload',
         }
         name, version, content = 'foo', 'bar', MagicMock()
+        content.filename = 'foo-1.2.tar.gz'
         pkg = upload(self.request, name, version, content)
 
-        self.assertEquals(pkg, self.request.db.packages[name][version])
+        self.assertEquals(pkg, self.request.db.packages[content.filename])
 
     def test_upload_bad_action(self):
         """ Upload endpoint only respects 'file_upload' action """
@@ -49,7 +50,7 @@ class TestSimple(MockServerTest):
         """ Listing package versions should return api call """
         self.request.registry.use_fallback = False
         pkg = Package('mypkg', '1.1', 'mypkg-1.1.tar.gz', datetime.utcnow())
-        self.request.db.upload(pkg.name, pkg.version, pkg.path, None)
+        self.request.db.upload(pkg.filename, None)
         context = SimplePackageResource(self.request, 'mypkg')
         result = package_versions(context, self.request)
         self.assertEqual(result, {'pkgs': [pkg]})
