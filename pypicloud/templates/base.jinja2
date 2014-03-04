@@ -7,30 +7,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 {% block head -%}
   {%- block all_css -%}
-    <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css" rel="stylesheet">
-    <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css" rel="stylesheet">
-    <style type="text/css" media="screen">
-      table.table-clickable tbody tr:hover td {
-        background-color: #d9edf7;
-        cursor: pointer;
-      }
-      /* Use pointer for nav tabs */
-      .nav-tabs a:hover {
-        cursor: pointer;
-      }
-      a.ng-binding:hover {
-        cursor: pointer;
-      }
-
-      .upload {
-        background-color: #f7f7f7;
-        padding: 10px;
-        border-radius: 4px
-      }
-      [ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
-        display: none !important;
-      }
-    </style>
+    <link href="{{ 'pypicloud:static/css/lib/bootstrap-3.0.3.min.css' | static_url }}" rel="stylesheet">
+    <link href="{{ 'pypicloud:static/css/lib/font-awesome-4.0.3/css/font-awesome.min.css' | static_url }}" rel="stylesheet">
+    <link href="{{ 'pypicloud:static/css/base.css' | static_url }}" rel="stylesheet"></link>
     {% block css %}
     {% endblock %}
   {%- endblock -%}
@@ -54,12 +33,12 @@ role="navigation">
 
 {% endblock %}
 {% block all_scripts %}
-  <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore-min.js"></script>
-  <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.2.6/angular.min.js"></script>
-  <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.2.6/angular-route.min.js"></script>
-  <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.2.6/angular-cookies.min.js"></script>
-  <script src="{{ 'pypicloud:static/js/ui-bootstrap-tpls-0.10.0.min.js' | static_url }}"></script>
-  <script src="{{ 'pypicloud:static/js/angular-file-upload.min.js' | static_url }}"></script>
+  <script src="{{ 'pypicloud:static/js/lib/underscore-1.5.2.min.js' | static_url }}"></script>
+  <script src="{{ 'pypicloud:static/js/lib/angularjs/1.2.14/angular.min.js' | static_url }}"></script>
+  <script src="{{ 'pypicloud:static/js/lib/angularjs/1.2.14/angular-route.min.js' | static_url }}"></script>
+  <script src="{{ 'pypicloud:static/js/lib/angularjs/1.2.14/angular-cookies.min.js' | static_url }}"></script>
+  <script src="{{ 'pypicloud:static/js/lib/ui-bootstrap-tpls-0.10.0.min.js' | static_url }}"></script>
+  <script src="{{ 'pypicloud:static/js/lib/angular-file-upload.min.js' | static_url }}"></script>
   <script src="{{ 'pypicloud:static/js/pypicloud.js' | static_url }}"></script>
   {% if is_admin %}
   <script src="{{ 'pypicloud:static/js/admin.js' | static_url }}"></script>

@@ -1,0 +1,20 @@
+table.table-clickable tbody tr:hover td {
+  background-color: #d9edf7;
+  cursor: pointer;
+}
+/* Use pointer for nav tabs */
+.nav-tabs a:hover {
+  cursor: pointer;
+}
+a.ng-binding:hover {
+  cursor: pointer;
+}
+
+.upload {
+  background-color: #f7f7f7;
+  padding: 10px;
+  border-radius: 4px
+}
+[ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
+  display: none !important;
+}

@@ -7,7 +7,7 @@ from pyramid_duh import addslash
 
 
 @view_config(context=Root, request_method='GET', subpath=(),
-             renderer='index.jinja2')
+             renderer='base.jinja2')
 @addslash
 def get_index(request):
     """ Render a home screen """
