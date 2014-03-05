@@ -83,7 +83,7 @@ cache backends can be found at :ref:`cache`.
 Access Control
 ^^^^^^^^^^^^^^
 
-``pypi.access_backend``
+``pypi.auth``
 ~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string, optional
 

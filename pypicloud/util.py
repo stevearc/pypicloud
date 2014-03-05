@@ -61,3 +61,16 @@ class BetterScrapingLocator(SimpleScrapingLocator):
             'pypi.python.org' in t.netloc,
             filename,
         )
+
+
+def getdefaults(settings, *args):
+    """
+    Attempt multiple gets from a dict, returning a default value if none of the
+    keys are found.
+
+    """
+    args, default = args[:-1], args[-1]
+    for key in args:
+        if key in settings:
+            return settings[key]
+    return default

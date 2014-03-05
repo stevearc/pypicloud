@@ -58,7 +58,7 @@ everyone  none              none               r (everyone)
 Configuration
 ^^^^^^^^^^^^^
 
-Set ``pypi.access_backend = config`` OR ``pypi.access_backend =
+Set ``pypi.auth = config`` OR ``pypi.auth =
 pypicloud.access.ConfigAccessBackend`` OR leave it out completely since this is
 the default.
 
@@ -120,7 +120,7 @@ interface to create the initial admin user.
 
 Configuration
 ^^^^^^^^^^^^^
-Set ``pypi.access_backend = sql`` OR ``pypi.access_backend =
+Set ``pypi.auth = sql`` OR ``pypi.auth =
 pypicloud.access.sql.SQLAccessBackend``
 
 ``auth.db.url``
@@ -138,7 +138,7 @@ you to use that data directly.
 
 Configuration
 ^^^^^^^^^^^^^
-Set ``pypi.access_backend = remote`` OR ``pypi.access_backend =
+Set ``pypi.auth = remote`` OR ``pypi.auth =
 pypicloud.access.RemoteAccessBackend``
 
 ``auth.backend_server``

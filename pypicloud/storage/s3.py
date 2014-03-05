@@ -13,7 +13,7 @@ import posixpath
 from .base import IStorage
 from boto.s3.key import Key
 from pypicloud.models import Package
-from pypicloud.util import parse_filename
+from pypicloud.util import parse_filename, getdefaults
 
 
 LOG = logging.getLogger(__name__)
@@ -28,19 +28,30 @@ class S3Storage(IStorage):
     @classmethod
     def configure(cls, settings):
         super(S3Storage, cls).configure(settings)
-        cls.expire_after = int(settings.get('aws.expire_after', 60 * 60 * 24))
-        cls.buffer_time = int(settings.get('aws.buffer_time', 600))
-        cls.bucket_prefix = settings.get('aws.prefix', '')
-        cls.prepend_hash = asbool(settings.get('aws.prepend_hash', True))
+        cls.expire_after = int(getdefaults(settings, 'storage.expire_after',
+                                           'aws.expire_after', 60 * 60 * 24))
+        cls.buffer_time = int(getdefaults(settings, 'storage.buffer_time',
+                                          'aws.buffer_time', 600))
+        cls.bucket_prefix = getdefaults(settings, 'storage.prefix',
+                                        'aws.prefix', '')
+        cls.prepend_hash = asbool(getdefaults(settings, 'storage.prepend_hash',
+                                              'aws.prepend_hash', True))
+        access_key = getdefaults(settings, 'storage.access_key',
+                                 'aws.access_key', None)
+        secret_key = getdefaults(settings, 'storage.secret_key',
+                                 'aws.secret_key', None)
 
         s3conn = boto.connect_s3(
-            aws_access_key_id=settings.get('aws.access_key'),
-            aws_secret_access_key=settings.get('aws.secret_key'))
-        aws_bucket = settings['aws.bucket']
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key)
+        aws_bucket = getdefaults(settings, 'storage.bucket', 'aws.bucket',
+                                 None)
+        if aws_bucket is None:
+            raise ValueError("You must specify the 'storage.bucket'")
         cls.bucket = s3conn.lookup(aws_bucket, validate=False)
         if cls.bucket is None:
-            location = settings.get('aws.region',
-                                    boto.s3.connection.Location.DEFAULT)
+            location = getdefaults(settings, 'storage.region', 'aws.region',
+                                   boto.s3.connection.Location.DEFAULT)
             cls.bucket = s3conn.create_bucket(aws_bucket, location=location)
 
     def get_path(self, package):

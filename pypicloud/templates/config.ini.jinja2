@@ -11,9 +11,9 @@ pypi.storage = {{ storage }}
 {% if storage == 'file' -%}
 storage.dir = %(here)s/packages
 {%- else -%}
-aws.access_key = {{ access_key }}
-aws.secret_key = {{ secret_key }}
-aws.bucket = {{ s3_bucket }}
+storage.access_key = {{ access_key }}
+storage.secret_key = {{ secret_key }}
+storage.bucket = {{ s3_bucket }}
 {%- endif %}
 
 db.url = {{ db_url }}
