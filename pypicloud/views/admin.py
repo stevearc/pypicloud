@@ -1,9 +1,14 @@
 """ API endpoints for admin controls """
-from pypicloud.route import AdminResource
+import gzip
+import json
+from paste.httpheaders import CONTENT_DISPOSITION
 from pyramid.httpexceptions import HTTPBadRequest
+from pyramid.response import FileIter
 from pyramid.view import view_config, view_defaults
-
 from pyramid_duh import argify
+from six import BytesIO
+
+from pypicloud.route import AdminResource
 
 
 @view_defaults(context=AdminResource, subpath=(), permission='admin',
@@ -137,8 +142,8 @@ class AdminEndpoints(object):
         permission = self.request.named_subpaths['permission']
         owner_type = self.request.named_subpaths['type']
         if owner_type == 'user':
-            self.request.access.edit_user_permission(package, name, permission,
-                                                     self.request.method == 'PUT')
+            self.request.access.edit_user_permission(
+                package, name, permission, self.request.method == 'PUT')
         else:
             self.request.access.edit_group_permission(
                 package, name, permission,
@@ -150,4 +155,19 @@ class AdminEndpoints(object):
     def toggle_allow_register(self, allow):
         """ Allow or disallow user registration """
         self.request.access.set_allow_register(allow)
+        return self.request.response
+
+    @view_config(name='acl.json.gz', request_method='GET')
+    def download_access_control(self):
+        """ Download the ACL data as a gzipped-json file """
+        data = self.request.access.dump()
+        compressed = BytesIO()
+        zipfile = gzip.GzipFile(mode='wb', fileobj=compressed)
+        json.dump(data, zipfile, separators=(',', ':'))
+        zipfile.close()
+        compressed.seek(0)
+
+        disp = CONTENT_DISPOSITION.tuples(filename='acl.json.gz')
+        self.request.response.headers.update(disp)
+        self.request.response.app_iter = FileIter(compressed)
         return self.request.response

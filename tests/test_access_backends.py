@@ -255,6 +255,12 @@ class TestBaseBackend(BaseACLTest):
         self.assertItemsEqual(principals, [Everyone, Authenticated, 'admin',
                                            'group:brotatos', 'user:abc'])
 
+    def test_load(self):
+        """ Base backend has no default implementation for load() """
+        access = IAccessBackend(None)
+        with self.assertRaises(TypeError):
+            access.load({})
+
 
 class TestConfigBackend(BaseACLTest):
 
@@ -483,6 +489,38 @@ class TestConfigBackend(BaseACLTest):
         self.backend.configure({})
         self.assertFalse(self.backend.need_admin())
 
+    def test_load(self):
+        """ Config backend can load ACL and format config strings """
+        settings = {
+            'group.g1': 'u1 u3',
+            'user.u1': 'passhash',
+            'user.u2': 'hashpass',
+            'user.u3': 'hashhhhh',
+            'auth.admins': 'u1 u2',
+            'package.pkg.user.u1': 'rw',
+            'package.pkg.group.g1': 'r',
+        }
+        self.backend.configure(settings)
+        data = self.backend.dump()
+        config = self.backend.load(data)
+
+        def parse_config(string):
+            """ Parse the settings from config.ini format """
+            conf = {}
+            key, value = None, None
+            for line in string.splitlines():
+                if line.startswith(' '):
+                    value += ' ' + line.strip()
+                else:
+                    if key is not None:
+                        conf[key] = ' '.join(sorted(value.split())).strip()
+                    key, value = line.split('=')
+                    key = key.strip()
+                    value = value.strip()
+            conf[key] = ' '.join(sorted(value.split())).strip()
+            return conf
+        self.assertEqual(parse_config(config), settings)
+
 
 class TestRemoteBackend(unittest.TestCase):
 
@@ -622,10 +660,10 @@ class TestSQLBackend(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super(TestSQLBackend, cls).setUpClass()
-        settings = {
+        cls.settings = {
             'auth.db.url': 'sqlite:///:memory:',
         }
-        SQLAccessBackend.configure(settings)
+        SQLAccessBackend.configure(cls.settings)
 
     def setUp(self):
         super(TestSQLBackend, self).setUp()
@@ -1062,3 +1100,111 @@ class TestSQLBackend(unittest.TestCase):
         self.assertTrue(self.access.allow_register())
         self.access.set_allow_register(False)
         self.assertFalse(self.access.allow_register())
+
+    def test_dump(self):
+        """ Can dump all data to json format """
+        user1 = make_user('user1', 'user1', True)
+        user2 = make_user('user2', 'user2', False)
+        user3 = make_user('user3', 'user3', False)
+        user3.admin = True
+        self.db.add_all([user1, user2, user3])
+        transaction.commit()
+        self.access.set_allow_register(False)
+        self.access.create_group('g1')
+        self.access.create_group('g2')
+        self.access.edit_user_group('user2', 'g1', True)
+        self.access.edit_user_group('user2', 'g2', True)
+        self.access.edit_user_group('user3', 'g2', True)
+        self.access.edit_user_permission('pkg1', 'user2', 'read', True)
+        self.access.edit_user_permission('pkg2', 'user3', 'read', True)
+        self.access.edit_user_permission('pkg2', 'user3', 'write', True)
+        self.access.edit_group_permission('pkg1', 'g1', 'read', True)
+        self.access.edit_group_permission('pkg2', 'g2', 'read', True)
+        self.access.edit_group_permission('pkg2', 'g2', 'write', True)
+
+        data = self.access.dump()
+
+        self.assertFalse(data['allow_register'])
+
+        # users
+        self.assertEqual(len(data['users']), 2)
+        for user in data['users']:
+            self.assertTrue(pwd_context.verify(user['username'],
+                                               user['password']))
+            self.assertFalse(user['admin'] ^ (user['username'] == 'user3'))
+
+        # pending users
+        self.assertEqual(len(data['pending_users']), 1)
+        user = data['pending_users'][0]
+        self.assertTrue(pwd_context.verify(user['username'], user['password']))
+
+        # groups
+        self.assertEqual(len(data['groups']), 2)
+        self.assertItemsEqual(data['groups']['g1'], ['user2'])
+        self.assertItemsEqual(data['groups']['g2'], ['user2', 'user3'])
+
+        # user package perms
+        self.assertEqual(data['packages']['users'], {
+            'pkg1': {
+                'user2': ['read'],
+            },
+            'pkg2': {
+                'user3': ['read', 'write'],
+            },
+        })
+
+        # group package perms
+        self.assertEqual(data['packages']['groups'], {
+            'pkg1': {
+                'g1': ['read'],
+            },
+            'pkg2': {
+                'g2': ['read', 'write'],
+            },
+        })
+
+    def test_load(self):
+        """ Access control can load universal format data """
+        user1 = make_user('user1', 'user1', True)
+        user2 = make_user('user2', 'user2', False)
+        user3 = make_user('user3', 'user3', False)
+        user3.admin = True
+        self.db.add_all([user1, user2, user3])
+        transaction.commit()
+        self.access.set_allow_register(False)
+        self.access.create_group('g1')
+        self.access.create_group('g2')
+        self.access.edit_user_group('user2', 'g1', True)
+        self.access.edit_user_group('user2', 'g2', True)
+        self.access.edit_user_group('user3', 'g2', True)
+        self.access.edit_user_permission('pkg1', 'user2', 'read', True)
+        self.access.edit_user_permission('pkg2', 'user3', 'read', True)
+        self.access.edit_user_permission('pkg2', 'user3', 'write', True)
+        self.access.edit_group_permission('pkg1', 'g1', 'read', True)
+        self.access.edit_group_permission('pkg2', 'g2', 'read', True)
+        self.access.edit_group_permission('pkg2', 'g2', 'write', True)
+
+        data1 = self.access.dump()
+
+        SQLAccessBackend.configure(self.settings)
+        access2 = SQLAccessBackend(MagicMock())
+        access2.load(data1)
+        data2 = access2.dump()
+
+        def assert_nice_equals(obj1, obj2):
+            """ Assertion that handles unordered lists inside dicts """
+            if isinstance(obj1, dict):
+                self.assertEqual(len(obj1), len(obj2))
+                for key, val in obj1.iteritems():
+                    assert_nice_equals(val, obj2[key])
+            elif isinstance(obj1, list):
+                self.assertItemsEqual(obj1, obj2)
+            else:
+                self.assertEqual(obj1, obj2)
+
+        assert_nice_equals(data2, data1)
+
+        # Load operation should be idempotent
+        access2.load(data2)
+        data3 = access2.dump()
+        assert_nice_equals(data3, data2)

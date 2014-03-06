@@ -39,7 +39,7 @@ Generate a default server configuration
 
 .. code-block:: bash
 
-    (mypypi)$ pypicloud-make-config -t server.ini
+    (mypypi)$ ppc-make-config -t server.ini
 
 .. warning::
 

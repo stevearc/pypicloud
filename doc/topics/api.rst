@@ -198,6 +198,14 @@ Flush the cache database and rebuild it by enumerating the storage backend
 
     curl myserver.com/admin/rebuild/
 
+``GET`` ``/admin/acl.json.gz``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Download the ACL file
+
+**Example**::
+
+    curl -o acl.json.gz myserver.com/admin/acl.json.gz
+
 ``POST`` ``/admin/register/``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Set whether registration is enabled or not

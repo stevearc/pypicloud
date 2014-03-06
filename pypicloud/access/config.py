@@ -158,3 +158,44 @@ class ConfigAccessBackend(IAccessBackend):
 
                 })
         return perms
+
+    def load(self, data):
+        lines = []
+        admins = []
+        for user in data['users']:
+            lines.append('user.{username} = {password}'.format(**user))
+            if user.get('admin'):
+                admins.append(user['username'])
+
+        if admins:
+            lines.append('auth.admins =')
+            for admin in admins:
+                lines.append('    {0}'.format(admin))
+
+        for group, members in data['groups'].iteritems():
+            lines.append('group.{0} ='.format(group))
+            for member in members:
+                lines.append('    {0}'.format(member))
+
+        def encode_permissions(perms):
+            """ Encode a permissions list as the r/rw specification """
+            ret = ''
+            if 'read' in perms:
+                ret += 'r'
+            if 'write' in perms:
+                ret += 'w'
+            return ret
+
+        for package, groups in data['packages']['groups'].iteritems():
+            for group, permissions in groups.iteritems():
+                lines.append('package.{0}.group.{1} = {2}'
+                             .format(package, group,
+                                     encode_permissions(permissions)))
+
+        for package, users in data['packages']['users'].iteritems():
+            for user, permissions in users.iteritems():
+                lines.append('package.{0}.user.{1} = {2}'
+                             .format(package, user,
+                                     encode_permissions(permissions)))
+
+        return '\n'.join(lines)

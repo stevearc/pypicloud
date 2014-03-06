@@ -1,4 +1,7 @@
 """ Commandline scripts """
+import gzip
+import transaction
+import json
 import sys
 
 import argparse
@@ -163,7 +166,7 @@ def make_config(argv=None):
     print "Config file written to '%s'" % args.outfile
 
 
-def migrate_packages():
+def migrate_packages(argv=None):
     """
     Migrate packages from one storage backend to another
 
@@ -174,6 +177,8 @@ def migrate_packages():
     ex: pypicloud-migrate-packages file_config.ini s3_config.ini
 
     """
+    if argv is None:
+        argv = sys.argv[1:]
     parser = argparse.ArgumentParser(
         description=migrate_packages.__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -182,7 +187,7 @@ def migrate_packages():
     parser.add_argument('config_to',
                         help="Name of config file to migrate to")
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     old_env = bootstrap(args.config_from)
 
@@ -196,3 +201,48 @@ def migrate_packages():
         print "Migrating %s" % package
         with old_storage.open(package) as data:
             new_storage.upload(package, data)
+
+
+def export_access(argv=None):
+    """ Dump the access control data to a universal format """
+    if argv is None:
+        argv = sys.argv[1:]
+    parser = argparse.ArgumentParser(description=export_access.__doc__)
+    parser.add_argument('config', help="Name of config file")
+    parser.add_argument('-o', help="Name of output file")
+
+    args = parser.parse_args(argv)
+
+    env = bootstrap(args.config)
+    access = env['request'].access
+    data = access.dump()
+    if args.o:
+        with gzip.open(args.o, 'w') as ofile:
+            json.dump(data, ofile)
+    else:
+        print json.dumps(data, indent=2)
+
+
+def import_access(argv=None):
+    """ Load the access control data from a dump file or stdin """
+    if argv is None:
+        argv = sys.argv[1:]
+    parser = argparse.ArgumentParser(description=import_access.__doc__)
+    parser.add_argument('config', help="Name of config file")
+    parser.add_argument('-i', help="Name of input file")
+
+    args = parser.parse_args(argv)
+
+    if args.i:
+        with gzip.open(args.i, 'r') as ifile:
+            data = json.load(ifile)
+    else:
+        print "Reading data from stdin..."
+        data = json.load(sys.stdin)
+
+    env = bootstrap(args.config)
+    access = env['request'].access
+    result = access.load(data)
+    transaction.commit()
+    if result is not None:
+        print result

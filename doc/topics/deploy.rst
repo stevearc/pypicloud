@@ -13,7 +13,7 @@ generate a default production config file.
 
 .. code-block:: bash
 
-    $ pypicloud-make-config -p prod.ini
+    $ ppc-make-config -p prod.ini
 
 Here are the options that you should pay extra attention to:
 

@@ -67,7 +67,7 @@ the default.
 **Argument:** string
 
 Defines a single user login. You may specify any number of users in the file.
-Use ``pypicloud-gen-password`` to create the password hashes.
+Use ``ppc-gen-password`` to create the password hashes.
 
 ``package.<package>.user.<user>``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

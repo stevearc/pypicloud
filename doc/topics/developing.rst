@@ -10,7 +10,7 @@ To get started developing pypicloud, run the following command:
 
 This will clone the repository and install the package into a virtualenv.
 
-Run ``pypicloud-make-config -d development.ini`` to create a developer config
+Run ``ppc-make-config -d development.ini`` to create a developer config
 file.
 
 Now you can run the server with

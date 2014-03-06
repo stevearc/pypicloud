@@ -1,7 +1,10 @@
 """ Tests for commandline scripts """
 from mock import patch
+
 from pypicloud import scripts
 from pypicloud.access import pwd_context
+
+
 try:
     import unittest2 as unittest  # pylint: disable=F0401
 except ImportError:

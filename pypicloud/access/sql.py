@@ -160,7 +160,7 @@ class SQLAccessBackend(IMutableAccessBackend):
 
     def _get_password_hash(self, username):
         user = self.db.query(User).filter_by(username=username).first()
-        if user and not user.pending:
+        if user:
             return user.password
 
     def groups(self, username=None):
@@ -242,7 +242,8 @@ class SQLAccessBackend(IMutableAccessBackend):
                 })
             return users
         else:
-            user = self.db.query(User).filter_by(username=username).first()
+            user = self.db.query(User).filter_by(username=username,
+                                                 pending=False).first()
             if user is not None:
                 return {
                     'username': user.username,

@@ -1,9 +1,10 @@
 """ The access backend object base class """
-from pyramid.settings import aslist
+from collections import defaultdict
 from passlib.apps import custom_app_context as pwd_context
 from pyramid.security import (Authenticated, Everyone, unauthenticated_userid,
                               effective_principals, Allow, Deny,
                               ALL_PERMISSIONS)
+from pyramid.settings import aslist
 
 
 def group_to_principal(group):
@@ -220,7 +221,12 @@ class IAccessBackend(object):
 
         """
         stored_pw = self._get_password_hash(username)
-        return stored_pw and pwd_context.verify(password, stored_pw)
+        if self.mutable:
+            # if a user is pending, user_data will be None
+            user_data = self.user_data(username)
+            if user_data is None:
+                return False
+        return bool(stored_pw and pwd_context.verify(password, stored_pw))
 
     def _get_password_hash(self, username):
         """ Get the stored password hash for a user """
@@ -369,7 +375,7 @@ class IAccessBackend(object):
         """
         Get a list of all users or data for a single user
 
-        For Mutable backends, this excludes pending users
+        For Mutable backends, this MUST exclude all pending users
 
         Returns
         -------
@@ -381,6 +387,65 @@ class IAccessBackend(object):
 
         """
         raise NotImplementedError
+
+    def dump(self):
+        """
+        Dump all of the access control data to a universal format
+
+        Returns
+        -------
+        data : dict
+
+        """
+        from pypicloud import __version__
+        data = {}
+        data['allow_register'] = self.allow_register()
+        data['version'] = __version__
+
+        groups = self.groups()
+        users = self.user_data()
+        for user in users:
+            user['password'] = self._get_password_hash(user['username'])
+
+        data['groups'] = {}
+        packages = {
+            'users': defaultdict(dict),
+            'groups': defaultdict(dict),
+        }
+        for group in groups:
+            data['groups'][group] = self.group_members(group)
+            perms = self.group_package_permissions(group)
+            for perm in perms:
+                package = perm['package']
+                packages['groups'][package][group] = perm['permissions']
+
+        for user in users:
+            username = user['username']
+            perms = self.user_package_permissions(username)
+            for perm in perms:
+                package = perm['package']
+                packages['users'][package][username] = perm['permissions']
+
+        # Convert the defaultdict to a dict for easy serialization
+        packages['users'] = dict(packages['users'])
+        packages['groups'] = dict(packages['groups'])
+        data['users'] = users
+        data['packages'] = packages
+        return data
+
+    def load(self, data):
+        """
+        Idempotently load universal access control data.
+
+        By default, this does nothing on immutable backends. Backends may
+        override this method to provide an implementation.
+
+        This method works by default on mutable backends with no override
+        necessary.
+
+        """
+        raise TypeError("Access backend '%s' is not mutable and has no "
+                        "'load' implementation" % self.__class__.__name__)
 
 
 class IMutableAccessBackend(IAccessBackend):
@@ -424,7 +489,8 @@ class IMutableAccessBackend(IAccessBackend):
             This should be the plaintext password
 
         """
-        self._register(username, pwd_context.encrypt(password))
+        if self.allow_register():
+            self._register(username, pwd_context.encrypt(password))
 
     def _register(self, username, password):
         """
@@ -578,3 +644,55 @@ class IMutableAccessBackend(IAccessBackend):
 
         """
         raise NotImplementedError
+
+    def dump(self):
+        data = super(IMutableAccessBackend, self).dump()
+        pending_users = []
+        for username in self.pending_users():  # pylint: disable=E1101
+            password = self._get_password_hash(username)
+            pending_users.append({
+                'username': username,
+                'password': password,
+            })
+        data['pending_users'] = pending_users
+        return data
+
+    def load(self, data):
+        # Have to temporarily set this as True for the load operation
+        self.set_allow_register(True)
+        pending_users = set(self.pending_users())
+
+        def user_exists(username):
+            """ Helper function that checks if a user already exists """
+            return (username in pending_users or
+                    self.user_data(username) is not None)
+
+        for user in data['users']:
+            if not user_exists(user['username']):
+                self._register(user['username'], user['password'])
+                self.approve_user(user['username'])
+            self.set_user_admin(user['username'], user.get('admin', False))
+
+        for group, members in data['groups'].iteritems():
+            if len(self.group_members(group)) == 0:
+                self.create_group(group)
+            current_members = self.group_members(group)
+            add_members = set(members) - set(current_members)
+            for member in add_members:
+                self.edit_user_group(member, group, True)
+
+        for user in data.get('pending_users', []):
+            if not user_exists(user['username']):
+                self._register(user['username'], user['password'])
+
+        for package, groups in data['packages']['groups'].iteritems():
+            for group, permissions in groups.iteritems():
+                for perm in permissions:
+                    self.edit_group_permission(package, group, perm, True)
+
+        for package, users in data['packages']['users'].iteritems():
+            for user, permissions in users.iteritems():
+                for perm in permissions:
+                    self.edit_user_permission(package, user, perm, True)
+
+        self.set_allow_register(data['allow_register'])

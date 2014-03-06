@@ -1,9 +1,17 @@
 <div class="row" style="margin-bottom: 20px">
   <div class="col-xs-12 col-md-3">
-    <button ng-click="rebuildPackages()" class="btn btn-default" ng-disabled="building">
-      <i class="fa fa-refresh" ng-class="building ? 'fa-spin' : ''"></i>
-      Rebuild package list
-    </button>
+    <div>
+      <button ng-click="rebuildPackages()" class="btn btn-default" ng-disabled="building">
+        <i class="fa fa-refresh" ng-class="building ? 'fa-spin' : ''"></i>
+        Rebuild package list
+      </button>
+    </div>
+    <div style="margin-top: 10px">
+      <a ng-href="{{ ADMIN }}acl.json.gz" class="btn btn-default">
+        <i class="fa fa-download"></i>
+        Download ACL
+      </a>
+    </div>
   </div>
   <div class="col-xs-12 col-md-offset-1 col-md-4" ng-if="pendingUsers && pendingUsers.length > 0">
     <h4>
