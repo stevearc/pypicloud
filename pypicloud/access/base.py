@@ -421,6 +421,22 @@ class IMutableAccessBackend(IAccessBackend):
         ----------
         username : str
         password : str
+            This should be the plaintext password
+
+        """
+        self._register(username, pwd_context.encrypt(password))
+
+    def _register(self, username, password):
+        """
+        Register a new user
+
+        The new user should be marked as pending admin approval
+
+        Parameters
+        ----------
+        username : str
+        password : str
+            This will be the hash of the password
 
         """
         raise NotImplementedError

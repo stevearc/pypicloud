@@ -253,7 +253,7 @@ class SQLAccessBackend(IMutableAccessBackend):
     def need_admin(self):
         return self.db.query(User).filter_by(admin=True).first() is None
 
-    def register(self, username, password):
+    def _register(self, username, password):
         user = User(username, password)
         self.db.add(user)
 

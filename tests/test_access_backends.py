@@ -1,7 +1,10 @@
 """ Tests for access backends """
 import transaction
 from mock import MagicMock, patch
-import pypicloud
+from pyramid.authorization import ACLAuthorizationPolicy
+from pyramid.security import Everyone, Authenticated
+from pyramid.testing import DummyRequest
+
 from pypicloud.access import (IAccessBackend, IMutableAccessBackend,
                               ConfigAccessBackend, RemoteAccessBackend,
                               includeme, pwd_context)
@@ -9,9 +12,6 @@ from pypicloud.access.base import group_to_principal, parse_principal
 from pypicloud.access.sql import (SQLAccessBackend, User, UserPermission,
                                   association_table, GroupPermission, Group)
 from pypicloud.route import Root
-from pyramid.authorization import ACLAuthorizationPolicy
-from pyramid.security import Everyone, Authenticated
-from pyramid.testing import DummyRequest
 
 
 try:
@@ -844,6 +844,7 @@ class TestSQLBackend(unittest.TestCase):
         transaction.commit()
         user = self.db.query(User).first()
         self.assertEqual(user.username, 'foo')
+        self.assertTrue(pwd_context.verify('bar', user.password))
 
     def test_pending(self):
         """ Registering a user puts them in pending list """
