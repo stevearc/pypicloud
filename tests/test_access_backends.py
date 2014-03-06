@@ -8,7 +8,7 @@ from pyramid.testing import DummyRequest
 from pypicloud.access import (IAccessBackend, IMutableAccessBackend,
                               ConfigAccessBackend, RemoteAccessBackend,
                               includeme, pwd_context)
-from pypicloud.access.base import group_to_principal, parse_principal
+from pypicloud.access.base import group_to_principal
 from pypicloud.access.sql import (SQLAccessBackend, User, UserPermission,
                                   association_table, GroupPermission, Group)
 from pypicloud.route import Root
@@ -41,14 +41,6 @@ class TestUtilities(unittest.TestCase):
             g1 = group_to_principal(group)
             g2 = group_to_principal(g1)
             self.assertEqual(g1, g2)
-
-    def test_parse_principal(self):
-        """ parse_principal returns type and value """
-        self.assertEqual(parse_principal('user:aa'), ['user', 'aa'])
-        self.assertEqual(parse_principal('group:aa'), ['group', 'aa'])
-        self.assertEqual(parse_principal(Everyone), ['group', 'everyone'])
-        self.assertEqual(parse_principal(Authenticated), ['group',
-                                                          'authenticated'])
 
 
 class BaseACLTest(unittest.TestCase):
@@ -241,9 +233,17 @@ class TestBaseBackend(BaseACLTest):
     def test_has_permission_default_read(self):
         """ If no user/group permissions on a package, use default_read """
         self.backend.default_read = ['everyone', 'authenticated']
+        self.backend.default_write = []
         perms = self.backend.allowed_permissions('anypkg')
         self.assertEqual(perms, {Everyone: ('read',),
                                  Authenticated: ('read',)})
+
+    def test_has_permission_default_write(self):
+        """ If no user/group permissions on a package, use default_write """
+        self.backend.default_read = ['authenticated']
+        self.backend.default_write = ['authenticated']
+        perms = self.backend.allowed_permissions('anypkg')
+        self.assertEqual(perms, {Authenticated: ('read', 'write')})
 
     def test_admin_principal(self):
         """ Admin user has the 'admin' principal """
@@ -432,57 +432,6 @@ class TestConfigBackend(BaseACLTest):
             'admin': True,
             'groups': ['foobars'],
         })
-
-    def test_zero_security(self):
-        """ In zero_security_mode everyone has 'r' permission """
-        settings = {
-            'auth.zero_security_mode': True
-        }
-        self.backend.configure(settings)
-        can_read = self.backend.has_permission('floobydooby', 'read')
-        self.assertTrue(can_read)
-
-    def test_zero_security_group(self):
-        """ In zero_security_mode 'everyone' group always can 'read' """
-        settings = {
-            'auth.zero_security_mode': True
-        }
-        self.backend.configure(settings)
-        perms = self.backend.group_permissions('floobydooby')
-        self.assertEqual(perms, {
-            'everyone': ['read'],
-        })
-
-    @patch('pypicloud.access.base.effective_principals')
-    def test_zero_security_write(self, principals):
-        """ zero_security_mode has no impact on 'w' permission """
-        settings = {
-            'auth.zero_security_mode': True
-        }
-        self.backend.configure(settings)
-        principals.return_value = [Everyone]
-        self.assertTrue(self.backend.has_permission('pkg', 'read'))
-        self.assertFalse(self.backend.has_permission('pkg', 'write'))
-
-    def test_root_acl_zero_sec(self):
-        """ Root ACL is super permissive in zero security mode """
-        settings = {
-            'auth.zero_security_mode': True
-        }
-        self.backend.configure(settings)
-        root = Root(self.request)
-        self.assert_allowed(root, 'login', ['admin', Everyone])
-        self.assert_allowed(root, 'read', ['admin', Everyone])
-        self.assert_allowed(root, 'write', ['admin', Authenticated])
-
-    def test_zero_security_mode_acl(self):
-        """ Zero security mode means ACL is empty """
-        settings = {
-            'auth.zero_security_mode': True
-        }
-        self.backend.configure(settings)
-        acl = self.backend.get_acl('mypkg')
-        self.assertEqual(acl, [])
 
     def test_need_admin(self):
         """ Config backend is static and never needs admin """

@@ -5,10 +5,10 @@ This is a list of all configuration parameters for pypicloud
 PyPICloud
 ^^^^^^^^^
 
-.. _use_fallback:
+.. _fallback:
 
 ``pypi.fallback``
-~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
 **Argument:** {'redirect', 'cache', 'none'}, optional
 
 This option defines what the behavior is when a requested package is not found
@@ -35,6 +35,13 @@ http://pypi.python.org/simple)
 List of groups that are allowed to read packages that have no explicit user or
 group permissions (default ['authenticated'])
 
+``pypi.default_write``
+~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** list, optional
+
+List of groups that are allowed to write packages that have no explicit user or
+group permissions (default no groups, only admin users)
+
 ``pypi.cache_update``
 ~~~~~~~~~~~~~~~~~~~~~
 **Argument:** list, optional
@@ -56,6 +63,12 @@ False)
 
 The HTTP Basic Auth realm (default 'pypi')
 
+``pypi.use_fallback`` (deprecated)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** bool, optional
+
+Replaced by ``pypi.fallback``. Setting to ``True`` has no effect. Setting to
+``False`` will set ``pypi.fallback = none``.
 
 Storage
 ^^^^^^^

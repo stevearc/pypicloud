@@ -99,13 +99,13 @@ read/write access to all packages, and can perform maintenance tasks.
 Whitespace-delimited list of users that belong to this group. Groups can have
 separately-defined read/write permissions on packages.
 
-``auth.zero_security_mode``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+``auth.zero_security_mode`` (deprecated)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** bool, optional
 
-Run in a special, limited access-control mode. Any user with valid credentials
-can upload any package. Everyone (even not-logged-in users) can view and
-download all packages. (default False)
+Replaced by ``pypi.default_read`` and ``pypi.default_write``. If enabled, will
+set ``pypi.default_read = everyone`` and ``pypi.default_write =
+authenticated``.
 
 SQL Database
 ------------

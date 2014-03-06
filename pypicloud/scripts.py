@@ -139,8 +139,6 @@ def make_config(argv=None):
 
         data['s3_bucket'] = prompt("S3 bucket name?", validate=bucket_validate)
 
-    data['db_url'] = 'sqlite:///%(here)s/db.sqlite'
-
     data['encrypt_key'] = b64encode(os.urandom(32))
     data['validate_key'] = b64encode(os.urandom(32))
 
@@ -148,7 +146,7 @@ def make_config(argv=None):
     data['password'] = _gen_password()
 
     data['session_secure'] = env == 'prod'
-    data['zero_security_mode'] = env != 'prod'
+    data['env'] = env
 
     if env == 'dev' or env == 'test':
         data['wsgi'] = 'waitress'

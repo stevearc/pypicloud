@@ -24,16 +24,6 @@ def groups_to_principals(groups):
     return [group_to_principal(g) for g in groups]
 
 
-def parse_principal(principal):
-    """ Parse a principal and return type, name """
-    if principal == Everyone:
-        return ['group', 'everyone']
-    elif principal == Authenticated:
-        return ['group', 'authenticated']
-    else:
-        return principal.split(':', 1)
-
-
 class IAccessBackend(object):
 
     """ Base class for retrieving user and package permission data """
@@ -53,6 +43,7 @@ class IAccessBackend(object):
         """ Configure the access backend with app settings """
         cls.default_read = aslist(settings.get('pypi.default_read',
                                                ['authenticated']))
+        cls.default_write = aslist(settings.get('pypi.default_write', []))
         cls.cache_update = aslist(settings.get('pypi.cache_update',
                                                ['authenticated']))
 
@@ -74,10 +65,15 @@ class IAccessBackend(object):
             all_perms[group_to_principal(group)] = tuple(perms)
 
         # If there are no group or user specifications for the package, use the
-        # read-default
+        # default
         if len(all_perms) == 0:
             for principal in groups_to_principals(self.default_read):
                 all_perms[principal] = ('read',)
+            for principal in groups_to_principals(self.default_write):
+                if principal in all_perms:
+                    all_perms[principal] += ('write',)
+                else:
+                    all_perms[principal] = ('write',)
         return all_perms
 
     def get_acl(self, package):

@@ -1,10 +1,13 @@
 """ Backend that reads access control rules from config file """
+import logging
 from collections import defaultdict
-from pyramid.security import (Authenticated, Everyone, Allow, Deny,
-                              ALL_PERMISSIONS)
-from pyramid.settings import asbool, aslist
+from pyramid.security import Everyone, Authenticated
+from pyramid.settings import aslist, asbool
 
 from .base import IAccessBackend
+
+
+LOG = logging.getLogger(__name__)
 
 
 class ConfigAccessBackend(IAccessBackend):
@@ -14,23 +17,16 @@ class ConfigAccessBackend(IAccessBackend):
     @classmethod
     def configure(cls, settings):
         super(ConfigAccessBackend, cls).configure(settings)
+        if asbool(settings.get('auth.zero_security_mode', False)):
+            LOG.warn("Using deprecated option 'auth.zero_security_mode' "
+                     "(replaced by 'pypi.default_read' and "
+                     "'pypi.default_write'")
+            cls.default_read = [Everyone]
+            cls.default_write = [Authenticated]
         cls._settings = settings
-        cls.zero_security_mode = asbool(settings.get('auth.zero_security_mode',
-                                                     False))
         cls.admins = aslist(settings.get('auth.admins', []))
         cls.user_groups = defaultdict(list)
         cls.group_map = {}
-
-        if cls.zero_security_mode:
-            cls.ROOT_ACL = [
-                (Allow, Everyone, 'login'),
-                (Allow, Everyone, 'read'),
-                (Allow, Authenticated, 'write'),
-                (Allow, 'admin', ALL_PERMISSIONS),
-                (Deny, Everyone, ALL_PERMISSIONS),
-            ]
-        else:
-            cls.ROOT_ACL = IAccessBackend.ROOT_ACL
 
         # Build dict that maps users to list of groups
         for key, value in settings.iteritems():
@@ -72,11 +68,7 @@ class ConfigAccessBackend(IAccessBackend):
     def group_permissions(self, package, group=None):
         if group is not None:
             key = 'package.%s.group.%s' % (package, group)
-            perms = self._perms_from_short(self._settings.get(key))
-            if (self.zero_security_mode and group == 'everyone' and
-                    'read' not in perms):
-                perms.append('read')
-            return perms
+            return self._perms_from_short(self._settings.get(key))
         perms = {}
         group_prefix = 'package.%s.group.' % package
         for key, value in self._settings.iteritems():
@@ -84,10 +76,6 @@ class ConfigAccessBackend(IAccessBackend):
                 continue
             group = key[len(group_prefix):]
             perms[group] = self._perms_from_short(value)
-        if self.zero_security_mode:
-            perms.setdefault('everyone', [])
-            if 'read' not in perms['everyone']:
-                perms['everyone'].append('read')
         return perms
 
     def user_permissions(self, package, username=None):
@@ -102,11 +90,6 @@ class ConfigAccessBackend(IAccessBackend):
             user = key[len(user_prefix):]
             perms[user] = self._perms_from_short(value)
         return perms
-
-    def get_acl(self, package):
-        if self.zero_security_mode:
-            return []
-        return super(ConfigAccessBackend, self).get_acl(package)
 
     def user_data(self, username=None):
         if username is not None:

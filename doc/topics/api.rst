@@ -39,9 +39,10 @@ Upload a package
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Returns a webpage with all links to all versions of this package.
 
-If :ref:`use fallback <use_fallback>` is enabled and the server does not
-contain the package, this will return a ``302`` that points towards a fallback
-server.
+If :ref:`fallback <fallback>` is configured and the server does not contain the
+package, this will return either a ``302`` that points towards the fallback
+server (``redirect``), or a package index pulled from the fallback server
+(``cache``).
 
 **Example**::
 

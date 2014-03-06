@@ -1,9 +1,13 @@
 """ Utilities """
-from distlib.util import split_filename
-from distlib.locators import Locator, SimpleScrapingLocator
-from six.moves.urllib.parse import urlparse  # pylint: disable=F0401,E0611
 import posixpath
 
+import logging
+from distlib.locators import Locator, SimpleScrapingLocator
+from distlib.util import split_filename
+from six.moves.urllib.parse import urlparse  # pylint: disable=F0401,E0611
+
+
+LOG = logging.getLogger(__name__)
 ALL_EXTENSIONS = Locator.source_extensions + Locator.binary_extensions
 
 
@@ -69,8 +73,13 @@ def getdefaults(settings, *args):
     keys are found.
 
     """
+    assert len(args) >= 3
     args, default = args[:-1], args[-1]
+    canonical = args[0]
     for key in args:
         if key in settings:
+            if key != canonical:
+                LOG.warn("Using deprecated option '%s' "
+                         "(replaced by '%s')", key, canonical)
             return settings[key]
     return default

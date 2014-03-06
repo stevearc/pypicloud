@@ -7,6 +7,13 @@ pyramid.debug_notfound = false
 pyramid.debug_routematch = false
 pyramid.default_locale_name = en
 
+{% if env != 'prod' -%}
+pypi.default_read =
+    everyone
+pypi.default_write =
+    authenticated
+{%- endif %}
+
 pypi.storage = {{ storage }}
 {% if storage == 'file' -%}
 storage.dir = %(here)s/packages
@@ -16,11 +23,7 @@ storage.secret_key = {{ secret_key }}
 storage.bucket = {{ s3_bucket }}
 {%- endif %}
 
-db.url = {{ db_url }}
-
-{% if zero_security_mode -%}
-auth.zero_security_mode = true
-{%- endif %}
+db.url = sqlite:///%(here)s/db.sqlite
 
 auth.admins =
   {{ admin }}
