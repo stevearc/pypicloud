@@ -9,7 +9,6 @@ from .base import ICache
 class RedisCache(ICache):
 
     """ Caching database that uses redis """
-    dbtype = 'redis'
     redis_prefix = 'pypicloud:'
 
     @classmethod

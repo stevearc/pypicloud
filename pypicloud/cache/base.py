@@ -18,7 +18,6 @@ class ICache(object):
 
     """ Base class for a caching database that stores package metadata """
 
-    dbtype = None
     package_class = Package
     storage_impl = None
 
@@ -112,8 +111,7 @@ class ICache(object):
         old_pkg = self.fetch(filename)
         if old_pkg is not None and not self.allow_overwrite:
             raise ValueError("Package '%s' already exists!" % filename)
-        new_pkg = self.package_class(name, version, filename,
-                                     datetime.utcnow())
+        new_pkg = self.package_class(name, version, filename)
         self.storage.upload(new_pkg, data)
         self.save(new_pkg)
         return new_pkg

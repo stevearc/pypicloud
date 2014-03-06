@@ -1,7 +1,9 @@
 """ Model objects """
+import re
+from datetime import datetime
+
 import pkg_resources
 
-import re
 from .compat import total_ordering
 from .util import normalize_name
 
@@ -20,18 +22,21 @@ class Package(object):
         The version number of the package
     filename : str
         The name of the package file
-    last_modified : datetime
-        The datetime when this package was uploaded
+    last_modified : datetime, optional
+        The datetime when this package was uploaded (default now)
     **kwargs : dict
         Metadata about the package
 
     """
 
-    def __init__(self, name, version, filename, last_modified, **kwargs):
+    def __init__(self, name, version, filename, last_modified=None, **kwargs):
         self.name = normalize_name(name)
         self.version = version
         self.filename = filename
-        self.last_modified = last_modified
+        if last_modified is not None:
+            self.last_modified = last_modified
+        else:
+            self.last_modified = datetime.utcnow()
         self.data = kwargs
 
     def get_url(self, request):

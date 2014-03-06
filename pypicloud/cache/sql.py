@@ -121,7 +121,6 @@ def drop_schema(engine):
 class SQLCache(ICache):
 
     """ Caching database that uses SQLAlchemy """
-    dbtype = 'sql'
     package_class = SQLPackage
     dbmaker = None
 
