@@ -1,3 +1,5 @@
+Changelog
+=========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
 0.2.0
@@ -9,7 +11,8 @@ If you are upgrading an existing installation, read :ref:`the instructions <upgr
 * Feature: ``ppc-migrate``, command to move packages between storage backends :sha:`399a990`
 * Feature: Adding support for more than one package with the same version. Now you can upload wheels! :sha:`2f24877`
 * Feature: Allow transparently downloading and caching packages from pypi :sha:`e4dabc7`
-* Feature: Export/Import access-control data via ``ppc-export`` and ``ppc-import``
+* Feature: Export/Import access-control data via ``ppc-export`` and ``ppc-import`` :sha:`dbd2a16`
+* Feature: Can set default read/write permissions for packages :sha:`c9aa57b`
 * Hosting all js & css ourselves (no more CDN links) :sha:`20e345c`
 * Obligatory miscellaneous refactoring
 
