@@ -12,5 +12,6 @@ redis
 requests
 httpretty
 moto
+flywheel
 tox
 bumpversion

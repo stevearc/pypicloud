@@ -44,7 +44,8 @@ Here is a sample configuration to get you started:
 
 
 Here is a table that describes who has what permissions on these packages. Note
-that if the entry is ``none``, that user will not even see the package listed.
+that if the entry is ``none``, that user will not even see the package listed,
+depending on your ``pypi.default_read`` and ``pypi.default_write`` settings.
 
 ========  ================  =================  =============
 User      django_unchained  polite_requests    pyramid_head
@@ -135,6 +136,8 @@ Remote Server
 This implementation allows you to delegate all access control to another
 server. If you already have an application with a user database, this allows
 you to use that data directly.
+
+You will need to ``pip install requests`` before running the server.
 
 Configuration
 ^^^^^^^^^^^^^

@@ -7,7 +7,7 @@ RUN apt-get update -qq
 RUN apt-get install -y python-pip python2.7-dev nginx-full
 RUN pip install virtualenv
 RUN virtualenv /env
-RUN /env/bin/pip install pypicloud uwsgi pastescript redis
+RUN /env/bin/pip install pypicloud uwsgi pastescript redis flywheel
 
 # Get rid of the default nginx site
 RUN rm -f /etc/nginx/sites-enabled/default

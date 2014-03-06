@@ -6,7 +6,7 @@ for pip.
 
 After generating the S3 urls, pypicloud caches them in a database. Subsequent
 requests to download packages will use the already-generated urls in the db.
-Pypicloud supports using SQLAlchemy or Redis as the cache.
+Pypicloud supports using SQLAlchemy, Redis, or DynamoDB as the cache.
 
 Pypicloud was designed to be fast and easy to replace in the case of server
 failure. Simply copy your config.ini file to a new server and run pypicloud

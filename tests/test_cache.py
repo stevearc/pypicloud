@@ -4,7 +4,9 @@ from mock import MagicMock, patch
 from pyramid.testing import DummyRequest
 
 from . import DummyCache, DummyStorage, make_package
+from dynamo3 import Throughput
 from pypicloud.cache import ICache, SQLCache, RedisCache
+from pypicloud.cache.dynamo import DynamoCache, DynamoPackage, PackageSummary
 from pypicloud.cache.sql import SQLPackage
 from pypicloud.storage import IStorage
 
@@ -247,7 +249,8 @@ class TestSQLCache(unittest.TestCase):
         """ all() returns all versions of a package """
         pkgs = [
             make_package(factory=SQLPackage),
-            make_package(version='1.3', filename='mypath3', factory=SQLPackage),
+            make_package(version='1.3', filename='mypath3',
+                         factory=SQLPackage),
             make_package('mypkg2', '1.3.4', 'my/other/path',
                          factory=SQLPackage),
         ]
@@ -259,7 +262,8 @@ class TestSQLCache(unittest.TestCase):
         """ distinct() returns all unique package names """
         pkgs = [
             make_package(factory=SQLPackage),
-            make_package(version='1.3', filename='mypath3', factory=SQLPackage),
+            make_package(version='1.3', filename='mypath3',
+                         factory=SQLPackage),
             make_package('mypkg2', '1.3.4', 'my/other/path',
                          factory=SQLPackage),
         ]
@@ -289,16 +293,6 @@ class TestSQLCache(unittest.TestCase):
             },
         ])
 
-    def test_reload_if_needed(self):
-        """ Reload the cache if it's empty """
-        with patch.object(SQLCache, 'storage_impl') as storage_impl:
-            storage_impl().list.return_value = [
-                make_package(factory=SQLPackage)
-            ]
-            SQLCache.reload_if_needed()
-            count = self.sql.query(SQLPackage).count()
-            self.assertEqual(count, 1)
-
     def test_multiple_packages_same_version(self):
         """ Can upload multiple packages that have the same version """
         with patch.object(self.db, 'allow_overwrite', False):
@@ -310,6 +304,16 @@ class TestSQLCache(unittest.TestCase):
 
             all_versions = self.db.all(name)
             self.assertEqual(len(all_versions), 2)
+
+    def test_reload_if_needed(self):
+        """ Reload the cache if it's empty """
+        with patch.object(SQLCache, 'storage_impl') as storage_impl:
+            storage_impl().list.return_value = [
+                make_package(factory=SQLPackage)
+            ]
+            SQLCache.reload_if_needed()
+            count = self.sql.query(SQLPackage).count()
+            self.assertEqual(count, 1)
 
 
 class TestRedisCache(unittest.TestCase):
@@ -442,7 +446,8 @@ class TestRedisCache(unittest.TestCase):
         """ all() returns all versions of a package """
         pkgs = [
             make_package(factory=SQLPackage),
-            make_package(version='1.3', filename='mypath3', factory=SQLPackage),
+            make_package(version='1.3', filename='mypath3',
+                         factory=SQLPackage),
             make_package('mypkg2', '1.3.4', 'my/other/path',
                          factory=SQLPackage),
         ]
@@ -455,7 +460,8 @@ class TestRedisCache(unittest.TestCase):
         """ distinct() returns all unique package names """
         pkgs = [
             make_package(factory=SQLPackage),
-            make_package(version='1.3', filename='mypath3', factory=SQLPackage),
+            make_package(version='1.3', filename='mypath3',
+                         factory=SQLPackage),
             make_package('mypkg2', '1.3.4', 'my/other/path',
                          factory=SQLPackage),
         ]
@@ -475,3 +481,199 @@ class TestRedisCache(unittest.TestCase):
 
             all_versions = self.db.all(name)
             self.assertEqual(len(all_versions), 2)
+
+
+class TestDynamoCache(unittest.TestCase):
+
+    """ Tests for the DynamoCache """
+
+    dynamo = None
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestDynamoCache, cls).setUpClass()
+        host = cls.dynamo.host[cls.dynamo.host.index('//') + 2:]
+        host, port = host.split(':')
+        settings = {
+            'pypi.storage': 'tests.DummyStorage',
+            'db.host': host,
+            'db.port': port,
+            'db.namespace': 'test',
+            'db.access_key': '',
+            'db.secret_key': '',
+        }
+        DynamoCache.configure(settings)
+        cls.engine = DynamoCache.engine
+
+    @classmethod
+    def tearDownClass(cls):
+        super(TestDynamoCache, cls).tearDownClass()
+        cls.engine.delete_schema()
+
+    def setUp(self):
+        super(TestDynamoCache, self).setUp()
+        self.db = DynamoCache(DummyRequest())
+        self.storage = self.db.storage = MagicMock(spec=IStorage)
+
+    def tearDown(self):
+        super(TestDynamoCache, self).tearDown()
+        for model in (DynamoPackage, PackageSummary):
+            self.engine.scan(model).delete()
+
+    def _save_pkgs(self, *pkgs):
+        """ Save a DynamoPackage to the db """
+        for pkg in pkgs:
+            self.engine.save(pkg)
+            summary = (self.engine.get(PackageSummary, name=pkg.name) or
+                       PackageSummary(pkg))
+            summary.update_with(pkg)
+            self.engine.sync(summary)
+
+    def test_upload(self):
+        """ upload() saves package and uploads to storage """
+        pkg = make_package(factory=DynamoPackage)
+        self.db.upload(pkg.filename, None, pkg.name, pkg.version)
+        count = self.engine.scan(DynamoPackage).count()
+        self.assertEqual(count, 1)
+        saved_pkg = self.engine.scan(DynamoPackage).first()
+        self.assertEqual(saved_pkg, pkg)
+        self.storage.upload.assert_called_with(pkg, None)
+
+    def test_save(self):
+        """ save() puts object into database """
+        pkg = make_package(factory=DynamoPackage)
+        self.db.save(pkg)
+        count = self.engine.scan(DynamoPackage).count()
+        self.assertEqual(count, 1)
+        saved_pkg = self.engine.scan(DynamoPackage).first()
+        self.assertEqual(saved_pkg, pkg)
+
+    def test_delete(self):
+        """ delete() removes object from database and deletes from storage """
+        pkg = make_package(factory=DynamoPackage)
+        self._save_pkgs(pkg)
+        self.db.delete(pkg)
+        count = self.engine.scan(DynamoPackage).count()
+        self.assertEqual(count, 0)
+        count = self.engine.scan(PackageSummary).count()
+        self.assertEqual(count, 0)
+        self.storage.delete.assert_called_with(pkg)
+
+    def test_clear(self):
+        """ clear() removes object from database """
+        pkg = make_package(factory=DynamoPackage)
+        self._save_pkgs(pkg)
+        self.db.delete(pkg)
+        count = self.engine.scan(DynamoPackage).count()
+        self.assertEqual(count, 0)
+        count = self.engine.scan(PackageSummary).count()
+        self.assertEqual(count, 0)
+
+    def test_reload(self):
+        """ reload_from_storage() inserts packages into the database """
+        keys = [
+            make_package(factory=DynamoPackage),
+            make_package('mypkg2', '1.3.4', 'my/other/path',
+                         factory=DynamoPackage),
+        ]
+        self.storage.list.return_value = keys
+        self.db.reload_from_storage()
+        all_pkgs = self.engine.scan(DynamoPackage).all()
+        self.assertItemsEqual(all_pkgs, keys)
+
+    def test_fetch(self):
+        """ fetch() retrieves a package from the database """
+        pkg = make_package(factory=DynamoPackage)
+        self._save_pkgs(pkg)
+        saved_pkg = self.db.fetch(pkg.filename)
+        self.assertEqual(saved_pkg, pkg)
+
+    def test_fetch_missing(self):
+        """ fetch() returns None if no package exists """
+        saved_pkg = self.db.fetch('missing_pkg-1.2.tar.gz')
+        self.assertIsNone(saved_pkg)
+
+    def test_all_versions(self):
+        """ all() returns all versions of a package """
+        pkgs = [
+            make_package(factory=DynamoPackage),
+            make_package(version='1.3', filename='mypath3',
+                         factory=DynamoPackage),
+            make_package('mypkg2', '1.3.4', 'my/other/path',
+                         factory=DynamoPackage),
+        ]
+        self._save_pkgs(*pkgs)
+        saved_pkgs = self.db.all('mypkg')
+        self.assertItemsEqual(saved_pkgs, pkgs[:2])
+
+    def test_distinct(self):
+        """ distinct() returns all unique package names """
+        pkgs = [
+            make_package(factory=DynamoPackage),
+            make_package(version='1.3', filename='mypath3',
+                         factory=DynamoPackage),
+            make_package('mypkg2', '1.3.4', 'my/other/path',
+                         factory=DynamoPackage),
+        ]
+        self._save_pkgs(*pkgs)
+        saved_pkgs = self.db.distinct()
+        print saved_pkgs
+        self.assertItemsEqual(saved_pkgs, set([p.name for p in pkgs]))
+
+    def test_summary(self):
+        """ summary constructs per-package metadata summary """
+        self.db.upload('pkg1-0.3.tar.gz', None, 'pkg1', '0.3')
+        self.db.upload('pkg1-1.1.tar.gz', None, 'pkg1', '1.1')
+        p1 = self.db.upload('pkg1a2.tar.gz', None, 'pkg1', '1.1.1a2')
+        p2 = self.db.upload('pkg2.tar.gz', None, 'pkg2', '0.1dev2')
+        summaries = self.db.summary()
+        self.assertItemsEqual(summaries, [
+            {
+                'name': 'pkg1',
+                'stable': '1.1',
+                'unstable': '1.1.1a2',
+                'last_modified': p1.last_modified,
+            },
+            {
+                'name': 'pkg2',
+                'stable': None,
+                'unstable': '0.1dev2',
+                'last_modified': p2.last_modified,
+            },
+        ])
+
+    def test_multiple_packages_same_version(self):
+        """ Can upload multiple packages that have the same version """
+        with patch.object(self.db, 'allow_overwrite', False):
+            name, version = 'a', '1'
+            path1 = 'old_package_path-1.tar.gz'
+            self.db.upload(path1, None, name, version)
+            path2 = 'new_path-1.whl'
+            self.db.upload(path2, None, name, version)
+
+            all_versions = self.db.all(name)
+            self.assertEqual(len(all_versions), 2)
+
+    def test_clear_all_keep_throughput(self):
+        """ Calling clear_all will keep same table throughput """
+        throughput = {}
+        for model in (DynamoPackage, PackageSummary):
+            tablename = model.meta_.ddb_tablename(self.engine.namespace)
+            desc = self.dynamo.describe_table(tablename)
+            self.dynamo.update_table(desc.name, Throughput(7, 7))
+            for index in desc.global_indexes:
+                self.dynamo.update_table(desc.name,
+                                         global_indexes={
+                                             index.name: Throughput(7, 7)
+                                         })
+
+        self.db.clear_all()
+
+        for model in (DynamoPackage, PackageSummary):
+            tablename = model.meta_.ddb_tablename(self.engine.namespace)
+            desc = self.dynamo.describe_table(tablename)
+            self.assertEqual(desc.throughput.read, 7)
+            self.assertEqual(desc.throughput.write, 7)
+            for index in desc.global_indexes:
+                self.assertEqual(index.throughput.read, 7)
+                self.assertEqual(index.throughput.write, 7)

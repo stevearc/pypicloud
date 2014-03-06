@@ -14,6 +14,8 @@ def get_cache_impl(settings):
         dotted_cache = 'pypicloud.cache.SQLCache'
     elif dotted_cache == 'redis':
         dotted_cache = 'pypicloud.cache.RedisCache'
+    elif dotted_cache == 'dynamo':
+        dotted_cache = 'pypicloud.cache.dynamo.DynamoCache'
     cache_impl = resolver.resolve(dotted_cache)
     cache_impl.configure(settings)
     cache_impl.reload_if_needed()

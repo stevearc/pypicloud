@@ -7,6 +7,7 @@ Submodules
 .. toctree::
 
    pypicloud.cache.base
+   pypicloud.cache.dynamo
    pypicloud.cache.redis_cache
    pypicloud.cache.sql
 

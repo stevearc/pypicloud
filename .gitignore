@@ -38,4 +38,5 @@ htmlcov
 .ropeproject
 pypicloud_env
 _build
+_local.db
 *.ini

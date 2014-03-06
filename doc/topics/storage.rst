@@ -68,10 +68,10 @@ on the subject.
 ~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** int, optional
 
-How long the generated S3 urls are valid for (default 86400 (1 day)). In
-practice, there is no real reason why these generated urls need to expire at
-all. S3 does it for security, but expiring links isn't part of the python
-package security model. So in theory you can bump this number up.
+How long (in seconds) the generated S3 urls are valid for (default 86400 (1
+day)). In practice, there is no real reason why these generated urls need to
+expire at all. S3 does it for security, but expiring links isn't part of the
+python package security model. So in theory you can bump this number up.
 
 ``storage.buffer_time``
 ~~~~~~~~~~~~~~~~~~~~~~~
