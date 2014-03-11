@@ -16,8 +16,6 @@ addtl_paths = (
 for path in addtl_paths:
     sys.path.insert(0, os.path.abspath(os.path.join(docs_basepath, path)))
 
-from pypicloud_version import git_version_data
-
 extensions = ['sphinx.ext.autodoc', 'numpydoc', 'sphinx.ext.intersphinx',
               'sphinx.ext.linkcode', 'sphinx.ext.autosummary', 'github']
 
@@ -26,9 +24,8 @@ project = u'pypicloud'
 copyright = u'2013, Steven Arcangeli'
 github_user = u'mathcamp'
 
-version_data = git_version_data()
-version = version_data['tag']
-release = version_data['version']
+release = '0.2.0'
+version = '.'.join(release.split('.')[:2])
 
 exclude_patterns = ['_build']
 pygments_style = 'sphinx'
@@ -58,4 +55,4 @@ def linkcode_resolve(domain, info):
         except (TypeError, IOError):
             pass
     return ("https://github.com/%s/%s/blob/%s/%s.py%s" %
-            (github_user, project, version_data['ref'], filename, lineno))
+            (github_user, project, release, filename, lineno))

@@ -3,7 +3,6 @@ import os
 import sys
 
 from setuptools import setup, find_packages
-from pypicloud_version import git_version, UpdateVersion
 
 
 HERE = os.path.abspath(os.path.dirname(__file__))
@@ -43,8 +42,7 @@ if sys.version_info[:2] < (2, 7):
 if __name__ == "__main__":
     setup(
         name='pypicloud',
-        version=git_version('pypicloud'),
-        cmdclass={'update_version': UpdateVersion},
+        version='0.2.0',
         description='Private PyPI backed by S3',
         long_description=README + '\n\n' + CHANGES,
         classifiers=[

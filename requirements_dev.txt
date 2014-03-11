@@ -13,3 +13,4 @@ requests
 httpretty
 moto
 tox
+bumpversion
