@@ -17,7 +17,11 @@ in the database. (default 'redirect')
 ``redirect`` - Return a 302 to the package at the ``fallback_url``.
 
 ``cache`` - Download the package from ``fallback_url``, store it in the
-backend, and serve it.
+backend, and serve it. User must have ``default_write`` permissions. If not,
+returns 404.
+
+``cache redirect`` - If the user has ``default_write`` permissions, cache
+missing packages. If not, return a 302 to the ``fallback_url``.
 
 ``none`` - Return a 404
 

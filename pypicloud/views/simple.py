@@ -2,7 +2,6 @@
 import six
 from pyramid.httpexceptions import (HTTPBadRequest, HTTPFound, HTTPForbidden,
                                     HTTPNotFound)
-from pyramid.renderers import render
 from pyramid.view import view_config
 
 import posixpath
@@ -57,9 +56,8 @@ def package_versions(context, request):
 
     packages = request.db.all(normalized_name)
     if not packages:
-        if request.registry.fallback == 'cache':
-            if not request.access.can_update_cache():
-                return HTTPNotFound()
+        if ('cache' in request.registry.fallback and
+                request.access.can_update_cache()):
             locator = FilenameScrapingLocator(request.registry.fallback_url)
             dists = locator.get_project(context.name)
             if not dists:
@@ -70,7 +68,7 @@ def package_versions(context, request):
                 url = request.app_url('api', 'package', dist.name, filename)
                 pkgs[filename] = url
             return {'pkgs': pkgs}
-        elif request.registry.fallback == 'redirect':
+        elif 'redirect' in request.registry.fallback:
             redirect_url = "%s/%s/" % (
                 request.registry.fallback_url.rstrip('/'), context.name)
             return HTTPFound(location=redirect_url)

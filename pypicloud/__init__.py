@@ -4,7 +4,7 @@ import datetime
 import logging
 from pyramid.config import Configurator
 from pyramid.renderers import JSON, render
-from pyramid.settings import asbool
+from pyramid.settings import asbool, aslist
 from pyramid_beaker import session_factory_from_settings
 from six.moves.urllib.parse import urlencode  # pylint: disable=F0401,E0611
 
@@ -64,17 +64,18 @@ def includeme(config):
     config.registry.fallback_url = settings.get('pypi.fallback_url',
                                                 default_url)
 
-    fallback_mode = settings.get('pypi.fallback', 'redirect').lower()
+    fallback_modes = aslist(settings.get('pypi.fallback', ['redirect']))
     # Compatibility with the deprecated pypi.use_fallback option
     if 'pypi.fallback' not in settings and 'pypi.use_fallback' in settings:
         LOG.warn("Using deprecated option 'pypi.use_fallback'")
         use_fallback = asbool(settings['pypi.use_fallback'])
-        fallback_mode = 'redirect' if use_fallback else 'none'
+        fallback_modes = ['redirect'] if use_fallback else []
     modes = ('redirect', 'cache', 'none')
-    if fallback_mode not in modes:
-        raise ValueError("Invalid value for 'pypi.fallback'. Must be one of %s"
-                         % ', '.join(modes))
-    config.registry.fallback = fallback_mode
+    for mode in fallback_modes:
+        if mode not in modes:
+            raise ValueError("Invalid value for 'pypi.fallback'. "
+                             "Must be one of %s" % ', '.join(modes))
+    config.registry.fallback = fallback_modes
 
     # CACHING DATABASE SETTINGS
     cache_impl = get_cache_impl(settings)
