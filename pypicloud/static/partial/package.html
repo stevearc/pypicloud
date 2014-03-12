@@ -1,18 +1,18 @@
 <div>
   <div class="row">
-    <div class="col-xs-12 col-md-offset-3 col-md-6">
+    <div class="col-xs-12 col-md-offset-2 col-md-8">
       <h2>{{ package_name }}</h2>
     </div>
   </div>
 
   <div class="row" style="margin-top: 10px; margin-bottom: 10px">
-    <div class="col-xs-12 col-md-offset-3 col-md-4">
+    <div class="col-xs-12 col-md-offset-2 col-md-5">
       <div class="input-group">
         <span class="input-group-addon"><i class="fa fa-search"></i></span>
         <input class="form-control" ng-model="searchText" ng-change="currentPage = 0" type="text" placeholder="Search">
       </div>
     </div>
-    <div class="col-xs-12 col-md-2 hidden-xs hidden-sm">
+    <div class="col-xs-12 col-md-3 hidden-xs hidden-sm">
       <div ng-show="USER && can_write">
         <button class="btn btn-sm btn-default pull-right" ng-init="uploadCollapsed = true" ng-click="uploadCollapsed = !uploadCollapsed">
           {{ uploadCollapsed ? 'Upload' : 'Cancel' }}
@@ -23,7 +23,7 @@
   </div>
 
   <div class="row">
-    <div class="col-xs-12 col-md-offset-3 col-md-4">
+    <div class="col-xs-12 col-md-offset-2 col-md-6">
       <input type="checkbox" ng-model="showPreRelease"> Show pre-release versions
     </div>
   </div>
@@ -36,7 +36,7 @@
     <i class="fa fa-spinner fa-spin fa-4x"></i>
   </div>
   <div class="row" ng-if="packages" style="margin-top: 10px">
-    <div class="col-xs-12 col-md-offset-3 col-md-6">
+    <div class="col-xs-12 col-md-offset-2 col-md-8">
       <table class="table table-striped table-bordered" ng-class="can_write ? 'table-hover' : ''">
         <thead>
           <tr>

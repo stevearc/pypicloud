@@ -266,7 +266,7 @@ angular.module('pypicloud', ['ui.bootstrap', 'ngRoute', 'angularFileUpload', 'ng
   };
 
   $scope.uploadFinished = function(response) {
-    $scope.packages.push(response);
+    $scope.packages.unshift(response);
     $scope.uploadCollapsed = true;
   };
 }])
