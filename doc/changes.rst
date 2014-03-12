@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.2.1
+-----
+* Bug fix: Pre-existing S3 download links were broken by 0.2.0 (:sha:`52e3e6a`)
+
 0.2.0
 -----
 **Upgrade breaks**: caching database

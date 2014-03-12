@@ -12,6 +12,7 @@ README = open(os.path.join(HERE, 'README.rst')).read()
 CHANGES = open(os.path.join(HERE, 'CHANGES.rst')).read()
 # Remove custom RST extensions for pypi
 CHANGES = re.sub(r'\(\s*:(issue|pr|sha):.*?\)', '', CHANGES)
+CHANGES = re.sub(r':ref:`(.*?) <.*>`', r'\1', CHANGES)
 
 REQUIREMENTS = [
     'boto',
