@@ -11,7 +11,7 @@ from pypicloud.models import Package
 
 try:
     from flywheel import Engine, Model, Field, GlobalIndex, __version__
-    if parse_version(__version__) < parse_version('0.2.0rc2'):
+    if parse_version(__version__) < parse_version('0.2.0rc2'):  # pragma: no cover
         raise ValueError("Pypicloud requires flywheel>=0.2.0rc2")
 except ImportError:  # pragma: no cover
     raise ImportError("You must 'pip install flywheel' before using "
@@ -53,8 +53,8 @@ class PackageSummary(Model):
     def update_with(self, package):
         """ Update summary with a package """
         if self.name != package.name:
-            LOG.warn("Summary name '%s' doesn't match package name '%s'",
-                     self.name, package.name)
+            LOG.error("Summary name '%s' doesn't match package name '%s'",
+                      self.name, package.name)
             return
         self.unstable = max(self.unstable, package.version, key=parse_version)
         self.last_modified = max(self.last_modified, package.last_modified)

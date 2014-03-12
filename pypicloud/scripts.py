@@ -222,10 +222,18 @@ def export_access(argv=None):
 
 
 def import_access(argv=None):
-    """ Load the access control data from a dump file or stdin """
+    """
+    Load the access control data from a dump file or stdin
+
+    This operation is idempotent and graceful. It will not clobber your
+    existing ACL.
+
+    """
     if argv is None:
         argv = sys.argv[1:]
-    parser = argparse.ArgumentParser(description=import_access.__doc__)
+    parser = argparse.ArgumentParser(
+        description=import_access.__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('config', help="Name of config file")
     parser.add_argument('-i', help="Name of input file")
 

@@ -622,7 +622,7 @@ class TestDynamoCache(unittest.TestCase):
 
     def test_summary(self):
         """ summary constructs per-package metadata summary """
-        self.db.upload('pkg1-0.3.tar.gz', None, 'pkg1', '0.3')
+        self.db.upload('pkg1-0.3a2.tar.gz', None, 'pkg1', '0.3a2')
         self.db.upload('pkg1-1.1.tar.gz', None, 'pkg1', '1.1')
         p1 = self.db.upload('pkg1a2.tar.gz', None, 'pkg1', '1.1.1a2')
         p2 = self.db.upload('pkg2.tar.gz', None, 'pkg2', '0.1dev2')
@@ -677,3 +677,20 @@ class TestDynamoCache(unittest.TestCase):
             for index in desc.global_indexes:
                 self.assertEqual(index.throughput.read, 7)
                 self.assertEqual(index.throughput.write, 7)
+
+    def test_update_wrong_summary(self):
+        """ Updating summary with wrong package doesn't blow up """
+        pkg1 = make_package('mypkg', '1.0', factory=DynamoPackage)
+        pkg2 = make_package('mypkg2', '1.3', factory=DynamoPackage)
+        summary = PackageSummary(pkg1)
+        summary.update_with(pkg2)
+        self.assertEqual(summary.stable, pkg1.version)
+
+    def test_delete_updates_summary(self):
+        """ Deleting a package updates the summary """
+        pkg1 = make_package('mypkg', '1.0', factory=DynamoPackage)
+        pkg2 = make_package('mypkg', '1.3', factory=DynamoPackage)
+        self._save_pkgs(pkg1, pkg2)
+        self.db.delete(pkg2)
+        summary = self.engine.scan(PackageSummary).first()
+        self.assertEqual(summary.stable, pkg1.version)
