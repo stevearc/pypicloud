@@ -14,14 +14,15 @@ PyPICloud
 This option defines what the behavior is when a requested package is not found
 in the database. (default 'redirect')
 
-``redirect`` - Return a 302 to the package at the ``fallback_url``.
+``redirect`` - Return a 302 to the package at the ``fallback_url``. This is the
+default.
 
 ``cache`` - Download the package from ``fallback_url``, store it in the
-backend, and serve it. User must have ``default_write`` permissions. If not,
+backend, and serve it. User must have ``cache_update`` permissions. If not,
 returns 404.
 
-``cache redirect`` - If the user has ``default_write`` permissions, cache
-missing packages. If not, return a 302 to the ``fallback_url``.
+``cache redirect`` - If the user has ``cache_update`` permissions, download and
+cache the package. If not, return a 302 to the ``fallback_url``.
 
 ``none`` - Return a 404
 
@@ -29,7 +30,7 @@ missing packages. If not, return a 302 to the ``fallback_url``.
 ~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string, optional
 
-The index server to forward missing requests to (default
+The index server to handle the behavior defined in ``pypi.fallback`` (default
 http://pypi.python.org/simple)
 
 ``pypi.default_read``
@@ -80,8 +81,8 @@ Storage
 ~~~~~~~~~~~~~~~~
 **Argument:** string, optional
 
-A dotted path to a subclass of :class:`~pypicloud.storage.IStorage`. The
-default is :class:`~pypicloud.storage.FileStorage`. Each storage option may
+A dotted path to a subclass of :class:`~pypicloud.storage.base.IStorage`. The
+default is :class:`~pypicloud.storage.files.FileStorage`. Each storage option may
 have additional configuration options. Documentation for the built-in storage
 backends can be found at :ref:`storage`.
 
@@ -92,8 +93,8 @@ Cache
 ~~~~~~~~~~~~~~~
 **Argument:** string, optional
 
-A dotted path to a subclass of :class:`~pypicloud.cache.ICache`. The
-default is :class:`~pypicloud.cache.SQLCache`. Each cache option
+A dotted path to a subclass of :class:`~pypicloud.cache.base.ICache`. The
+default is :class:`~pypicloud.cache.sql.SQLCache`. Each cache option
 may have additional configuration options. Documentation for the built-in
 cache backends can be found at :ref:`cache`.
 
@@ -104,8 +105,8 @@ Access Control
 ~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string, optional
 
-A dotted path to a subclass of :class:`~pypicloud.access.IAccessBackend`. The
-default is :class:`~pypicloud.access.ConfigAccessBackend`. Each backend option
+A dotted path to a subclass of :class:`~pypicloud.access.base.IAccessBackend`. The
+default is :class:`~pypicloud.access.config.ConfigAccessBackend`. Each backend option
 may have additional configuration options. Documentation for the built-in
 backends can be found at :ref:`access_control`.
 

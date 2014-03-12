@@ -13,6 +13,7 @@ If you are upgrading an existing installation, read :ref:`the instructions <upgr
 * Feature: Allow transparently downloading and caching packages from pypi (:sha:`e4dabc7`)
 * Feature: Export/Import access-control data via ``ppc-export`` and ``ppc-import`` (:sha:`dbd2a16`)
 * Feature: Can set default read/write permissions for packages (:sha:`c9aa57b`)
+* Feature: New cache backend: DynamoDB (:sha:`d9d3092`)
 * Hosting all js & css ourselves (no more CDN links) (:sha:`20e345c`)
 * Obligatory miscellaneous refactoring
 

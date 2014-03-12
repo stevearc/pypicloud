@@ -133,7 +133,7 @@ for that package.
         "write": true
     }
 
-``POST`` ``/api/package/<package>/<version>/``
+``POST`` ``/api/package/<package>/<filename>``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Upload a package to the server. This is just a cleaner endpoint that does the
 same thing as the ``POST`` ``/simple/`` endpoint.
@@ -144,16 +144,16 @@ same thing as the ``POST`` ``/simple/`` endpoint.
 
 **Example**::
 
-    curl -F 'content=@path/to/flywheel-0.1.0.tar.gz' myserver.com/api/package/flywheel/0.1.0/
+    curl -F 'content=@path/to/flywheel-0.1.0.tar.gz' myserver.com/api/package/flywheel/flywheel-0.1.0.tar.gz
 
 
-``DELETE`` ``/api/package/<package>/<version>/``
+``DELETE`` ``/api/package/<package>/<filename>``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Delete a package version from the server
 
 **Example**::
 
-    curl -X DELETE myserver.com/api/package/flywheel/0.1.0/
+    curl -X DELETE myserver.com/api/package/flywheel/flywheel-0.1.0.tar.gz
 
 ``PUT`` ``/api/user/<username>/``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -172,7 +172,7 @@ the admin.
     curl -X PUT -d 'password=foobar' myserver.com/api/user/LordFoobar
 
 ``POST`` ``/api/user/password``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Change your password
 
 **Parameters:**
@@ -186,8 +186,8 @@ Change your password
 
 ``/admin/``
 -----------
-These endpoints are used by the admin web interface. Most of them require your
-:ref:`access backend <access_control>` to be mutable.
+These endpoints are used by the admin web interface. Most of them require you
+to be using a mutable :ref:`access backend <access_control>`.
 
 .. _rest-rebuild:
 
@@ -201,7 +201,8 @@ Flush the cache database and rebuild it by enumerating the storage backend
 
 ``GET`` ``/admin/acl.json.gz``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Download the ACL file
+Download the ACL as a gzipped-json file. This is equivalent to running
+``ppc-export``.
 
 **Example**::
 
@@ -283,7 +284,7 @@ Get detailed data about a single user
 
 ``GET`` ``/admin/user/<username>/permissions/``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Get a list of packages that a user has permissions on
+Get a list of packages that a user has explicit permissions on
 
 **Example**::
 

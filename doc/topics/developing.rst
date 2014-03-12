@@ -1,14 +1,25 @@
 Developing
 ==========
 
-To get started developing pypicloud, run the following command:
+The fast way to get set up:
 
 .. code-block:: bash
 
-    wget https://raw.github.com/mathcamp/devbox/master/devbox/unbox.py && \
+    wget https://raw.github.com/mathcamp/devbox/0.1.0/devbox/unbox.py && \
     python unbox.py git@github.com:mathcamp/pypicloud
 
-This will clone the repository and install the package into a virtualenv.
+The slow way to get set up:
+
+.. code-block:: bash
+
+    $ git clone git@github.com:mathcamp/pypicloud
+    $ cd pypicloud
+    $ virtualenv pypicloud_env
+    $ . pypicloud_env/bin/activate
+    $ pip install -r requirements_dev.txt
+    $ pip install -e .
+    $ rm -r .git/hooks
+    $ ln -s ../git_hooks .git/hooks # This will run pylint before you commit
 
 Run ``ppc-make-config -d development.ini`` to create a developer config
 file.
@@ -19,7 +30,8 @@ Now you can run the server with
 
     $ pserve --reload development.ini
 
-Run unit tests with:
+The unit tests require a redis server to be running on port 6379. Run unit
+tests with:
 
 .. code-block:: bash
 
@@ -30,5 +42,3 @@ or:
 .. code-block:: bash
 
     $ tox
-
-Note that the unit tests require a redis server to be running on port 6379

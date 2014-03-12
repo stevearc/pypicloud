@@ -8,23 +8,17 @@ production use.
 Configuration
 -------------
 Remember when you generated a config file in :ref:`getting started
-<getting_started>`? Well we can do the same thing but a different flag to
+<getting_started>`? Well we can do the same thing with a different flag to
 generate a default production config file.
 
 .. code-block:: bash
 
     $ ppc-make-config -p prod.ini
 
-Here are the options that you should pay extra attention to:
-
-``pypi.db.url`` should be a real database. You can use sqlite for small
-deploys, but make sure you're using a file instead of ``:memory:``. Redis is
-recommended because it's awesome.
-
-``session.secure`` should be ``true`` if the server is visible to the outside
-world. This goes hand-in-hand with ensuring that your server always uses HTTPS.
-If you set up access control and don't use HTTPS, someone will just sniff your
-credentials. And then you'll feel silly.
+You should make extra certain that ``session.secure`` is ``true`` if the server
+is visible to the outside world. This goes hand-in-hand with ensuring that your
+server always uses HTTPS.  If you set up access control and don't use HTTPS,
+someone will just sniff your credentials. And then you'll feel silly.
 
 WSGI Server
 -----------

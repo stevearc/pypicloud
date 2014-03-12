@@ -6,6 +6,19 @@ PyPICloud has a complete access control system that allows you to fine-tune who
 has access to your packages. There are several choices for where to store your
 user credentials and access rules.
 
+Users and Groups
+-----------------
+The access control uses a combination of users and groups. A group is a list of
+users. There are also *admin* users, who always have read/write permissions for
+everything, and can do a few special operations besides. There are two special
+groups:
+
+* ``everyone`` - This group refers to any anonymous user making a request
+* ``authenticated`` - This group refers to all logged-in users
+
+You will never need to specify the members of these groups, as membership is
+automatic.
+
 Config File
 -----------
 The simplest access control available (which is the default) pulls user, group,
@@ -81,10 +94,7 @@ Give read or read/write access on a package to a single user.
 **Argument:** {``r``, ``rw``}
 
 Give read or read/write access on a package to a group of users. The group must
-be defined in a ``group.<group>`` field. There are two special-case group
-names. If you use ``everyone``, it will give that permission to all users; even
-those not logged-in. If you use ``authenticated``, it will give that permission
-to any user defined in the config file.
+be defined in a ``group.<group>`` field.
 
 ``auth.admins``
 ~~~~~~~~~~~~~~~
@@ -114,7 +124,8 @@ You can opt to store all user and group permissions inside a SQL database. The
 advantages are that you can dynamically change these permissions using the web
 interface. The disadvantages are that this information is not stored anywhere
 else, so unlike the :ref:`cache database <cache>`, it actually needs to be
-backed up.
+backed up. There is an import/export command :ref:`that makes this easy
+<upgrade>`.
 
 After you set up a new server using this backend, you will need to use the web
 interface to create the initial admin user.
@@ -129,7 +140,7 @@ pypicloud.access.sql.SQLAccessBackend``
 **Argument:** string
 
 The database url to use for storing user and group permissions. This may be the
-same database as ``db.url``.
+same database as ``db.url`` (if you are also using the SQL caching database).
 
 Remote Server
 -------------

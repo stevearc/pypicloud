@@ -79,7 +79,7 @@ your ``$HOME/.pypirc``::
     index-servers = pypicloud
 
     [pypicloud]
-    repository: http://localhost:6543
+    repository: http://localhost:6543/pypi/
     username: <<username>>
     password: <<password>>
 

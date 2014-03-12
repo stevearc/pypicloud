@@ -2,13 +2,12 @@
 
 Storage Backends
 ================
-The storage backend is where the package files are ultimately stored for the
-long-term.
+The storage backend is where the actual package files are kept.
 
 Files
 -----
-This will store your packages in a directory. It's much simpler and faster to
-set up if you don't need the reliability and scalability of S3.
+This will store your packages in a directory on disk. It's much simpler and
+faster to set up if you don't need the reliability and scalability of S3.
 
 Set ``pypi.storage = file`` OR ``pypi.storage = pypicloud.storage.FileStorage``
 OR leave it out completely since this is the default.
@@ -29,9 +28,12 @@ Set ``pypi.storage = s3`` OR ``pypi.s3 = pypicloud.storage.S3Storage``
 ~~~~~~~~~~~~~~~~~~
 **Argument:** string
 
-The name of the S3 bucket to store package in. Note: your bucket must not have
-"." in it. Amazon's SSL certificate for S3 urls is only valid for
-\*.s3.amazonaws.com
+The name of the S3 bucket to store packages in.
+
+.. warning::
+
+    Your bucket must not have "." in it. Amazon's SSL certificate for S3 urls
+    is only valid for \*.s3.amazonaws.com
 
 ``storage.access_key``, ``storage.secret_key``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
