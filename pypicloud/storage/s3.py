@@ -56,13 +56,7 @@ class S3Storage(IStorage):
 
     def get_path(self, package):
         """ Get the fully-qualified bucket path for a package """
-        filename = package.name + '/' + package.filename
-        if self.prepend_hash:
-            m = md5()
-            m.update(package.filename)
-            prefix = m.digest().encode('hex')[:4]
-            filename = prefix + '/' + filename
-        return self.bucket_prefix + filename
+        return package.data['path']
 
     def list(self, factory=Package):
         keys = self.bucket.list(self.bucket_prefix)
@@ -85,7 +79,7 @@ class S3Storage(IStorage):
 
             last_modified = boto.utils.parse_ts(key.last_modified)
 
-            pkg = factory(name, version, filename, last_modified)
+            pkg = factory(name, version, filename, last_modified, path=key.key)
 
             yield pkg
 
