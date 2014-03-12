@@ -98,5 +98,5 @@ def main(config, **settings):
     """
     config = Configurator(settings=settings)
     config.include('pypicloud')
-    config.scan(ignore='pypicloud.tests')
+    config.scan('pypicloud.views')
     return config.make_wsgi_app()
