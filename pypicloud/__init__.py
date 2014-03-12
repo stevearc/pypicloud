@@ -11,7 +11,7 @@ from six.moves.urllib.parse import urlencode  # pylint: disable=F0401,E0611
 from .cache import get_cache_impl
 from .route import Root
 
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 LOG = logging.getLogger(__name__)
 
 
