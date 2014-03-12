@@ -56,6 +56,14 @@ class S3Storage(IStorage):
 
     def get_path(self, package):
         """ Get the fully-qualified bucket path for a package """
+        if 'path' not in package.data:
+            filename = package.name + '/' + package.filename
+            if self.prepend_hash:
+                m = md5()
+                m.update(package.filename)
+                prefix = m.digest().encode('hex')[:4]
+                filename = prefix + '/' + filename
+            package.data['path'] = self.bucket_prefix + filename
         return package.data['path']
 
     def list(self, factory=Package):
