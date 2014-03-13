@@ -70,11 +70,14 @@ class DynamoCache(ICache):
 
     """ Caching database that uses DynamoDB """
     package_class = DynamoPackage
-    engine = None
+
+    def __init__(self, request=None, engine=None, **kwargs):
+        super(DynamoCache, self).__init__(request, **kwargs)
+        self.engine = engine
 
     @classmethod
     def configure(cls, settings):
-        super(DynamoCache, cls).configure(settings)
+        kwargs = super(DynamoCache, cls).configure(settings)
 
         access_key = settings.get('db.access_key')
         secret_key = settings.get('db.secret_key')
@@ -84,19 +87,20 @@ class DynamoCache(ICache):
         secure = asbool(settings.get('db.secure', False))
         namespace = settings.get('db.namespace', ())
 
-        cls.engine = Engine(namespace=namespace)
+        kwargs['engine'] = engine = Engine(namespace=namespace)
         if region is not None:
-            cls.engine.connect_to_region(region, access_key=access_key,
-                                         secret_key=secret_key)
+            engine.connect_to_region(region, access_key=access_key,
+                                     secret_key=secret_key)
         elif host is not None:
-            cls.engine.connect_to_host(host=host, port=port, is_secure=secure,
-                                       access_key=access_key,
-                                       secret_key=secret_key)
+            engine.connect_to_host(host=host, port=port, is_secure=secure,
+                                   access_key=access_key,
+                                   secret_key=secret_key)
         else:
             raise ValueError("Must specify either db.region or db.host!")
 
-        cls.engine.register(DynamoPackage, PackageSummary)
-        cls.engine.create_schema()
+        engine.register(DynamoPackage, PackageSummary)
+        engine.create_schema()
+        return kwargs
 
     def fetch(self, filename):
         return self.engine.get(DynamoPackage, filename=filename)

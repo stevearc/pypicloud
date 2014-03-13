@@ -28,20 +28,18 @@ class TestBaseCache(unittest.TestCase):
         self.assertEquals(hash(p1), hash(p2))
         self.assertEquals(p1, p2)
 
-    @patch.object(ICache, 'storage_impl')
-    def test_get_url_saves(self, _):
+    def test_get_url_saves(self):
         """ Calls to get_url() saves to caching db if changed=True """
-        cache = ICache(MagicMock())
+        cache = ICache(MagicMock(), storage=MagicMock())
         cache.storage.get_url.return_value = 'a', True
         with patch.object(cache, 'save') as save:
             package = make_package()
             cache.get_url(package)
             save.assert_called_with(package)
 
-    @patch.object(ICache, 'storage_impl')
-    def test_get_url_no_save(self, _):
+    def test_get_url_no_save(self):
         """ Calls to get_url() doesn't save if changed=False """
-        cache = ICache(MagicMock())
+        cache = ICache(MagicMock(), storage=MagicMock())
         cache.storage.get_url.return_value = 'a', False
         with patch.object(cache, 'save') as save:
             package = make_package()
@@ -93,8 +91,8 @@ class TestBaseCache(unittest.TestCase):
         settings = {
             'pypi.storage': 'tests.DummyStorage'
         }
-        ICache.configure(settings)
-        self.assertEqual(ICache.storage_impl, DummyStorage)
+        kwargs = ICache.configure(settings)
+        self.assertEqual(kwargs['storage'], DummyStorage)
 
     def test_summary(self):
         """ summary constructs per-package metadata summary """
@@ -121,25 +119,27 @@ class TestBaseCache(unittest.TestCase):
 
     def test_reload_if_needed(self):
         """ Reload the cache if it's empty """
-        with patch.object(DummyCache, 'reload_from_storage') as reload_pkgs:
-            DummyCache.reload_if_needed()
-            self.assertTrue(reload_pkgs.called)
+        cache = DummyCache()
+        cache.reload_from_storage = MagicMock()
+        cache.reload_if_needed()
+        self.assertTrue(cache.reload_from_storage.called)
 
-    @patch.object(ICache, 'reload_from_storage')
-    @patch.object(ICache, 'distinct')
-    def test_no_reload_if_needed(self, distinct, reload_pkgs):
+    def test_no_reload_if_needed(self):
         """ Don't reload the cache if it's not necessary """
-        distinct.return_value = ['hi']
-        ICache.reload_if_needed()
-        self.assertFalse(reload_pkgs.called)
+        cache = DummyCache()
+        cache.reload_from_storage = MagicMock()
+        cache.distinct = MagicMock()
+        cache.distinct.return_value = ['hi']
+        cache.reload_if_needed()
+        self.assertFalse(cache.reload_from_storage.called)
 
     def test_abstract_methods(self):
         """ Abstract methods raise exception """
         settings = {
             'pypi.storage': 'tests.DummyStorage'
         }
-        ICache.configure(settings)
-        cache = ICache()
+        kwargs = ICache.configure(settings)
+        cache = ICache(**kwargs)
         with self.assertRaises(NotImplementedError):
             cache.distinct()
         with self.assertRaises(NotImplementedError):
@@ -165,12 +165,12 @@ class TestSQLCache(unittest.TestCase):
             'pypi.storage': 'tests.DummyStorage',
             'db.url': 'sqlite:///:memory:',
         }
-        SQLCache.configure(settings)
+        cls.kwargs = SQLCache.configure(settings)
 
     def setUp(self):
         super(TestSQLCache, self).setUp()
         self.request = DummyRequest()
-        self.db = SQLCache(self.request)
+        self.db = SQLCache(self.request, **self.kwargs)
         self.sql = self.db.db
         self.storage = self.db.storage = MagicMock(spec=IStorage)
 
@@ -307,13 +307,13 @@ class TestSQLCache(unittest.TestCase):
 
     def test_reload_if_needed(self):
         """ Reload the cache if it's empty """
-        with patch.object(SQLCache, 'storage_impl') as storage_impl:
-            storage_impl().list.return_value = [
-                make_package(factory=SQLPackage)
-            ]
-            SQLCache.reload_if_needed()
-            count = self.sql.query(SQLPackage).count()
-            self.assertEqual(count, 1)
+        self.db.storage = MagicMock()
+        self.db.storage.list.return_value = [
+            make_package(factory=SQLPackage)
+        ]
+        self.db.reload_if_needed()
+        count = self.sql.query(SQLPackage).count()
+        self.assertEqual(count, 1)
 
 
 class TestRedisCache(unittest.TestCase):
@@ -327,12 +327,12 @@ class TestRedisCache(unittest.TestCase):
             'pypi.storage': 'tests.DummyStorage',
             'db.url': 'redis://localhost',
         }
-        RedisCache.configure(settings)
-        cls.redis = RedisCache.db
+        cls.kwargs = RedisCache.configure(settings)
+        cls.redis = cls.kwargs['db']
 
     def setUp(self):
         super(TestRedisCache, self).setUp()
-        self.db = RedisCache(DummyRequest())
+        self.db = RedisCache(DummyRequest(), **self.kwargs)
         self.storage = self.db.storage = MagicMock(spec=IStorage)
 
     def tearDown(self):
@@ -502,8 +502,8 @@ class TestDynamoCache(unittest.TestCase):
             'db.access_key': '',
             'db.secret_key': '',
         }
-        DynamoCache.configure(settings)
-        cls.engine = DynamoCache.engine
+        cls.kwargs = DynamoCache.configure(settings)
+        cls.engine = cls.kwargs['engine']
 
     @classmethod
     def tearDownClass(cls):
@@ -512,7 +512,7 @@ class TestDynamoCache(unittest.TestCase):
 
     def setUp(self):
         super(TestDynamoCache, self).setUp()
-        self.db = DynamoCache(DummyRequest())
+        self.db = DynamoCache(DummyRequest(), **self.kwargs)
         self.storage = self.db.storage = MagicMock(spec=IStorage)
 
     def tearDown(self):

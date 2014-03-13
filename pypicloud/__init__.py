@@ -8,7 +8,6 @@ from pyramid.settings import asbool
 from pyramid_beaker import session_factory_from_settings
 from six.moves.urllib.parse import urlencode  # pylint: disable=F0401,E0611
 
-from .cache import get_cache_impl
 from .route import Root
 
 
@@ -44,6 +43,7 @@ def includeme(config):
     config.include('pyramid_duh.auth')
     config.include('pypicloud.auth')
     config.include('pypicloud.access')
+    config.include('pypicloud.cache')
     settings = config.get_settings()
 
     config.add_renderer('json', json_renderer)
@@ -76,11 +76,6 @@ def includeme(config):
         raise ValueError("Invalid value for 'pypi.fallback'. "
                          "Must be one of %s" % ', '.join(modes))
     config.registry.fallback = fallback_mode
-
-    # CACHING DATABASE SETTINGS
-    cache_impl = get_cache_impl(settings)
-
-    config.add_request_method(cache_impl, name='db', reify=True)
 
     # Special request methods
     config.add_request_method(_app_url, name='app_url')

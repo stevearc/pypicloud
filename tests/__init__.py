@@ -31,9 +31,6 @@ class DummyStorage(IStorage):
         super(DummyStorage, self).__init__(request)
         self.packages = {}
 
-    def __call__(self, *args):
-        return self
-
     def list(self, factory=Package):
         """ Return a list or generator of all packages """
         for args in self.packages.itervalues():
@@ -48,10 +45,6 @@ class DummyStorage(IStorage):
     def delete(self, package):
         del self.packages[package.filename]
 
-    def reset(self):
-        """ Clear all packages """
-        self.packages = {}
-
     def open(self, package):
         return self.packages[package.filename][1]
 
@@ -59,26 +52,11 @@ class DummyStorage(IStorage):
 class DummyCache(ICache):
 
     """ In-memory implementation of ICache """
-    storage_impl = DummyStorage
-    allow_overwrite = False
 
-    def __init__(self, request=None):
-        super(DummyCache, self).__init__(request)
+    def __init__(self, request=None, **kwargs):
+        kwargs.setdefault('storage', DummyStorage)
+        super(DummyCache, self).__init__(request, **kwargs)
         self.packages = defaultdict(dict)
-
-    @classmethod
-    def configure(cls, config):
-        pass
-
-    def __call__(self, request):
-        self.request = request
-        self.storage.request = request
-        return self
-
-    def reset(self):
-        """ Clear all packages from storage and self """
-        self.packages.clear()
-        self.storage.reset()
 
     def fetch(self, filename):
         """ Override this method to implement 'fetch' """
@@ -118,6 +96,3 @@ class MockServerTest(unittest.TestCase):
         self.request.forbid = MagicMock()
         self.params = {}
         self.request.param = lambda x: self.params[x]
-
-    def tearDown(self):
-        self.request.db.reset()

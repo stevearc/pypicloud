@@ -19,33 +19,32 @@ class ICache(object):
     """ Base class for a caching database that stores package metadata """
 
     package_class = Package
-    storage_impl = None
 
-    def __init__(self, request=None):
+    def __init__(self, request=None, storage=None, allow_overwrite=None):
         self.request = request
-        self.storage = self.storage_impl(request)
+        self.storage = storage(request)
+        self.allow_overwrite = allow_overwrite
 
-    @classmethod
-    def reload_if_needed(cls):
+    def reload_if_needed(self):
         """
         Reload packages from storage backend if cache is empty
 
         This will be called when the server first starts
 
         """
-        cache = cls()
-        if len(cache.distinct()) == 0:
+        if len(self.distinct()) == 0:
             LOG.info("Cache is empty. Rebuilding from storage backend...")
-            cache.reload_from_storage()
+            self.reload_from_storage()
             LOG.info("Cache repopulated")
-        return cache
 
     @classmethod
     def configure(cls, settings):
         """ Configure the cache method with app settings """
-        cls.storage_impl = get_storage_impl(settings)
-        cls.allow_overwrite = asbool(settings.get('pypi.allow_overwrite',
-                                                  False))
+        return {
+            'storage': get_storage_impl(settings),
+            'allow_overwrite': asbool(settings.get('pypi.allow_overwrite',
+                                                   False)),
+        }
 
     def get_url(self, package):
         """
