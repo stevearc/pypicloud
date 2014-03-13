@@ -112,6 +112,7 @@ class MockServerTest(unittest.TestCase):
     def setUp(self):
         self.request = DummyRequest()
         self.request.registry = MagicMock()
+        self.request.userid = None
         self.db = self.request.db = DummyCache(self.request)
         self.request.path_url = '/path/'
         self.params = {}

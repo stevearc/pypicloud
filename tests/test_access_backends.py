@@ -49,6 +49,7 @@ class BaseACLTest(unittest.TestCase):
 
     def setUp(self):
         self.request = DummyRequest()
+        self.request.userid = None
         self.auth = ACLAuthorizationPolicy()
 
     def allowed(self, context, perm):
@@ -222,11 +223,10 @@ class TestBaseBackend(BaseACLTest):
         config.add_request_method.assert_called_with(SQLAccessBackend,
                                                      name='access', reify=True)
 
-    @patch('pypicloud.access.base.unauthenticated_userid')
-    def test_admin_has_permission(self, u_userid):
+    def test_admin_has_permission(self):
         """ Admins always have permission """
-        u_userid.return_value = 'abc'
-        access = IAccessBackend(None)
+        self.request.userid = 'abc'
+        access = IAccessBackend(self.request)
         access.is_admin = lambda x: True
         self.assertTrue(access.has_permission('p1', 'write'))
 

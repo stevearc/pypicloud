@@ -1,7 +1,7 @@
 """ The access backend object base class """
 from collections import defaultdict
 from passlib.apps import custom_app_context as pwd_context
-from pyramid.security import (Authenticated, Everyone, unauthenticated_userid,
+from pyramid.security import (Authenticated, Everyone,
                               effective_principals, Allow, Deny,
                               ALL_PERMISSIONS)
 from pyramid.settings import aslist
@@ -87,7 +87,7 @@ class IAccessBackend(object):
 
     def has_permission(self, package, perm):
         """ Check if this user has a permission for a package """
-        current_userid = unauthenticated_userid(self.request)
+        current_userid = self.request.userid
         if current_userid is not None and self.is_admin(current_userid):
             return True
 
@@ -168,8 +168,7 @@ class IAccessBackend(object):
         """
         Return True if the user has permissions to update the pypi cache
         """
-        userid = unauthenticated_userid(self.request)
-        return self.in_any_group(userid, self.cache_update)
+        return self.in_any_group(self.request.userid, self.cache_update)
 
     def need_admin(self):
         """

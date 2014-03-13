@@ -93,21 +93,12 @@ class TestBasicAuthPolicy(MockServerTest):
 
     def test_principals_userid_no_credentials(self):
         """ Only [Everyone] if no credentials """
-        self.get_creds.return_value = None
-        principals = self.policy.effective_principals(self.request)
-        self.assertItemsEqual(principals, [Everyone])
-
-    def test_principals_fail_verification(self):
-        """ Only [Everyone] if access backend fails verification """
-        self.get_creds.return_value = {'login': 'dsa', 'password': 'foobar'}
-        self.request.access.verify_user.return_value = False
         principals = self.policy.effective_principals(self.request)
         self.assertItemsEqual(principals, [Everyone])
 
     def test_principals(self):
-        """ Return principals from access if basic auth succeeds """
-        self.get_creds.return_value = {'login': 'dsa', 'password': 'foobar'}
-        self.request.access.verify_user.return_value = True
+        """ Return principals from access if auth succeeds """
+        self.request.userid = 'dsa'
         principals = self.policy.effective_principals(self.request)
         self.request.access.user_principals.assert_called_with('dsa')
         self.assertEqual(principals, self.request.access.user_principals())
@@ -145,6 +136,10 @@ class TestSessionAuthPolicy(MockServerTest):
         self.request.session['user'] = 'dsa'
         userid = self.policy.authenticated_userid(self.request)
         self.assertEqual(userid, 'dsa')
+
+    def test_unauth_userid(self):
+        """ Unauth userid is pulled from request """
+        self.request.userid = 'dsa'
         userid = self.policy.unauthenticated_userid(self.request)
         self.assertEqual(userid, 'dsa')
 
@@ -154,8 +149,8 @@ class TestSessionAuthPolicy(MockServerTest):
         self.assertItemsEqual(principals, [Everyone])
 
     def test_principals(self):
-        """ Return principals from access if basic auth succeeds """
-        self.request.session['user'] = 'dsa'
+        """ Return principals from access if auth succeeds """
+        self.request.userid = 'dsa'
         principals = self.policy.effective_principals(self.request)
         self.request.access.user_principals.assert_called_with('dsa')
         self.assertEqual(principals, self.request.access.user_principals())
