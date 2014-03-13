@@ -21,9 +21,6 @@ default.
 backend, and serve it. User must have ``cache_update`` permissions. If not,
 returns 404.
 
-``cache redirect`` - If the user has ``cache_update`` permissions, download and
-cache the package. If not, return a 302 to the ``fallback_url``.
-
 ``none`` - Return a 404
 
 ``pypi.fallback_url``

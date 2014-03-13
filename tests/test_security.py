@@ -92,7 +92,7 @@ class TestEndpointSecurity(unittest.TestCase):
         """ /api/package/<pkg> requires read perms """
         response = self.app.get('/api/package/%s/' % self.package.name,
                                 expect_errors=True)
-        self.assertEqual(response.status_int, 404)
+        self.assertEqual(response.status_int, 401)
 
     def test_api_pkg_authed(self):
         """ /api/package/<pkg> requires read perms """
@@ -109,7 +109,7 @@ class TestEndpointSecurity(unittest.TestCase):
                                        self.package.filename)
         response = self.app.post(url, params, expect_errors=True,
                                  headers=_simple_auth('user', 'user'))
-        self.assertEqual(response.status_int, 404)
+        self.assertEqual(response.status_int, 403)
 
     def test_api_pkg_versions_authed(self):
         """ /api/package/<pkg>/<filename> requires write perms """
@@ -128,7 +128,7 @@ class TestEndpointSecurity(unittest.TestCase):
                                       self.package.filename)
         response = self.app.delete(url, expect_errors=True,
                                    headers=_simple_auth('user', 'user'))
-        self.assertEqual(response.status_int, 404)
+        self.assertEqual(response.status_int, 403)
 
     def test_api_delete_authed(self):
         """ delete /api/package/<pkg>/<filename> requires write perms """

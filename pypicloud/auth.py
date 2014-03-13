@@ -7,7 +7,8 @@ from pyramid.httpexceptions import HTTPForbidden
 from pyramid.security import Everyone, authenticated_userid
 
 
-# Copied from http://docs.pylonsproject.org/projects/pyramid_cookbook/en/latest/auth/basic.html
+# Copied from
+# http://docs.pylonsproject.org/projects/pyramid_cookbook/en/latest/auth/basic.html
 def get_basicauth_credentials(request):
     """ Get the user/password from HTTP basic auth """
     authorization = AUTHORIZATION(request.environ)
@@ -148,6 +149,7 @@ def includeme(config):
     config.add_authentication_policy(BasicAuthenticationPolicy())
     config.add_request_method(authenticated_userid, name='userid',
                               reify=True)
+    config.add_request_method(_forbid, name='forbid')
 
     settings = config.get_settings()
     realm = settings.get('pypi.realm', 'pypi')

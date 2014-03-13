@@ -115,6 +115,7 @@ class MockServerTest(unittest.TestCase):
         self.request.userid = None
         self.db = self.request.db = DummyCache(self.request)
         self.request.path_url = '/path/'
+        self.request.forbid = MagicMock()
         self.params = {}
         self.request.param = lambda x: self.params[x]
 

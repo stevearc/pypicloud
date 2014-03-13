@@ -55,6 +55,17 @@ class TestBasicAuth(MockServerTest):
         creds = auth.get_basicauth_credentials(self.request)
         self.assertEqual(creds, {'login': username, 'password': password})
 
+    def test_forbid(self):
+        """ When not logged in, forbid() returns 401 """
+        ret = auth._forbid(self.request)
+        self.assertEqual(ret.status_code, 401)
+
+    def test_forbid_logged_in(self):
+        """ When logged in, forbid() returns 403 """
+        self.request.userid = 'abc'
+        ret = auth._forbid(self.request)
+        self.assertEqual(ret.status_code, 403)
+
 
 class TestBasicAuthPolicy(MockServerTest):
 

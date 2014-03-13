@@ -114,7 +114,7 @@ class TestApi(MockServerTest):
         db.fetch.return_value = None
         context = MagicMock()
         ret = api.download_package(context, self.request)
-        self.assertEqual(ret.status_code, 403)
+        self.assertEqual(ret, self.request.forbid())
 
     @patch('pypicloud.views.api.FilenameScrapingLocator')
     def test_download_fallback_cache_missing(self, locator):
