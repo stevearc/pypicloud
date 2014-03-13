@@ -31,13 +31,14 @@ REQUIREMENTS = [
 ]
 
 TEST_REQUIREMENTS = [
-    'nose',
-    'mock',
-    'webtest',
+    'flywheel',
     'httpretty',
+    'mock',
     'moto',
+    'nose',
     'redis',
     'requests',
+    'webtest',
 ]
 
 if sys.version_info[:2] < (2, 7):
@@ -47,7 +48,7 @@ if sys.version_info[:2] < (2, 7):
 if __name__ == "__main__":
     setup(
         name='pypicloud',
-        version='0.2.2',
+        version='0.2.3',
         description='Private PyPI backed by S3',
         long_description=README + '\n\n' + CHANGES,
         classifiers=[
