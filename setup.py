@@ -31,13 +31,14 @@ REQUIREMENTS = [
 ]
 
 TEST_REQUIREMENTS = [
-    'nose',
-    'mock',
-    'webtest',
+    'flywheel',
     'httpretty',
+    'mock',
     'moto',
+    'nose',
     'redis',
     'requests',
+    'webtest',
 ]
 
 if sys.version_info[:2] < (2, 7):
