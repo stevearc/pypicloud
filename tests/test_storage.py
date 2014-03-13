@@ -40,8 +40,8 @@ class TestS3Storage(unittest.TestCase):
         conn = boto.connect_s3()
         self.bucket = conn.create_bucket('mybucket')
         patch.object(S3Storage, 'test', True).start()
-        S3Storage.configure(self.settings)
-        self.storage = S3Storage(MagicMock())
+        kwargs = S3Storage.configure(self.settings)
+        self.storage = S3Storage(MagicMock(), **kwargs)
 
     def tearDown(self):
         super(TestS3Storage, self).tearDown()
@@ -168,9 +168,9 @@ class TestFileStorage(unittest.TestCase):
         settings = {
             'storage.dir': self.tempdir,
         }
-        FileStorage.configure(settings)
+        kwargs = FileStorage.configure(settings)
         self.request = MagicMock()
-        self.storage = FileStorage(self.request)
+        self.storage = FileStorage(self.request, **kwargs)
 
     def tearDown(self):
         super(TestFileStorage, self).tearDown()

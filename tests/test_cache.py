@@ -92,7 +92,7 @@ class TestBaseCache(unittest.TestCase):
             'pypi.storage': 'tests.DummyStorage'
         }
         kwargs = ICache.configure(settings)
-        self.assertEqual(kwargs['storage'], DummyStorage)
+        self.assertTrue(isinstance(kwargs['storage'](), DummyStorage))
 
     def test_summary(self):
         """ summary constructs per-package metadata summary """
