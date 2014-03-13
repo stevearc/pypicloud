@@ -4,8 +4,7 @@ from datetime import datetime
 import logging
 import transaction
 from pkg_resources import parse_version
-from sqlalchemy import (engine_from_config, distinct, Column, DateTime, Text,
-                        Boolean)
+from sqlalchemy import engine_from_config, distinct, Column, DateTime, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 # pylint: disable=F0401,E0611
@@ -122,10 +121,10 @@ class SQLCache(ICache):
 
     """ Caching database that uses SQLAlchemy """
     package_class = SQLPackage
-    dbmaker = None
 
-    def __init__(self, request=None):
-        super(SQLCache, self).__init__(request)
+    def __init__(self, request=None, dbmaker=None, **kwargs):
+        super(SQLCache, self).__init__(request, **kwargs)
+        self.dbmaker = dbmaker
         self.db = self.dbmaker()
 
         if request is not None:
@@ -134,20 +133,21 @@ class SQLCache(ICache):
                 self.db.close()
             request.add_finished_callback(cleanup)
 
-    @classmethod
-    def reload_if_needed(cls):
-        cache = super(SQLCache, cls).reload_if_needed()
-        transaction.commit()
-        cache.db.close()
+    def reload_if_needed(self):
+        super(SQLCache, self).reload_if_needed()
+        if self.request is None:
+            transaction.commit()
+            self.db.close()
 
     @classmethod
     def configure(cls, settings):
-        super(SQLCache, cls).configure(settings)
+        kwargs = super(SQLCache, cls).configure(settings)
         engine = engine_from_config(settings, prefix='db.')
-        cls.dbmaker = sessionmaker(
-            bind=engine, extension=ZopeTransactionExtension())
         # Create SQL schema if not exists
         create_schema(engine)
+        kwargs['dbmaker'] = sessionmaker(bind=engine,
+                                         extension=ZopeTransactionExtension())
+        return kwargs
 
     def fetch(self, filename):
         return self.db.query(SQLPackage).filter_by(filename=filename).first()

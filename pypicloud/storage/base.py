@@ -12,6 +12,7 @@ class IStorage(object):
     @classmethod
     def configure(cls, settings):
         """ Configure the storage method with app settings """
+        return {}
 
     def list(self, factory=Package):
         """ Return a list or generator of all packages """

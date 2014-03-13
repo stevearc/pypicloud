@@ -1,7 +1,7 @@
 """ The access backend object base class """
 from collections import defaultdict
 from passlib.apps import custom_app_context as pwd_context
-from pyramid.security import (Authenticated, Everyone, unauthenticated_userid,
+from pyramid.security import (Authenticated, Everyone,
                               effective_principals, Allow, Deny,
                               ALL_PERMISSIONS)
 from pyramid.settings import aslist
@@ -35,17 +35,23 @@ class IAccessBackend(object):
         (Deny, Everyone, ALL_PERMISSIONS),
     ]
 
-    def __init__(self, request):
+    def __init__(self, request=None, default_read=None, default_write=None,
+                 cache_update=None):
         self.request = request
+        self.default_read = default_read
+        self.default_write = default_write
+        self.cache_update = cache_update
 
     @classmethod
     def configure(cls, settings):
         """ Configure the access backend with app settings """
-        cls.default_read = aslist(settings.get('pypi.default_read',
-                                               ['authenticated']))
-        cls.default_write = aslist(settings.get('pypi.default_write', []))
-        cls.cache_update = aslist(settings.get('pypi.cache_update',
-                                               ['authenticated']))
+        return {
+            'default_read': aslist(settings.get('pypi.default_read',
+                                                ['authenticated'])),
+            'default_write': aslist(settings.get('pypi.default_write', [])),
+            'cache_update': aslist(settings.get('pypi.cache_update',
+                                                ['authenticated'])),
+        }
 
     def allowed_permissions(self, package):
         """
@@ -87,7 +93,7 @@ class IAccessBackend(object):
 
     def has_permission(self, package, perm):
         """ Check if this user has a permission for a package """
-        current_userid = unauthenticated_userid(self.request)
+        current_userid = self.request.userid
         if current_userid is not None and self.is_admin(current_userid):
             return True
 
@@ -168,8 +174,7 @@ class IAccessBackend(object):
         """
         Return True if the user has permissions to update the pypi cache
         """
-        userid = unauthenticated_userid(self.request)
-        return self.in_any_group(userid, self.cache_update)
+        return self.in_any_group(self.request.userid, self.cache_update)
 
     def need_admin(self):
         """

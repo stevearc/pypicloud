@@ -13,14 +13,18 @@ class FileStorage(IStorage):
 
     """ Stores package files on the filesystem """
 
-    def __init__(self, request):
-        super(FileStorage, self).__init__(request)
+    def __init__(self, request=None, **kwargs):
+        self.directory = kwargs.pop('directory')
+        super(FileStorage, self).__init__(request, **kwargs)
 
     @classmethod
     def configure(cls, settings):
-        cls.directory = os.path.abspath(settings['storage.dir']).rstrip('/')
-        if not os.path.exists(cls.directory):
-            os.makedirs(cls.directory)
+        kwargs = super(FileStorage, cls).configure(settings)
+        directory = os.path.abspath(settings['storage.dir']).rstrip('/')
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        kwargs['directory'] = directory
+        return kwargs
 
     def get_path(self, package):
         """ Get the fully-qualified file path for a package """

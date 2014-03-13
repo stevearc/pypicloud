@@ -1,11 +1,10 @@
 """ Tests for view security and auth """
 import base64
 import webtest
-from mock import MagicMock
+from collections import defaultdict
 from passlib.hash import sha256_crypt  # pylint: disable=E0611
-from pyramid.testing import DummyRequest
 
-from . import DummyCache, make_package
+from . import DummyCache, DummyStorage, make_package
 from pypicloud import main
 
 
@@ -25,7 +24,27 @@ def _simple_auth(username, password):
         'Authorization': 'Basic %s' % base64string,
     }
 
-test_cache = DummyCache(None)  # pylint: disable=C0103
+
+class GlobalDummyStorage(DummyStorage):
+
+    """ Dummy storage with class-level package storage """
+
+    global_packages = {}
+
+    def __init__(self, request=None, **kwargs):
+        super(GlobalDummyStorage, self).__init__(request, **kwargs)
+        self.packages = self.global_packages
+
+
+class GlobalDummyCache(DummyCache):
+
+    """ Dummy cache with class-level package storage """
+    global_packages = defaultdict(list)
+
+    def __init__(self, request=None, **kwargs):
+        kwargs.setdefault('storage', GlobalDummyStorage)
+        super(GlobalDummyCache, self).__init__(request, **kwargs)
+        self.packages = self.global_packages
 
 
 class TestEndpointSecurity(unittest.TestCase):
@@ -42,26 +61,26 @@ class TestEndpointSecurity(unittest.TestCase):
         cls.package = package = make_package()
         settings = {
             'pyramid.debug_authorization': True,
-            'pypi.db': 'tests.test_security.test_cache',
-            'db.url': 'sqlite://',
+            'pypi.db': 'tests.test_security.GlobalDummyCache',
+            'pypi.storage': 'tests.test_security.GlobalDummyStorage',
             'session.validate_key': 'a',
-            'aws.access_key': 'abc',
-            'aws.secret_key': 'def',
-            'aws.bucket': 's3bucket',
             'user.user': sha256_crypt.encrypt('user'),
             'user.user2': sha256_crypt.encrypt('user2'),
             'package.%s.group.authenticated' % package.name: 'r',
             'package.%s.group.brotatos' % package.name: 'rw',
             'group.brotatos': ['user2'],
         }
-        cls.app = webtest.TestApp(main({}, **settings))
+        app = main({}, **settings)
+        cls.app = webtest.TestApp(app)
 
     def setUp(self):
-        test_cache.upload(self.package.filename, None, self.package.name,
-                          self.package.version)
+        cache = GlobalDummyCache()
+        cache.upload(self.package.filename, None, self.package.name,
+                     self.package.version)
 
     def tearDown(self):
-        test_cache.reset()
+        GlobalDummyCache.global_packages.clear()
+        GlobalDummyStorage.global_packages.clear()
         self.app.reset()
 
     def test_simple_401(self):
@@ -92,7 +111,7 @@ class TestEndpointSecurity(unittest.TestCase):
         """ /api/package/<pkg> requires read perms """
         response = self.app.get('/api/package/%s/' % self.package.name,
                                 expect_errors=True)
-        self.assertEqual(response.status_int, 404)
+        self.assertEqual(response.status_int, 401)
 
     def test_api_pkg_authed(self):
         """ /api/package/<pkg> requires read perms """
@@ -109,7 +128,7 @@ class TestEndpointSecurity(unittest.TestCase):
                                        self.package.filename)
         response = self.app.post(url, params, expect_errors=True,
                                  headers=_simple_auth('user', 'user'))
-        self.assertEqual(response.status_int, 404)
+        self.assertEqual(response.status_int, 403)
 
     def test_api_pkg_versions_authed(self):
         """ /api/package/<pkg>/<filename> requires write perms """
@@ -128,7 +147,7 @@ class TestEndpointSecurity(unittest.TestCase):
                                       self.package.filename)
         response = self.app.delete(url, expect_errors=True,
                                    headers=_simple_auth('user', 'user'))
-        self.assertEqual(response.status_int, 404)
+        self.assertEqual(response.status_int, 403)
 
     def test_api_delete_authed(self):
         """ delete /api/package/<pkg>/<filename> requires write perms """

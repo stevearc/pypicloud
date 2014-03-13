@@ -22,20 +22,30 @@ LOG = logging.getLogger(__name__)
 class S3Storage(IStorage):
 
     """ Storage backend that uses S3 """
-    bucket = None
     test = False
+
+    def __init__(self, request=None, bucket=None, expire_after=None,
+                 buffer_time=None, bucket_prefix=None, prepend_hash=None,
+                 **kwargs):
+        super(S3Storage, self).__init__(request, **kwargs)
+        self.bucket = bucket
+        self.expire_after = expire_after
+        self.buffer_time = buffer_time
+        self.bucket_prefix = bucket_prefix
+        self.prepend_hash = prepend_hash
 
     @classmethod
     def configure(cls, settings):
-        super(S3Storage, cls).configure(settings)
-        cls.expire_after = int(getdefaults(settings, 'storage.expire_after',
-                                           'aws.expire_after', 60 * 60 * 24))
-        cls.buffer_time = int(getdefaults(settings, 'storage.buffer_time',
-                                          'aws.buffer_time', 600))
-        cls.bucket_prefix = getdefaults(settings, 'storage.prefix',
-                                        'aws.prefix', '')
-        cls.prepend_hash = asbool(getdefaults(settings, 'storage.prepend_hash',
-                                              'aws.prepend_hash', True))
+        kwargs = super(S3Storage, cls).configure(settings)
+        kwargs['expire_after'] = int(getdefaults(
+            settings, 'storage.expire_after', 'aws.expire_after', 60 * 60 *
+            24))
+        kwargs['buffer_time'] = int(getdefaults(
+            settings, 'storage.buffer_time', 'aws.buffer_time', 600))
+        kwargs['bucket_prefix'] = getdefaults(
+            settings, 'storage.prefix', 'aws.prefix', '')
+        kwargs['prepend_hash'] = asbool(getdefaults(
+            settings, 'storage.prepend_hash', 'aws.prepend_hash', True))
         access_key = getdefaults(settings, 'storage.access_key',
                                  'aws.access_key', None)
         secret_key = getdefaults(settings, 'storage.secret_key',
@@ -48,11 +58,13 @@ class S3Storage(IStorage):
                                  None)
         if aws_bucket is None:
             raise ValueError("You must specify the 'storage.bucket'")
-        cls.bucket = s3conn.lookup(aws_bucket, validate=False)
-        if cls.bucket is None:
+        bucket = s3conn.lookup(aws_bucket, validate=False)
+        if bucket is None:
             location = getdefaults(settings, 'storage.region', 'aws.region',
                                    boto.s3.connection.Location.DEFAULT)
-            cls.bucket = s3conn.create_bucket(aws_bucket, location=location)
+            bucket = s3conn.create_bucket(aws_bucket, location=location)
+        kwargs['bucket'] = bucket
+        return kwargs
 
     def get_path(self, package):
         """ Get the fully-qualified bucket path for a package """

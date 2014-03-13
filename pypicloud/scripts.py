@@ -1,11 +1,12 @@
 """ Commandline scripts """
-import gzip
-import transaction
-import json
 import sys
 
 import argparse
 import getpass
+import gzip
+import json
+import logging
+import transaction
 from base64 import b64encode
 from jinja2 import Template
 from pkg_resources import resource_string
@@ -186,6 +187,7 @@ def migrate_packages(argv=None):
                         help="Name of config file to migrate to")
 
     args = parser.parse_args(argv)
+    logging.basicConfig()
 
     old_env = bootstrap(args.config_from)
 
@@ -210,6 +212,7 @@ def export_access(argv=None):
     parser.add_argument('-o', help="Name of output file")
 
     args = parser.parse_args(argv)
+    logging.basicConfig()
 
     env = bootstrap(args.config)
     access = env['request'].access
@@ -238,6 +241,7 @@ def import_access(argv=None):
     parser.add_argument('-i', help="Name of input file")
 
     args = parser.parse_args(argv)
+    logging.basicConfig()
 
     if args.i:
         with gzip.open(args.i, 'r') as ifile:

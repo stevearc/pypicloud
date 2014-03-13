@@ -11,16 +11,21 @@ class RedisCache(ICache):
     """ Caching database that uses redis """
     redis_prefix = 'pypicloud:'
 
+    def __init__(self, request=None, db=None, **kwargs):
+        super(RedisCache, self).__init__(request, **kwargs)
+        self.db = db
+
     @classmethod
     def configure(cls, settings):
-        super(RedisCache, cls).configure(settings)
+        kwargs = super(RedisCache, cls).configure(settings)
         try:
             from redis import StrictRedis
         except ImportError:  # pragma: no cover
             raise ImportError("You must 'pip install redis' before using "
                               "redis as the database")
         db_url = settings.get('db.url')
-        cls.db = StrictRedis.from_url(db_url)
+        kwargs['db'] = StrictRedis.from_url(db_url)
+        return kwargs
 
     def redis_key(self, key):
         """ Get the key to a redis hash that stores a package """

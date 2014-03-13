@@ -10,16 +10,25 @@ class RemoteAccessBackend(IAccessBackend):
 
     """
 
+    def __init__(self, request=None, settings=None, server=None, auth=None,
+                 **kwargs):
+        super(RemoteAccessBackend, self).__init__(request, **kwargs)
+        self._settings = settings
+        self.server = server
+        self.auth = auth
+
     @classmethod
     def configure(cls, settings):
-        super(RemoteAccessBackend, cls).configure(settings)
-        cls._settings = settings
-        cls.server = settings['auth.backend_server']
-        cls.auth = None
+        kwargs = super(RemoteAccessBackend, cls).configure(settings)
+        kwargs['settings'] = settings
+        kwargs['server'] = settings['auth.backend_server']
+        auth = None
         user = settings.get('auth.user')
         if user is not None:
             password = settings.get('auth.password')
-            cls.auth = (user, password)
+            auth = (user, password)
+        kwargs['auth'] = auth
+        return kwargs
 
     def _req(self, uri, params=None):
         """ Hit a server endpoint and return the json response """

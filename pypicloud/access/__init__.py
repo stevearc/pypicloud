@@ -1,4 +1,5 @@
 """ Classes that provide user and package permissions """
+from functools import partial
 from pyramid.path import DottedNameResolver
 
 from .config import ConfigAccessBackend
@@ -22,5 +23,6 @@ def includeme(config):
     elif dotted_name == 'sql':
         dotted_name = SQLAccessBackend
     access_backend = resolver.maybe_resolve(dotted_name)
-    access_backend.configure(settings)
-    config.add_request_method(access_backend, name='access', reify=True)
+    kwargs = access_backend.configure(settings)
+    config.add_request_method(partial(access_backend, **kwargs), name='access',
+                              reify=True)

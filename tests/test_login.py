@@ -21,31 +21,11 @@ class TestLoginPage(MockServerTest):
         self.assertEqual(ret.status_code, 302)
         self.assertEqual(ret.location, '/')
 
-    def test_user_fetch_other(self):
-        """ If a logged-in user if fetching NOT /login, return 404 """
-        self.request.userid = 'dsa'
-        self.request.url = '/abc'
-        ret = login.get_login_page(self.request)
-        self.assertEqual(ret.status_code, 404)
-
     def test_anon_fetch_login(self):
         """ Anonymous user fetching /login renders login page """
         self.request.url = '/login'
         ret = login.get_login_page(self.request)
         self.assertEqual(ret, {})
-
-    def test_anon_fetch_other(self):
-        """ Anonymous user fetching NOT /login returns 404 """
-        self.request.url = '/wibbles'
-        ret = login.get_login_page(self.request)
-        self.assertEqual(ret.status_code, 404)
-
-    def test_anon_fetch_simple(self):
-        """ Anonymous user fetching /simple/* returns 401 """
-        self.request.url = '/simple/requests'
-        self.request.path = '/simple/requests'
-        ret = login.get_login_page(self.request)
-        self.assertEqual(ret.status_code, 401)
 
 
 class TestLogin(MockServerTest):

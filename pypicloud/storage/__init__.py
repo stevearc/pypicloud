@@ -1,4 +1,6 @@
 """ Storage backend implementations """
+from functools import partial
+
 from .base import IStorage
 from .files import FileStorage
 from .s3 import S3Storage
@@ -15,5 +17,5 @@ def get_storage_impl(settings):
     elif storage == 'file':
         storage = 'pypicloud.storage.FileStorage'
     storage_impl = resolver.resolve(storage)
-    storage_impl.configure(settings)
-    return storage_impl
+    kwargs = storage_impl.configure(settings)
+    return partial(storage_impl, **kwargs)

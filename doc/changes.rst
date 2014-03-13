@@ -2,6 +2,12 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.2.2
+-----
+* Bug fix: Security bug in user auth (:sha:`001e8a5`)
+* Bug fix: Package caching from pypi was slightly broken (:sha:`065f6c5`)
+* Bug fix: ``ppc-migrate`` works when migrating to the same storage type (:sha:`45abcde`)
+
 0.2.1
 -----
 * Bug fix: Pre-existing S3 download links were broken by 0.2.0 (:sha:`52e3e6a`)

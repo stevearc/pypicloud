@@ -63,10 +63,10 @@ def download_package(context, request):
     """ Download package, or redirect to the download link """
     package = request.db.fetch(context.filename)
     if not package:
-        if 'cache' not in request.registry.fallback:
+        if request.registry.fallback != 'cache':
             return HTTPNotFound()
         if not request.access.can_update_cache():
-            return HTTPForbidden()
+            return request.forbid()
         # If we are caching pypi, download the package from pypi and save it
         locator = FilenameScrapingLocator(request.registry.fallback_url)
         dists = locator.get_project(context.name)

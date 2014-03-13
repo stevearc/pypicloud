@@ -48,7 +48,7 @@ class TestSimple(MockServerTest):
         content.filename = 'foo-1.2.tar.gz'
         self.request.access.has_permission.return_value = False
         response = upload(self.request, name, version, content)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response, self.request.forbid())
 
     def test_upload_duplicate(self):
         """ Uploading a duplicate package returns 400 """
@@ -110,10 +110,10 @@ class TestSimpleCacheFallback(MockServerTest):
         self.context = SimplePackageResource(self.request, 'mypkg')
 
     def test_no_perms(self):
-        """ If not in the update_cache groups, return 404 """
+        """ If not in the update_cache groups, return 403 """
         self.request.access.can_update_cache.return_value = False
         result = package_versions(self.context, self.request)
-        self.assertEqual(result.status_code, 404)
+        self.assertEqual(result, self.request.forbid())
 
     @patch('pypicloud.views.simple.FilenameScrapingLocator')
     def test_no_dists(self, locator):

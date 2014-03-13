@@ -1,12 +1,14 @@
 """ Utilities for authentication and authorization """
 import binascii
 
-from paste.httpheaders import AUTHORIZATION
+from paste.httpheaders import AUTHORIZATION, WWW_AUTHENTICATE
 from pyramid.authorization import ACLAuthorizationPolicy
-from pyramid.security import Everyone, unauthenticated_userid
+from pyramid.httpexceptions import HTTPForbidden
+from pyramid.security import Everyone, authenticated_userid
 
 
-# Copied from http://docs.pylonsproject.org/projects/pyramid_cookbook/en/latest/auth/basic.html
+# Copied from
+# http://docs.pylonsproject.org/projects/pyramid_cookbook/en/latest/auth/basic.html
 def get_basicauth_credentials(request):
     """ Get the user/password from HTTP basic auth """
     authorization = AUTHORIZATION(request.environ)
@@ -57,20 +59,13 @@ class BasicAuthenticationPolicy(object):
 
     def unauthenticated_userid(self, request):
         """ Return userid without performing auth """
-        credentials = get_basicauth_credentials(request)
-        if credentials is not None:
-            return credentials['login']
-        return None
+        return request.userid
 
     def effective_principals(self, request):
         """ Get the authed groups for the active user """
-        credentials = get_basicauth_credentials(request)
-        if credentials is None:
+        if request.userid is None:
             return [Everyone]
-        userid = credentials['login']
-        if request.access.verify_user(userid, credentials['password']):
-            return request.access.user_principals(userid)
-        return [Everyone]
+        return request.access.user_principals(request.userid)
 
     def remember(self, request, principal, **kw):
         """ HTTP Headers to remember credentials """
@@ -100,7 +95,7 @@ class SessionAuthPolicy(object):
         userid based only on data present in the request; it needn't (and
         shouldn't) check any persistent store to ensure that the user record
         related to the request userid exists."""
-        return request.session.get('user', None)
+        return request.userid
 
     def effective_principals(self, request):
         """ Return a sequence representing the effective principals
@@ -108,10 +103,9 @@ class SessionAuthPolicy(object):
         user, including 'system' groups such as
         ``pyramid.security.Everyone`` and
         ``pyramid.security.Authenticated``. """
-        userid = self.unauthenticated_userid(request)
-        if userid is None:
+        if request.userid is None:
             return [Everyone]
-        return request.access.user_principals(userid)
+        return request.access.user_principals(request.userid)
 
     def remember(self, request, principal, **_):
         """
@@ -130,14 +124,32 @@ class SessionAuthPolicy(object):
         return []
 
 
+def _forbid(request):
+    """
+    Return a 403 if user is logged in, otherwise return a 401.
+
+    This is required to force pip to upload its HTTP basic auth credentials
+
+    """
+    if request.userid is None:
+        request.response.status_code = 401
+        realm = WWW_AUTHENTICATE.tuples('Basic realm="%s"' %
+                                        request.registry.realm)
+        request.response.headers.update(realm)
+        return request.response
+    else:
+        return HTTPForbidden()
+
+
 def includeme(config):
     """ Configure the app """
     config.set_authorization_policy(ACLAuthorizationPolicy())
     config.set_authentication_policy(config.registry.authentication_policy)
     config.add_authentication_policy(SessionAuthPolicy())
     config.add_authentication_policy(BasicAuthenticationPolicy())
-    config.add_request_method(unauthenticated_userid, name='userid',
+    config.add_request_method(authenticated_userid, name='userid',
                               reify=True)
+    config.add_request_method(_forbid, name='forbid')
 
     settings = config.get_settings()
     realm = settings.get('pypi.realm', 'pypi')
