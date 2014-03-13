@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.2.3
+-----
+* Bug fix: Caching works with S3 backend
+
 0.2.2
 -----
 * Bug fix: Security bug in user auth (:sha:`001e8a5`)
