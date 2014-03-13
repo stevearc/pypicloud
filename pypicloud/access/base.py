@@ -35,17 +35,23 @@ class IAccessBackend(object):
         (Deny, Everyone, ALL_PERMISSIONS),
     ]
 
-    def __init__(self, request):
+    def __init__(self, request=None, default_read=None, default_write=None,
+                 cache_update=None):
         self.request = request
+        self.default_read = default_read
+        self.default_write = default_write
+        self.cache_update = cache_update
 
     @classmethod
     def configure(cls, settings):
         """ Configure the access backend with app settings """
-        cls.default_read = aslist(settings.get('pypi.default_read',
-                                               ['authenticated']))
-        cls.default_write = aslist(settings.get('pypi.default_write', []))
-        cls.cache_update = aslist(settings.get('pypi.cache_update',
-                                               ['authenticated']))
+        return {
+            'default_read': aslist(settings.get('pypi.default_read',
+                                                ['authenticated'])),
+            'default_write': aslist(settings.get('pypi.default_write', [])),
+            'cache_update': aslist(settings.get('pypi.cache_update',
+                                                ['authenticated'])),
+        }
 
     def allowed_permissions(self, package):
         """

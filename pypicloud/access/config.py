@@ -14,19 +14,27 @@ class ConfigAccessBackend(IAccessBackend):
 
     """ Access Backend that uses values set in the config file """
 
+    def __init__(self, request=None, settings=None, admins=None,
+                 group_map=None, user_groups=None, **kwargs):
+        super(ConfigAccessBackend, self).__init__(request, **kwargs)
+        self._settings = settings
+        self.admins = admins
+        self.group_map = group_map
+        self.user_groups = user_groups
+
     @classmethod
     def configure(cls, settings):
-        super(ConfigAccessBackend, cls).configure(settings)
+        kwargs = super(ConfigAccessBackend, cls).configure(settings)
         if asbool(settings.get('auth.zero_security_mode', False)):
             LOG.warn("Using deprecated option 'auth.zero_security_mode' "
                      "(replaced by 'pypi.default_read' and "
                      "'pypi.default_write'")
-            cls.default_read = [Everyone]
-            cls.default_write = [Authenticated]
-        cls._settings = settings
-        cls.admins = aslist(settings.get('auth.admins', []))
-        cls.user_groups = defaultdict(list)
-        cls.group_map = {}
+            kwargs['default_read'] = [Everyone]
+            kwargs['default_write'] = [Authenticated]
+        kwargs['settings'] = settings
+        kwargs['admins'] = aslist(settings.get('auth.admins', []))
+        user_groups = defaultdict(list)
+        group_map = {}
 
         # Build dict that maps users to list of groups
         for key, value in settings.iteritems():
@@ -34,9 +42,12 @@ class ConfigAccessBackend(IAccessBackend):
                 continue
             group_name = key[len('group.'):]
             members = aslist(value)
-            cls.group_map[group_name] = members
+            group_map[group_name] = members
             for member in members:
-                cls.user_groups[member].append(group_name)
+                user_groups[member].append(group_name)
+        kwargs['group_map'] = group_map
+        kwargs['user_groups'] = user_groups
+        return kwargs
 
     def _get_password_hash(self, username):
         key = "user.%s" % username

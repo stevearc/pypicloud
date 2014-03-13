@@ -129,9 +129,9 @@ class SQLAccessBackend(IMutableAccessBackend):
 
     """
 
-    def __init__(self, request):
-        super(SQLAccessBackend, self).__init__(request)
-        self.db = self.dbmaker()
+    def __init__(self, request=None, dbmaker=None, **kwargs):
+        super(SQLAccessBackend, self).__init__(request, **kwargs)
+        self.db = dbmaker()
 
         def cleanup(_):
             """ Close the session after the request """
@@ -140,12 +140,13 @@ class SQLAccessBackend(IMutableAccessBackend):
 
     @classmethod
     def configure(cls, settings):
-        super(SQLAccessBackend, cls).configure(settings)
+        kwargs = super(SQLAccessBackend, cls).configure(settings)
         engine = engine_from_config(settings, prefix='auth.db.')
-        cls.dbmaker = sessionmaker(
+        kwargs['dbmaker'] = sessionmaker(
             bind=engine, extension=ZopeTransactionExtension())
         # Create SQL schema if not exists
         Base.metadata.create_all(bind=engine)
+        return kwargs
 
     def allow_register(self):
         ret = self.db.query(KeyVal).filter_by(key='allow_register').first()

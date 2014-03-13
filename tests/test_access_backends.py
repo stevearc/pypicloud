@@ -20,6 +20,23 @@ except ImportError:
     import unittest
 
 
+class PartialEq(object):
+
+    """ Helper object to compare equality against functools.partial objects """
+
+    def __init__(self, obj):
+        self.obj = obj
+
+    def __eq__(self, other):
+        return self.obj == other.func
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __repr__(self):
+        return "partial(%s)" % self.obj
+
+
 def make_user(name, password, pending=True):
     """ Convenience method for creating a User """
     return User(name, pwd_context.encrypt(password), pending)
@@ -198,8 +215,9 @@ class TestBaseBackend(BaseACLTest):
             'auth.backend_server': 'http://example.com',
         }
         includeme(config)
-        config.add_request_method.assert_called_with(RemoteAccessBackend,
-                                                     name='access', reify=True)
+        config.add_request_method.assert_called_with(
+            PartialEq(RemoteAccessBackend),
+            name='access', reify=True)
 
     def test_load_sql_backend(self):
         """ keyword 'sql' loads SQLBackend """
@@ -209,8 +227,9 @@ class TestBaseBackend(BaseACLTest):
             'pypi.access_backend': 'sql',
         }
         includeme(config)
-        config.add_request_method.assert_called_with(SQLAccessBackend,
-                                                     name='access', reify=True)
+        config.add_request_method.assert_called_with(
+            PartialEq(SQLAccessBackend),
+            name='access', reify=True)
 
     def test_load_arbitrary_backend(self):
         """ Can pass dotted path to load arbirary backend """
@@ -220,8 +239,9 @@ class TestBaseBackend(BaseACLTest):
             'pypi.access_backend': 'pypicloud.access.sql.SQLAccessBackend',
         }
         includeme(config)
-        config.add_request_method.assert_called_with(SQLAccessBackend,
-                                                     name='access', reify=True)
+        config.add_request_method.assert_called_with(
+            PartialEq(SQLAccessBackend),
+            name='access', reify=True)
 
     def test_admin_has_permission(self):
         """ Admins always have permission """
@@ -266,10 +286,12 @@ class TestConfigBackend(BaseACLTest):
 
     """ Tests for access backend that uses config settings """
 
-    def setUp(self):
-        super(TestConfigBackend, self).setUp()
-        self.backend = ConfigAccessBackend(self.request)
-        self.request.access = self.backend
+    def _backend(self, settings):
+        """ Wrapper to instantiate a ConfigAccessBackend """
+        kwargs = ConfigAccessBackend.configure(settings)
+        request = DummyRequest()
+        request.userid = None
+        return ConfigAccessBackend(request, **kwargs)
 
     def test_build_group(self):
         """ Group specifications create user map to groups """
@@ -278,20 +300,20 @@ class TestConfigBackend(BaseACLTest):
             'group.g2': 'u2 u3 u4',
             'unrelated': 'weeeeee',
         }
-        self.backend.configure(settings)
-        self.assertItemsEqual(self.backend.groups(), ['g1', 'g2'])
-        self.assertItemsEqual(self.backend.groups('u1'), ['g1'])
-        self.assertItemsEqual(self.backend.groups('u2'), ['g1', 'g2'])
-        self.assertItemsEqual(self.backend.groups('u3'), ['g1', 'g2'])
-        self.assertItemsEqual(self.backend.groups('u4'), ['g2'])
+        backend = self._backend(settings)
+        self.assertItemsEqual(backend.groups(), ['g1', 'g2'])
+        self.assertItemsEqual(backend.groups('u1'), ['g1'])
+        self.assertItemsEqual(backend.groups('u2'), ['g1', 'g2'])
+        self.assertItemsEqual(backend.groups('u3'), ['g1', 'g2'])
+        self.assertItemsEqual(backend.groups('u4'), ['g2'])
 
     def test_verify(self):
         """ Users can log in with correct password """
         settings = {
             'user.u1': pwd_context.encrypt('foobar'),
         }
-        self.backend.configure(settings)
-        valid = self.backend.verify_user('u1', 'foobar')
+        backend = self._backend(settings)
+        valid = backend.verify_user('u1', 'foobar')
         self.assertTrue(valid)
 
     def test_no_verify(self):
@@ -299,8 +321,8 @@ class TestConfigBackend(BaseACLTest):
         settings = {
             'user.u1': pwd_context.encrypt('foobar'),
         }
-        self.backend.configure(settings)
-        valid = self.backend.verify_user('u1', 'foobarz')
+        backend = self._backend(settings)
+        valid = backend.verify_user('u1', 'foobarz')
         self.assertFalse(valid)
 
     def test_group_members(self):
@@ -308,8 +330,8 @@ class TestConfigBackend(BaseACLTest):
         settings = {
             'group.g1': 'u1 u2 u3',
         }
-        self.backend.configure(settings)
-        self.assertItemsEqual(self.backend.group_members('g1'),
+        backend = self._backend(settings)
+        self.assertItemsEqual(backend.group_members('g1'),
                               ['u1', 'u2', 'u3'])
 
     def test_all_group_permissions(self):
@@ -318,8 +340,8 @@ class TestConfigBackend(BaseACLTest):
             'package.mypkg.group.g1': 'r',
             'package.mypkg.group.g2': 'rw',
         }
-        self.backend.configure(settings)
-        perms = self.backend.group_permissions('mypkg')
+        backend = self._backend(settings)
+        perms = backend.group_permissions('mypkg')
         self.assertEqual(perms, {'g1': ['read'], 'g2': ['read', 'write']})
 
     def test_group_permissions(self):
@@ -328,8 +350,8 @@ class TestConfigBackend(BaseACLTest):
             'package.mypkg.group.g1': 'r',
             'package.mypkg.group.g2': 'rw',
         }
-        self.backend.configure(settings)
-        perms = self.backend.group_permissions('mypkg', 'g1')
+        backend = self._backend(settings)
+        perms = backend.group_permissions('mypkg', 'g1')
         self.assertEqual(perms, ['read'])
 
     @patch('pypicloud.access.base.effective_principals')
@@ -337,18 +359,18 @@ class TestConfigBackend(BaseACLTest):
         """ All users have 'everyone' permissions """
         settings = {'package.mypkg.group.everyone': 'r'}
         principals.return_value = [Everyone]
-        self.backend.configure(settings)
-        self.assertTrue(self.backend.has_permission('mypkg', 'read'))
-        self.assertFalse(self.backend.has_permission('mypkg', 'write'))
+        backend = self._backend(settings)
+        self.assertTrue(backend.has_permission('mypkg', 'read'))
+        self.assertFalse(backend.has_permission('mypkg', 'write'))
 
     @patch('pypicloud.access.base.effective_principals')
     def test_authenticated_permission(self, principals):
         """ All logged-in users have 'authenticated' permissions """
         settings = {'package.mypkg.group.authenticated': 'r'}
         principals.return_value = [Authenticated]
-        self.backend.configure(settings)
-        self.assertTrue(self.backend.has_permission('mypkg', 'read'))
-        self.assertFalse(self.backend.has_permission('mypkg', 'write'))
+        backend = self._backend(settings)
+        self.assertTrue(backend.has_permission('mypkg', 'read'))
+        self.assertFalse(backend.has_permission('mypkg', 'write'))
 
     def test_all_user_perms(self):
         """ Fetch permissions on a package for all users """
@@ -356,8 +378,8 @@ class TestConfigBackend(BaseACLTest):
             'package.mypkg.user.u1': 'r',
             'package.mypkg.user.u2': 'rw',
         }
-        self.backend.configure(settings)
-        perms = self.backend.user_permissions('mypkg')
+        backend = self._backend(settings)
+        perms = backend.user_permissions('mypkg')
         self.assertEqual(perms, {'u1': ['read'], 'u2': ['read', 'write']})
 
     def test_user_perms(self):
@@ -366,8 +388,8 @@ class TestConfigBackend(BaseACLTest):
             'package.mypkg.user.u1': 'r',
             'package.mypkg.user.u2': 'rw',
         }
-        self.backend.configure(settings)
-        perms = self.backend.user_permissions('mypkg', 'u1')
+        backend = self._backend(settings)
+        perms = backend.user_permissions('mypkg', 'u1')
         self.assertEqual(perms, ['read'])
 
     def test_user_package_perms(self):
@@ -377,8 +399,8 @@ class TestConfigBackend(BaseACLTest):
             'package.pkg2.user.u1': 'rw',
             'unrelated.field': '',
         }
-        self.backend.configure(settings)
-        packages = self.backend.user_package_permissions('u1')
+        backend = self._backend(settings)
+        packages = backend.user_package_permissions('u1')
         self.assertItemsEqual(packages, [
             {'package': 'pkg1', 'permissions': ['read']},
             {'package': 'pkg2', 'permissions': ['read', 'write']},
@@ -391,8 +413,8 @@ class TestConfigBackend(BaseACLTest):
             'package.pkg2.group.g1': 'rw',
             'unrelated.field': '',
         }
-        self.backend.configure(settings)
-        packages = self.backend.group_package_permissions('g1')
+        backend = self._backend(settings)
+        packages = backend.group_package_permissions('g1')
         self.assertItemsEqual(packages, [
             {'package': 'pkg1', 'permissions': ['read']},
             {'package': 'pkg2', 'permissions': ['read', 'write']},
@@ -405,8 +427,8 @@ class TestConfigBackend(BaseACLTest):
             'user.bar': 'pass',
             'auth.admins': ['foo'],
         }
-        self.backend.configure(settings)
-        users = self.backend.user_data()
+        backend = self._backend(settings)
+        users = backend.user_data()
         self.assertItemsEqual(users, [
             {
                 'username': 'foo',
@@ -425,8 +447,8 @@ class TestConfigBackend(BaseACLTest):
             'auth.admins': ['foo'],
             'group.foobars': ['foo'],
         }
-        self.backend.configure(settings)
-        user = self.backend.user_data('foo')
+        backend = self._backend(settings)
+        user = backend.user_data('foo')
         self.assertEqual(user, {
             'username': 'foo',
             'admin': True,
@@ -435,8 +457,8 @@ class TestConfigBackend(BaseACLTest):
 
     def test_need_admin(self):
         """ Config backend is static and never needs admin """
-        self.backend.configure({})
-        self.assertFalse(self.backend.need_admin())
+        backend = self._backend({})
+        self.assertFalse(backend.need_admin())
 
     def test_load(self):
         """ Config backend can load ACL and format config strings """
@@ -449,9 +471,9 @@ class TestConfigBackend(BaseACLTest):
             'package.pkg.user.u1': 'rw',
             'package.pkg.group.g1': 'r',
         }
-        self.backend.configure(settings)
-        data = self.backend.dump()
-        config = self.backend.load(data)
+        backend = self._backend(settings)
+        data = backend.dump()
+        config = backend.load(data)
 
         def parse_config(string):
             """ Parse the settings from config.ini format """
@@ -477,14 +499,14 @@ class TestRemoteBackend(unittest.TestCase):
 
     def setUp(self):
         request = DummyRequest()
-        self.backend = RemoteAccessBackend(request)
         self.auth = ('user', 'pass')
         settings = {
             'auth.backend_server': 'server',
             'auth.user': self.auth[0],
             'auth.password': self.auth[1],
         }
-        self.backend.configure(settings)
+        kwargs = RemoteAccessBackend.configure(settings)
+        self.backend = RemoteAccessBackend(request, **kwargs)
         self.requests = MagicMock()
         patch.dict('sys.modules', requests=self.requests).start()
 
@@ -612,12 +634,12 @@ class TestSQLBackend(unittest.TestCase):
         cls.settings = {
             'auth.db.url': 'sqlite:///:memory:',
         }
-        SQLAccessBackend.configure(cls.settings)
+        cls.kwargs = SQLAccessBackend.configure(cls.settings)
 
     def setUp(self):
         super(TestSQLBackend, self).setUp()
-        self.db = SQLAccessBackend.dbmaker()
-        self.access = SQLAccessBackend(MagicMock())
+        self.db = self.kwargs['dbmaker']()
+        self.access = SQLAccessBackend(MagicMock(), **self.kwargs)
 
     def tearDown(self):
         super(TestSQLBackend, self).tearDown()
@@ -1136,7 +1158,8 @@ class TestSQLBackend(unittest.TestCase):
         data1 = self.access.dump()
 
         SQLAccessBackend.configure(self.settings)
-        access2 = SQLAccessBackend(MagicMock())
+        kwargs = SQLAccessBackend.configure(self.settings)
+        access2 = SQLAccessBackend(MagicMock(), **kwargs)
         access2.load(data1)
         data2 = access2.dump()
 
