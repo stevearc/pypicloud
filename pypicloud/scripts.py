@@ -200,6 +200,8 @@ def migrate_packages(argv=None):
     for package in all_packages:
         print "Migrating %s" % package
         with old_storage.open(package) as data:
+            # we need to recalculate the path for the new storage config
+            del package['path']
             new_storage.upload(package, data)
 
 
