@@ -11,7 +11,7 @@ from zope.sqlalchemy import ZopeTransactionExtension
 from .base import IMutableAccessBackend
 
 
-# pylint: disable=C0103
+# pylint: disable=C0103,W0231
 Base = declarative_base()
 
 association_table = Table(

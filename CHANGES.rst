@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.2.4
+-----
+* Bug fix: ``ppc-migrate`` between two S3 backends (:pr:`22`)
+
 0.2.3
 -----
 * Bug fix: Caching works with S3 backend (:sha:`4dc593a`)
