@@ -4,7 +4,7 @@ import logging
 from contextlib import closing
 from pypicloud.util import (normalize_name, BetterScrapingLocator,
                             FilenameScrapingLocator)
-from pyramid.httpexceptions import HTTPNotFound, HTTPForbidden, HTTPBadRequest
+from pyramid.httpexceptions import HTTPNotFound, HTTPForbidden, HTTPBadRequest, HTTPFound
 from pyramid.security import NO_PERMISSION_REQUIRED, remember
 from pyramid.view import view_config
 from six.moves.urllib.request import urlopen  # pylint: disable=F0401,E0611
@@ -76,7 +76,13 @@ def download_package(context, request):
         LOG.info("Caching %s from %s", context.filename,
                  request.registry.fallback_url)
         package = fetch_dist(request, dist)
-    return request.db.download_response(package)
+
+        # S3 will take a while to catch up (eventual consistency and all that).
+        # In the meantime, just give up the link to where you got the original
+        # package.
+        return HTTPFound(location=dist.source_url)
+    else:
+        return request.db.download_response(package)
 
 
 @view_config(context=APIPackageFileResource, request_method='POST',

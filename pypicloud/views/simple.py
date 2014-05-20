@@ -52,31 +52,31 @@ def package_versions(context, request):
     """ Render the links for all versions of a package """
     normalized_name = normalize_name(context.name)
 
+    # filename -> url
+    pkgs = {}
+
+    # packages in database
     packages = request.db.all(normalized_name)
-    if packages:
-        if not request.access.has_permission(normalized_name, 'read'):
-            return request.forbid()
-        pkgs = {}
+    if packages and request.access.has_permission(normalized_name, 'read'):
         for package in packages:
             pkgs[package.filename] = package.get_url(request)
-        return {'pkgs': pkgs}
 
-    elif request.registry.fallback == 'cache':
-        if not request.access.can_update_cache():
-            return request.forbid()
+    # packages in fallback
+    if request.registry.fallback == 'cache' and request.access.can_update_cache():
         locator = FilenameScrapingLocator(request.registry.fallback_url)
         dists = locator.get_project(context.name)
-        if not dists:
-            return HTTPNotFound()
-        pkgs = {}
         for dist in six.itervalues(dists):
             filename = posixpath.basename(dist.source_url)
             url = request.app_url('api', 'package', dist.name, filename)
-            pkgs[filename] = url
-        return {'pkgs': pkgs}
-    elif request.registry.fallback == 'redirect':
-        redirect_url = "%s/%s/" % (
-            request.registry.fallback_url.rstrip('/'), context.name)
-        return HTTPFound(location=redirect_url)
+            if filename not in pkgs:
+                pkgs[filename] = url
+
+    # just redirect
+    if len(pkgs) == 0:
+        if request.registry.fallback == 'redirect':
+            redirect_url = "%s/%s/" % ( request.registry.fallback_url.rstrip('/'), context.name)
+            return HTTPFound(location=redirect_url)
+        else:
+            return HTTPNotFound()
     else:
-        return HTTPNotFound()
+        return {"pkgs": pkgs}
