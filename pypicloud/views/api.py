@@ -76,7 +76,11 @@ def download_package(context, request):
         LOG.info("Caching %s from %s", context.filename,
                  request.registry.fallback_url)
         package = fetch_dist(request, dist)
-    return request.db.download_response(package)
+
+        # redirect to s3
+        return HTTPFound(location=package.get_url(request))
+    else:
+        return request.db.download_response(package)
 
 
 @view_config(context=APIPackageFileResource, request_method='POST',
