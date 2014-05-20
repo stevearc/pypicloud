@@ -4,7 +4,7 @@ import logging
 from contextlib import closing
 from pypicloud.util import (normalize_name, BetterScrapingLocator,
                             FilenameScrapingLocator)
-from pyramid.httpexceptions import HTTPNotFound, HTTPForbidden, HTTPBadRequest
+from pyramid.httpexceptions import HTTPNotFound, HTTPForbidden, HTTPBadRequest, HTTPFound
 from pyramid.security import NO_PERMISSION_REQUIRED, remember
 from pyramid.view import view_config
 from six.moves.urllib.request import urlopen  # pylint: disable=F0401,E0611
