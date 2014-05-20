@@ -77,8 +77,10 @@ def download_package(context, request):
                  request.registry.fallback_url)
         package = fetch_dist(request, dist)
 
-        # redirect to s3
-        return HTTPFound(location=package.get_url(request))
+        # S3 will take a while to catch up (eventual consistency and all that).
+        # In the meantime, just give up the link to where you got the original
+        # package.
+        return HTTPFound(location=dist.source_url)
     else:
         return request.db.download_response(package)
 
