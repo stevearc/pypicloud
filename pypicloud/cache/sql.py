@@ -191,6 +191,8 @@ class SQLCache(ICache):
         self.db.delete(package)
 
     def clear_all(self):
+        # Release any transactions before we go reloading schema
+        self.db.rollback()
         engine = self.dbmaker.kw['bind']
         drop_schema(engine)
         create_schema(engine)
