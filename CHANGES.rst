@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.2.5
+-----
+* Bug fix: Rebuilding SQL cache sometimes deadlocks (:pr:`27`)
+
 0.2.4
 -----
 * Bug fix: ``ppc-migrate`` between two S3 backends (:pr:`22`)
