@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.2.6
+-----
+* Bug fix: Rebuilding SQL cache sometimes crashes (:issue:`29`)
+
 0.2.5
 -----
 * Bug fix: Rebuilding SQL cache sometimes deadlocks (:pr:`27`)
