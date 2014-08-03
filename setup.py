@@ -48,7 +48,7 @@ if sys.version_info[:2] < (2, 7):
 if __name__ == "__main__":
     setup(
         name='pypicloud',
-        version='0.2.5',
+        version='0.2.6',
         description='Private PyPI backed by S3',
         long_description=README + '\n\n' + CHANGES,
         classifiers=[
