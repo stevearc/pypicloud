@@ -140,6 +140,7 @@ class TestApi(MockServerTest):
         self.request.registry.fallback_url = 'http://pypi.com'
         self.request.access.can_update_cache.return_value = True
         db.fetch.return_value = None
+        fetch_dist.return_value = (MagicMock(), MagicMock())
         context = MagicMock()
         dist = MagicMock(spec=Distribution)
         locator().get_project.return_value = {
@@ -147,8 +148,7 @@ class TestApi(MockServerTest):
         }
         ret = api.download_package(context, self.request)
         fetch_dist.assert_called_with(self.request, dist)
-        db.download_response.assert_called_with(fetch_dist())
-        self.assertEqual(ret, db.download_response())
+        self.assertEqual(ret.body, fetch_dist()[1])
 
     def test_fetch_requirements_no_perm(self):
         """ Fetching requirements without perms returns 403 """
@@ -164,4 +164,4 @@ class TestApi(MockServerTest):
         requirements = 'requests>=2.0'
         ret = api.fetch_requirements(self.request, requirements)
         fetch_dist.assert_called_with(self.request, locator().locate())
-        self.assertEqual(ret, {'pkgs': [fetch_dist()]})
+        self.assertEqual(ret, {'pkgs': [fetch_dist()[0]]})

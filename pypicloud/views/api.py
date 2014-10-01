@@ -1,17 +1,21 @@
 """ Views for simple api calls that return json data """
 import posixpath
+
 import logging
 from contextlib import closing
-from pypicloud.util import (normalize_name, BetterScrapingLocator,
-                            FilenameScrapingLocator)
+from paste.httpheaders import CONTENT_DISPOSITION
 from pyramid.httpexceptions import HTTPNotFound, HTTPForbidden, HTTPBadRequest
 from pyramid.security import NO_PERMISSION_REQUIRED, remember
 from pyramid.view import view_config
+from pyramid_duh import argify, addslash
+from six import BytesIO
 from six.moves.urllib.request import urlopen  # pylint: disable=F0401,E0611
 
 from pypicloud.route import (APIResource, APIPackageResource,
                              APIPackagingResource, APIPackageFileResource)
-from pyramid_duh import argify, addslash
+from pypicloud.util import (normalize_name, BetterScrapingLocator,
+                            FilenameScrapingLocator)
+
 
 LOG = logging.getLogger(__name__)
 
@@ -53,8 +57,9 @@ def package_versions(context, request):
 def fetch_dist(request, dist):
     """ Fetch a Distribution and upload it to the storage backend """
     filename = posixpath.basename(dist.source_url)
-    with closing(urlopen(dist.source_url)) as data:
-        return request.db.upload(filename, data, dist.name)
+    with closing(urlopen(dist.source_url)) as url:
+        data = url.read()
+    return request.db.upload(filename, BytesIO(data), dist.name), data
 
 
 @view_config(context=APIPackageFileResource, request_method='GET',
@@ -75,8 +80,14 @@ def download_package(context, request):
             return HTTPNotFound()
         LOG.info("Caching %s from %s", context.filename,
                  request.registry.fallback_url)
-        package = fetch_dist(request, dist)
-    return request.db.download_response(package)
+        package, data = fetch_dist(request, dist)
+        disp = CONTENT_DISPOSITION.tuples(filename=package.filename)
+        request.response.headers.update(disp)
+        request.response.body = data
+        request.response.content_type = 'application/octet-stream'
+        return request.response
+    response = request.db.download_response(package)
+    return response
 
 
 @view_config(context=APIPackageFileResource, request_method='POST',
@@ -160,7 +171,7 @@ def fetch_requirements(request, requirements, wheel=True, prerelease=False):
         dist = locator.locate(line, prerelease)
         if dist is not None:
             try:
-                packages.append(fetch_dist(request, dist))
+                packages.append(fetch_dist(request, dist)[0])
             except ValueError:
                 pass
     return {
