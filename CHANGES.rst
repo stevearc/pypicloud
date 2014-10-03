@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.2.7
+-----
+* Bug fix: First download of package using S3 backend and `pypi.fallback = cache` returns 404 (:issue:`31`)
+
 0.2.6
 -----
 * Bug fix: Rebuilding SQL cache sometimes crashes (:issue:`29`)
