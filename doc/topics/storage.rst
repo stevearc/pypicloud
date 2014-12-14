@@ -45,10 +45,11 @@ pypicloud will attempt to get the values from the environment variables
 
 ``storage.region``
 ~~~~~~~~~~~~~~~~~~
-**Argument:** string, optional
+**Argument:** string, semi-optional
 
-If the S3 bucket does not exist, it will be created in this region (defaults to
-classic US region)
+This is required if your bucket is in a new region, such as ``eu-central-1``.
+If your bucket does not yet exist, it will be created in this region on
+startup. If blank, the classic US region will be used.
 
 ``storage.prefix``
 ~~~~~~~~~~~~~~~~~~

@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.2.9
+-----
+* Bug fix: Connection problems with new S3 regions (:issue:`39`)
+
 0.2.8
 -----
 * Bug fix: Crash when migrating packages from file storage to S3 storage (:pr:`35`)
