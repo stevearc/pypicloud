@@ -70,9 +70,6 @@ class S3Storage(IStorage):
         if aws_bucket is None:
             raise ValueError("You must specify the 'storage.bucket'")
         try:
-            s3conn = boto.s3.connect_to_region(location,
-                                               aws_access_key_id=access_key,
-                                               aws_secret_access_key=secret_key)
             bucket = s3conn.get_bucket(aws_bucket)
         except boto.exception.S3ResponseError as e:
             if e.error_code != 'NoSuchBucket':
