@@ -56,6 +56,8 @@ def includeme(config):
     config.include('pyramid_jinja2')
 
     # BEAKER CONFIGURATION
+    config.registry.secure_cookie = asbool(settings.get('session.secure',
+                                                        False))
     settings.setdefault('session.type', 'cookie')
     settings.setdefault('session.httponly', 'true')
     config.set_session_factory(session_factory_from_settings(settings))

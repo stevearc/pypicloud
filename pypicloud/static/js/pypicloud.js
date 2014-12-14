@@ -79,6 +79,7 @@ angular.module('pypicloud', ['ui.bootstrap', 'ngRoute', 'angularFileUpload', 'ng
   $rootScope.STATIC = STATIC;
   $rootScope.PARTIAL = STATIC + 'partial/';
   $rootScope.VERSION = VERSION;
+  $rootScope.SECURE_COOKIE = SECURE_COOKIE;
   if (NEED_ADMIN) {
     $location.path('/new_admin');
   }
@@ -193,8 +194,13 @@ angular.module('pypicloud', ['ui.bootstrap', 'ngRoute', 'angularFileUpload', 'ng
   };
 }])
 
-.controller('LoginCtrl', ['$scope', '$http', function($scope, $http) {
+.controller('LoginCtrl', ['$scope', '$http', '$window', function($scope, $http, $window) {
   $scope.error = false;
+
+  if ($window.location.protocol != 'https:' && SECURE_COOKIE) {
+    $scope.secureCookieError = true;
+  }
+
   $scope.submit = function(username, password) {
     var data = {
       username: username,

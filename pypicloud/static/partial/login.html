@@ -16,6 +16,15 @@
           <div class="col-xs-12" ng-show="error">
             <alert type="'danger'">{{ errorMsg }}</alert>
           </div>
+          <div class="col-xs-12" ng-show="secureCookieError">
+            <alert type="'warning'">
+              You are using <code>session.secure = true</code>, but the url is
+              not <code>https</code>. You will be unable to log in. Please see <a
+              href="https://www.owasp.org/index.php/SecureFlag"
+              target="_blank">the OWASP page</a> for more information on the
+              <code>secure</code> flag for cookies.
+            </alert>
+          </div>
           <div class="col-xs-12">
             <button type="submit" class="btn btn-default pull-left">Log in</button>
             <button type="button" ng-click="register(username, password)" class="btn btn-default pull-right" ng-show="ALLOW_REGISTER">Register</button>
