@@ -9,7 +9,7 @@ import logging
 import transaction
 from base64 import b64encode
 from jinja2 import Template
-from pkg_resources import resource_string
+from pkg_resources import resource_string  # pylint: disable=E0611
 from pyramid.paster import bootstrap
 
 import os
