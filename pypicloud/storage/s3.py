@@ -8,7 +8,7 @@ from urllib import urlopen
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.settings import asbool
 
-import boto
+import boto.s3
 import posixpath
 from .base import IStorage
 from boto.s3.key import Key
@@ -51,17 +51,37 @@ class S3Storage(IStorage):
         secret_key = getdefaults(settings, 'storage.secret_key',
                                  'aws.secret_key', None)
 
-        s3conn = boto.connect_s3(
-            aws_access_key_id=access_key,
-            aws_secret_access_key=secret_key)
+        # We used to always use boto.connect_s3 because it can look up buckets
+        # in any region. New regions require AWS4-HMAC-SHA256, which boto can
+        # only do with a region connection. So if the region is specified (and
+        # it must be for new regions like eu-central-1), use a region
+        # connection.
+        location = settings.get('storage.region')
+        if location is None:
+            s3conn = boto.connect_s3(
+                aws_access_key_id=access_key,
+                aws_secret_access_key=secret_key)
+        else:
+            s3conn = boto.s3.connect_to_region(location,
+                                               aws_access_key_id=access_key,
+                                               aws_secret_access_key=secret_key)
         aws_bucket = getdefaults(settings, 'storage.bucket', 'aws.bucket',
                                  None)
         if aws_bucket is None:
             raise ValueError("You must specify the 'storage.bucket'")
-        bucket = s3conn.lookup(aws_bucket, validate=False)
-        if bucket is None:
+        try:
+            bucket = s3conn.get_bucket(aws_bucket)
+        except boto.exception.S3ResponseError as e:
+            if e.error_code != 'NoSuchBucket':
+                if e.status == 301:
+                    LOG.warn("Bucket found in different region. Check that "
+                             "the S3 bucket specified in 'storage.bucket' is "
+                             "in 'storage.region'")
+                raise
             location = getdefaults(settings, 'storage.region', 'aws.region',
                                    boto.s3.connection.Location.DEFAULT)
+            LOG.info("Creating S3 bucket %s in region %s", aws_bucket,
+                     location)
             bucket = s3conn.create_bucket(aws_bucket, location=location)
         kwargs['bucket'] = bucket
         return kwargs

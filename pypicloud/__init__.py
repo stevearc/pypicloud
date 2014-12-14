@@ -11,7 +11,7 @@ from six.moves.urllib.parse import urlencode  # pylint: disable=F0401,E0611
 from .route import Root
 
 
-__version__ = '0.2.8'
+__version__ = '0.2.9'
 LOG = logging.getLogger(__name__)
 
 
@@ -56,6 +56,8 @@ def includeme(config):
     config.include('pyramid_jinja2')
 
     # BEAKER CONFIGURATION
+    config.registry.secure_cookie = asbool(settings.get('session.secure',
+                                                        False))
     settings.setdefault('session.type', 'cookie')
     settings.setdefault('session.httponly', 'true')
     config.set_session_factory(session_factory_from_settings(settings))

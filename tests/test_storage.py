@@ -14,6 +14,7 @@ import os
 import pypicloud
 import re
 from boto.s3.key import Key
+import boto.exception
 from pypicloud.models import Package
 from pypicloud.storage import S3Storage, FileStorage
 from . import make_package
@@ -33,9 +34,9 @@ class TestS3Storage(unittest.TestCase):
         self.s3_mock = mock_s3()
         self.s3_mock.start()
         self.settings = {
-            'aws.bucket': 'mybucket',
-            'aws.access_key': 'abc',
-            'aws.secret_key': 'bcd',
+            'storage.bucket': 'mybucket',
+            'storage.access_key': 'abc',
+            'storage.secret_key': 'bcd',
         }
         conn = boto.connect_s3()
         self.bucket = conn.create_bucket('mybucket')
@@ -91,7 +92,7 @@ class TestS3Storage(unittest.TestCase):
                          self.storage.buffer_time)
         self.assertEqual(int(query['Expires'][0]), int(actual_expire))
         self.assertEqual(query['AWSAccessKeyId'][0],
-                         self.settings['aws.access_key'])
+                         self.settings['storage.access_key'])
 
     def test_get_url_cached(self):
         """ If url is cached and valid, get_url() returns cached url """
@@ -147,11 +148,18 @@ class TestS3Storage(unittest.TestCase):
     @patch.object(pypicloud.storage.s3, 'boto')
     def test_create_bucket(self, boto_mock):
         """ If S3 bucket doesn't exist, create it """
-        conn = boto_mock.connect_s3()
-        conn.lookup.return_value = None
+        conn = boto_mock.s3.connect_to_region()
+        boto_mock.exception.S3ResponseError = boto.exception.S3ResponseError
+
+        def raise_not_found(*_, **__):
+            """ Raise a 'bucket not found' exception """
+            e = boto.exception.S3ResponseError(400, 'missing')
+            e.error_code = 'NoSuchBucket'
+            raise e
+        conn.get_bucket = raise_not_found
         settings = {
-            'aws.bucket': 'new_bucket',
-            'aws.region': 'us-east-1',
+            'storage.bucket': 'new_bucket',
+            'storage.region': 'us-east-1',
         }
         S3Storage.configure(settings)
         conn.create_bucket.assert_called_with('new_bucket',

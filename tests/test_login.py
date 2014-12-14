@@ -54,7 +54,9 @@ class TestLogin(MockServerTest):
         """ Registering new user registers user with access backend """
         self.request.access.user_data.return_value = None
         login.register(self.request, 'dsa', 'pass')
+        # pylint: disable=E1101
         self.request.access.register.assert_called_with('dsa', 'pass')
+        # pylint: enable=E1101
 
     def test_register_disabled(self):
         """ If registration is disabled, registering new user returns 403 """

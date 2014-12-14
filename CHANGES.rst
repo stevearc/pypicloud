@@ -2,13 +2,18 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.2.9
+-----
+* Bug fix: Connection problems with new S3 regions (:issue:`39`)
+* Usability: Warn users trying to log in over http when ``session.secure = true`` (:issue:`40`)
+
 0.2.8
 -----
 * Bug fix: Crash when migrating packages from file storage to S3 storage (:pr:`35`)
 
 0.2.7
 -----
-* Bug fix: First download of package using S3 backend and `pypi.fallback = cache` returns 404 (:issue:`31`)
+* Bug fix: First download of package using S3 backend and ``pypi.fallback = cache`` returns 404 (:issue:`31`)
 
 0.2.6
 -----
