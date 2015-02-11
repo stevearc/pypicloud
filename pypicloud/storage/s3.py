@@ -1,17 +1,18 @@
 """ Store packages in S3 """
+import calendar
 import logging
+import posixpath
 import time
 from contextlib import contextmanager
 from hashlib import md5
 from urllib import urlopen
 
+import boto.s3
+from boto.s3.key import Key
 from pyramid.httpexceptions import HTTPNotFound
 from pyramid.settings import asbool
 
-import boto.s3
-import posixpath
 from .base import IStorage
-from boto.s3.key import Key
 from pypicloud.models import Package
 from pypicloud.util import parse_filename, getdefaults
 
@@ -129,10 +130,27 @@ class S3Storage(IStorage):
         if 'url' not in package.data or time.time() > expire:
             key = Key(self.bucket)
             key.key = self.get_path(package)
-            expire_after = time.time() + self.expire_after
-            url = key.generate_url(expire_after, expires_in_absolute=True)
+            expire_after = self.expire_after
+            buffer_time = self.buffer_time
+
+            # This is a bit of a hack. If we are using session-based
+            # credentials, those might expire before the URL. We will need to
+            # adjust the expire_after and buffer_time accordingly.
+            # See issue: https://github.com/mathcamp/pypicloud/issues/38
+            credential_expr = getattr(self.bucket.connection.provider,
+                                      '_credential_expiry_time', None)
+            if credential_expr is not None:
+                seconds = calendar.timegm(credential_expr.utctimetuple())
+                if seconds < expire_after:
+                    # More hacks: boto refreshes session tokens 5 minutes
+                    # before expiration, so we have to refresh url after that.
+                    buffer_time = 4 * 60
+                    expire_after = seconds
+
+            expire_time = time.time() + expire_after
+            url = key.generate_url(expire_time, expires_in_absolute=True)
             package.data['url'] = url
-            expire = expire_after - self.buffer_time
+            expire = expire_time - buffer_time
             package.data['expire'] = expire
             changed = True
         return package.data['url'], changed
