@@ -5,6 +5,7 @@ from pyramid.testing import DummyRequest
 
 from . import DummyCache, DummyStorage, make_package
 from dynamo3 import Throughput
+from flywheel.fields.types import UTC
 from pypicloud.cache import ICache, SQLCache, RedisCache
 from pypicloud.cache.dynamo import DynamoCache, DynamoPackage, PackageSummary
 from pypicloud.cache.sql import SQLPackage
@@ -498,7 +499,7 @@ class TestDynamoCache(unittest.TestCase):
             'pypi.storage': 'tests.DummyStorage',
             'db.host': host,
             'db.port': port,
-            'db.namespace': 'test',
+            'db.namespace': 'test.',
             'db.access_key': '',
             'db.secret_key': '',
         }
@@ -617,7 +618,6 @@ class TestDynamoCache(unittest.TestCase):
         ]
         self._save_pkgs(*pkgs)
         saved_pkgs = self.db.distinct()
-        print saved_pkgs
         self.assertItemsEqual(saved_pkgs, set([p.name for p in pkgs]))
 
     def test_summary(self):
@@ -632,13 +632,13 @@ class TestDynamoCache(unittest.TestCase):
                 'name': 'pkg1',
                 'stable': '1.1',
                 'unstable': '1.1.1a2',
-                'last_modified': p1.last_modified,
+                'last_modified': p1.last_modified.replace(tzinfo=UTC),
             },
             {
                 'name': 'pkg2',
                 'stable': None,
                 'unstable': '0.1dev2',
-                'last_modified': p2.last_modified,
+                'last_modified': p2.last_modified.replace(tzinfo=UTC),
             },
         ])
 

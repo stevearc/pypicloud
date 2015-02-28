@@ -5,7 +5,7 @@ from pyramid.view import view_config
 
 import posixpath
 from pypicloud.route import Root, SimplePackageResource, SimpleResource
-from pypicloud.util import normalize_name, FilenameScrapingLocator
+from pypicloud.util import normalize_name
 from pyramid_duh import argify, addslash
 
 
@@ -64,15 +64,16 @@ def package_versions(context, request):
     elif request.registry.fallback == 'cache':
         if not request.access.can_update_cache():
             return request.forbid()
-        locator = FilenameScrapingLocator(request.registry.fallback_url)
-        dists = locator.get_project(context.name)
-        if not dists:
+        dists = request.locator.get_project(context.name)
+        if not dists.get('urls'):
             return HTTPNotFound()
         pkgs = {}
-        for dist in six.itervalues(dists):
-            filename = posixpath.basename(dist.source_url)
-            url = request.app_url('api', 'package', dist.name, filename)
-            pkgs[filename] = url
+        for version, url_set in six.iteritems(dists['urls']):
+            dist = dists[version]
+            for url in url_set:
+                filename = posixpath.basename(url)
+                url = request.app_url('api', 'package', dist.name, filename)
+                pkgs[filename] = url
         return {'pkgs': pkgs}
     elif request.registry.fallback == 'redirect':
         redirect_url = "%s/%s/" % (

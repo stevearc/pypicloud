@@ -16,7 +16,7 @@ CHANGES = re.sub(r':ref:`(.*?) <.*>`', r'\1', CHANGES)
 
 REQUIREMENTS = [
     'boto',
-    'distlib',
+    'distlib>=0.2.0',
     'paste',
     'passlib',
     'pycrypto',

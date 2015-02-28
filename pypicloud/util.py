@@ -31,30 +31,14 @@ def normalize_name(name):
     return name.lower().replace('-', '_')
 
 
-class FilenameScrapingLocator(SimpleScrapingLocator):
-
-    """
-    This locator should only be used for get_project. It hacks the
-    SimpleScrapingLocator to return all found distributions, rather than a
-    unique dist per version number.
-
-    """
-
-    def _update_version_data(self, result, info):
-        version = info['version']
-        filename = info['filename']
-        super(FilenameScrapingLocator, self)._update_version_data(result, info)
-        result[filename] = result[version]
-        del result[version]
-
-
 class BetterScrapingLocator(SimpleScrapingLocator):
 
     """ Layer on top of SimpleScrapingLocator that allows preferring wheels """
+    prefer_wheel = True
 
-    def __init__(self, *args, **kwargs):
-        self.prefer_wheel = kwargs.pop('wheel', True)
-        super(BetterScrapingLocator, self).__init__(*args, **kwargs)
+    def locate(self, requirement, prereleases=False, wheel=True):
+        self.prefer_wheel = wheel
+        super(BetterScrapingLocator, self).locate(requirement, prereleases)
 
     def score_url(self, url):
         t = urlparse(url)

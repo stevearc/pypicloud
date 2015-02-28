@@ -9,6 +9,7 @@ from pyramid_beaker import session_factory_from_settings
 from six.moves.urllib.parse import urlencode  # pylint: disable=F0401,E0611
 
 from .route import Root
+from .util import BetterScrapingLocator
 
 
 __version__ = '0.2.9'
@@ -32,6 +33,11 @@ def _app_url(request, *paths, **params):
     if params:
         path += '?' + urlencode(params)
     return request.application_url + path
+
+
+def _locator(request):
+    """ Get the scraping locator to find packages from the fallback site """
+    return BetterScrapingLocator(request.registry.fallback_url)
 
 
 def includeme(config):
@@ -81,6 +87,7 @@ def includeme(config):
 
     # Special request methods
     config.add_request_method(_app_url, name='app_url')
+    config.add_request_method(_locator, name='locator', reify=True)
     config.add_request_method(lambda x: __version__, name='pypicloud_version',
                               reify=True)
 
