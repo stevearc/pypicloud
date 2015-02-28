@@ -115,24 +115,30 @@ class TestSimpleCacheFallback(MockServerTest):
         result = package_versions(self.context, self.request)
         self.assertEqual(result, self.request.forbid())
 
-    @patch('pypicloud.views.simple.FilenameScrapingLocator')
-    def test_no_dists(self, locator):
+    def test_no_dists(self):
         """ If no distributions found at fallback, return 404 """
-        locator().get_project.return_value = {}
+        locator = self.request.locator = MagicMock()
+        locator.get_project.return_value = {
+            'urls': {}
+        }
         result = package_versions(self.context, self.request)
         self.assertEqual(result.status_code, 404)
 
-    @patch('pypicloud.views.simple.FilenameScrapingLocator')
-    def test_rename_dists(self, locator):
+    def test_rename_dists(self):
         """ Rename distribution urls to localhost """
         dist = MagicMock(spec=Distribution)
-        dist.source_url = 'http://fallback.com/simple/pkg-1.1.tar.gz'
+        filename = 'pkg-1.1.tar.gz'
+        dist.source_url = 'http://fallback.com/simple/%s' % filename
         dist.name = 'pkg'
-        locator().get_project.return_value = {
-            'pkg-1.1.tar.gz': dist,
+        locator = self.request.locator = MagicMock()
+        locator.get_project.return_value = {
+            '1.1': dist,
+            'urls': {
+                '1.1': set([dist.source_url])
+            }
         }
         self.request.app_url = lambda *x: '/'.join(x)
         result = package_versions(self.context, self.request)
         self.assertEqual(result, {'pkgs': {
-            'pkg-1.1.tar.gz': 'api/package/pkg/pkg-1.1.tar.gz',
+            filename: 'api/package/pkg/pkg-1.1.tar.gz',
         }})

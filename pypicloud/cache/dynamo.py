@@ -2,6 +2,7 @@
 from datetime import datetime
 
 import logging
+from dynamo3 import DynamoDBConnection
 from pkg_resources import parse_version
 from pyramid.settings import asbool
 
@@ -11,6 +12,7 @@ from pypicloud.models import Package
 
 try:
     from flywheel import Engine, Model, Field, GlobalIndex, __version__
+    from flywheel.fields.types import UTC
     if parse_version(__version__) < parse_version('0.2.0rc2'):  # pragma: no cover
         raise ValueError("Pypicloud requires flywheel>=0.2.0rc2")
 except ImportError:  # pragma: no cover
@@ -48,7 +50,7 @@ class PackageSummary(Model):
         self.unstable = package.version
         if not package.is_prerelease:
             self.stable = package.version
-        self.last_modified = package.last_modified
+        self.last_modified = package.last_modified.replace(tzinfo=UTC)
 
     def update_with(self, package):
         """ Update summary with a package """
@@ -57,7 +59,8 @@ class PackageSummary(Model):
                       self.name, package.name)
             return
         self.unstable = max(self.unstable, package.version, key=parse_version)
-        self.last_modified = max(self.last_modified, package.last_modified)
+        self.last_modified = max(self.last_modified.replace(tzinfo=UTC),
+                                 package.last_modified.replace(tzinfo=UTC))
         if not package.is_prerelease:
             if self.stable is None:
                 self.stable = package.version
@@ -87,16 +90,21 @@ class DynamoCache(ICache):
         secure = asbool(settings.get('db.secure', False))
         namespace = settings.get('db.namespace', ())
 
-        kwargs['engine'] = engine = Engine(namespace=namespace)
         if region is not None:
-            engine.connect_to_region(region, access_key=access_key,
-                                     secret_key=secret_key)
+            connection = DynamoDBConnection.connect(region,
+                                                    access_key=access_key,
+                                                    secret_key=secret_key)
         elif host is not None:
-            engine.connect_to_host(host=host, port=port, is_secure=secure,
-                                   access_key=access_key,
-                                   secret_key=secret_key)
+            connection = DynamoDBConnection.connect('us-east-1',
+                                                    host=host,
+                                                    port=port,
+                                                    is_secure=secure,
+                                                    access_key=access_key,
+                                                    secret_key=secret_key)
         else:
             raise ValueError("Must specify either db.region or db.host!")
+        kwargs['engine'] = engine = Engine(namespace=namespace,
+                                           dynamo=connection)
 
         engine.register(DynamoPackage, PackageSummary)
         engine.create_schema()

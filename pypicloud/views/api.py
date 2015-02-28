@@ -2,19 +2,18 @@
 import posixpath
 
 import logging
+import six
 from contextlib import closing
 from paste.httpheaders import CONTENT_DISPOSITION
 from pyramid.httpexceptions import HTTPNotFound, HTTPForbidden, HTTPBadRequest
 from pyramid.security import NO_PERMISSION_REQUIRED, remember
 from pyramid.view import view_config
 from pyramid_duh import argify, addslash
-from six import BytesIO
 from six.moves.urllib.request import urlopen  # pylint: disable=F0401,E0611
 
 from pypicloud.route import (APIResource, APIPackageResource,
                              APIPackagingResource, APIPackageFileResource)
-from pypicloud.util import (normalize_name, BetterScrapingLocator,
-                            FilenameScrapingLocator)
+from pypicloud.util import normalize_name
 
 
 LOG = logging.getLogger(__name__)
@@ -54,12 +53,13 @@ def package_versions(context, request):
     }
 
 
-def fetch_dist(request, dist):
+def fetch_dist(request, package_name, package_url):
     """ Fetch a Distribution and upload it to the storage backend """
-    filename = posixpath.basename(dist.source_url)
-    with closing(urlopen(dist.source_url)) as url:
+    filename = posixpath.basename(package_url)
+    with closing(urlopen(package_url)) as url:
         data = url.read()
-    return request.db.upload(filename, BytesIO(data), dist.name), data
+    # TODO: digest validation
+    return request.db.upload(filename, six.BytesIO(data), package_name), data
 
 
 @view_config(context=APIPackageFileResource, request_method='GET',
@@ -73,14 +73,23 @@ def download_package(context, request):
         if not request.access.can_update_cache():
             return request.forbid()
         # If we are caching pypi, download the package from pypi and save it
-        locator = FilenameScrapingLocator(request.registry.fallback_url)
-        dists = locator.get_project(context.name)
-        dist = dists.get(context.filename)
+        dists = request.locator.get_project(context.name)
+
+        dist = None
+        source_url = None
+        for version, url_set in six.iteritems(dists['urls']):
+            if dist is not None:
+                break
+            for url in url_set:
+                if posixpath.basename(url) == context.filename:
+                    source_url = url
+                    dist = dists[version]
+                    break
         if dist is None:
             return HTTPNotFound()
         LOG.info("Caching %s from %s", context.filename,
                  request.registry.fallback_url)
-        package, data = fetch_dist(request, dist)
+        package, data = fetch_dist(request, dist.name, source_url)
         disp = CONTENT_DISPOSITION.tuples(filename=package.filename)
         request.response.headers.update(disp)
         request.response.body = data
@@ -165,13 +174,12 @@ def fetch_requirements(request, requirements, wheel=True, prerelease=False):
     """
     if not request.access.can_update_cache():
         return HTTPForbidden()
-    locator = BetterScrapingLocator(request.registry.fallback_url, wheel=wheel)
     packages = []
     for line in requirements.splitlines():
-        dist = locator.locate(line, prerelease)
+        dist = request.locator.locate(line, prerelease, wheel)
         if dist is not None:
             try:
-                packages.append(fetch_dist(request, dist)[0])
+                packages.append(fetch_dist(request, dist.name, dist.source_url)[0])
             except ValueError:
                 pass
     return {

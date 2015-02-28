@@ -39,20 +39,6 @@ class TestScrapers(unittest.TestCase):
 
     """ Test the distlib scrapers """
 
-    def test_filename_scraper(self):
-        """ Filename scraper returns dict with filenames as keys """
-        locator = util.FilenameScrapingLocator('localhost')
-        result = {}
-        info = {
-            'filename': 'mypkg-1.1.tar.gz',
-            'name': 'mypkg',
-            'version': '1.1',
-            'url': 'localhost/mypkg',
-        }
-        locator._update_version_data(result, info)
-        self.assertEqual(len(result), 1)
-        self.assertTrue(info['filename'] in result)
-
     def test_wheel_scraper(self):
         """ Wheel scraper prefers wheel dists """
         locator = util.BetterScrapingLocator('localhost')
@@ -61,6 +47,7 @@ class TestScrapers(unittest.TestCase):
 
     def test_wheel_scraper_prefer_source(self):
         """ Wheel scraper can be marked to prefer source dists """
-        locator = util.BetterScrapingLocator('localhost', wheel=False)
+        locator = util.BetterScrapingLocator('localhost')
+        locator.prefer_wheel = False
         self.assertTrue(locator.score_url('http://localhost/mypkg-1.1.whl') <
                         locator.score_url('http://localhost/mypkg-1.1.tar.gz'))

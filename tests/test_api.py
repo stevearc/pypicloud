@@ -116,38 +116,44 @@ class TestApi(MockServerTest):
         ret = api.download_package(context, self.request)
         self.assertEqual(ret, self.request.forbid())
 
-    @patch('pypicloud.views.api.FilenameScrapingLocator')
-    def test_download_fallback_cache_missing(self, locator):
+    def test_download_fallback_cache_missing(self):
         """ If fallback url is missing dist, return 404 """
         db = self.request.db = MagicMock()
+        locator = self.request.locator = MagicMock()
         self.request.registry.fallback = 'cache'
         self.request.registry.fallback_url = 'http://pypi.com'
         self.request.access.can_update_cache.return_value = True
         db.fetch.return_value = None
         context = MagicMock()
         locator().get_project.return_value = {
-            context.filename: None
+            context.filename: None,
+            'urls': {},
         }
         ret = api.download_package(context, self.request)
         self.assertEqual(ret.status_code, 404)
 
     @patch('pypicloud.views.api.fetch_dist')
-    @patch('pypicloud.views.api.FilenameScrapingLocator')
-    def test_download_fallback_cache(self, locator, fetch_dist):
+    def test_download_fallback_cache(self, fetch_dist):
         """ Downloading missing package caches result from fallback """
         db = self.request.db = MagicMock()
+        locator = self.request.locator = MagicMock()
         self.request.registry.fallback = 'cache'
         self.request.registry.fallback_url = 'http://pypi.com'
         self.request.access.can_update_cache.return_value = True
         db.fetch.return_value = None
         fetch_dist.return_value = (MagicMock(), MagicMock())
         context = MagicMock()
-        dist = MagicMock(spec=Distribution)
-        locator().get_project.return_value = {
-            context.filename: dist,
+        context.filename = 'package.tar.gz'
+        dist = MagicMock()
+        url = 'http://pypi.com/simple/%s' % context.filename
+        locator.get_project.return_value = {
+            '0.1': dist,
+            'urls': {
+                '0.1': set([url])
+            }
         }
         ret = api.download_package(context, self.request)
-        fetch_dist.assert_called_with(self.request, dist)
+        fetch_dist.assert_called_with(self.request, dist.name, url)
         self.assertEqual(ret.body, fetch_dist()[1])
 
     def test_fetch_requirements_no_perm(self):
@@ -158,10 +164,11 @@ class TestApi(MockServerTest):
         self.assertEqual(ret.status_code, 403)
 
     @patch('pypicloud.views.api.fetch_dist')
-    @patch('pypicloud.views.api.BetterScrapingLocator')
-    def test_fetch_requirements(self, locator, fetch_dist):
+    def test_fetch_requirements(self, fetch_dist):
         """ Fetching requirements without perms returns 403 """
         requirements = 'requests>=2.0'
+        locator = self.request.locator = MagicMock()
         ret = api.fetch_requirements(self.request, requirements)
-        fetch_dist.assert_called_with(self.request, locator().locate())
+        dist = locator.locate()
+        fetch_dist.assert_called_with(self.request, dist.name, dist.source_url)
         self.assertEqual(ret, {'pkgs': [fetch_dist()[0]]})

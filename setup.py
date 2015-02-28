@@ -16,7 +16,7 @@ CHANGES = re.sub(r':ref:`(.*?) <.*>`', r'\1', CHANGES)
 
 REQUIREMENTS = [
     'boto',
-    'distlib',
+    'distlib>=0.2.0',
     'paste',
     'passlib',
     'pycrypto',
@@ -48,7 +48,7 @@ if sys.version_info[:2] < (2, 7):
 if __name__ == "__main__":
     setup(
         name='pypicloud',
-        version='0.2.9',
+        version='0.2.10',
         description='Private PyPI backed by S3',
         long_description=README + '\n\n' + CHANGES,
         classifiers=[
