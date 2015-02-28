@@ -5,6 +5,7 @@ If you are upgrading an existing installation, read :ref:`the instructions <upgr
 0.2.10
 ------
 * Bug fix: S3 download links expire incorrectly with IAM roles (:issue:`38`)
+* Bug fix: ``fallback = cache`` crashes with distlib 0.2.0 (:issue:`41`)
 
 0.2.9
 -----
