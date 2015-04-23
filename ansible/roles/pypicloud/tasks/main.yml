@@ -17,7 +17,7 @@
     sudo_user: "{{deployment_name}}"
 
   - name: Install waitress python package
-    pip: name=pypicloud version={{pypicloud_version}} virtualenv=/home/{{deployment_name}}/venv/
+    pip: name=waitress version={{pypicloud_version}} virtualenv=/home/{{deployment_name}}/venv/
     sudo_user: "{{deployment_name}}"
 
   - name: Install pypicloud conf file.
