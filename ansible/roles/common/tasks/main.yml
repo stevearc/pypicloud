@@ -1,0 +1,29 @@
+---
+  - name: Allow ssh in firewall
+    action: shell ufw allow ssh
+
+  - name: Allow http in firewall
+    action: shell ufw allow http
+
+  - name: Allow https in firewall
+    action: shell ufw allow https
+
+  - name: Enable UFW
+    action: shell echo 'y' | ufw enable
+
+  - name: Set locale
+    command: /usr/sbin/update-locale LANG={{locale}} LC_ALL={{locale}}
+
+  - name: Set localtime
+    command: /bin/cp /usr/share/zoneinfo/{{timezone}} /etc/localtime
+
+  - name: Set timezone
+    template: src=timezone.conf dest=/etc/timezone
+    register: tzdata
+
+  - name: Update timezone
+    command: dpkg-reconfigure -f noninteractive tzdata
+    when: tzdata.changed
+
+  - name: Create ssl group.
+    group: name=ssl state=present

@@ -40,3 +40,8 @@ pypicloud_env
 _build
 _local.db
 *.ini
+ansible/group_vars/local
+ansible/group_vars/production
+ansible/group_vars/staging
+ansible/hosts
+.vagrant

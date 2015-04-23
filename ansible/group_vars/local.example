@@ -1,0 +1,11 @@
+---
+domainname: local
+bucket_name: onec-pypicloud
+storage_type: s3
+access_key: AWSACCESSKEY
+secret_key: AWSSECRETKEY
+default_user: admin
+default_pass: <generate using instructions at http://github.com/powellc/pypicloud/>
+encrypt_key: RANDOM_STRING
+validate_key: RANDOM_STRING
+secure_session: False

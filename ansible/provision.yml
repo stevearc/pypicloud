@@ -1,0 +1,9 @@
+---
+- hosts: all
+  gather_facts: False
+  user: root
+  sudo: True
+  roles:
+    - role: common
+    - role: pypicloud
+    - role: nginx

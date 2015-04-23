@@ -1,0 +1,5 @@
+---
+- name: Gather our facts
+  template: src=info.html dest=/tmp/info.${deployment_name}.html
+  tags:
+    - info
