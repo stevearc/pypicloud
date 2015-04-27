@@ -36,6 +36,10 @@ class BetterScrapingLocator(SimpleScrapingLocator):
     """ Layer on top of SimpleScrapingLocator that allows preferring wheels """
     prefer_wheel = True
 
+    def __init__(self, *args, **kw):
+        kw['scheme'] = 'legacy'
+        super(BetterScrapingLocator, self).__init__(*args, **kw)
+
     def locate(self, requirement, prereleases=False, wheel=True):
         self.prefer_wheel = wheel
         super(BetterScrapingLocator, self).locate(requirement, prereleases)
