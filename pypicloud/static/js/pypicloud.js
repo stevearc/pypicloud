@@ -62,6 +62,18 @@ angular.module('pypicloud', ['ui.bootstrap', 'ngRoute', 'angularFileUpload', 'ng
       return input.slice(start);
   }
 })
+.directive('visible', ['$parse', function($parse) {
+  return {
+    restrict: 'A',
+    link: function(scope, element, attrs) {
+      scope.$watch(function() {
+        return $parse(attrs.visible)(scope);
+      }, function(visible) {
+        element.css('visibility', visible ? 'visible' : 'hidden');
+      })
+    }
+  };
+}])
 
 .controller('BaseCtrl', ['$rootScope', '$location', function($rootScope, $location) {
   $rootScope._ = _;
