@@ -77,7 +77,7 @@ def download_package(context, request):
 
         dist = None
         source_url = None
-        for version, url_set in six.iteritems(dists['urls']):
+        for version, url_set in six.iteritems(dists.get('urls', {})):
             if dist is not None:
                 break
             for url in url_set:
