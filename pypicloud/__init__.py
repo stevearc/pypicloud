@@ -79,7 +79,7 @@ def includeme(config):
         LOG.warn("Using deprecated option 'pypi.use_fallback'")
         use_fallback = asbool(settings['pypi.use_fallback'])
         fallback_mode = 'redirect' if use_fallback else 'none'
-    modes = ('redirect', 'cache', 'none')
+    modes = ('redirect', 'cache', 'mirror', 'none')
     if fallback_mode not in modes:
         raise ValueError("Invalid value for 'pypi.fallback'. "
                          "Must be one of %s" % ', '.join(modes))

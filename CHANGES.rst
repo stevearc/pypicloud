@@ -2,6 +2,12 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.2.11
+------
+* Bug fix: Cache mode will correctly download packages with legacy versioning (:pr:`45`)
+* Bug fix: Fix the fetch_requirements endpoint (:sha:`6b2e2db`)
+* Feature: 'mirror' mode. Caches packages, but lists all available upstream versions.
+
 0.2.10
 ------
 * Bug fix: S3 download links expire incorrectly with IAM roles (:issue:`38`)

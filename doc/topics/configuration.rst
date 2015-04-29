@@ -9,7 +9,7 @@ PyPICloud
 
 ``pypi.fallback``
 ~~~~~~~~~~~~~~~~~
-**Argument:** {'redirect', 'cache', 'none'}, optional
+**Argument:** {'redirect', 'cache', 'mirror', 'none'}, optional
 
 This option defines what the behavior is when a requested package is not found
 in the database. (default 'redirect')
@@ -17,9 +17,14 @@ in the database. (default 'redirect')
 ``redirect`` - Return a 302 to the package at the ``fallback_url``. This is the
 default.
 
-``cache`` - Download the package from ``fallback_url``, store it in the
+``mirror`` - Download the package from ``fallback_url``, store it in the
 backend, and serve it. User must have ``cache_update`` permissions. If not,
 returns 404.
+
+``cache`` - Same as ``mirror``, but once a package has any version cached in
+pypicloud, it will not allow automatically fetching new versions from upstream.
+Use this if you need to lock down the available versions of packages for
+stability/security reasons.
 
 ``none`` - Return a 404
 
@@ -48,9 +53,9 @@ group permissions (default no groups, only admin users)
 ~~~~~~~~~~~~~~~~~~~~~
 **Argument:** list, optional
 
-Only used when ``pypi.fallback = cache``. This is the list of groups that are
-allowed to trigger the operation that fetches packages from ``fallback_url``.
-(default ['authenticated'])
+Only used when ``pypi.fallback = cache`` or ``pypi.fallback = mirror``. This is
+the list of groups that are allowed to trigger the operation that fetches
+packages from ``fallback_url``.  (default ['authenticated'])
 
 ``pypi.allow_overwrite``
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -87,7 +92,7 @@ backends can be found at :ref:`storage`.
 Cache
 ^^^^^
 ``pypi.db``
-~~~~~~~~~~~~~~~
+~~~~~~~~~~~
 **Argument:** string, optional
 
 A dotted path to a subclass of :class:`~pypicloud.cache.base.ICache`. The
@@ -99,7 +104,7 @@ Access Control
 ^^^^^^^^^^^^^^
 
 ``pypi.auth``
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
 **Argument:** string, optional
 
 A dotted path to a subclass of :class:`~pypicloud.access.base.IAccessBackend`. The
@@ -130,7 +135,7 @@ Encryption key to use for the AES cipher. Here is a reasonable way to generate o
 Validation key used to sign the AES encrypted data.
 
 ``session.secure``
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 **Argument:** bool, optional
 
 If True, only set the session cookie for HTTPS connections (default False).
