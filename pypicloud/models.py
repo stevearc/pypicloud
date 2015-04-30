@@ -32,6 +32,7 @@ class Package(object):
     def __init__(self, name, version, filename, last_modified=None, **kwargs):
         self.name = normalize_name(name)
         self.version = version
+        self._parsed_version = None
         self.filename = filename
         if last_modified is not None:
             self.last_modified = last_modified
@@ -42,6 +43,14 @@ class Package(object):
     def get_url(self, request):
         """ Create path to the download link """
         return request.db.get_url(self)
+
+    @property
+    def parsed_version(self):
+        """ Parse and cache the version using pkg_resources """
+        # Use getattr because __init__ isn't called by some ORMs.
+        if getattr(self, '_parsed_version', None) is None:
+            self._parsed_version = pkg_resources.parse_version(self.version)
+        return self._parsed_version
 
     @property
     def is_prerelease(self):
@@ -55,8 +64,8 @@ class Package(object):
         return self.name == other.name and self.version == other.version
 
     def __lt__(self, other):
-        return ((self.name, pkg_resources.parse_version(self.version)) <
-                (other.name, pkg_resources.parse_version(other.version)))
+        return ((self.name, self.parsed_version) <
+                (other.name, other.parsed_version))
 
     def __repr__(self):
         return unicode(self)
