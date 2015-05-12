@@ -6,6 +6,7 @@ If you are upgrading an existing installation, read :ref:`the instructions <upgr
 ------
 * Bug fix: Cache mode will correctly download packages with legacy versioning (:pr:`45`)
 * Bug fix: Fix the fetch_requirements endpoint (:sha:`6b2e2db`)
+* Bug fix: Incorrect expire time comparison with IAM roles (:pr:`47`)
 * Feature: 'mirror' mode. Caches packages, but lists all available upstream versions.
 
 0.2.10
