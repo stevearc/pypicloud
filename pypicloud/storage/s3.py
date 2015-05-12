@@ -139,15 +139,15 @@ class S3Storage(IStorage):
             # See issue: https://github.com/mathcamp/pypicloud/issues/38
             credential_expr = getattr(self.bucket.connection.provider,
                                       '_credential_expiry_time', None)
+            expire_time = time.time() + expire_after
             if credential_expr is not None:
                 seconds = calendar.timegm(credential_expr.utctimetuple())
-                if seconds < expire_after:
+                if seconds < expire_time:
                     # More hacks: boto refreshes session tokens 5 minutes
                     # before expiration, so we have to refresh url after that.
                     buffer_time = 4 * 60
-                    expire_after = seconds
+                    expire_time = seconds
 
-            expire_time = time.time() + expire_after
             url = key.generate_url(expire_time, expires_in_absolute=True)
             package.data['url'] = url
             expire = expire_time - buffer_time
