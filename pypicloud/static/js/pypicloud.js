@@ -62,6 +62,18 @@ angular.module('pypicloud', ['ui.bootstrap', 'ngRoute', 'angularFileUpload', 'ng
       return input.slice(start);
   }
 })
+.directive('visible', ['$parse', function($parse) {
+  return {
+    restrict: 'A',
+    link: function(scope, element, attrs) {
+      scope.$watch(function() {
+        return $parse(attrs.visible)(scope);
+      }, function(visible) {
+        element.css('visibility', visible ? 'visible' : 'hidden');
+      })
+    }
+  };
+}])
 
 .controller('BaseCtrl', ['$rootScope', '$location', function($rootScope, $location) {
   $rootScope._ = _;
@@ -196,20 +208,24 @@ angular.module('pypicloud', ['ui.bootstrap', 'ngRoute', 'angularFileUpload', 'ng
 
 .controller('LoginCtrl', ['$scope', '$http', '$window', function($scope, $http, $window) {
   $scope.error = false;
+  $scope.loggingIn = false;
 
   if ($window.location.protocol != 'https:' && SECURE_COOKIE) {
     $scope.secureCookieError = true;
   }
 
   $scope.submit = function(username, password) {
+    $scope.loggingIn = true;
     var data = {
       username: username,
       password: password
     };
     $http.post(ROOT + 'login', data).success(function(data, status, headers, config) {
+      $scope.loggingIn = false;
       $scope.error = false;
       window.location = data.next;
     }).error(function(data, status, headers, config) {
+      $scope.loggingIn = false;
       $scope.error = true;
       $scope.errorMsg = 'Username or password invalid';
     });

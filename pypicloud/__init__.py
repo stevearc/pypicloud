@@ -12,7 +12,7 @@ from .route import Root
 from .util import BetterScrapingLocator
 
 
-__version__ = '0.2.10'
+__version__ = '0.2.11'
 LOG = logging.getLogger(__name__)
 
 
@@ -79,7 +79,7 @@ def includeme(config):
         LOG.warn("Using deprecated option 'pypi.use_fallback'")
         use_fallback = asbool(settings['pypi.use_fallback'])
         fallback_mode = 'redirect' if use_fallback else 'none'
-    modes = ('redirect', 'cache', 'none')
+    modes = ('redirect', 'cache', 'mirror', 'none')
     if fallback_mode not in modes:
         raise ValueError("Invalid value for 'pypi.fallback'. "
                          "Must be one of %s" % ', '.join(modes))

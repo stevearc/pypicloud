@@ -68,7 +68,7 @@ def download_package(context, request):
     """ Download package, or redirect to the download link """
     package = request.db.fetch(context.filename)
     if not package:
-        if request.registry.fallback != 'cache':
+        if request.registry.fallback not in ['cache', 'mirror']:
             return HTTPNotFound()
         if not request.access.can_update_cache():
             return request.forbid()
@@ -77,7 +77,7 @@ def download_package(context, request):
 
         dist = None
         source_url = None
-        for version, url_set in six.iteritems(dists['urls']):
+        for version, url_set in six.iteritems(dists.get('urls', {})):
             if dist is not None:
                 break
             for url in url_set:

@@ -46,7 +46,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr ng-repeat="package in filtered = (packages | filter:filterPreRelease | filter:searchText) | orderBy:versionPredicates:true | startFrom:(currentPage - 1)*pageSize | limitTo:pageSize"
+          <tr ng-repeat="package in filtered = (packages | filter:filterPreRelease | filter:searchText) | startFrom:(currentPage - 1)*pageSize | limitTo:pageSize"
            ng-mouseenter="showDelete = true" ng-mouseleave="showDelete = false">
             <td>
               <a ng-href="{{ package.url }}">{{ package.filename }}</a>
@@ -56,7 +56,7 @@
             </td>
             <td>
               {{ package.last_modified * 1000 | date:'yyyy-MM-dd HH:mm' }}
-              <button ng-click="deletePackage(package)" ng-show="can_write && (showDelete || package.deleting)" class="btn btn-danger btn-xs pull-right" ng-disabled="package.deleting">
+              <button ng-click="deletePackage(package)" visible="can_write && (showDelete || package.deleting)" class="btn btn-danger btn-xs pull-right" ng-disabled="package.deleting">
                 <i class="fa fa-refresh fa-spin" ng-show="package.deleting"></i>
                 Delete
               </button>

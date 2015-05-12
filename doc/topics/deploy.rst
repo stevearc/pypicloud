@@ -5,6 +5,10 @@ Deploying
 This section is geared towards helping you deploy this server properly for
 production use.
 
+`@powellc <https://github.com/powellc>`_ has put together an Ansible
+playbook for pypicloud, which can be found here:
+https://github.com/powellc/ansible-pypicloud
+
 Configuration
 -------------
 Remember when you generated a config file in :ref:`getting started

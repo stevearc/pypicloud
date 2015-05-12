@@ -1,12 +1,17 @@
 """ Views for simple pip interaction """
+import posixpath
+
+import logging
 import six
 from pyramid.httpexceptions import HTTPBadRequest, HTTPFound, HTTPNotFound
 from pyramid.view import view_config
+from pyramid_duh import argify, addslash
 
-import posixpath
 from pypicloud.route import Root, SimplePackageResource, SimpleResource
 from pypicloud.util import normalize_name
-from pyramid_duh import argify, addslash
+
+
+LOG = logging.getLogger(__name__)
 
 
 @view_config(context=Root, request_method='POST', subpath=(), renderer='json')
@@ -51,6 +56,15 @@ def simple(request):
 def package_versions(context, request):
     """ Render the links for all versions of a package """
     normalized_name = normalize_name(context.name)
+    fallback = request.registry.fallback
+    can_update_cache = request.access.can_update_cache()
+
+    if fallback == 'mirror' and can_update_cache:
+        pkgs = get_fallback_packages(request, context.name)
+        if pkgs:
+            return {'pkgs': pkgs}
+        # When no upstream packages are found, intentionally fall through to
+        # return any cached packages
 
     packages = request.db.all(normalized_name)
     if packages:
@@ -60,24 +74,30 @@ def package_versions(context, request):
         for package in packages:
             pkgs[package.filename] = package.get_url(request)
         return {'pkgs': pkgs}
-
     elif request.registry.fallback == 'cache':
-        if not request.access.can_update_cache():
+        if not can_update_cache:
             return request.forbid()
-        dists = request.locator.get_project(context.name)
-        if not dists.get('urls'):
-            return HTTPNotFound()
-        pkgs = {}
-        for version, url_set in six.iteritems(dists['urls']):
-            dist = dists[version]
-            for url in url_set:
-                filename = posixpath.basename(url)
-                url = request.app_url('api', 'package', dist.name, filename)
-                pkgs[filename] = url
-        return {'pkgs': pkgs}
+        pkgs = get_fallback_packages(request, context.name)
+        if pkgs:
+            return {'pkgs': pkgs}
     elif request.registry.fallback == 'redirect':
         redirect_url = "%s/%s/" % (
             request.registry.fallback_url.rstrip('/'), context.name)
         return HTTPFound(location=redirect_url)
-    else:
-        return HTTPNotFound()
+
+    return HTTPNotFound()
+
+
+def get_fallback_packages(request, package_name):
+    """ Get all package versions for a package from the fallback_url """
+    dists = request.locator.get_project(package_name)
+    if not dists.get('urls'):
+        return None
+    pkgs = {}
+    for version, url_set in six.iteritems(dists['urls']):
+        dist = dists[version]
+        for url in url_set:
+            filename = posixpath.basename(url)
+            url = request.app_url('api', 'package', dist.name, filename)
+            pkgs[filename] = url
+    return pkgs

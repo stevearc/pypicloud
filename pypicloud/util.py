@@ -42,7 +42,7 @@ class BetterScrapingLocator(SimpleScrapingLocator):
 
     def locate(self, requirement, prereleases=False, wheel=True):
         self.prefer_wheel = wheel
-        super(BetterScrapingLocator, self).locate(requirement, prereleases)
+        return super(BetterScrapingLocator, self).locate(requirement, prereleases)
 
     def score_url(self, url):
         t = urlparse(url)
