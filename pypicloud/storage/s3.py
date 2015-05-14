@@ -9,7 +9,7 @@ from urllib import urlopen
 
 import boto.s3
 from boto.s3.key import Key
-from pyramid.httpexceptions import HTTPNotFound
+from pyramid.httpexceptions import HTTPFound
 from pyramid.settings import asbool
 
 from .base import IStorage
@@ -156,8 +156,16 @@ class S3Storage(IStorage):
         return package.data['url'], changed
 
     def download_response(self, package):
-        # Don't need to implement because the download urls go to S3
-        return HTTPNotFound()
+        # This should hopefully never be hit because python has this
+        # long-standing bug where if you provide basic auth to a request that
+        # is then redirected, it will continue to use that same user/pass auth
+        # on the *other* url, even if it's a completely different host.
+        # In this case, it means that your pypicloud user/pass credentials will
+        # be passed to s3, which amazon will attempt to use, and the download
+        # will fail.
+        LOG.warning("Redirecting download to S3. "
+                    "May not work due to credential collision.")
+        return HTTPFound(location=self.get_url(package))
 
     def upload(self, package, data):
         key = Key(self.bucket)

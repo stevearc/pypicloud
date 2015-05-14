@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.2.12
+------
+* Bug fix: Mirror mode works properly with S3 storage backend
+
 0.2.11
 ------
 * Bug fix: Cache mode will correctly download packages with legacy versioning (:pr:`45`)

@@ -56,36 +56,39 @@ def simple(request):
 def package_versions(context, request):
     """ Render the links for all versions of a package """
     normalized_name = normalize_name(context.name)
+    if not request.access.has_permission(normalized_name, 'read'):
+        return request.forbid()
     fallback = request.registry.fallback
     can_update_cache = request.access.can_update_cache()
 
-    if fallback == 'mirror' and can_update_cache:
-        pkgs = get_fallback_packages(request, context.name)
-        if pkgs:
-            return {'pkgs': pkgs}
-        # When no upstream packages are found, intentionally fall through to
-        # return any cached packages
-
     packages = request.db.all(normalized_name)
-    if packages:
-        if not request.access.has_permission(normalized_name, 'read'):
-            return request.forbid()
-        pkgs = {}
+    pkgs = {}
+    if fallback == 'mirror':
+        if can_update_cache:
+            pkgs = get_fallback_packages(request, context.name)
+        if packages:
+            # Overwrite upstream urls with cached urls
+            for package in packages:
+                pkgs[package.filename] = package.get_url(request)
+        return {'pkgs': pkgs}
+    elif packages:
         for package in packages:
             pkgs[package.filename] = package.get_url(request)
         return {'pkgs': pkgs}
-    elif request.registry.fallback == 'cache':
+    elif fallback == 'cache':
         if not can_update_cache:
             return request.forbid()
         pkgs = get_fallback_packages(request, context.name)
         if pkgs:
             return {'pkgs': pkgs}
-    elif request.registry.fallback == 'redirect':
+        else:
+            return HTTPNotFound()
+    elif fallback == 'redirect':
         redirect_url = "%s/%s/" % (
             request.registry.fallback_url.rstrip('/'), context.name)
         return HTTPFound(location=redirect_url)
-
-    return HTTPNotFound()
+    else:
+        return HTTPNotFound()
 
 
 def get_fallback_packages(request, package_name):
