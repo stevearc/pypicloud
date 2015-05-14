@@ -93,12 +93,22 @@ class TestEndpointSecurity(unittest.TestCase):
                                 expect_errors=True)
         self.assertEqual(response.status_int, 401)
 
-    def test_simple_302(self):
-        """ If simple endpoints unauthorized and package missing, redirect """
+    def test_simple_unauth_missing(self):
+        """ If simple endpoints unauthorized and package missing, 401 """
         response = self.app.get('/pypi/pkg2/', expect_errors=True)
-        self.assertEqual(response.status_int, 302)
+        self.assertEqual(response.status_int, 401)
 
         response = self.app.get('/simple/pkg2/', expect_errors=True)
+        self.assertEqual(response.status_int, 401)
+
+    def test_simple_auth_missing(self):
+        """ If simple endpoints authorized and package missing, redirect """
+        response = self.app.get('/pypi/pkg2/', expect_errors=True,
+                                headers=_simple_auth('user', 'user'))
+        self.assertEqual(response.status_int, 302)
+
+        response = self.app.get('/simple/pkg2/', expect_errors=True,
+                                headers=_simple_auth('user', 'user'))
         self.assertEqual(response.status_int, 302)
 
     def test_simple(self):
