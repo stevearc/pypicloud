@@ -65,7 +65,7 @@ def package_versions(context, request):
     pkgs = {}
     if fallback == 'mirror':
         if can_update_cache:
-            pkgs = get_fallback_packages(request, context.name)
+            pkgs = get_fallback_packages(request, context.name) or {}
         if packages:
             # Overwrite upstream urls with cached urls
             for package in packages:
