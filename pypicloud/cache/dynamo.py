@@ -136,7 +136,8 @@ class DynamoCache(ICache):
              summary.last_modified == package.last_modified):
             summary.stable = None
             summary.unstable = '0'
-            summary.last_modified = datetime.fromtimestamp(0)
+            summary.last_modified = datetime.fromtimestamp(0) \
+                .replace(tzinfo=UTC)
             all_packages = self.engine.scan(DynamoPackage)\
                 .filter(DynamoPackage.filename != package.filename,
                         name=package.name)
