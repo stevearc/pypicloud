@@ -94,10 +94,8 @@ def package_versions(context, request):
 def get_fallback_packages(request, package_name):
     """ Get all package versions for a package from the fallback_url """
     dists = request.locator.get_project(package_name)
-    if not dists.get('urls'):
-        return None
     pkgs = {}
-    for version, url_set in six.iteritems(dists['urls']):
+    for version, url_set in six.iteritems(dists.get('urls', {})):
         dist = dists[version]
         for url in url_set:
             filename = posixpath.basename(url)
