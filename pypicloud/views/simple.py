@@ -70,7 +70,10 @@ def package_versions(context, request):
             # Overwrite upstream urls with cached urls
             for package in packages:
                 pkgs[package.filename] = package.get_url(request)
-        return {'pkgs': pkgs}
+        if pkgs:
+            return {'pkgs': pkgs}
+        else:
+            return HTTPNotFound("No packages found named %r" % normalized_name)
     elif packages:
         for package in packages:
             pkgs[package.filename] = package.get_url(request)
@@ -82,7 +85,7 @@ def package_versions(context, request):
         if pkgs:
             return {'pkgs': pkgs}
         else:
-            return HTTPNotFound()
+            return HTTPNotFound("No packages found named %r" % normalized_name)
     elif fallback == 'redirect':
         redirect_url = "%s/%s/" % (
             request.registry.fallback_url.rstrip('/'), context.name)
