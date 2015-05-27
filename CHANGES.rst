@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.2.13
+------
+* Bug fix: Crash when mirror mode serves private packages
+
 0.2.12
 ------
 * Bug fix: Mirror mode works properly with S3 storage backend
