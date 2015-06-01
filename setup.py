@@ -27,6 +27,7 @@ REQUIREMENTS = [
     'pyramid_tm',
     'six',
     'transaction',
+    'waitress',
     'zope.sqlalchemy',
 ]
 
