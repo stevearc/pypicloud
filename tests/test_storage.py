@@ -77,41 +77,18 @@ class TestS3Storage(unittest.TestCase):
     def test_get_url(self):
         """ Mock s3 and test package url generation """
         package = make_package()
-        url, _ = self.storage.get_url(package)
-        self.assertEqual(package.data['url'], url)
-        self.assertIsNotNone(package.data.get('expire'))
+        response = self.storage.download_response(package)
 
-        parts = urlparse(url)
+        parts = urlparse(response.location)
         self.assertEqual(parts.scheme, 'https')
         self.assertEqual(parts.netloc, 'mybucket.s3.amazonaws.com')
         self.assertEqual(parts.path, '/' + self.storage.get_path(package))
         query = parse_qs(parts.query)
         self.assertItemsEqual(query.keys(), ['Expires', 'Signature',
                                              'AWSAccessKeyId'])
-        actual_expire = (package.data['expire'] +
-                         self.storage.buffer_time)
-        self.assertEqual(int(query['Expires'][0]), int(actual_expire))
+        self.assertTrue(int(query['Expires'][0]) > time.time())
         self.assertEqual(query['AWSAccessKeyId'][0],
                          self.settings['storage.access_key'])
-
-    def test_get_url_cached(self):
-        """ If url is cached and valid, get_url() returns cached url """
-        package = make_package(url='abc', expire=time.time() + 10)
-        url, _ = self.storage.get_url(package)
-        self.assertEqual(package.data['url'], url)
-        self.assertEqual(url, 'abc')
-
-    def test_get_url_expire(self):
-        """ If url is cached and invalid, get_url() regenerates the url """
-        package = make_package(url='abc', expire=time.time() - 10)
-        url, _ = self.storage.get_url(package)
-        self.assertEqual(package.data['url'], url)
-        self.assertIsNotNone(package.data['expire'])
-
-        parts = urlparse(url)
-        self.assertEqual(parts.scheme, 'https')
-        self.assertEqual(parts.netloc, 'mybucket.s3.amazonaws.com')
-        self.assertEqual(parts.path, '/' + self.storage.get_path(package))
 
     def test_delete(self):
         """ delete() should remove package from storage """
@@ -207,14 +184,6 @@ class TestFileStorage(unittest.TestCase):
         self.assertEquals(pkg.name, package.name)
         self.assertEquals(pkg.version, package.version)
         self.assertEquals(pkg.filename, package.filename)
-
-    def test_get_url(self):
-        """ Test package url generation """
-        package = make_package()
-        self.request.app_url.side_effect = lambda *x: '/'.join(x)
-        url, _ = self.storage.get_url(package)
-        expected = 'api/package/%s/%s' % (package.name, package.filename)
-        self.assertEqual(url, expected)
 
     def test_delete(self):
         """ delete() should remove package from storage """

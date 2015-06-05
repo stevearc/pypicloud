@@ -124,48 +124,13 @@ class S3Storage(IStorage):
 
             yield pkg
 
-    def get_url(self, package):
-        expire = package.data.get('expire', 0)
-        changed = False
-        if 'url' not in package.data or time.time() > expire:
-            key = Key(self.bucket)
-            key.key = self.get_path(package)
-            expire_after = self.expire_after
-            buffer_time = self.buffer_time
-
-            # This is a bit of a hack. If we are using session-based
-            # credentials, those might expire before the URL. We will need to
-            # adjust the expire_after and buffer_time accordingly.
-            # See issue: https://github.com/mathcamp/pypicloud/issues/38
-            credential_expr = getattr(self.bucket.connection.provider,
-                                      '_credential_expiry_time', None)
-            expire_time = time.time() + expire_after
-            if credential_expr is not None:
-                seconds = calendar.timegm(credential_expr.utctimetuple())
-                if seconds < expire_time:
-                    # More hacks: boto refreshes session tokens 5 minutes
-                    # before expiration, so we have to refresh url after that.
-                    buffer_time = 4 * 60
-                    expire_time = seconds
-
-            url = key.generate_url(expire_time, expires_in_absolute=True)
-            package.data['url'] = url
-            expire = expire_time - buffer_time
-            package.data['expire'] = expire
-            changed = True
-        return package.data['url'], changed
+    def _get_url(self, package):
+        """ Generate a signed url to the S3 file """
+        key = Key(self.bucket, self.get_path(package))
+        return key.generate_url(self.expire_after)
 
     def download_response(self, package):
-        # This should hopefully never be hit because python has this
-        # long-standing bug where if you provide basic auth to a request that
-        # is then redirected, it will continue to use that same user/pass auth
-        # on the *other* url, even if it's a completely different host.
-        # In this case, it means that your pypicloud user/pass credentials will
-        # be passed to s3, which amazon will attempt to use, and the download
-        # will fail.
-        LOG.warning("Redirecting download to S3. "
-                    "May not work due to credential collision.")
-        return HTTPFound(location=self.get_url(package))
+        return HTTPFound(location=self._get_url(package))
 
     def upload(self, package, data):
         key = Key(self.bucket)
@@ -184,7 +149,7 @@ class S3Storage(IStorage):
 
     @contextmanager
     def open(self, package):
-        url = self.get_url(package)[0]
+        url = self._get_url(package)
         handle = urlopen(url)
         try:
             yield handle
