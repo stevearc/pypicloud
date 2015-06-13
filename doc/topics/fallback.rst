@@ -1,4 +1,4 @@
-.. _fallback:
+.. _fallback_detail:
 
 Fallbacks
 =========

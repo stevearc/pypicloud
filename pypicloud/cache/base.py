@@ -137,7 +137,7 @@ class ICache(object):
         Returns
         -------
         packages : list
-            List of all :class:`~pypicloud.models.Package`s with the given
+            List of all :class:`~pypicloud.models.Package` s with the given
             name
 
         """

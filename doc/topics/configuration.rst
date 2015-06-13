@@ -28,7 +28,7 @@ stability/security reasons.
 
 ``none`` - Return a 404
 
-See :ref:`fallback` for more detail on exactly how each fallback option will
+See :ref:`fallback_detail` for more detail on exactly how each fallback option will
 function.
 
 ``pypi.fallback_url``
