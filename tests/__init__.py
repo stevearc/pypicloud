@@ -1,5 +1,6 @@
 """ Tests for pypicloud """
 from datetime import datetime
+from types import MethodType
 
 from collections import defaultdict
 from mock import MagicMock
@@ -8,6 +9,7 @@ from pyramid.testing import DummyRequest
 from pypicloud.cache import ICache
 from pypicloud.models import Package
 from pypicloud.storage import IStorage
+from pypicloud.auth import _is_logged_in
 
 
 try:
@@ -91,6 +93,7 @@ class MockServerTest(unittest.TestCase):
         self.request = DummyRequest()
         self.request.registry = MagicMock()
         self.request.userid = None
+        self.request.__class__.is_logged_in = property(_is_logged_in)
         self.db = self.request.db = DummyCache(self.request)
         self.request.path_url = '/path/'
         self.request.forbid = MagicMock()

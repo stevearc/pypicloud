@@ -16,7 +16,7 @@ except ImportError:
 # pylint: disable=W0212
 
 
-def _simple_auth(username, password):
+def _auth(username, password):
     """ Generate a basic auth header """
     base64string = base64.encodestring('%s:%s' %
                                        (username, password)).replace('\n', '')
@@ -52,8 +52,7 @@ class TestEndpointSecurity(unittest.TestCase):
     """
     Functional tests for view permissions
 
-    These assert that a view is protected by specific permissions (e.g. read,
-    write), not that the ACL for those permissions is correct.
+    These assert that a view is protected by read/write permissions
 
     """
     @classmethod
@@ -83,40 +82,6 @@ class TestEndpointSecurity(unittest.TestCase):
         GlobalDummyStorage.global_packages.clear()
         self.app.reset()
 
-    def test_simple_401(self):
-        """ If simple endpoints unauthorized, ask pip for auth """
-        response = self.app.get('/pypi/%s/' % self.package.name,
-                                expect_errors=True)
-        self.assertEqual(response.status_int, 401)
-
-        response = self.app.get('/simple/%s/' % self.package.name,
-                                expect_errors=True)
-        self.assertEqual(response.status_int, 401)
-
-    def test_simple_unauth_missing(self):
-        """ If simple endpoints unauthorized and package missing, 401 """
-        response = self.app.get('/pypi/pkg2/', expect_errors=True)
-        self.assertEqual(response.status_int, 401)
-
-        response = self.app.get('/simple/pkg2/', expect_errors=True)
-        self.assertEqual(response.status_int, 401)
-
-    def test_simple_auth_missing(self):
-        """ If simple endpoints authorized and package missing, redirect """
-        response = self.app.get('/pypi/pkg2/', expect_errors=True,
-                                headers=_simple_auth('user', 'user'))
-        self.assertEqual(response.status_int, 302)
-
-        response = self.app.get('/simple/pkg2/', expect_errors=True,
-                                headers=_simple_auth('user', 'user'))
-        self.assertEqual(response.status_int, 302)
-
-    def test_simple(self):
-        """ If simple endpoints authed, return a list of versions """
-        response = self.app.get('/pypi/%s/' % self.package.name,
-                                headers=_simple_auth('user', 'user'))
-        self.assertEqual(response.status_int, 200)
-
     def test_api_pkg_unauthed(self):
         """ /api/package/<pkg> requires read perms """
         response = self.app.get('/api/package/%s/' % self.package.name,
@@ -126,7 +91,7 @@ class TestEndpointSecurity(unittest.TestCase):
     def test_api_pkg_authed(self):
         """ /api/package/<pkg> requires read perms """
         response = self.app.get('/api/package/%s/' % self.package.name,
-                                headers=_simple_auth('user', 'user'))
+                                headers=_auth('user', 'user'))
         self.assertEqual(response.status_int, 200)
 
     def test_api_pkg_versions_unauthed(self):
@@ -137,7 +102,7 @@ class TestEndpointSecurity(unittest.TestCase):
         url = '/api/package/%s/%s/' % (self.package.name,
                                        self.package.filename)
         response = self.app.post(url, params, expect_errors=True,
-                                 headers=_simple_auth('user', 'user'))
+                                 headers=_auth('user', 'user'))
         self.assertEqual(response.status_int, 403)
 
     def test_api_pkg_versions_authed(self):
@@ -148,7 +113,7 @@ class TestEndpointSecurity(unittest.TestCase):
         }
         url = '/api/package/%s/%s' % (package.name, package.filename)
         response = self.app.post(url, params,
-                                 headers=_simple_auth('user2', 'user2'))
+                                 headers=_auth('user2', 'user2'))
         self.assertEqual(response.status_int, 200)
 
     def test_api_delete_unauthed(self):
@@ -156,7 +121,7 @@ class TestEndpointSecurity(unittest.TestCase):
         url = '/api/package/%s/%s' % (self.package.name,
                                       self.package.filename)
         response = self.app.delete(url, expect_errors=True,
-                                   headers=_simple_auth('user', 'user'))
+                                   headers=_auth('user', 'user'))
         self.assertEqual(response.status_int, 403)
 
     def test_api_delete_authed(self):
@@ -164,11 +129,11 @@ class TestEndpointSecurity(unittest.TestCase):
         url = '/api/package/%s/%s' % (self.package.name,
                                       self.package.filename)
         response = self.app.delete(url,
-                                   headers=_simple_auth('user2', 'user2'))
+                                   headers=_auth('user2', 'user2'))
         self.assertEqual(response.status_int, 200)
 
     def test_api_rebuild_admin(self):
         """ /api/rebuild requires admin """
         response = self.app.get('/api/rebuild/', expect_errors=True,
-                                headers=_simple_auth('user2', 'user2'))
+                                headers=_auth('user2', 'user2'))
         self.assertEqual(response.status_int, 404)

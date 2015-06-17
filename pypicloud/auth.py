@@ -3,7 +3,7 @@ import binascii
 
 from paste.httpheaders import AUTHORIZATION, WWW_AUTHENTICATE
 from pyramid.authorization import ACLAuthorizationPolicy
-from pyramid.httpexceptions import HTTPForbidden
+from pyramid.httpexceptions import HTTPForbidden, HTTPUnauthorized
 from pyramid.security import Everyone, authenticated_userid
 
 
@@ -124,6 +124,20 @@ class SessionAuthPolicy(object):
         return []
 
 
+def _is_logged_in(request):
+    """ Check if there is a logged-in user in the session """
+    return request.userid is not None
+
+
+def _request_login(request):
+    """ Return a 401 to force pip to upload its HTTP basic auth credentials """
+    response = HTTPUnauthorized()
+    realm = WWW_AUTHENTICATE.tuples('Basic realm="%s"' %
+                                    request.registry.realm)
+    response.headers.update(realm)
+    return response
+
+
 def _forbid(request):
     """
     Return a 403 if user is logged in, otherwise return a 401.
@@ -131,14 +145,10 @@ def _forbid(request):
     This is required to force pip to upload its HTTP basic auth credentials
 
     """
-    if request.userid is None:
-        request.response.status_code = 401
-        realm = WWW_AUTHENTICATE.tuples('Basic realm="%s"' %
-                                        request.registry.realm)
-        request.response.headers.update(realm)
-        return request.response
-    else:
+    if request.is_logged_in:
         return HTTPForbidden()
+    else:
+        return _request_login(request)
 
 
 def includeme(config):
@@ -150,6 +160,8 @@ def includeme(config):
     config.add_request_method(authenticated_userid, name='userid',
                               reify=True)
     config.add_request_method(_forbid, name='forbid')
+    config.add_request_method(_request_login, name='request_login')
+    config.add_request_method(_is_logged_in, name='is_logged_in', reify=True)
 
     settings = config.get_settings()
     realm = settings.get('pypi.realm', 'pypi')

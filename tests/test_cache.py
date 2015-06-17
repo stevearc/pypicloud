@@ -1,5 +1,6 @@
 """ Tests for database cache implementations """
 import transaction
+from redis import ConnectionError
 from mock import MagicMock, patch
 from pyramid.testing import DummyRequest
 
@@ -28,24 +29,6 @@ class TestBaseCache(unittest.TestCase):
         p2 = make_package(filename='wobbly')
         self.assertEquals(hash(p1), hash(p2))
         self.assertEquals(p1, p2)
-
-    def test_get_url_saves(self):
-        """ Calls to get_url() saves to caching db if changed=True """
-        cache = ICache(MagicMock(), storage=MagicMock())
-        cache.storage.get_url.return_value = 'a', True
-        with patch.object(cache, 'save') as save:
-            package = make_package()
-            cache.get_url(package)
-            save.assert_called_with(package)
-
-    def test_get_url_no_save(self):
-        """ Calls to get_url() doesn't save if changed=False """
-        cache = ICache(MagicMock(), storage=MagicMock())
-        cache.storage.get_url.return_value = 'a', False
-        with patch.object(cache, 'save') as save:
-            package = make_package()
-            cache.get_url(package)
-            self.assertFalse(save.called)
 
     def test_upload_overwrite(self):
         """ Uploading a preexisting packages overwrites current package """
@@ -330,6 +313,10 @@ class TestRedisCache(unittest.TestCase):
         }
         cls.kwargs = RedisCache.configure(settings)
         cls.redis = cls.kwargs['db']
+        try:
+            cls.redis.flushdb()
+        except ConnectionError:
+            raise unittest.SkipTest("Redis not found on port 6379")
 
     def setUp(self):
         super(TestRedisCache, self).setUp()

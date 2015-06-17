@@ -18,26 +18,6 @@ class IStorage(object):
         """ Return a list or generator of all packages """
         raise NotImplementedError
 
-    def get_url(self, package):
-        """
-        Create or return an HTTP url for a package file
-
-        By default this will return a link to the download endpoint
-
-        /api/package/<package>/<filename>
-
-        Returns
-        -------
-        link : str
-            Link to the location of this package file
-        changed : bool
-            If True, the package needs to be saved to the cache
-
-        """
-        url = self.request.app_url('api/package', package.name,
-                                   package.filename)
-        return (url, False)
-
     def download_response(self, package):
         """
         Return a HTTP Response that will download this package
