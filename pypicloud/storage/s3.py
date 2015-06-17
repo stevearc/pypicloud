@@ -26,12 +26,11 @@ class S3Storage(IStorage):
     test = False
 
     def __init__(self, request=None, bucket=None, expire_after=None,
-                 buffer_time=None, bucket_prefix=None, prepend_hash=None,
+                 bucket_prefix=None, prepend_hash=None,
                  **kwargs):
         super(S3Storage, self).__init__(request, **kwargs)
         self.bucket = bucket
         self.expire_after = expire_after
-        self.buffer_time = buffer_time
         self.bucket_prefix = bucket_prefix
         self.prepend_hash = prepend_hash
 
@@ -41,8 +40,6 @@ class S3Storage(IStorage):
         kwargs['expire_after'] = int(getdefaults(
             settings, 'storage.expire_after', 'aws.expire_after', 60 * 60 *
             24))
-        kwargs['buffer_time'] = int(getdefaults(
-            settings, 'storage.buffer_time', 'aws.buffer_time', 600))
         kwargs['bucket_prefix'] = getdefaults(
             settings, 'storage.prefix', 'aws.prefix', '')
         kwargs['prepend_hash'] = asbool(getdefaults(
