@@ -2,6 +2,11 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.3.0
+-----
+* Fully defines the behavior of every possible type of pip request. See :ref:`Fallbacks <fallback_detail>` for more detail.
+* Don't bother caching generated S3 urls.
+
 0.2.13
 ------
 * Bug fix: Crash when mirror mode serves private packages
