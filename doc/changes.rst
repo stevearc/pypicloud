@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.3.1
+-----
+* Bug fix: ``pypi.allow_overwrite`` causes crash in sql cache (:issue:`52`)
+
 0.3.0
 -----
 * Fully defines the behavior of every possible type of pip request. See :ref:`Fallbacks <fallback_detail>` for more detail.
