@@ -175,6 +175,16 @@ class TestSQLCache(unittest.TestCase):
         self.assertEqual(saved_pkg, pkg)
         self.storage.upload.assert_called_with(pkg, None)
 
+    def test_upload_overwrite(self):
+        """ Uploading a preexisting packages overwrites current package """
+        self.db.allow_overwrite = True
+        name, filename = 'a', 'a-1.tar.gz'
+        self.db.upload(filename, 'old', name)
+        self.db.upload(filename, 'new', name)
+
+        all_versions = self.db.all(name)
+        self.assertEqual(len(all_versions), 1)
+
     def test_save(self):
         """ save() puts object into database """
         pkg = make_package(factory=SQLPackage)

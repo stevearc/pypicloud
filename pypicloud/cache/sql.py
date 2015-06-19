@@ -198,4 +198,4 @@ class SQLCache(ICache):
         create_schema(engine)
 
     def save(self, package):
-        self.db.add(package)
+        self.db.merge(package)
