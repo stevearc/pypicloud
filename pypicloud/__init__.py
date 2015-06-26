@@ -1,4 +1,7 @@
 """ S3-backed pypi server """
+import os
+import sys
+import traceback
 import datetime
 
 import logging
@@ -97,9 +100,28 @@ def includeme(config):
                            cache_max_age=cache_max_age)
 
 
+
+def traceback_formatter(excpt, value, tback):
+    """ Catches all exceptions and re-formats the traceback raised.
+    """
+
+    sys.stdout.write("".join(traceback.format_exception(excpt, value, tback)))
+
+
+def hook_exceptions():
+    """ Hooks into the sys module to set our formatter.
+    """
+
+    # reopen stdout in non buffered mode
+    sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
+    # set the hook
+    sys.excepthook = traceback_formatter
+
+
 def main(config, **settings):
     """ This function returns a Pyramid WSGI application.
     """
+    hook_exceptions()
     config = Configurator(settings=settings)
     config.include('pypicloud')
     config.scan('pypicloud.views')
