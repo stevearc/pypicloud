@@ -111,10 +111,11 @@ def hook_exceptions():
     """ Hooks into the sys module to set our formatter.
     """
 
-    # reopen stdout in non buffered mode
-    sys.stdout = os.fdopen(getattr(sys.stdout, "fileno", lambda: 1)(), 'w', 0)
-    # set the hook
-    sys.excepthook = traceback_formatter
+    if hasattr(sys.stdout, "fileno"):  # when testing, sys.stdout is StringIO
+        # reopen stdout in non buffered mode
+        sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
+        # set the hook
+        sys.excepthook = traceback_formatter
 
 
 def main(config, **settings):
