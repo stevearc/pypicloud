@@ -100,7 +100,6 @@ def includeme(config):
                            cache_max_age=cache_max_age)
 
 
-
 def traceback_formatter(excpt, value, tback):
     """ Catches all exceptions and re-formats the traceback raised.
     """
@@ -113,7 +112,7 @@ def hook_exceptions():
     """
 
     # reopen stdout in non buffered mode
-    sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
+    sys.stdout = os.fdopen(getattr(sys.stdout, "fileno", lambda: 1)(), 'w', 0)
     # set the hook
     sys.excepthook = traceback_formatter
 
