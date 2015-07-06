@@ -42,8 +42,7 @@ class Package(object):
 
     def get_url(self, request):
         """ Create path to the download link """
-        return request.app_url('api', 'package', self.name,
-                               self.filename)
+        return request.db.get_url(self)
 
     @property
     def parsed_version(self):
