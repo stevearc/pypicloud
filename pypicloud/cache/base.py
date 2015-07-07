@@ -46,6 +46,21 @@ class ICache(object):
                                                    False)),
         }
 
+    def get_url(self, package):
+        """
+        Get the download url for a package
+
+        Parameters
+        ----------
+        package : :class:`~pypicloud.models.Package`
+
+        Returns
+        -------
+        url : str
+
+        """
+        return self.storage.get_url(package)
+
     def download_response(self, package):
         """ Pass through to storage """
         return self.storage.download_response(package)

@@ -121,13 +121,12 @@ class S3Storage(IStorage):
 
             yield pkg
 
-    def _get_url(self, package):
-        """ Generate a signed url to the S3 file """
+    def get_url(self, package):
         key = Key(self.bucket, self.get_path(package))
         return key.generate_url(self.expire_after)
 
     def download_response(self, package):
-        return HTTPFound(location=self._get_url(package))
+        return HTTPFound(location=self.get_url(package))
 
     def upload(self, package, data):
         key = Key(self.bucket)
@@ -146,7 +145,7 @@ class S3Storage(IStorage):
 
     @contextmanager
     def open(self, package):
-        url = self._get_url(package)
+        url = self.get_url(package)
         handle = urlopen(url)
         try:
             yield handle

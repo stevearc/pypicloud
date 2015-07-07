@@ -55,8 +55,6 @@ def simple(request):
 @addslash
 def package_versions(context, request):
     """ Render the links for all versions of a package """
-    normalized_name = normalize_name(context.name)
-
     fallback = request.registry.fallback
     if fallback == 'redirect':
         return _simple_redirect(context, request)
