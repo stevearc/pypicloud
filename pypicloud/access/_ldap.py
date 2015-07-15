@@ -180,8 +180,8 @@ class LDAPAccessBackend(IAccessBackend):
         kwargs["group_map"] = {
             "admin": ("read", "write"),
             "authenticated": ("read",),
-            settings["pypi.default_write"]: ("read", "write"),
-            settings["pypi.default_read"]: ("read",),
+            settings.get("pypi.default_write", "admin"): ("read", "write"),
+            settings.get("pypi.default_read", "authenticated"): ("read",),
         }
         return kwargs
 
