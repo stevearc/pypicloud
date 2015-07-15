@@ -1,4 +1,5 @@
 """ Tests for database cache implementations """
+import sys
 import transaction
 from redis import ConnectionError
 from mock import MagicMock, patch
@@ -326,7 +327,15 @@ class TestRedisCache(unittest.TestCase):
         try:
             cls.redis.flushdb()
         except ConnectionError:
-            raise unittest.SkipTest("Redis not found on port 6379")
+            msg = "Redis not found on port 6379"
+            if sys.version_info < (2, 7):
+                raise unittest.SkipTest(msg)
+            else:
+                setattr(
+                    cls,
+                    "setUp",
+                    lambda cls: unittest.TestCase.skipTest(cls, msg),
+                )
 
     def setUp(self):
         super(TestRedisCache, self).setUp()
