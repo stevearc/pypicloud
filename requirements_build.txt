@@ -9,3 +9,4 @@ requests
 httpretty
 moto
 flywheel>=0.2.0rc2
+python-ldap

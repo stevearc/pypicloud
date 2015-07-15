@@ -1,13 +1,7 @@
 """LDAP authentication plugin for pypicloud."""
 
 
-try:
-    import ldap  # pylint: disable=F0401
-except ImportError:
-    LDAP_ENABLED = False
-else:
-    LDAP_ENABLED = True
-
+import ldap
 import logging
 from functools import wraps
 
@@ -15,12 +9,14 @@ from .base import IAccessBackend
 
 
 def reconnect(func):
-    """If the LDAP connection dies underneath us, recreate it."""
-
+    """
+    If the LDAP connection dies underneath us, recreate it
+    """
     @wraps(func)
     def _reconnect(*args, **kwargs):
-        """Inner wrap function to reconnect on failure."""
-
+        """
+        Inner wrap function to reconnect on failure
+        """
         try:
             return func(*args, **kwargs)
         except ldap.LDAPError:
@@ -31,12 +27,15 @@ def reconnect(func):
 
 
 class LDAP(object):
-    """Handles interactions with the remote LDAP server."""
+    """
+    Handles interactions with the remote LDAP server
+    """
 
     @staticmethod
     def configure(settings=None):
-        """Configures self with the settings dictionary."""
-
+        """
+        Configures self with the settings dictionary
+        """
         LDAP._id_field = settings["auth.ldap.id_field"]
         LDAP._url = settings["auth.ldap.url"]
         LDAP._service_dn = settings["auth.ldap.service_dn"]
@@ -49,44 +48,64 @@ class LDAP(object):
         ]
 
         LDAP._connect()
-        LDAP.all_users()
 
     @staticmethod
     def _connect():
-        """Initializes the python-ldap module and does the initial bind."""
-
+        """
+        Initializes the python-ldap module and does the initial bind
+        """
         LDAP._server = ldap.initialize(LDAP._url)
         LDAP._server.simple_bind_s(LDAP._service_dn, LDAP._service_password)
 
     @staticmethod
     @reconnect
+    def _initialize_cache():
+        """
+        Retrieve the list of all user names and DNs to cache
+        """
+        results = LDAP._server.search_s(
+            LDAP._base_dn,
+            ldap.SCOPE_SUBTREE,
+            LDAP._all_user_search,
+        )
+        LDAP._all_users = {}
+        for result in results:
+            if LDAP._id_field in result[1]:
+                LDAP._all_users[result[1][LDAP._id_field][0]] = result[0]
+
+    @staticmethod
     def all_users():
-        """Returns a list of all user DNs."""
-
+        """
+        Returns a list of all user DNs
+        """
         if not hasattr(LDAP, "_all_users"):
-            results = LDAP._server.search_s(
-                LDAP._base_dn,
-                ldap.SCOPE_SUBTREE,
-                LDAP._all_user_search,
-            )
-            LDAP._all_users = {}
-            for result in results:
-                if LDAP._id_field in result[1]:
-                    LDAP._all_users[result[1][LDAP._id_field][0]] = result[0]
-
+            LDAP._initialize_cache()
         return list(LDAP._all_users.values())
 
     @staticmethod
     def all_usernames():
-        """Returns a list of all user names."""
-
+        """
+        Returns a list of all user names
+        """
+        if not hasattr(LDAP, "_all_users"):
+            LDAP._initialize_cache()
         return list(LDAP._all_users.keys())
+
+    @staticmethod
+    def user_dn(username):
+        """
+        Returns the dn for the username
+        """
+        if not hasattr(LDAP, "_all_users"):
+            LDAP._initialize_cache()
+        return LDAP._all_users.get(username)
 
     @staticmethod
     @reconnect
     def _add_admins_from_dn(admin_dn):
-        """Given a DN fragement, add users to _admins and _admin_usernames."""
-
+        """
+        Given a DN fragement, add users to _admins and _admin_usernames
+        """
         res = LDAP._server.search_s(admin_dn, ldap.SCOPE_SUBTREE)
         try:
             admins = res[0][1][LDAP._admin_field]
@@ -109,8 +128,9 @@ class LDAP(object):
 
     @staticmethod
     def admins():
-        """Returns a list of all the admin DNs."""
-
+        """
+        Returns a list of all the admin DNs
+        """
         if not hasattr(LDAP, "_admins"):
             LDAP._admins = []
             LDAP._admin_usernames = []
@@ -121,23 +141,19 @@ class LDAP(object):
 
     @staticmethod
     def admin_usernames():
-        """Returns a list of the admin usernames."""
-
+        """
+        Returns a list of the admin usernames
+        """
         if not hasattr(LDAP, "_admin_usernames"):
             LDAP.admins()
         return LDAP._admin_usernames
 
     @staticmethod
-    def user_dn(username):
-        """Returns the dn for the username."""
-
-        return LDAP._all_users.get(username)
-
-    @staticmethod
     @reconnect
     def bind_user(user_dn, password):
-        """Attempts to bind as the user, then rebinds as service user again."""
-
+        """
+        Attempts to bind as the user, then rebinds as service user again
+        """
         try:
             LDAP._server.simple_bind_s(user_dn, password)
         except ldap.INVALID_CREDENTIALS:
@@ -150,24 +166,23 @@ class LDAP(object):
 
 class LDAPAccessBackend(IAccessBackend):
     """
-    This backend allows you to store all user and package permissions in a SQL
-    database and authenticate against a LDAP server
+    This backend allows you to authenticate against a remote LDAP server.
     """
 
-    DEFAULT_PERMISSIONS = {
-        "admin": ("read", "write"),
-        "authenticated": ("read", "write"),
-        "everyone": ("read",),
-    }
-
-    def __init__(self, request=None, **kwargs):
-        self.request = request
+    def __init__(self, request=None, group_map=None, **kwargs):
         super(LDAPAccessBackend, self).__init__(request, **kwargs)
+        self.group_map = group_map
 
     @classmethod
     def configure(cls, settings):
         kwargs = super(LDAPAccessBackend, cls).configure(settings)
         LDAP.configure(settings)
+        kwargs["group_map"] = {
+            "admin": ("read", "write"),
+            "authenticated": ("read",),
+            settings["pypi.default_write"]: ("read", "write"),
+            settings["pypi.default_read"]: ("read",),
+        }
         return kwargs
 
     def allow_register(self):
@@ -178,20 +193,7 @@ class LDAPAccessBackend(IAccessBackend):
 
     def verify_user(self, username, password):
         """
-        Check the login credentials of a user
-
-        For Mutable backends, pending users should fail to verify
-
-        Parameters
-        ----------
-        username : str
-        password : str
-
-        Returns
-        -------
-        valid : bool
-            True if user credentials are valid, false otherwise
-
+        Look up the user DN and attempt to bind with the password
         """
         user_dn = LDAP.user_dn(username)
         return LDAP.bind_user(user_dn, password) if user_dn else False
@@ -201,16 +203,6 @@ class LDAPAccessBackend(IAccessBackend):
         Get a list of all groups
 
         If a username is specified, get all groups that the user belongs to
-
-        Parameters
-        ----------
-        username : str, optional
-
-        Returns
-        -------
-        groups : list
-            List of group names
-
         """
         if username is None or self.is_admin(username):
             return ["admin", "authenticated", "everyone"]
@@ -220,16 +212,6 @@ class LDAPAccessBackend(IAccessBackend):
     def group_members(self, group):
         """
         Get a list of users that belong to a group
-
-        Parameters
-        ----------
-        group : str
-
-        Returns
-        -------
-        users : list
-            List of user names
-
         """
         if group is "admin":
             return LDAP.admin_usernames()
@@ -241,15 +223,6 @@ class LDAPAccessBackend(IAccessBackend):
     def is_admin(self, username):
         """
         Check if the user is an admin
-
-        Parameters
-        ----------
-        username : str
-
-        Returns
-        -------
-        is_admin : bool
-
         """
         return username in LDAP.admin_usernames()
 
@@ -257,60 +230,21 @@ class LDAPAccessBackend(IAccessBackend):
         """
         Get a mapping of all groups to their permissions on a package
 
-        If a group is specified, just return the list of permissions for that
-        group
-
-        Parameters
-        ----------
-        package : str
-            The name of a python package
-        group : str, optional
-            The name of a single group the check
-
-        Returns
-        -------
-        permissions : dict
-            If group is None, mapping of group name to a list of permissions
-            (which can contain 'read' and/or 'write')
-        permissions : list
-            If group is not None, a list of permissions for that group
-
-        Notes
-        -----
-        You may specify special groups 'everyone' and/or 'authenticated', which
-        correspond to all users and all logged in users respectively.
-
+        If a group is specified, return the list of permissions for that group
         """
         if group is None:
-            return LDAPAccessBackend.DEFAULT_PERMISSIONS
+            return self.group_map
         else:
-            return LDAPAccessBackend.DEFAULT_PERMISSIONS.get(group, [])
+            return self.group_map.get(group, [])
 
     def user_permissions(self, package, username=None):
         """
         Get a mapping of all users to their permissions for a package
 
-        If a username is specified, just return the list of permissions for
-        that user
-
-        Parameters
-        ----------
-        package : str
-            The name of a python package
-        username : str
-            The name of a single user the check
-
-        Returns
-        -------
-        permissions : dict
-            Mapping of username to a list of permissions (which can contain
-            'read' and/or 'write')
-        permissions : list
-            If username is not None, a list of permissions for that user
-
+        If a username is specified, return a list of permissions for that user
         """
         if username is None:
-            return LDAPAccessBackend.DEFAULT_PERMISSIONS
+            return self.group_map
         else:
             perms = set()
             for user_group in self.groups(username):
@@ -319,18 +253,7 @@ class LDAPAccessBackend(IAccessBackend):
 
     def user_package_permissions(self, username):
         """
-        Get a list of all packages that a user has permissions on
-
-        Parameters
-        ----------
-        username : str
-
-        Returns
-        -------
-        packages : list
-            List of dicts. Each dict contains 'package' (str) and 'permissions'
-            (list)
-
+        Get a list of all packages that a user has permissions to
         """
         all_perms = []
         for package in self.request.db.summary():
@@ -343,17 +266,6 @@ class LDAPAccessBackend(IAccessBackend):
     def group_package_permissions(self, group):
         """
         Get a list of all packages that a group has permissions on
-
-        Parameters
-        ----------
-        group : str
-
-        Returns
-        -------
-        packages : list
-            List of dicts. Each dict contains 'package' (str) and 'permissions'
-            (list)
-
         """
         all_perms = []
         for package in self.request.db.summary():
@@ -366,17 +278,6 @@ class LDAPAccessBackend(IAccessBackend):
     def user_data(self, username=None):
         """
         Get a list of all users or data for a single user
-
-        For Mutable backends, this MUST exclude all pending users
-
-        Returns
-        -------
-        users : list
-            Each user is a dict with a 'username' str, and 'admin' bool
-        user : dict
-            If a username is passed in, instead return one user with the fields
-            above plus a 'groups' list.
-
         """
         if username is None:
             users = []
@@ -385,7 +286,7 @@ class LDAPAccessBackend(IAccessBackend):
             return users
         else:
             return {
-                "username": user,
-                "admin": self.is_admin(user),
-                "groups": self.groups(user),
+                "username": username,
+                "admin": self.is_admin(username),
+                "groups": self.groups(username),
             }

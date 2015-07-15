@@ -6,7 +6,7 @@ from .config import ConfigAccessBackend
 from .base import IAccessBackend, IMutableAccessBackend, pwd_context
 from .remote import RemoteAccessBackend
 from .sql import SQLAccessBackend
-from ._ldap import LDAPAccessBackend, LDAP_ENABLED
+from ._ldap import LDAPAccessBackend
 from pypicloud.util import getdefaults
 
 
@@ -23,7 +23,7 @@ def includeme(config):
         dotted_name = RemoteAccessBackend
     elif dotted_name == 'sql':
         dotted_name = SQLAccessBackend
-    elif dotted_name == 'ldap' and LDAP_ENABLED:
+    elif dotted_name == 'ldap':
         dotted_name = LDAPAccessBackend
     access_backend = resolver.maybe_resolve(dotted_name)
     kwargs = access_backend.configure(settings)
