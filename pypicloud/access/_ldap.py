@@ -1,7 +1,14 @@
 """LDAP authentication plugin for pypicloud."""
 
 
-import ldap
+try:
+    import ldap
+except ImportError:
+    raise ImportError(
+        "You must 'pip install pypicloud[ldap]' before using ldap as the "
+        "authentication backend."
+    )
+
 import logging
 from functools import wraps
 
@@ -80,7 +87,7 @@ class LDAP(object):
         """
         if not hasattr(LDAP, "_all_users"):
             LDAP._initialize_cache()
-        return list(LDAP._all_users.values())
+        return list(set(LDAP._all_users.values()))
 
     @staticmethod
     def all_usernames():
@@ -89,7 +96,7 @@ class LDAP(object):
         """
         if not hasattr(LDAP, "_all_users"):
             LDAP._initialize_cache()
-        return list(LDAP._all_users.keys())
+        return list(set(LDAP._all_users.keys()))
 
     @staticmethod
     def user_dn(username):
@@ -125,6 +132,9 @@ class LDAP(object):
                 logging.warn("Error looking up admin %s: %r", admin, error)
             else:
                 LDAP._admins.append(admin)
+
+        LDAP._admin_usernames = list(set(LDAP._admin_usernames))
+        LDAP._admins = list(set(LDAP._admins))
 
     @staticmethod
     def admins():
@@ -205,15 +215,15 @@ class LDAPAccessBackend(IAccessBackend):
         If a username is specified, get all groups that the user belongs to
         """
         if username is None or self.is_admin(username):
-            return ["admin", "authenticated", "everyone"]
+            return ["admin"]
         else:
-            return ["authenticated", "everyone"]
+            return []
 
     def group_members(self, group):
         """
         Get a list of users that belong to a group
         """
-        if group is "admin":
+        if group == "admin":
             return LDAP.admin_usernames()
         elif group in ("authenticated", "everyone"):
             return LDAP.all_usernames()

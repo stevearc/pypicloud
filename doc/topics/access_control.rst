@@ -285,6 +285,10 @@ server. There is aggressive caching in the LDAP backend in order to keep
 chatter with your LDAP server at a minimum. If you experience a change in your
 LDAP layout, group modifications etc, restart your pypicloud process.
 
+Note that you will need to ``pip install pypicloud[ldap]`` OR
+``pip install -e .[ldap]`` (from source) in order to get the dependancies for
+the LDAP authentication backend.
+
 Configuration
 ^^^^^^^^^^^^^
 Set ``pypi.auth = ldap`` OR ``pypi.auth =
