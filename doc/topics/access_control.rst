@@ -7,7 +7,7 @@ has access to your packages. There are several choices for where to store your
 user credentials and access rules.
 
 Users and Groups
------------------
+----------------
 The access control uses a combination of users and groups. A group is a list of
 users. There are also *admin* users, who always have read/write permissions for
 everything, and can do a few special operations besides. There are two special
@@ -266,7 +266,7 @@ params: ``group``
 returns: ``list``
 
 ``auth.uri.user_data``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string, optional
 
 The uri that returns a list of users (default ``/user_data``). Each user is a
@@ -286,8 +286,13 @@ chatter with your LDAP server at a minimum. If you experience a change in your
 LDAP layout, group modifications etc, restart your pypicloud process.
 
 Note that you will need to ``pip install pypicloud[ldap]`` OR
-``pip install -e .[ldap]`` (from source) in order to get the dependancies for
+``pip install -e .[ldap]`` (from source) in order to get the dependencies for
 the LDAP authentication backend.
+
+At the moment there is no way for pypicloud to discern groups from LDAP, so it
+only has the built-in ``admin``, ``authenticated``, and ``everyone`` as the
+available groups.  All authorization is configured using ``pypi.default_read``,
+``pypi.default_write``, and ``pypi.cache_update``.
 
 Configuration
 ^^^^^^^^^^^^^
@@ -295,34 +300,34 @@ Set ``pypi.auth = ldap`` OR ``pypi.auth =
 pypicloud.access._ldap.LDAPAccessBackend``
 
 ``auth.ldap.url``
-~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
 **Argument:** string
 
 The LDAP url to use for remote verification. It should include the protocol and
-port, as an example: "ldap://10.0.0.1:389"
+port, as an example: ``ldap://10.0.0.1:389``
 
 ``auth.ldap.service_dn``
-~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string
 
 The FQDN of the LDAP service account used. A service account is required to
 perform the initial bind with. It only requires read access to your LDAP.
 
 ``auth.ldap.service_password``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string
 
 The password for the LDAP service account.
 
 ``auth.ldap.base_dn``
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string
 
 The base DN under which all of your user accounts are organized in LDAP. Used
 in combination with the ``all_user_search`` to find all potential users.
 
 ``auth.ldap.all_user_search``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string
 
 An LDAP search phrase, which when used with the ``base_dn`` results in a list
@@ -330,7 +335,7 @@ of all users. As an example, this could be something like "(accountType=human)"
 depending on your organization's LDAP configuration.
 
 ``auth.ldap.id_field``
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string
 
 The field in the LDAP return when using ``all_user_search`` on ``base_dn`` to
@@ -338,7 +343,7 @@ determine the account name from the record. As an example this could be "name",
 but it will depend on how your LDAP is set up.
 
 ``auth.ldap.admin_field``
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string
 
 The field to use in combination with ``admin_dns`` to determine the admin DNs
@@ -346,7 +351,7 @@ from the search result. As an example, this could be "groupMembers", but again,
 will depend on your LDAP setup.
 
 ``auth.ldap.admin_field``
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** list
 
 A list of DNs to search for who should be considered an admin. It uses the
