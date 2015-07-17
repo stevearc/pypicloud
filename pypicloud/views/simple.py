@@ -8,7 +8,7 @@ from pyramid.view import view_config
 from pyramid_duh import argify, addslash
 
 from pypicloud.route import Root, SimplePackageResource, SimpleResource
-from pypicloud.util import normalize_name
+from pypicloud.util import normalize_name, parse_filename
 
 
 LOG = logging.getLogger(__name__)
@@ -18,10 +18,14 @@ LOG = logging.getLogger(__name__)
 @view_config(context=SimpleResource, request_method='POST', subpath=(),
              renderer='json')
 @argify
-def upload(request, name, version, content):
+def upload(request, content, name=None, version=None):
     """ Handle update commands """
-    action = request.param(':action')
-    name = normalize_name(name)
+    action = request.param(':action', 'file_upload')
+    # Direct uploads from the web UI go here, and don't have a name/version
+    if name is None or version is None:
+        name, version = parse_filename(content.filename)
+    else:
+        name = normalize_name(name)
     if action == 'file_upload':
         if not request.access.has_permission(name, 'write'):
             return request.forbid()

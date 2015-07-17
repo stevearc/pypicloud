@@ -98,4 +98,4 @@ class MockServerTest(unittest.TestCase):
         self.request.path_url = '/path/'
         self.request.forbid = MagicMock()
         self.params = {}
-        self.request.param = lambda x: self.params[x]
+        self.request.param = lambda x, y=None: self.params.get(x, y)

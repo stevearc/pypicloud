@@ -32,7 +32,6 @@ REQUIREMENTS = [
 
 TEST_REQUIREMENTS = [
     'flywheel',
-    'httpretty',
     'mock',
     'moto',
     'nose',
@@ -48,7 +47,7 @@ if sys.version_info[:2] < (2, 7):
 if __name__ == "__main__":
     setup(
         name='pypicloud',
-        version='0.3.2',
+        version='0.3.3',
         description='Private PyPI backed by S3',
         long_description=README + '\n\n' + CHANGES,
         classifiers=[
@@ -90,5 +89,9 @@ if __name__ == "__main__":
         install_requires=REQUIREMENTS,
         tests_require=REQUIREMENTS + TEST_REQUIREMENTS,
         test_suite='tests',
-        extras_require={"ldap": ["python-ldap >= 2.4.0"]},
+        extras_require={
+            'ldap': ['python-ldap >= 2.4.0'],
+            'server': ['waitress'],
+            'dynamo': ['flywheel >= 0.2.0'],
+        },
     )

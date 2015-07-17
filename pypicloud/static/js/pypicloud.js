@@ -294,48 +294,30 @@ angular.module('pypicloud', ['ui.bootstrap', 'ngRoute', 'angularFileUpload', 'ng
 }])
 
 .controller('UploadCtrl', ['$scope', '$fileUploader', function($scope, $fileUploader) {
-  if ($scope.package_name) {
-    $scope.package_preset = true;
-  }
   var uploader = $scope.uploader = $fileUploader.create({
       scope: $scope,
       alias: 'content',
   });
 
   $scope.canUpload = function() {
-    return (uploader.queue.length === 1 &&
-      $scope.package_name && $scope.package_name.length > 0 &&
-      !$scope.uploading);
+    return uploader.queue.length === 1 && !$scope.uploading;
   }
 
   $scope.uploadPackage = function() {
     $scope.uploading = true;
     var item = uploader.queue[0];
     var filename = item.file.name;
-    item.url = $scope.API + 'package/' + $scope.package_name + '/' + filename;
+    if ($scope.package_name) {
+      item.url = $scope.API + 'package/' + $scope.package_name + '/' + filename;
+    } else {
+      item.url = $scope.ROOT + 'simple/';
+    }
     item.upload();
   }
-
-  uploader.bind('changedqueue', function (event, items) {
-    if (uploader.queue.length === 0) {
-      if (!$scope.package_preset) {
-        $scope.package_name = '';
-      }
-    } else {
-      var pieces = items[0].file.name.split('-');
-      if (!$scope.package_preset) {
-        $scope.package_name = pieces[0];
-      }
-      $scope.$apply();
-    }
-  });
 
   uploader.bind('success', function (event, xhr, item, response) {
     uploader.clearQueue();
     $scope.uploading = false;
-    if (!$scope.package_preset) {
-      $scope.package_name = '';
-    }
     if ($scope.uploadFinished !== undefined) {
       $scope.uploadFinished(response);
     }

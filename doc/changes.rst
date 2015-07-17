@@ -2,6 +2,15 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.3.3
+-----
+* Feature: LDAP Support (:pr:`55`)
+* Bug fix: Incorrect package name/version when uploading from web (:issue:`56`)
+
+0.3.2
+-----
+* Bug fix: Restore direct links to S3 to fix easy_install (:issue:`54`)
+
 0.3.1
 -----
 * Bug fix: ``pypi.allow_overwrite`` causes crash in sql cache (:issue:`52`)

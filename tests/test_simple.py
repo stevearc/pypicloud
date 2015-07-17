@@ -30,7 +30,7 @@ class TestSimple(MockServerTest):
         }
         name, version, content = 'foo', 'bar', MagicMock()
         content.filename = 'foo-1.2.tar.gz'
-        pkg = upload(self.request, name, version, content)
+        pkg = upload(self.request, content, name, version)
 
         self.assertEquals(pkg, self.request.db.packages[content.filename])
 
@@ -40,7 +40,7 @@ class TestSimple(MockServerTest):
             ':action': 'blah',
         }
         name, version, content = 'foo', 'bar', 'baz'
-        response = upload(self.request, name, version, content)
+        response = upload(self.request, content, name, version)
         self.assertEqual(response.status_code, 400)
 
     def test_upload_no_write_permission(self):
@@ -51,7 +51,7 @@ class TestSimple(MockServerTest):
         name, version, content = 'foo', 'bar', MagicMock()
         content.filename = 'foo-1.2.tar.gz'
         self.request.access.has_permission.return_value = False
-        response = upload(self.request, name, version, content)
+        response = upload(self.request, content, name, version)
         self.assertEqual(response, self.request.forbid())
 
     def test_upload_duplicate(self):
@@ -62,7 +62,7 @@ class TestSimple(MockServerTest):
         name, version, content = 'foo', '1.2', MagicMock()
         content.filename = 'foo-1.2.tar.gz'
         self.db.upload(content.filename, content, name)
-        response = upload(self.request, name, version, content)
+        response = upload(self.request, content, name, version)
         self.assertEqual(response.status_code, 400)
 
     def test_list(self):
