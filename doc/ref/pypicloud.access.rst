@@ -8,6 +8,7 @@ Submodules
 
    pypicloud.access.base
    pypicloud.access.config
+   pypicloud.access.ldap_
    pypicloud.access.remote
    pypicloud.access.sql
 

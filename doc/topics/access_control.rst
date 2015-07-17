@@ -297,7 +297,7 @@ available groups.  All authorization is configured using ``pypi.default_read``,
 Configuration
 ^^^^^^^^^^^^^
 Set ``pypi.auth = ldap`` OR ``pypi.auth =
-pypicloud.access._ldap.LDAPAccessBackend``
+pypicloud.access.ldap_.LDAPAccessBackend``
 
 ``auth.ldap.url``
 ~~~~~~~~~~~~~~~~~
