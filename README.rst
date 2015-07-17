@@ -25,7 +25,7 @@ section of the docs.
 
     virtualenv mypypi
     source mypypi/bin/activate
-    pip install pypicloud waitress
+    pip install pypicloud[server]
     pypicloud-make-config -t server.ini
     pserve server.ini
 

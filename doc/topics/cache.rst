@@ -37,7 +37,7 @@ DynamoDB
 --------
 Set ``pypi.db = dynamo`` OR ``pypi.db = pypicloud.cache.dynamo.DynamoCache``
 
-You will need to ``pip install flywheel`` before running the server.
+You will need to ``pip install pypicloud[dynamo]`` before running the server.
 
 ``db.region``
 ~~~~~~~~~~~~~

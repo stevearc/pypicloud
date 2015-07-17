@@ -22,7 +22,7 @@ the WSGI server because it's easy to set up.
 
 .. code-block:: bash
 
-    (mypypi)$ pip install pypicloud waitress
+    (mypypi)$ pip install pypicloud[server]
 
 AWS
 ---

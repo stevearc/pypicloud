@@ -13,8 +13,8 @@ from pypicloud.models import Package
 try:
     from flywheel import Engine, Model, Field, GlobalIndex, __version__
     from flywheel.fields.types import UTC
-    if parse_version(__version__) < parse_version('0.2.0rc2'):  # pragma: no cover
-        raise ValueError("Pypicloud requires flywheel>=0.2.0rc2")
+    if parse_version(__version__) < parse_version('0.2.0'):  # pragma: no cover
+        raise ValueError("Pypicloud requires flywheel>=0.2.0")
 except ImportError:  # pragma: no cover
     raise ImportError("You must 'pip install flywheel' before using "
                       "DynamoDB as the cache database")
