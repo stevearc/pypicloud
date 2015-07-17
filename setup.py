@@ -90,4 +90,5 @@ if __name__ == "__main__":
         install_requires=REQUIREMENTS,
         tests_require=REQUIREMENTS + TEST_REQUIREMENTS,
         test_suite='tests',
+        extras_require={"ldap": ["python-ldap >= 2.4.0"]},
     )

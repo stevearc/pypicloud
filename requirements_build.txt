@@ -1,7 +1,7 @@
 pylint==1.1.0
 pep8
 nose
-mock
+mock==1.0.1
 coverage
 webtest
 redis
@@ -9,3 +9,4 @@ requests
 httpretty
 moto
 flywheel>=0.2.0rc2
+python-ldap
