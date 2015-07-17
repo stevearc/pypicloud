@@ -32,7 +32,6 @@ REQUIREMENTS = [
 
 TEST_REQUIREMENTS = [
     'flywheel',
-    'httpretty',
     'mock',
     'moto',
     'nose',
