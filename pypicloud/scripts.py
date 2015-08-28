@@ -88,13 +88,15 @@ def make_config(argv=None):
                        help="Create config file for testing")
     group.add_argument('-p', action='store_true',
                        help="Create config file for production")
+    group.add_argument('-r', action='store_true',
+                       help="Create config file for docker image")
 
-    parser.add_argument('outfile', nargs='?', default="config.ini",
-                        help="Name of output file (default %(default)s)")
+    parser.add_argument('outfile', nargs='?',
+                        help="Name of output file (default stdout)")
 
     args = parser.parse_args(argv)
 
-    if os.path.exists(args.outfile):
+    if args.outfile is not None and os.path.exists(args.outfile):
         msg = "'%s' already exists. Overwrite?" % args.outfile
         if not promptyn(msg, False):
             return
@@ -105,6 +107,8 @@ def make_config(argv=None):
         env = 'test'
     elif args.p:
         env = 'prod'
+    elif args.r:
+        env = 'docker'
     else:
         env = prompt_option("What is this config file for?",
                             ['dev', 'test', 'prod'])
@@ -151,7 +155,7 @@ def make_config(argv=None):
 
     if env == 'dev' or env == 'test':
         data['wsgi'] = 'waitress'
-    elif env == 'prod':
+    else:
         if hasattr(sys, 'real_prefix'):
             data['venv'] = sys.prefix
         data['wsgi'] = 'uwsgi'
@@ -159,10 +163,15 @@ def make_config(argv=None):
     tmpl_str = resource_string('pypicloud', 'templates/config.ini.jinja2')
     template = Template(tmpl_str)
 
-    with open(args.outfile, 'w') as ofile:
-        ofile.write(template.render(**data))
+    config_file = template.render(**data)
+    if args.outfile is None:
+        sys.stdout.write(config_file)
+        sys.stdout.write(os.linesep)
+    else:
+        with open(args.outfile, 'w') as ofile:
+            ofile.write(config_file)
 
-    print "Config file written to '%s'" % args.outfile
+        print "Config file written to '%s'" % args.outfile
 
 
 def migrate_packages(argv=None):
