@@ -2,6 +2,11 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.3.4
+-----
+* Add docker-specific option for config creation
+* Move docker config files to a separate repository
+
 0.3.3
 -----
 * Feature: LDAP Support (:pr:`55`)
