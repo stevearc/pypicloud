@@ -36,7 +36,7 @@ function.
 **Argument:** string, optional
 
 The index server to handle the behavior defined in ``pypi.fallback`` (default
-http://pypi.python.org/simple)
+https://pypi.python.org/simple)
 
 ``pypi.default_read``
 ~~~~~~~~~~~~~~~~~~~~~
