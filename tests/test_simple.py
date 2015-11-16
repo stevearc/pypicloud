@@ -80,19 +80,23 @@ class TestSimple(MockServerTest):
         name = 'foo'
         filename = '%s-%s.tar.gz' % (name, version)
         url = 'http://pypi.python.org/pypi/%s/%s' % (name, filename)
+        wheelname = '%s-%s.whl' % (name, version)
+        wheel_url = 'http://pypi.python.org/pypi/%s/%s' % (name, wheelname)
         dist = MagicMock()
         dist.name = name
         self.request.locator.get_project.return_value = {
             version: dist,
             'urls': {
-                version: [url, 'this_should_never_be_used']
+                version: [url, wheel_url]
             }
         }
         self.request.app_url = MagicMock()
         pkgs = get_fallback_packages(self.request, 'foo', False)
-        self.request.app_url.assert_called_with('api', 'package', name, filename)
+        self.request.app_url.assert_any_call('api', 'package', name, filename)
+        self.request.app_url.assert_any_call('api', 'package', name, wheelname)
         self.assertEqual(pkgs, {
             filename: self.request.app_url(),
+            wheelname: self.request.app_url(),
         })
 
     def test_fallback_packages_redirect(self):
@@ -102,17 +106,20 @@ class TestSimple(MockServerTest):
         name = 'foo'
         filename = '%s-%s.tar.gz' % (name, version)
         url = 'http://pypi.python.org/pypi/%s/%s' % (name, filename)
+        wheelname = '%s-%s.whl' % (name, version)
+        wheel_url = 'http://pypi.python.org/pypi/%s/%s' % (name, wheelname)
         dist = MagicMock()
         dist.name = name
         self.request.locator.get_project.return_value = {
             version: dist,
             'urls': {
-                version: [url, 'this_should_never_be_used']
+                version: [url, wheel_url]
             }
         }
         pkgs = get_fallback_packages(self.request, 'foo')
         self.assertEqual(pkgs, {
             filename: url,
+            wheelname: wheel_url,
         })
 
 
