@@ -81,7 +81,6 @@ def get_fallback_packages(request, package_name, redirect=True):
             if not redirect:
                 url = request.app_url('api', 'package', dist.name, filename)
             pkgs[filename] = url
-            break
     return pkgs
 
 
