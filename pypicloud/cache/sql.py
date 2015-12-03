@@ -7,15 +7,15 @@ from pkg_resources import parse_version
 from sqlalchemy import engine_from_config, distinct, Column, DateTime, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.types import TypeDecorator, TEXT
+from sqlalchemy.ext.mutable import Mutable
 # pylint: disable=F0401,E0611
 from zope.sqlalchemy import ZopeTransactionExtension
 # pylint: enable=F0401,E0611
 
 from .base import ICache
 from pypicloud.models import Package
-from sqlalchemy.types import TypeDecorator, TEXT
 import json
-from sqlalchemy.ext.mutable import Mutable
 
 
 LOG = logging.getLogger(__name__)

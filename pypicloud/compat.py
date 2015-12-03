@@ -1,6 +1,6 @@
 """ Compatibility for different python versions """
 
-# pylint: disable=C0103
+# pylint: disable=C0103,C0113
 try:
     from functools import total_ordering
 except ImportError:  # pragma: no cover
