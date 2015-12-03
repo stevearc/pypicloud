@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.3.6
+-----
+* Bug fix: Settings parsed incorrectly for LDAP auth (:issue:`62`)
+
 0.3.5
 -----
 * Bug fix: Mirror mode: only one package per version is displayed (:issue:`61`)
