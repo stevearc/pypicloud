@@ -190,9 +190,11 @@ class LDAPAccessBackend(IAccessBackend):
         kwargs["group_map"] = {
             "admin": ("read", "write"),
             "authenticated": ("read",),
-            settings.get("pypi.default_write", "admin"): ("read", "write"),
-            settings.get("pypi.default_read", "authenticated"): ("read",),
         }
+        for group in kwargs['default_read']:
+            kwargs['group_map'][group] = ('read',)
+        for group in kwargs['default_write']:
+            kwargs['group_map'][group] = ('read', 'write')
         return kwargs
 
     def allow_register(self):
