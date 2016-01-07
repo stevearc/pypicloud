@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>All packages</title>
+</head>
+<body>
+  {% if pkgs %}
+    {% for filename, url in pkgs|dictsort %}
+      <a href="{{ url }}">{{ filename }}</a><br>
+    {%- endfor %}
+  {% else %}
+    <p>There are no packages</p>
+  {% endif %}
+</body>
+</html>
+
