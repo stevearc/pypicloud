@@ -110,6 +110,11 @@ class AdminResource(IStaticResource):
     """ Resource for admin calls """
 
 
+class PackagesResource(IStaticResource):
+
+    """ Resource for cleaner buildout config """
+
+
 class Root(IStaticResource):
 
     """ Root context for PyPI Cloud """
@@ -118,6 +123,7 @@ class Root(IStaticResource):
         'admin': AdminResource,
         'simple': SimpleResource,
         'pypi': SimpleResource,
+        'packages': PackagesResource,
     }
 
     def __init__(self, request):
