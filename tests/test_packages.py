@@ -23,7 +23,7 @@ class TestPackages(MockServerTest):
         def get_packages(x):
             """ Returns a list of mocked package objects for this package """
             def mm(package_name):
-                """ Mock packages for _packages_to_dict """
+                """ Mock packages for packages_to_dict """
                 p = MagicMock()
                 p.filename = package_name
                 p.get_url.return_value = package_name + ".ext"

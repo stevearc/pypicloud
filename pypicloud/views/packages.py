@@ -3,7 +3,7 @@ from pyramid.view import view_config
 from pyramid_duh import addslash
 
 from pypicloud.route import PackagesResource
-from pypicloud.views.simple import _packages_to_dict
+from pypicloud.views.simple import packages_to_dict
 
 
 @view_config(context=PackagesResource, request_method='GET', subpath=(),
@@ -18,4 +18,4 @@ def list_packages(request):
     packages = []
     for package_name in names:
         packages += request.db.all(package_name)
-    return {'pkgs': _packages_to_dict(request, packages)}
+    return {'pkgs': packages_to_dict(request, packages)}
