@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.3.7
+-----
+* Feature: ``/packages`` endpoint to list all files for all packages (:pr:`64`)
+
 0.3.6
 -----
 * Bug fix: Settings parsed incorrectly for LDAP auth (:issue:`62`)
