@@ -174,7 +174,9 @@ class DynamoCache(ICache):
         self.engine.create_schema(throughput=throughput)
 
     def save(self, package):
-        summary = self.engine.get(PackageSummary, name=package.name)
+        summary = self.engine.get(PackageSummary,
+                                  name=package.name,
+                                  consistent=True)
         if summary is None:
             summary = PackageSummary(package)
         else:
