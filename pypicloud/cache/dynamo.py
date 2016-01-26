@@ -110,6 +110,22 @@ class DynamoCache(ICache):
         engine.create_schema()
         return kwargs
 
+    def reload_from_storage(self):
+        pkgs = set()
+        for pkg in self.engine.scan(DynamoPackage):
+            pkgs.add(pkg.filename)
+
+        to_save = []
+        for pkg in self.storage.list(self.package_class):
+            if pkg.filename in pkgs:
+                pkgs.remove(pkg.filename)
+            else:
+                to_save.append(pkg)
+
+        self.engine.save(to_save, overwrite=True)
+
+        self.engine.delete_key(DynamoPackage, pkgs)
+
     def fetch(self, filename):
         return self.engine.get(DynamoPackage, filename=filename)
 

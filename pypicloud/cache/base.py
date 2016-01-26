@@ -66,7 +66,14 @@ class ICache(object):
         return self.storage.download_response(package)
 
     def reload_from_storage(self):
-        """ Make sure local database is populated with packages """
+        """
+        Make sure local database is populated with packages
+
+        The default implementation of this method is to clear the cache and
+        re-save all packages, but the various subclasses may override this for
+        a more performant mechanism.
+
+        """
         self.clear_all()
         packages = self.storage.list(self.package_class)
         for pkg in packages:
