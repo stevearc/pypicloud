@@ -41,11 +41,27 @@ class RedisCache(ICache):
         return "%sset:%s" % (self.redis_prefix, name)
 
     def reload_from_storage(self):
-        self.clear_all()
-        packages = self.storage.list(self.package_class)
+        distinct = self.distinct()
+        pkgs = {}
+        for name in distinct:
+            pkgs[name] = self.db.smembers(self.redis_filename_set(name))
+
         pipe = self.db.pipeline()
-        for pkg in packages:
-            self.save(pkg, pipe=pipe)
+        for pkg in self.storage.list(self.package_class):
+            if pkg.name in pkgs and pkg.filename in pkgs[pkg.name]:
+                if pkg.name in distinct:
+                    distinct.remove(pkg.name)
+                pkgs[pkg.name].remove(pkg.filename)
+            else:
+                self.save(pkg, pipe=pipe)
+
+        for name in distinct:
+            pipe.srem(self.redis_set, name)
+
+        for old_packages in pkgs.itervalues():
+            for filename in old_packages:
+                pipe.delete(self.redis_key(filename))
+
         pipe.execute()
 
     def fetch(self, filename):

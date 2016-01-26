@@ -149,6 +149,20 @@ class SQLCache(ICache):
                                          extension=ZopeTransactionExtension())
         return kwargs
 
+    def reload_from_storage(self):
+        pkgs = {}
+        for pkg in self.db.query(SQLPackage).all():
+            pkgs[pkg.filename] = pkg
+
+        for pkg in self.storage.list(self.package_class):
+            if pkg.filename in pkgs:
+                del pkgs[pkg.filename]
+            else:
+                self.db.merge(pkg)
+
+        for pkg in pkgs.itervalues():
+            self.db.delete(pkg)
+
     def fetch(self, filename):
         return self.db.query(SQLPackage).filter_by(filename=filename).first()
 

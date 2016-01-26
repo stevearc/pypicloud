@@ -218,15 +218,17 @@ class TestSQLCache(unittest.TestCase):
 
     def test_reload(self):
         """ reload_from_storage() inserts packages into the database """
-        keys = [
-            make_package(factory=SQLPackage),
-            make_package('mypkg2', '1.3.4', 'my/other/path',
-                         factory=SQLPackage),
+        pkgs = [
+            make_package('mypkg', '1.1', factory=SQLPackage),
+            make_package('mypkg2', '1.3.4', factory=SQLPackage),
+            make_package('mypkg2', '1.3.5', factory=SQLPackage),
         ]
-        self.storage.list.return_value = keys
+        self.db.save(pkgs[0])
+        self.db.save(pkgs[1])
+        self.storage.list.return_value = pkgs[1:]
         self.db.reload_from_storage()
         all_pkgs = self.sql.query(SQLPackage).all()
-        self.assertItemsEqual(all_pkgs, keys)
+        self.assertItemsEqual(all_pkgs, pkgs[1:])
 
     def test_fetch(self):
         """ fetch() retrieves a package from the database """
@@ -360,6 +362,10 @@ class TestRedisCache(unittest.TestCase):
 
         self.assertEqual(data, pkg_data)
 
+    def assert_not_in_redis(self, pkg):
+        """ Assert that a package does not exist in redis """
+        self.assertFalse(self.redis.sismember(self.db.redis_set, pkg.name))
+
     def test_load(self):
         """ Loading from redis deserializes all fields """
         kwargs = {
@@ -427,15 +433,18 @@ class TestRedisCache(unittest.TestCase):
 
     def test_reload(self):
         """ reload_from_storage() inserts packages into the database """
-        keys = [
-            make_package(factory=SQLPackage),
-            make_package('mypkg2', '1.3.4', 'my/other/path',
-                         factory=SQLPackage),
+        pkgs = [
+            make_package('mypkg', '1.1'),
+            make_package('mypkg2', '1.3.4'),
+            make_package('mypkg2', '1.3.5'),
         ]
-        self.storage.list.return_value = keys
+        self.db.save(pkgs[0])
+        self.db.save(pkgs[1])
+        self.storage.list.return_value = pkgs[1:]
         self.db.reload_from_storage()
-        for pkg in keys:
+        for pkg in pkgs[1:]:
             self.assert_in_redis(pkg)
+        self.assert_not_in_redis(pkgs[0])
 
     def test_fetch(self):
         """ fetch() retrieves a package from the database """
@@ -578,15 +587,17 @@ class TestDynamoCache(unittest.TestCase):
 
     def test_reload(self):
         """ reload_from_storage() inserts packages into the database """
-        keys = [
-            make_package(factory=DynamoPackage),
-            make_package('mypkg2', '1.3.4', 'my/other/path',
-                         factory=DynamoPackage),
+        pkgs = [
+            make_package('mypkg', '1.1', factory=DynamoPackage),
+            make_package('mypkg2', '1.3.4', factory=DynamoPackage),
+            make_package('mypkg2', '1.3.5', factory=DynamoPackage),
         ]
-        self.storage.list.return_value = keys
+        self.db.save(pkgs[0])
+        self.db.save(pkgs[1])
+        self.storage.list.return_value = pkgs[1:]
         self.db.reload_from_storage()
         all_pkgs = self.engine.scan(DynamoPackage).all()
-        self.assertItemsEqual(all_pkgs, keys)
+        self.assertItemsEqual(all_pkgs, pkgs[1:])
 
     def test_fetch(self):
         """ fetch() retrieves a package from the database """
