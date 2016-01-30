@@ -19,8 +19,10 @@ except ImportError:
 
 
 def make_package(name='mypkg', version='1.1', filename=None,
-                 last_modified=datetime.utcnow(), factory=Package, **kwargs):
+                 last_modified=None, factory=Package, **kwargs):
     """ Convenience method for constructing a package """
+    if last_modified is None:
+        last_modified = datetime.utcnow()
     filename = filename or '%s-%s.tar.gz' % (name, version)
     return factory(name, version, filename, last_modified, **kwargs)
 
