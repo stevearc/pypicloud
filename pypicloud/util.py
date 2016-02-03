@@ -17,7 +17,11 @@ def parse_filename(filename, name=None):
     for ext in ALL_EXTENSIONS:
         if filename.endswith(ext):
             trimmed = filename[:-len(ext)]
-            parsed_name, version = split_filename(trimmed, name)[:2]
+            parsed = split_filename(trimmed, name)
+            if parsed is None:
+                break
+            else:
+                parsed_name, version = parsed[:2]
             break
     if version is None:
         raise ValueError("Cannot parse package file '%s'" % filename)

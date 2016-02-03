@@ -16,6 +16,11 @@ class TestParse(unittest.TestCase):
         self.assertEqual(name, 'mypkg')
         self.assertEqual(version, '1.1')
 
+    def test_invalid_source(self):
+        """ Parse fails on invalid package name """
+        with self.assertRaises(ValueError):
+            util.parse_filename('invalid_package_name.tar.gz')
+
     def test_valid_wheel(self):
         """ Parse a valid wheel package """
         name, version = util.parse_filename('mypkg-1.1-py2.py3-none-any.whl')
