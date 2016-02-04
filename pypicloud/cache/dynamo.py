@@ -1,17 +1,20 @@
 """ Store package data in DynamoDB """
 from datetime import datetime
 
+import time
 import logging
 from dynamo3 import DynamoDBConnection
 from pkg_resources import parse_version
 from pyramid.settings import asbool
+import itertools
 
 from .base import ICache
 from pypicloud.models import Package
 
 
 try:
-    from flywheel import Engine, Model, Field, GlobalIndex, __version__
+    from flywheel import (Engine, Model, Field, GlobalIndex, CheckFailed,
+                          __version__)
     from flywheel.fields.types import UTC
     if parse_version(__version__) < parse_version('0.2.0'):  # pragma: no cover
         raise ValueError("Pypicloud requires flywheel>=0.2.0")
@@ -111,20 +114,39 @@ class DynamoCache(ICache):
         return kwargs
 
     def reload_from_storage(self):
-        pkgs = set()
+        pkgs = {}
         for pkg in self.engine.scan(DynamoPackage):
-            pkgs.add(pkg.filename)
+            pkgs[pkg.filename] = pkg
 
-        to_save = []
+        # Group packages by name
+        to_save = {}
         for pkg in self.storage.list(self.package_class):
             if pkg.filename in pkgs:
-                pkgs.remove(pkg.filename)
+                # If the package is already in the cache, ignore it.
+                del pkgs[pkg.filename]
             else:
-                to_save.append(pkg)
+                packages = to_save.setdefault(pkg.name, [])
+                packages.append(pkg)
 
-        self.engine.save(to_save, overwrite=True)
+        # Recalculate the summary objects from the packages from storage
+        summaries = []
+        for packages in to_save.itervalues():
+            summary = PackageSummary(packages[0])
+            for package in packages:
+                summary.update_with(package)
+            summaries.append(summary)
+        # Save all the packages and summaries in a big batch
+        self.engine.save(itertools.chain(*to_save.itervalues()),
+                         overwrite=True)
+        self.engine.save(summaries, overwrite=True)
 
-        self.engine.delete_key(DynamoPackage, pkgs)
+        # Batch delete all stale packages & summaries not in storage
+        delete_summaries = set()
+        for package in pkgs.itervalues():
+            if package.name not in to_save:
+                delete_summaries.add(package.name)
+        self.engine.delete_key(DynamoPackage, pkgs.iterkeys())
+        self.engine.delete_key(PackageSummary, delete_summaries)
 
     def fetch(self, filename):
         return self.engine.get(DynamoPackage, filename=filename)
@@ -190,11 +212,23 @@ class DynamoCache(ICache):
         self.engine.create_schema(throughput=throughput)
 
     def save(self, package):
-        summary = self.engine.get(PackageSummary, name=package.name)
-        if summary is None:
-            summary = PackageSummary(package)
-        else:
-            summary.update_with(package)
+        max_attempts = 5
+        saved_package = False
+        for attempt in range(max_attempts):
+            summary = self.engine.get(PackageSummary, name=package.name)
+            if summary is None:
+                summary = PackageSummary(package)
+            else:
+                summary.update_with(package)
 
-        self.engine.save(package)
-        self.engine.sync(summary)
+            if not saved_package:
+                self.engine.save(package, overwrite=True)
+                saved_package = True
+            try:
+                self.engine.sync(summary)
+            except CheckFailed:
+                LOG.warning("Concurrent updates of %s summary", package.name)
+                time.sleep(2**attempt - 1)
+            else:
+                return
+        raise RuntimeError("Failed to cache package %s" % package.filename)

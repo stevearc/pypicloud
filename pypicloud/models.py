@@ -61,7 +61,8 @@ class Package(object):
         return hash(self.name) + hash(self.version)
 
     def __eq__(self, other):
-        return self.name == other.name and self.version == other.version
+        return self.name == getattr(other, 'name', None) and \
+            self.version == getattr(other, 'version', None)
 
     def __lt__(self, other):
         return ((self.name, self.parsed_version) <
