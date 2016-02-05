@@ -1,14 +1,18 @@
 """ Utilities """
-import posixpath
-
+from __future__ import division
 import logging
+import posixpath
+from datetime import datetime
+
 from distlib.locators import Locator, SimpleScrapingLocator
 from distlib.util import split_filename
+from pytz import UTC
 from six.moves.urllib.parse import urlparse  # pylint: disable=F0401,E0611
 
 
 LOG = logging.getLogger(__name__)
 ALL_EXTENSIONS = Locator.source_extensions + Locator.binary_extensions
+EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 
 
 def parse_filename(filename, name=None):
@@ -75,3 +79,15 @@ def getdefaults(settings, *args):
                          "(replaced by '%s')", key, canonical)
             return settings[key]
     return default
+
+
+def dt2ts(dt):
+    """Datetime to float timestamp."""
+    td = dt - EPOCH
+    # Emulate total_seconds for py26
+    return (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
+
+
+def ts2dt(ts):
+    """Timestamp to datetime."""
+    return datetime.utcfromtimestamp(float(ts)).replace(tzinfo=UTC)

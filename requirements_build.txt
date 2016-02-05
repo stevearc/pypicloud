@@ -1,4 +1,5 @@
 pylint==1.5.1
+pytz
 pep8
 nose
 mock==1.0.1

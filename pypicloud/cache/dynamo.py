@@ -11,11 +11,11 @@ from pyramid.settings import asbool
 
 from .base import ICache
 from pypicloud.models import Package
+from pypicloud.util import EPOCH
 
 
 try:
     from flywheel import Engine, Model, Field, GlobalIndex, __version__
-    from flywheel.fields.types import UTC
     if parse_version(__version__) < parse_version('0.2.0'):  # pragma: no cover
         raise ValueError("Pypicloud requires flywheel>=0.2.0")
 except ImportError:  # pragma: no cover
@@ -30,7 +30,7 @@ def _clear_summary(summary):
     """ Clear out the field of a PackageSummary object """
     summary.stable = None
     summary.unstable = '0'
-    summary.last_modified = datetime.fromtimestamp(0).replace(tzinfo=UTC)
+    summary.last_modified = EPOCH
     return summary
 
 
@@ -138,7 +138,7 @@ class PackageSummary(Model):
         self.unstable = package.version
         if not package.is_prerelease:
             self.stable = package.version
-        self.last_modified = package.last_modified.replace(tzinfo=UTC)
+        self.last_modified = package.last_modified
 
     def update_with(self, package):
         """ Update summary with a package """
@@ -147,8 +147,7 @@ class PackageSummary(Model):
                       self.name, package.name)
             return
         self.unstable = max(self.unstable, package.version, key=parse_version)
-        self.last_modified = max(self.last_modified.replace(tzinfo=UTC),
-                                 package.last_modified.replace(tzinfo=UTC))
+        self.last_modified = max(self.last_modified, package.last_modified)
         if not package.is_prerelease:
             if self.stable is None:
                 self.stable = package.version
@@ -201,18 +200,10 @@ class DynamoCache(ICache):
     def reload_from_storage(self):
         LOG.info("Recalculating cache.")
 
-        def normalize_last_mod(o):
-            """ Make it UTC without mized TZ comparisons """
-            # HACK Don't make flywheel compare mixed TZ-awareness objects.
-            d = o.last_modified.replace(tzinfo=UTC)
-            o.last_modified = None
-            o.last_modified = d
-            return o
-
         cache_updates = calculate_cache_updates(
             self.engine.scan(DynamoPackage),
             self.engine.scan(PackageSummary),
-            imap(normalize_last_mod, self.storage.list(self.package_class)),
+            self.storage.list(self.package_class),
             PackageSummary,
         )
 

@@ -7,6 +7,7 @@ from pyramid.response import FileResponse
 import os
 from .base import IStorage
 from pypicloud.models import Package
+from pypicloud.util import ts2dt
 
 
 class FileStorage(IStorage):
@@ -37,8 +38,7 @@ class FileStorage(IStorage):
                 shortpath = root[len(self.directory):].strip('/')
                 name, version = shortpath.split('/')
                 fullpath = os.path.join(root, filename)
-                last_modified = datetime.fromtimestamp(os.path.getmtime(
-                    fullpath))
+                last_modified = ts2dt(os.path.getmtime(fullpath))
                 yield factory(name, version, filename, last_modified)
 
     def download_response(self, package):

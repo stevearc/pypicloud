@@ -3,7 +3,6 @@
 import sys
 import threading
 import transaction
-import calendar
 from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
@@ -14,22 +13,17 @@ from sqlalchemy.exc import OperationalError
 
 from . import DummyCache, DummyStorage, make_package
 from dynamo3 import Throughput
-from flywheel.fields.types import UTC
 from pypicloud.cache import ICache, SQLCache, RedisCache
 from pypicloud.cache.dynamo import DynamoCache, DynamoPackage, PackageSummary
 from pypicloud.cache.sql import SQLPackage
 from pypicloud.storage import IStorage
+from pypicloud.util import dt2ts
 
 
 try:
     import unittest2 as unittest  # pylint: disable=F0401
 except ImportError:
     import unittest
-
-
-def utc_last_mod(o):
-    """ Return the UTC version of o.last_modified """
-    return o.last_modified.replace(tzinfo=UTC)
 
 
 @contextmanager
@@ -349,11 +343,11 @@ class TestSQLiteCache(unittest.TestCase):
         # last_modified may be rounded when stored in MySQL,
         # so the best we can do is make sure they're close.
         self.assertTrue(
-            calendar.timegm(s1['last_modified'].timetuple()) -
-            calendar.timegm(p1.last_modified.timetuple()) <= 1)
+            dt2ts(s1['last_modified']) - dt2ts(p1.last_modified) <= 1,
+        )
         self.assertTrue(
-            calendar.timegm(s2['last_modified'].timetuple()) -
-            calendar.timegm(p2.last_modified.timetuple()) <= 1)
+            dt2ts(s2['last_modified']) - dt2ts(p2.last_modified) <= 1,
+        )
 
     def test_multiple_packages_same_version(self):
         """ Can upload multiple packages that have the same version """
@@ -433,7 +427,7 @@ class TestRedisCache(unittest.TestCase):
             'name': pkg.name,
             'version': pkg.version,
             'filename': pkg.filename,
-            'last_modified': pkg.last_modified.strftime('%s.%f'),
+            'last_modified': str(dt2ts(pkg.last_modified)),
         }
         pkg_data.update(pkg.data)
 
@@ -456,7 +450,9 @@ class TestRedisCache(unittest.TestCase):
         self.assertEqual(loaded.name, pkg.name)
         self.assertEqual(loaded.version, pkg.version)
         self.assertEqual(loaded.filename, pkg.filename)
-        self.assertEqual(loaded.last_modified, pkg.last_modified)
+        self.assertTrue(
+            dt2ts(loaded.last_modified) - dt2ts(pkg.last_modified) <= 1,
+        )
         self.assertEqual(loaded.data, kwargs)
 
     def test_delete(self):
@@ -831,7 +827,7 @@ class TestDynamoCache(unittest.TestCase):
                     'name': pkgs[1].name,
                     'stable': pkgs[1].version,
                     'unstable': pkgs[1].version,
-                    'last_modified': utc_last_mod(pkgs[2]),
+                    'last_modified': pkgs[2].last_modified,
                 },
             ],
             self.db.summary(),
@@ -980,13 +976,13 @@ class TestDynamoCache(unittest.TestCase):
                 'name': 'pkg1',
                 'stable': '1.1',
                 'unstable': '1.1.1a2',
-                'last_modified': utc_last_mod(p1),
+                'last_modified': p1.last_modified,
             },
             {
                 'name': 'pkg2',
                 'stable': None,
                 'unstable': '0.1dev2',
-                'last_modified': utc_last_mod(p2),
+                'last_modified': p2.last_modified,
             },
         ])
 

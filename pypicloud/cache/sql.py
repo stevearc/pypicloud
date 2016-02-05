@@ -4,6 +4,7 @@ from datetime import datetime
 import logging
 import transaction
 from pkg_resources import parse_version
+from pytz import UTC
 from sqlalchemy import (engine_from_config, distinct, Column, DateTime, Text,
                         String)
 from sqlalchemy.ext.declarative import declarative_base
@@ -16,6 +17,7 @@ from zope.sqlalchemy import ZopeTransactionExtension
 
 from .base import ICache
 from pypicloud.models import Package
+from pypicloud.util import EPOCH
 import json
 
 
@@ -73,6 +75,31 @@ class MutableDict(Mutable, dict):
 MutableDict.associate_with(JSONEncodedDict)
 
 
+class UTCDateTime(TypeDecorator):
+    """ TZ-aware DateTime that converges on UTC """
+    impl = DateTime
+    python_type = datetime
+
+    def process_bind_param(self, value, engine):
+        if value is None:
+            return None
+
+        if value.tzinfo is None:
+            return value.replace(tzinfo=UTC)
+
+        return value.astimezone(UTC)
+
+    def process_result_value(self, value, engine):
+        if value is None:
+            return None
+
+        return value.replace(tzinfo=UTC)
+
+    def process_literal_param(self, value, dialect):
+        # pylint really wanted this here. Shrug.
+        return super(UTCDateTime, self).process_literal_param(value, dialect)
+
+
 class SQLPackage(Package, Base):
 
     """ Python package stored in SQLAlchemy """
@@ -80,7 +107,7 @@ class SQLPackage(Package, Base):
     filename = Column(String(255, convert_unicode=True), primary_key=True)
     name = Column(String(255, convert_unicode=True), index=True, nullable=False)
     version = Column(String(50, convert_unicode=True), nullable=False)
-    last_modified = Column(DateTime(), index=True, nullable=False)
+    last_modified = Column(UTCDateTime(), index=True, nullable=False)
     data = Column(JSONEncodedDict(), nullable=False)
 
 
@@ -186,7 +213,7 @@ class SQLCache(ICache):
                     'name': package.name,
                     'stable': None,
                     'unstable': '0',
-                    'last_modified': datetime.fromtimestamp(0),
+                    'last_modified': EPOCH
                 }
                 packages[package.name] = pkg
             if not package.is_prerelease:

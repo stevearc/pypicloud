@@ -13,6 +13,7 @@ from boto.s3.key import Key
 import boto.s3.connection
 from pyramid.httpexceptions import HTTPFound
 from pyramid.settings import asbool
+from pytz import UTC
 
 from .base import IStorage
 from pypicloud.models import Package
@@ -143,7 +144,7 @@ class S3Storage(IStorage):
                     LOG.warning("S3 file %s has no package name", key.key)
                     continue
 
-            last_modified = boto.utils.parse_ts(key.last_modified)
+            last_modified = boto.utils.parse_ts(key.last_modified).replace(tzinfo=UTC)
 
             pkg = factory(name, version, filename, last_modified, path=key.key)
 

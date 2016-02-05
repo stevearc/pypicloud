@@ -3,6 +3,7 @@ import re
 from datetime import datetime
 
 import pkg_resources
+from pytz import UTC
 
 from .compat import total_ordering
 from .util import normalize_name
@@ -37,7 +38,7 @@ class Package(object):
         if last_modified is not None:
             self.last_modified = last_modified
         else:
-            self.last_modified = datetime.utcnow()
+            self.last_modified = datetime.utcnow().replace(tzinfo=UTC)
         self.data = kwargs
 
     def get_url(self, request):

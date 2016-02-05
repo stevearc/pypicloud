@@ -5,6 +5,7 @@ from types import MethodType
 from collections import defaultdict
 from mock import MagicMock
 from pyramid.testing import DummyRequest
+from pytz import UTC
 
 from pypicloud.cache import ICache
 from pypicloud.models import Package
@@ -22,7 +23,7 @@ def make_package(name='mypkg', version='1.1', filename=None,
                  last_modified=None, factory=Package, **kwargs):
     """ Convenience method for constructing a package """
     if last_modified is None:
-        last_modified = datetime.utcnow()
+        last_modified = datetime.utcnow().replace(tzinfo=UTC)
     filename = filename or '%s-%s.tar.gz' % (name, version)
     return factory(name, version, filename, last_modified, **kwargs)
 

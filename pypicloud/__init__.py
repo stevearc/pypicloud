@@ -12,7 +12,7 @@ from pyramid_beaker import session_factory_from_settings
 from six.moves.urllib.parse import urlencode  # pylint: disable=F0401,E0611
 
 from .route import Root
-from .util import BetterScrapingLocator
+from .util import BetterScrapingLocator, dt2ts
 
 
 __version__ = '0.3.9'
@@ -24,8 +24,7 @@ def to_json(value):
     return render('json', value)
 
 json_renderer = JSON()  # pylint: disable=C0103
-json_renderer.add_adapter(datetime.datetime, lambda obj, r:
-                          float(obj.strftime('%s.%f')))
+json_renderer.add_adapter(datetime.datetime, lambda obj, r: dt2ts(obj))
 
 
 def _app_url(request, *paths, **params):

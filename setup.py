@@ -25,6 +25,7 @@ REQUIREMENTS = [
     'pyramid_duh>=0.1.1',
     'pyramid_jinja2',
     'pyramid_tm',
+    'pytz',
     'rsa',
     'six',
     'transaction',

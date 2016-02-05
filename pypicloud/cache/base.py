@@ -8,7 +8,7 @@ from pyramid.settings import asbool
 import posixpath
 from pypicloud.models import Package
 from pypicloud.storage import get_storage_impl
-from pypicloud.util import parse_filename, normalize_name
+from pypicloud.util import parse_filename, normalize_name, EPOCH
 
 
 LOG = logging.getLogger(__name__)
@@ -194,7 +194,7 @@ class ICache(object):
                 'name': name,
                 'stable': None,
                 'unstable': '0',
-                'last_modified': datetime.fromtimestamp(0),
+                'last_modified': EPOCH,
             }
             for package in self.all(name):
                 if not package.is_prerelease:

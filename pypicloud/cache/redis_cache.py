@@ -1,9 +1,9 @@
 """ Store package data in redis """
+import json
 from datetime import datetime
 
-import json
-
 from .base import ICache
+from pypicloud.util import ts2dt, dt2ts
 
 
 class RedisCache(ICache):
@@ -75,8 +75,7 @@ class RedisCache(ICache):
         name = data.pop('name')
         version = data.pop('version')
         filename = data.pop('filename')
-        last_modified = datetime.fromtimestamp(
-            float(data.pop('last_modified')))
+        last_modified = ts2dt(data.pop('last_modified'))
         kwargs = dict(((k, json.loads(v)) for k, v in data.iteritems()))
         return self.package_class(name, version, filename, last_modified,
                                   **kwargs)
@@ -111,7 +110,7 @@ class RedisCache(ICache):
             'name': package.name,
             'version': package.version,
             'filename': package.filename,
-            'last_modified': package.last_modified.strftime('%s.%f'),
+            'last_modified': str(dt2ts(package.last_modified)),
         }
         for key, value in package.data.iteritems():
             data[key] = json.dumps(value)
