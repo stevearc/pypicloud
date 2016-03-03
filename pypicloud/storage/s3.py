@@ -8,6 +8,7 @@ from hashlib import md5
 from urllib import urlopen
 
 import boto.s3
+from boto.cloudfront import Distribution
 from boto.s3.key import Key
 from pyramid.httpexceptions import HTTPFound
 from pyramid.settings import asbool
@@ -84,15 +85,19 @@ class S3Storage(IStorage):
         kwargs['bucket'] = bucket
         return kwargs
 
+    def get_filename(self, package):
+        filename = package.name + '/' + package.filename
+        if self.prepend_hash:
+            m = md5()
+            m.update(package.filename)
+            prefix = m.digest().encode('hex')[:4]
+            filename = prefix + '/' + filename
+        return filename
+
     def get_path(self, package):
         """ Get the fully-qualified bucket path for a package """
         if 'path' not in package.data:
-            filename = package.name + '/' + package.filename
-            if self.prepend_hash:
-                m = md5()
-                m.update(package.filename)
-                prefix = m.digest().encode('hex')[:4]
-                filename = prefix + '/' + filename
+            filename = self.get_filename(package)
             package.data['path'] = self.bucket_prefix + filename
         return package.data['path']
 
@@ -151,3 +156,43 @@ class S3Storage(IStorage):
             yield handle
         finally:
             handle.close()
+
+
+class CloudFrontS3Storage(S3Storage):
+    def __init__(self, request=None, bucket=None, expire_after=None, bucket_prefix=None,
+                 prepend_hash=None, cloud_front_domain=None, cloud_front_key_file=None,
+                 cloud_front_key_string=None, cloud_front_key_id=None, **kwargs):
+        super(CloudFrontS3Storage, self).__init__(request, bucket, expire_after, bucket_prefix, prepend_hash, **kwargs)
+        self.cloud_front_domain = cloud_front_domain
+        self.cloud_front_key_file = cloud_front_key_file
+        self.cloud_front_key_id = cloud_front_key_id
+        self.cloud_front_key_string = cloud_front_key_string
+
+        self.distribution = Distribution()
+
+    @classmethod
+    def configure(cls, settings):
+        kwargs = super(CloudFrontS3Storage, cls).configure(settings)
+        kwargs['cloud_front_domain'] = getdefaults(
+            settings, 'storage.cloud_front_domain', 'aws.cloud_front_domain', '')
+        kwargs['cloud_front_key_file'] = getdefaults(
+            settings, 'storage.cloud_front_key_file', 'aws.cloud_front_key_file', '')
+        kwargs['cloud_front_key_string'] = getdefaults(
+            settings, 'storage.cloud_front_key_string', 'aws.cloud_front_key_string', '')
+        kwargs['cloud_front_key_id'] = getdefaults(
+            settings, 'storage.cloud_front_key_id', 'aws.cloud_front_key_id', '')
+
+        return kwargs
+
+    def get_url(self, package):
+        """ Get the fully-qualified CloudFront path for a package """
+        filename = self.get_filename(package)
+        url = self.cloud_front_domain + '/' + filename
+
+        if self.cloud_front_key_file or self.cloud_front_key_string:
+            expire_time = int(time.time() + self.expire_after)
+            url = self.distribution.create_signed_url(
+                url, self.cloud_front_key_id, expire_time, private_key_file=self.cloud_front_key_file,
+                private_key_string=self.cloud_front_key_string)
+
+        return url

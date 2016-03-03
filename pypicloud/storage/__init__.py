@@ -3,7 +3,7 @@ from functools import partial
 
 from .base import IStorage
 from .files import FileStorage
-from .s3 import S3Storage
+from .s3 import S3Storage, CloudFrontS3Storage
 
 from pyramid.path import DottedNameResolver
 
