@@ -176,9 +176,9 @@ class CloudFrontS3Storage(S3Storage):
         kwargs['cloud_front_domain'] = getdefaults(
             settings, 'storage.cloud_front_domain', 'aws.cloud_front_domain', '')
         kwargs['cloud_front_key_file'] = getdefaults(
-            settings, 'storage.cloud_front_key_file', 'aws.cloud_front_key_file', '')
+            settings, 'storage.cloud_front_key_file', 'aws.cloud_front_key_file', None)
         kwargs['cloud_front_key_string'] = getdefaults(
-            settings, 'storage.cloud_front_key_string', 'aws.cloud_front_key_string', '')
+            settings, 'storage.cloud_front_key_string', 'aws.cloud_front_key_string', None)
         kwargs['cloud_front_key_id'] = getdefaults(
             settings, 'storage.cloud_front_key_id', 'aws.cloud_front_key_id', '')
 
