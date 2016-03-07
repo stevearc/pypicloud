@@ -189,6 +189,8 @@ class CloudFrontS3Storage(S3Storage):
         filename = self.get_filename(package)
         url = self.cloud_front_domain + '/' + filename
 
+        url = url.replace('+', '%2b')
+
         if self.cloud_front_key_file or self.cloud_front_key_string:
             expire_time = int(time.time() + self.expire_after)
             url = self.distribution.create_signed_url(
