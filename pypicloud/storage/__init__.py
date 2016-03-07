@@ -14,6 +14,8 @@ def get_storage_impl(settings):
     storage = settings.get('pypi.storage', 'file')
     if storage == 's3':
         storage = 'pypicloud.storage.S3Storage'
+    elif storage == 'cloudfront':
+        storage = 'pypicloud.storage.CloudFrontS3Storage'
     elif storage == 'file':
         storage = 'pypicloud.storage.FileStorage'
     storage_impl = resolver.resolve(storage)
