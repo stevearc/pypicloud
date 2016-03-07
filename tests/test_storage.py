@@ -144,6 +144,9 @@ class TestS3Storage(unittest.TestCase):
 
 
 class TestCloudFrontS3Storage(TestS3Storage):
+
+    """ Tests for storing packages on S3 with CloudFront in front """
+
     def setUp(self):
         super(TestCloudFrontS3Storage, self).setUp()
         self.s3_mock = mock_s3()

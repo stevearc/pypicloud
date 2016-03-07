@@ -159,6 +159,8 @@ class S3Storage(IStorage):
 
 
 class CloudFrontS3Storage(S3Storage):
+
+    """ Storage backend that uses S3 and CloudFront """
     def __init__(self, request=None, bucket=None, expire_after=None, bucket_prefix=None,
                  prepend_hash=None, cloud_front_domain=None, cloud_front_key_file=None,
                  cloud_front_key_string=None, cloud_front_key_id=None, **kwargs):
