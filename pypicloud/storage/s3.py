@@ -85,19 +85,20 @@ class S3Storage(IStorage):
         kwargs['bucket'] = bucket
         return kwargs
 
-    def get_filename(self, package):
-        filename = package.name + '/' + package.filename
+    def calculate_path(self, package):
+        """ Calculates the path of a package """
+        path = package.name + '/' + package.filename
         if self.prepend_hash:
             m = md5()
             m.update(package.filename)
             prefix = m.digest().encode('hex')[:4]
-            filename = prefix + '/' + filename
-        return filename
+            path = prefix + '/' + path
+        return path
 
     def get_path(self, package):
         """ Get the fully-qualified bucket path for a package """
         if 'path' not in package.data:
-            filename = self.get_filename(package)
+            filename = self.calculate_path(package)
             package.data['path'] = self.bucket_prefix + filename
         return package.data['path']
 
@@ -188,8 +189,8 @@ class CloudFrontS3Storage(S3Storage):
 
     def get_url(self, package):
         """ Get the fully-qualified CloudFront path for a package """
-        filename = self.get_filename(package)
-        url = self.cloud_front_domain + '/' + filename
+        path = self.calculate_path(package)
+        url = self.cloud_front_domain + '/' + path
 
         url = url.replace('+', '%2b')
 
