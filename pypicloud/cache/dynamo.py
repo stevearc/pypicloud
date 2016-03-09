@@ -25,6 +25,32 @@ except ImportError:  # pragma: no cover
 LOG = logging.getLogger(__name__)
 
 
+def _path_depth(package):
+    """Count the slashes in path, or return infinity on no path."""
+    path = package.data.get('path')
+    if not path:
+        return float('+inf')
+    return path.count('/')
+
+
+def _decide_between_versions(contender, current):
+    """Decide between packages with the same filename on different paths.
+
+    The earliest one wins. If they both have the same last_modified, prefer the
+    one closer to the root.
+    """
+
+    if contender.last_modified < current.last_modified:
+        return contender
+    if current.last_modified < contender.last_modified:
+        return current
+
+    if _path_depth(contender) < _path_depth(current):
+        return contender
+
+    return current
+
+
 def _clear_summary(summary):
 
     """ Clear out the field of a PackageSummary object """
@@ -47,43 +73,34 @@ CacheUpdates = namedtuple(
 )
 
 
-def calculate_cache_updates(cache_packages, cache_summaries, storage_packages, summary_factory):
+def calculate_cache_updates(
+    cache_packages,
+    cache_summaries,
+    storage_packages,
+    summary_factory,
+):
 
     """ Calculates what changes need to happen in the cache to update it. """
+
+    cached_pkg_by_filename = dict(
+        (pkg.filename, pkg,)
+        for pkg in cache_packages
+    )
     # Clear out non-key fields of the cached summaries to purge stable and
     # unstable fields.
     cached_summ_by_name = dict(
         (summ.name, _clear_summary(summ),)
         for summ in cache_summaries
     )
-    cached_pkg_by_filename = dict(
-        (pkg.filename, pkg,)
-        for pkg in cache_packages
-    )
 
     new_packages = set()
     seen_packages = set()
+    stale_packages = set()
+
     new_summaries_by_name = dict()
     seen_summaries = set()
+
     for pkg in storage_packages:
-        try:
-            cached_pkg = cached_pkg_by_filename[pkg.filename]
-        except KeyError:
-            new_packages.add(pkg)
-        else:
-            seen_packages.add(cached_pkg)
-
-            # Skip over duplicate files (same filename, different paths).
-            # XXX Is this acceptable? How should I decide this?
-            if cached_pkg.last_modified > pkg.last_modified:
-                continue
-
-            cached_pkg.filename = pkg.filename
-            cached_pkg.name = pkg.name
-            cached_pkg.version = pkg.version
-            cached_pkg.last_modified = pkg.last_modified
-            cached_pkg.data = pkg.data
-
         try:
             summ = cached_summ_by_name[pkg.name]
         except KeyError:
@@ -94,10 +111,28 @@ def calculate_cache_updates(cache_packages, cache_summaries, storage_packages, s
         else:
             seen_summaries.add(summ)
 
-        summ.update_with(pkg)
+        try:
+            cached_pkg = cached_pkg_by_filename[pkg.filename]
+        except KeyError:
+            new_packages.add(pkg)
+            summ.update_with(pkg)
+        else:
+            if _decide_between_versions(
+                pkg,
+                cached_pkg,
+            ) is pkg:
+                cached_pkg.filename = pkg.filename
+                cached_pkg.name = pkg.name
+                cached_pkg.version = pkg.version
+                cached_pkg.last_modified = pkg.last_modified
+                cached_pkg.data = dict(pkg.data)
+
+            seen_packages.add(cached_pkg)
+            summ.update_with(cached_pkg)
+
+    stale_packages = set(cached_pkg_by_filename.itervalues()) - seen_packages
 
     new_summaries = new_summaries_by_name.itervalues()
-    stale_packages = set(cached_pkg_by_filename.itervalues()) - seen_packages
     stale_summaries = set(cached_summ_by_name.itervalues()) - seen_summaries
 
     return CacheUpdates(
@@ -217,7 +252,7 @@ class DynamoCache(ICache):
             """ Confirm that the fields marked on __dirty__ are true """
             return any(
                 o.ddb_dump_cached_(f) != o.ddb_dump_field_(f)
-                for f in o.__dirty__
+                for f in o.__dirty__ | set(o.__cache__.keys())
             )
         updated_packages = filter(is_effectively_dirty, cache_updates.seen_packages)
         updated_summaries = filter(is_effectively_dirty, cache_updates.seen_summaries)

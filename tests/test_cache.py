@@ -714,29 +714,58 @@ class TestDynamoCache(unittest.TestCase):
         )
 
     def test_reload_same_filename_different_paths(self):
-        """ Given two packages with the same filename, use the latest. """
-        paths = [
-            'here.tgz',
-            'somewhere/far/from/here.tgz',
-        ]
+        """ Given two packages with the same filename and same last_modified,
+        use the shortest path. """
+        filename = 'here.tgz'
+        now = datetime.utcnow().replace(tzinfo=UTC)
         pkgs = [
-            make_package(path=p, factory=DynamoPackage)
-            for p in paths
+            make_package(
+                filename=filename,
+                path=p,
+                last_modified=now,
+                factory=DynamoPackage)
+            for p in (
+                filename,
+                'somewhere/far/from/' + filename,
+            )
         ]
 
-        # The last pkg always wins, since it's more recent.
         for p in pkgs:
+            self.db.clear_all()
             self._save_pkgs(p)
             self.storage.list.return_value = pkgs
             self.db.reload_from_storage()
 
             self.assertDictEqual(
-                pkgs[1].data,
-                self.engine.scan(DynamoPackage).all()[0].data,
+                pkgs[0].data,
+                self.db.fetch(filename).data,
             )
-            self.assertEqual(
-                self._summaries(pkgs[1]),
-                self.db.summary(),
+
+    def test_reload_same_filename_later_contender(self):
+        """Given two packages with the same filename, use the earliest one."""
+        # Since we didn't set last_modified, these will have ascending dates.
+        # That means the first one always wins.
+        filename = 'carrot-1.0.tgz'
+        pkgs = [
+            make_package(
+                filename=filename,
+                path=p,
+                factory=DynamoPackage)
+            for p in (
+                '0/' + filename,
+                '1/' + filename,
+            )
+        ]
+
+        for p in pkgs:
+            self.db.clear_all()
+            self._save_pkgs(p)
+            self.storage.list.return_value = pkgs
+            self.db.reload_from_storage()
+
+            self.assertDictEqual(
+                pkgs[0].data,
+                self.db.fetch(filename).data,
             )
 
     def test_reload_clobber_package_save(self):
@@ -892,10 +921,6 @@ class TestDynamoCache(unittest.TestCase):
         with reload_in_another_thread(self.db):
             self.storage.list.return_value = [pkgs[1]]
             self.db.save(pkgs[1])
-            self.assertItemsEqual(
-                [pkgs[1]],
-                self.engine.scan(DynamoPackage).all(),
-            )
 
         self.assertItemsEqual(
             [pkgs[1]],
