@@ -3,6 +3,7 @@ from __future__ import division
 import logging
 import posixpath
 from datetime import datetime
+from functools import wraps
 
 from distlib.locators import Locator, SimpleScrapingLocator
 from distlib.util import split_filename
@@ -91,3 +92,22 @@ def dt2ts(dt):
 def ts2dt(ts):
     """Timestamp to datetime."""
     return datetime.utcfromtimestamp(float(ts)).replace(tzinfo=UTC)
+
+
+def retry(tries=3, exceptions=(Exception,)):
+    """Decorator to try something at most `tries` times when some of
+    `exceptions` happen."""
+    def retry_applier(fn):
+        """The actual decorator."""
+        @wraps(fn)
+        def retrying_wrapper(*args, **kwargs):
+            """The actual retrier."""
+            for n in xrange(tries):
+                try:
+                    return fn(*args, **kwargs)
+                except exceptions:
+                    if n == tries - 1:
+                        raise
+                    continue
+        return retrying_wrapper
+    return retry_applier

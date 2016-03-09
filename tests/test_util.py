@@ -1,5 +1,8 @@
 """ Tests for pypicloud utilities """
+from mock import MagicMock
+
 from pypicloud import util
+
 try:
     import unittest2 as unittest  # pylint: disable=F0401
 except ImportError:
@@ -56,3 +59,76 @@ class TestScrapers(unittest.TestCase):
         locator.prefer_wheel = False
         self.assertTrue(locator.score_url('http://localhost/mypkg-1.1.whl') <
                         locator.score_url('http://localhost/mypkg-1.1.tar.gz'))
+
+
+class TestRetry(unittest.TestCase):
+    """Test the retry method."""
+
+    def _mock_callee_and_retrier(
+            self,
+            return_value,
+            leading_exceptions=(),
+            retried_exceptions=(Exception,),
+    ):
+        """Helper method to have a mock callee and the retrying version of
+        it."""
+        target = MagicMock()
+        target.__name__ = 'target'  # or wraps complains
+        if leading_exceptions:
+            target.side_effect = leading_exceptions + (return_value,)
+        else:
+            target.return_value = return_value
+
+        return target, util.retry(tries=2, exceptions=retried_exceptions)(target)
+
+    def test_ok(self):
+        """If no exception happens, return value."""
+        value = 1
+        target, retrying = self._mock_callee_and_retrier(value)
+
+        self.assertEqual(
+            value,
+            retrying(),
+        )
+
+        self.assertEqual(1, target.call_count)
+
+    def test_retry_and_succeed(self):
+        """If less than `tries` happen, return value."""
+        value = 1
+        target, retrying = self._mock_callee_and_retrier(
+            value,
+            leading_exceptions=(Exception,),
+        )
+
+        self.assertEqual(
+            value,
+            retrying(),
+        )
+
+        self.assertEqual(2, target.call_count)
+
+    def test_let_other_exceptions_through(self):
+        """If some other exception happens, let it through."""
+        target, retrying = self._mock_callee_and_retrier(
+            "Not used",
+            leading_exceptions=(Exception,),
+            retried_exceptions=(ValueError,)
+        )
+
+        with self.assertRaises(Exception):
+            retrying()
+
+        self.assertEqual(1, target.call_count)
+
+    def test_raise_when_out_of_tries(self):
+        """If we fail more than `tries` times, let the exception through."""
+        target, retrying = self._mock_callee_and_retrier(
+            "Not used",
+            leading_exceptions=(Exception, Exception,),
+        )
+
+        with self.assertRaises(Exception):
+            retrying()
+
+        self.assertEqual(2, target.call_count)

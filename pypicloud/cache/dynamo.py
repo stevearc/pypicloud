@@ -3,7 +3,7 @@ import logging
 import time
 from collections import namedtuple
 from datetime import datetime
-from itertools import imap
+from itertools import imap, chain
 from pkg_resources import parse_version
 
 from dynamo3 import ConditionalCheckFailedException, DynamoDBConnection
@@ -11,7 +11,7 @@ from pyramid.settings import asbool
 
 from .base import ICache
 from pypicloud.models import Package
-from pypicloud.util import EPOCH
+from pypicloud.util import EPOCH, retry
 
 
 try:
@@ -51,97 +51,55 @@ def _decide_between_versions(contender, current):
     return current
 
 
-def _clear_summary(summary):
-
-    """ Clear out the field of a PackageSummary object """
-    summary.stable = None
-    summary.unstable = '0'
-    summary.last_modified = EPOCH
-    return summary
-
-
-CacheUpdates = namedtuple(
-    'CacheUpdates',
+PackageUpdates = namedtuple(
+    'PackageUpdates',
     [
         'new_packages',
         'seen_packages',
+        'updated_packages',
         'stale_packages',
-        'new_summaries',
-        'seen_summaries',
-        'stale_summaries',
     ],
 )
 
 
-def calculate_cache_updates(
-    cache_packages,
-    cache_summaries,
-    storage_packages,
-    summary_factory,
+def calculate_package_updates(
+        cache_packages,
+        storage_packages,
 ):
-
     """ Calculates what changes need to happen in the cache to update it. """
 
     cached_pkg_by_filename = dict(
         (pkg.filename, pkg,)
         for pkg in cache_packages
     )
-    # Clear out non-key fields of the cached summaries to purge stable and
-    # unstable fields.
-    cached_summ_by_name = dict(
-        (summ.name, _clear_summary(summ),)
-        for summ in cache_summaries
-    )
 
     new_packages = set()
     seen_packages = set()
-    stale_packages = set()
-
-    new_summaries_by_name = dict()
-    seen_summaries = set()
+    updated_packages = set()
 
     for pkg in storage_packages:
-        try:
-            summ = cached_summ_by_name[pkg.name]
-        except KeyError:
-            summ = new_summaries_by_name.setdefault(
-                pkg.name,
-                summary_factory(pkg),
-            )
-        else:
-            seen_summaries.add(summ)
-
         try:
             cached_pkg = cached_pkg_by_filename[pkg.filename]
         except KeyError:
             new_packages.add(pkg)
-            summ.update_with(pkg)
         else:
-            if _decide_between_versions(
-                pkg,
-                cached_pkg,
-            ) is pkg:
-                cached_pkg.filename = pkg.filename
+            if _decide_between_versions(pkg, cached_pkg) is cached_pkg:
+                seen_packages.add(cached_pkg)
+            else:
                 cached_pkg.name = pkg.name
                 cached_pkg.version = pkg.version
                 cached_pkg.last_modified = pkg.last_modified
                 cached_pkg.data = dict(pkg.data)
 
-            seen_packages.add(cached_pkg)
-            summ.update_with(cached_pkg)
+                updated_packages.add(cached_pkg)
 
     stale_packages = set(cached_pkg_by_filename.itervalues()) - seen_packages
 
-    new_summaries = new_summaries_by_name.itervalues()
-    stale_summaries = set(cached_summ_by_name.itervalues()) - seen_summaries
-
-    return CacheUpdates(
+    return PackageUpdates(
         new_packages,
         seen_packages,
+        updated_packages,
         stale_packages,
-        new_summaries,
-        seen_summaries,
-        stale_summaries,
     )
 
 
@@ -233,34 +191,17 @@ class DynamoCache(ICache):
         return kwargs
 
     def reload_from_storage(self):
-        LOG.info("Recalculating cache.")
+        LOG.info("Recalculating package cache.")
 
-        cache_updates = calculate_cache_updates(
+        cache_updates = calculate_package_updates(
             self.engine.scan(DynamoPackage),
-            self.engine.scan(PackageSummary),
             self.storage.list(self.package_class),
-            PackageSummary,
         )
 
-        # HACK flywheel only checks for dirtyness on the first difference.
-        # If we do:
-        #     obj.a, obj.b = obj.b, obj.a
-        #     obj.a, obj.b = obj.b, obj.a
-        # We're going to get:
-        #     bool(obj.__dirty__) == True
-        def is_effectively_dirty(o):
-            """ Confirm that the fields marked on __dirty__ are true """
-            return any(
-                o.ddb_dump_cached_(f) != o.ddb_dump_field_(f)
-                for f in o.__dirty__ | set(o.__cache__.keys())
-            )
-        updated_packages = filter(is_effectively_dirty, cache_updates.seen_packages)
-        updated_summaries = filter(is_effectively_dirty, cache_updates.seen_summaries)
-
-        LOG.info("Cache recalculated. Persisting new version.")
+        LOG.info("Package cache recalculated. Persisting new version.")
 
         def do_or_skip(operation, coll, warn=True, **kwargs):
-            """ Do `operation`, ignore ConditionalCheckFailedExceptions """
+            """ Do `operation`, ignore ConditionalCheckFailedException """
             operator = getattr(self.engine, operation)
             for o in coll:
                 try:
@@ -274,50 +215,23 @@ class DynamoCache(ICache):
                         o,
                     )
 
-        def do_or_recalc_summaries(operation, coll, **kwargs):
-            """ Do `operation`, on ConditionalCheckFailedExceptions
-            recalculate the summary. """
-            operator = getattr(self.engine, operation)
-            for summ in coll:
-                try:
-                    operator(summ, **kwargs)
-                except ConditionalCheckFailedException:
-                    # If somebody else updated a summary, there's probably a
-                    # new package that got mutated after we read Dynamo. We
-                    # need to rebuild the whole summary.
-                    # Redoing it once will suffice in the overwhelming majority
-                    # of the cases. If not, it'll have to wait until the next
-                    # rebuild.
-
-                    LOG.warn(
-                        "Conflict while trying to %s %r. Recalculating.",
-                        operation,
-                        summ,
-                    )
-
-                    pkgs = self.all(summ.name)
-                    if not pkgs:
-                        do_or_skip('delete', [summ], raise_on_conflict=True)
-                        continue
-
-                    summ.refresh(consistent=True)
-                    summ = _clear_summary(summ)
-                    for pkg in pkgs:
-                        summ.update_with(pkg)
-
-                    do_or_skip('sync', [summ], raise_on_conflict=True)
-
-        do_or_skip('save', cache_updates.new_packages, overwrite=False, warn=False)
         # If somebody else updated a package, they're probably operating on
         # fresher data. In those cases, skip the change.
-        do_or_skip('sync', updated_packages, raise_on_conflict=True)
+        do_or_skip('save', cache_updates.new_packages, overwrite=False, warn=False)
+        do_or_skip('sync', cache_updates.updated_packages, raise_on_conflict=True)
         do_or_skip('delete', cache_updates.stale_packages, raise_on_conflict=True)
 
-        do_or_recalc_summaries('save', cache_updates.new_summaries, overwrite=False)
-        do_or_recalc_summaries('sync', updated_summaries, raise_on_conflict=True)
-        do_or_recalc_summaries('delete', cache_updates.stale_summaries, raise_on_conflict=True)
+        LOG.info("Package cache persisted. Updating summaries.")
 
-        LOG.info("Finished persisting cache.")
+        all_changed_packages = chain(
+            cache_updates.new_packages,
+            cache_updates.updated_packages,
+            cache_updates.stale_packages,
+        )
+        for name in set(p.name for p in all_changed_packages):
+            self._rebuild_summary_for_package_named(name)
+
+        LOG.info("Summaries updated. All done.")
 
     def fetch(self, filename):
         return self.engine.get(DynamoPackage, filename=filename)
@@ -337,26 +251,33 @@ class DynamoCache(ICache):
                            key=lambda s: s.name)
         return [s.__json__() for s in summaries]
 
-    def clear(self, package):
-        summary = self.engine.get(PackageSummary, name=package.name)
-        if summary is not None and \
-            (summary.unstable == package.version or
-             summary.stable == package.version or
-             summary.last_modified == package.last_modified):
-            _clear_summary(summary)
-            all_packages = self.engine.scan(DynamoPackage)\
-                .filter(DynamoPackage.filename != package.filename,
-                        name=package.name)
-            delete_summary = True
-            for package in all_packages:
-                delete_summary = False
-                summary.update_with(package)
-            if delete_summary:
-                summary.delete()
-            else:
-                summary.sync()
+    @retry(tries=3, exceptions=(ConditionalCheckFailedException,))
+    def _rebuild_summary_for_package_named(self, name):
+        """Rebuild the summary from the cached packages."""
 
+        pkgs = self.all(name)
+        summary = self.engine.get(PackageSummary, name=name, consistent=True)
+
+        if not pkgs:
+            if summary:
+                self.engine.delete(summary)
+            return
+
+        if summary:
+            summary.stable = None
+            summary.unstable = '0'
+            summary.last_modified = EPOCH
+        else:
+            summary = PackageSummary(pkgs[0])
+
+        for pkg in pkgs:
+            summary.update_with(pkg)
+
+        self.engine.sync(summary, raise_on_conflict=True)
+
+    def clear(self, package):
         self.engine.delete(package)
+        self._rebuild_summary_for_package_named(package.name)
 
     def clear_all(self):
         # We're replacing the schema, so make sure we save and restore the
@@ -380,11 +301,11 @@ class DynamoCache(ICache):
         self.engine.create_schema(throughput=throughput)
 
     def save(self, package):
+        self.engine.save(package)
+
         summary = self.engine.get(PackageSummary, name=package.name)
         if summary is None:
             summary = PackageSummary(package)
         else:
             summary.update_with(package)
-
-        self.engine.save(package)
         self.engine.sync(summary)

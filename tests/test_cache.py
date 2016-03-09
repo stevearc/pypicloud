@@ -10,6 +10,7 @@ from redis import ConnectionError
 from mock import MagicMock, patch, ANY
 from pyramid.testing import DummyRequest
 from sqlalchemy.exc import OperationalError
+from pytz import UTC
 
 from . import DummyCache, DummyStorage, make_package
 from dynamo3 import Throughput
@@ -34,7 +35,7 @@ def reload_in_another_thread(cache):
 
     ready = threading.Event()
     done = threading.Event()
-    patcher = patch('pypicloud.cache.dynamo.calculate_cache_updates')
+    patcher = patch('pypicloud.cache.dynamo.calculate_package_updates')
     original, _ = patcher.get_original()
 
     @wraps(original)
@@ -676,14 +677,12 @@ class TestDynamoCache(unittest.TestCase):
         self.db.save(pkgs[1])
         self.storage.list.return_value = pkgs[1:]
 
-        self.assertEqual(
-            self._summaries(pkgs[0], pkgs[1]),
-            self.db.summary(),
-        )
-
         self.db.reload_from_storage()
-        all_pkgs = self.engine.scan(DynamoPackage).all()
-        self.assertItemsEqual(all_pkgs, pkgs[1:])
+
+        self.assertItemsEqual(
+            self.storage.list.return_value,
+            self.engine.scan(DynamoPackage).all(),
+        )
         self.assertEqual(
             self._summaries(pkgs[2], pkgs[3]),
             self.db.summary(),
