@@ -182,13 +182,13 @@ class TestCloudFrontS3Storage(TestS3Storage):
 
     def test_get_url(self):
         """ Mock s3 and test package url generation """
-        package = make_package()
+        package = make_package(version="1.1+g12345")
         response = self.storage.download_response(package)
 
         parts = urlparse(response.location)
         self.assertEqual(parts.scheme, 'https')
         self.assertEqual(parts.netloc, 'abcdef.cloudfront.net')
-        self.assertEqual(parts.path, '/' + self.storage.get_path(package))
+        self.assertEqual(parts.path, '/bcc4/mypkg/mypkg-1.1%2Bg12345.tar.gz')
         query = parse_qs(parts.query)
         self.assertItemsEqual(query.keys(), ['Key-Pair-Id', 'Expires',
                                              'Signature'])

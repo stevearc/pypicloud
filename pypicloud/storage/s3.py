@@ -5,7 +5,7 @@ import posixpath
 import time
 from contextlib import contextmanager
 from hashlib import md5
-from urllib import urlopen
+from urllib import urlopen, quote
 
 import boto.s3
 from boto.cloudfront import Distribution
@@ -190,9 +190,7 @@ class CloudFrontS3Storage(S3Storage):
     def get_url(self, package):
         """ Get the fully-qualified CloudFront path for a package """
         path = self.calculate_path(package)
-        url = self.cloud_front_domain + '/' + path
-
-        url = url.replace('+', '%2b')
+        url = self.cloud_front_domain + '/' + quote(path)
 
         if self.cloud_front_key_file or self.cloud_front_key_string:
             expire_time = int(time.time() + self.expire_after)
