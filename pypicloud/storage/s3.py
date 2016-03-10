@@ -53,18 +53,18 @@ class S3Storage(IStorage):
         kwargs['prepend_hash'] = asbool(getdefaults(
             settings, 'storage.prepend_hash', 'aws.prepend_hash', True))
         access_key = getdefaults(settings, 'storage.access_key',
-                            'aws.access_key', None)
+                                 'aws.access_key', None)
         secret_key = getdefaults(settings, 'storage.secret_key',
-                            'aws.secret_key', None)
+                                 'aws.secret_key', None)
         host = getdefaults(settings, 'storage.host',
-                            'aws.host', boto.s3.connection.NoHostProvided)
+                           'aws.host', boto.s3.connection.NoHostProvided)
         is_secure = getdefaults(settings, 'storage.is_secure',
-                            'aws.is_secure', True)
+                                'aws.is_secure', True)
         calling_format = getdefaults(settings, 'storage.calling_format',
-                            'aws.calling_format', 
-                            'SubdomainCallingFormat')
+                                     'aws.calling_format',
+                                     'SubdomainCallingFormat')
 
-        if not calling_format in SUPPORTED_CALLING_FORMATS:
+        if calling_format not in SUPPORTED_CALLING_FORMATS:
             raise ValueError("Only {0} are supported for calling_format"\
                              .format(', '.join(SUPPORTED_CALLING_FORMATS)))
 
@@ -78,9 +78,9 @@ class S3Storage(IStorage):
             s3conn = boto.connect_s3(
                 aws_access_key_id=access_key,
                 aws_secret_access_key=secret_key,
-                host = host,
-                is_secure = str2bool(is_secure),
-                calling_format = SUPPORTED_CALLING_FORMATS[calling_format]())
+                host=host,
+                is_secure=str2bool(is_secure),
+                calling_format=SUPPORTED_CALLING_FORMATS[calling_format]())
         else:
             s3conn = boto.s3.connect_to_region(location,
                                                aws_access_key_id=access_key,
