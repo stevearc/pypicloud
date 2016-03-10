@@ -51,6 +51,26 @@ This is required if your bucket is in a new region, such as ``eu-central-1``.
 If your bucket does not yet exist, it will be created in this region on
 startup. If blank, the classic US region will be used.
 
+``storage.host``
+~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+Specify S3 compatible API fqdn/IP. On other systems, this variable could be called an endpoint.
+
+``storage.is_secure``
+~~~~~~~~~~~~~~~~~~
+**Argument:** boolean, optional
+
+Use secure connection (https) or not (http). Default is True.
+
+``storage.calling_format``
+~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+Choose how to call the S3 API. Supported formats are SubdomainCallingFormat, VHostCallingFormat, OrdinaryCallingFormat and 
+ProtocolIndependentOrdinaryCallingFormat.
+For example, not all S3 compatible API use <bucket>.<host> format, so put this value to OrdinaryCallingFormat.
+
 ``storage.prefix``
 ~~~~~~~~~~~~~~~~~~
 **Argument:** string, optional

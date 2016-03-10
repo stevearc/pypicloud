@@ -75,3 +75,20 @@ def getdefaults(settings, *args):
                          "(replaced by '%s')", key, canonical)
             return settings[key]
     return default
+
+
+def str2bool(value):
+    """
+    Convert string or int True or False
+
+    Parameters
+    ----------
+    name : str
+        Value to cast to boolean.
+
+    Returns
+    -------
+    bool
+        True if string matchs.
+    """
+    return str(value).lower() in ("yes", "true", "t", "1")
