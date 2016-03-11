@@ -77,7 +77,7 @@ expire at all. S3 does it for security, but expiring links isn't part of the
 python package security model. So in theory you can bump this number up.
 
 CloudFront
---
+----------
 This option will store your packages in S3 but use CloudFront to deliver the packages.
 This is an extension of the S3 storage backend and require the same settings as above,
 but also the settings listed below.
