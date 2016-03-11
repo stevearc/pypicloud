@@ -98,8 +98,8 @@ Example: ``https://dabcdefgh12345.cloudfront.net``
 **Argument:** string, optional
 
 If you want to protect your packages from public access you need to set up the CloudFront
-distribution to use signed URLs. This setting specifies the key id of the [CloudFront
-key pair](http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-trusted-signers.html)
+distribution to use signed URLs. This setting specifies the key id of the `CloudFront key pair
+<http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-trusted-signers.html>`_
 that is currently active on your AWS account.
 
 ``storage.cloud_front_key_file``
