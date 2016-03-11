@@ -75,3 +75,36 @@ How long (in seconds) the generated S3 urls are valid for (default 86400 (1
 day)). In practice, there is no real reason why these generated urls need to
 expire at all. S3 does it for security, but expiring links isn't part of the
 python package security model. So in theory you can bump this number up.
+
+CloudFront
+--
+This option will store your packages in S3 but use CloudFront to deliver the packages.
+This is an extension of the S3 storage backend and require the same settings as above,
+but also the settings listed below.
+
+Set ``pypi.storage = cloudfront`` OR ``pypi.s3 = pypicloud.storage.CloudFrontS3Storage``
+
+``storage.cloud_front_domain``
+~~~~~~~~~~~~~~~~~~
+**Argument:** string
+
+The CloudFront domain you have set up. This CloudFront distribution must be set up to
+use your S3 bucket as the origin.
+
+Example: ``https://dabcdefgh12345.cloudfront.net``
+
+``storage.cloud_front_key_id``
+~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+If you want to protect your packages from public access you need to set up the CloudFront
+distribution to use signed URLs. This setting specifies the key id of the [CloudFront
+key pair](http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-trusted-signers.html)
+that is currently active on your AWS account.
+
+``storage.cloud_front_key_file``
+~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+Only needed when setting up CloudFront with signed URLs. This setting should be
+set to the full path of the CloudFront private key file.

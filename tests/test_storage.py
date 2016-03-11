@@ -16,7 +16,7 @@ import re
 from boto.s3.key import Key
 import boto.exception
 from pypicloud.models import Package
-from pypicloud.storage import S3Storage, FileStorage
+from pypicloud.storage import S3Storage, CloudFrontS3Storage, FileStorage
 from . import make_package
 
 try:
@@ -141,6 +141,60 @@ class TestS3Storage(unittest.TestCase):
         S3Storage.configure(settings)
         conn.create_bucket.assert_called_with('new_bucket',
                                               location='us-east-1')
+
+
+class TestCloudFrontS3Storage(TestS3Storage):
+
+    """ Tests for storing packages on S3 with CloudFront in front """
+
+    def setUp(self):
+        super(TestCloudFrontS3Storage, self).setUp()
+        self.s3_mock = mock_s3()
+        self.s3_mock.start()
+        self.settings = {
+            'storage.bucket': 'mybucket',
+            'storage.access_key': 'abc',
+            'storage.secret_key': 'bcd',
+            'storage.cloud_front_domain': 'https://abcdef.cloudfront.net',
+            'storage.cloud_front_key_file': '',
+            'storage.cloud_front_key_string': '-----BEGIN RSA PRIVATE KEY-----\n'
+                                              'MIICXQIBAAKBgQDNBN3WHzIgmOEkBVNdBlTR7iGYyUXDVuFRkJlYp/n1/EZf2YtE\n'
+                                              'BpxJAgqdwej8beWV16QXOnKXQpsGAeu7x2pvOGFyRGytmLDeUXayfIF/E46w83V2\n'
+                                              'r53NOBrlezagqCAz9uafocyNaXlxZfp4tx82sEmpSmHGwd//+n6zgXNC0QIDAQAB\n'
+                                              'AoGAd5EIA1GMPYCLhSNp+82ueARGKcHwYrzviU8ob5D/cVtge5P26YRlbxq2sEyf\n'
+                                              'oWBCTgJGW5mlrNuWZ4mFPq1NP2X2IU80k/J67KOuOelAykIVQw6q6GAjtmh40x4N\n'
+                                              'EekoFzxVqoFKqWOJ1UNP0jNOyfzxU5dfzvw5GOEXob9usjECQQD3++wWCoq+YRCz\n'
+                                              '8qqav2M7leoAnDwmCYKpnugDU0NR61sZADS3kJHnhXAbPFQI4dRfETJOkKE/iDph\n'
+                                              'G0Rtdfm1AkEA06VoI49wjEMYs4ah3qwpvhuVyxVa9iozIEoDYiVCOOBZw8rX79G4\n'
+                                              '+5yzC9ehy9ugWttSA2jigNXVB6ORN3+mLQJBAM47lZizBbXUdZahvp5ZgoZgY65E\n'
+                                              'QIWFrUOxYtS5Hyh2qlk9YZozwhOgVp5f6qdEYGD7pTHPeDqk6aAulBbQYW0CQQC4\n'
+                                              'hAw2dGd64UQ3v7h/mTkLNKFzXDrhQgkwrVYlyrXhQDcCK2X2/rB3LDYsrOGyCNfU\n'
+                                              'XkEyF87g44vGDSQdbnxBAkA1Y+lB/pqdyHMv5RFabkBvU0yQDfekAKHeQ6rS+21g\n'
+                                              'dWedUVc1JNnKtb8W/rMfdjg9YLYqUTvoBvp0DjfwdYc4\n'
+                                              '-----END RSA PRIVATE KEY-----',
+            'storage.cloud_front_key_id': 'key-id'
+        }
+        conn = boto.connect_s3()
+        self.bucket = conn.create_bucket('mybucket')
+        patch.object(CloudFrontS3Storage, 'test', True).start()
+        kwargs = CloudFrontS3Storage.configure(self.settings)
+        self.storage = CloudFrontS3Storage(MagicMock(), **kwargs)
+
+    def test_get_url(self):
+        """ Mock s3 and test package url generation """
+        package = make_package(version="1.1+g12345")
+        response = self.storage.download_response(package)
+
+        parts = urlparse(response.location)
+        self.assertEqual(parts.scheme, 'https')
+        self.assertEqual(parts.netloc, 'abcdef.cloudfront.net')
+        self.assertEqual(parts.path, '/bcc4/mypkg/mypkg-1.1%2Bg12345.tar.gz')
+        query = parse_qs(parts.query)
+        self.assertItemsEqual(query.keys(), ['Key-Pair-Id', 'Expires',
+                                             'Signature'])
+        self.assertTrue(int(query['Expires'][0]) > time.time())
+        self.assertEqual(query['Key-Pair-Id'][0],
+                         self.settings['storage.cloud_front_key_id'])
 
 
 class TestFileStorage(unittest.TestCase):
