@@ -2,6 +2,11 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.3.8
+-----
+* Feature: Cloudfront storage (:pr:`71`)
+* Bug fix: Rebuilding cache from storage won't crash on odd file names (:pr:`70`)
+
 0.3.7
 -----
 * Feature: ``/packages`` endpoint to list all files for all packages (:pr:`64`)
