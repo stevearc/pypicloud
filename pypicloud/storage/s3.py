@@ -15,7 +15,7 @@ from pyramid.settings import asbool
 
 from .base import IStorage
 from pypicloud.models import Package
-from pypicloud.util import parse_filename, getdefaults, str2bool
+from pypicloud.util import parse_filename, getdefaults
 
 
 LOG = logging.getLogger(__name__)
@@ -60,9 +60,8 @@ class S3Storage(IStorage):
                            'aws.host', boto.s3.connection.NoHostProvided)
         is_secure = getdefaults(settings, 'storage.is_secure',
                                 'aws.is_secure', True)
-        calling_format = getdefaults(settings, 'storage.calling_format',
-                                     'aws.calling_format',
-                                     'SubdomainCallingFormat')
+        calling_format = settings.get('storage.calling_format',
+                                      'SubdomainCallingFormat')
 
         if calling_format not in SUPPORTED_CALLING_FORMATS:
             raise ValueError("Only {0} are supported for calling_format"\
@@ -79,7 +78,7 @@ class S3Storage(IStorage):
                 aws_access_key_id=access_key,
                 aws_secret_access_key=secret_key,
                 host=host,
-                is_secure=str2bool(is_secure),
+                is_secure=asbool(is_secure),
                 calling_format=SUPPORTED_CALLING_FORMATS[calling_format]())
         else:
             s3conn = boto.s3.connect_to_region(location,
