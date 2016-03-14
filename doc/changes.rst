@@ -2,6 +2,11 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.3.9
+-----
+* Bug fix: SQL cache works with MySQL (:issue:`74`)
+* Feature: S3 backend can use S3-compatible APIs (:pr:`72`)
+
 0.3.8
 -----
 * Feature: Cloudfront storage (:pr:`71`)
