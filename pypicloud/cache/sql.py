@@ -4,7 +4,8 @@ from datetime import datetime
 import logging
 import transaction
 from pkg_resources import parse_version
-from sqlalchemy import engine_from_config, distinct, Column, DateTime, Text
+from sqlalchemy import (engine_from_config, distinct, Column, DateTime, Text,
+                        String)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.types import TypeDecorator, TEXT
@@ -76,9 +77,9 @@ class SQLPackage(Package, Base):
 
     """ Python package stored in SQLAlchemy """
     __tablename__ = 'packages'
-    filename = Column(Text(), primary_key=True)
-    name = Column(Text(), index=True, nullable=False)
-    version = Column(Text(), nullable=False)
+    filename = Column(String(255, convert_unicode=True), primary_key=True)
+    name = Column(String(255, convert_unicode=True), index=True, nullable=False)
+    version = Column(String(50, convert_unicode=True), nullable=False)
     last_modified = Column(DateTime(), index=True, nullable=False)
     data = Column(JSONEncodedDict(), nullable=False)
 

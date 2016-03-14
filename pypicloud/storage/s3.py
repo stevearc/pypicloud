@@ -29,6 +29,7 @@ SUPPORTED_CALLING_FORMATS = {
         boto.s3.connection.ProtocolIndependentOrdinaryCallingFormat
 }
 
+
 class S3Storage(IStorage):
 
     """ Storage backend that uses S3 """
@@ -65,7 +66,7 @@ class S3Storage(IStorage):
                                       'SubdomainCallingFormat')
 
         if calling_format not in SUPPORTED_CALLING_FORMATS:
-            raise ValueError("Only {0} are supported for calling_format"\
+            raise ValueError("Only {0} are supported for calling_format"
                              .format(', '.join(SUPPORTED_CALLING_FORMATS)))
 
         # We used to always use boto.connect_s3 because it can look up buckets
