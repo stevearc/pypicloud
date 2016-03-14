@@ -1,9 +1,12 @@
+# -*- coding: utf-8 -*-
 """ Tests for database cache implementations """
 import sys
 import transaction
+import calendar
 from redis import ConnectionError
-from mock import MagicMock, patch
+from mock import MagicMock, patch, ANY
 from pyramid.testing import DummyRequest
+from sqlalchemy.exc import OperationalError
 
 from . import DummyCache, DummyStorage, make_package
 from dynamo3 import Throughput
@@ -139,28 +142,33 @@ class TestBaseCache(unittest.TestCase):
             cache.save(make_package())
 
 
-class TestSQLCache(unittest.TestCase):
+class TestSQLiteCache(unittest.TestCase):
 
     """ Tests for the SQLAlchemy cache """
 
+    DB_URL = 'sqlite:///:memory:'
+
     @classmethod
     def setUpClass(cls):
-        super(TestSQLCache, cls).setUpClass()
+        super(TestSQLiteCache, cls).setUpClass()
         settings = {
             'pypi.storage': 'tests.DummyStorage',
-            'db.url': 'sqlite:///:memory:',
+            'db.url': cls.DB_URL,
         }
-        cls.kwargs = SQLCache.configure(settings)
+        try:
+            cls.kwargs = SQLCache.configure(settings)
+        except OperationalError:
+            raise unittest.SkipTest("Couldn't connect to database")
 
     def setUp(self):
-        super(TestSQLCache, self).setUp()
+        super(TestSQLiteCache, self).setUp()
         self.request = DummyRequest()
         self.db = SQLCache(self.request, **self.kwargs)
         self.sql = self.db.db
         self.storage = self.db.storage = MagicMock(spec=IStorage)
 
     def tearDown(self):
-        super(TestSQLCache, self).tearDown()
+        super(TestSQLiteCache, self).tearDown()
         transaction.abort()
         self.sql.query(SQLPackage).delete()
         transaction.commit()
@@ -189,6 +197,15 @@ class TestSQLCache(unittest.TestCase):
     def test_save(self):
         """ save() puts object into database """
         pkg = make_package(factory=SQLPackage)
+        self.db.save(pkg)
+        count = self.sql.query(SQLPackage).count()
+        self.assertEqual(count, 1)
+        saved_pkg = self.sql.query(SQLPackage).first()
+        self.assertEqual(saved_pkg, pkg)
+
+    def test_save_unicode(self):
+        """ save() can store packages with unicode in the names """
+        pkg = make_package(u'mypackage™', factory=SQLPackage)
         self.db.save(pkg)
         count = self.sql.query(SQLPackage).count()
         self.assertEqual(count, 1)
@@ -272,21 +289,22 @@ class TestSQLCache(unittest.TestCase):
         self.db.upload('pkg1-1.1.tar.gz', None, 'pkg1', '1.1')
         p1 = self.db.upload('pkg1a2.tar.gz', None, 'pkg1', '1.1.1a2')
         p2 = self.db.upload('pkg2.tar.gz', None, 'pkg2', '0.1dev2')
-        summaries = self.db.summary()
-        self.assertItemsEqual(summaries, [
-            {
-                'name': 'pkg1',
-                'stable': '1.1',
-                'unstable': '1.1.1a2',
-                'last_modified': p1.last_modified,
-            },
-            {
-                'name': 'pkg2',
-                'stable': None,
-                'unstable': '0.1dev2',
-                'last_modified': p2.last_modified,
-            },
-        ])
+        s1, s2 = self.db.summary()
+        # Order them correctly. assertItemsEqual isn't playing nice in py2.6
+        if s1['name'] == 'pkg2':
+            s1, s2 = s2, s1
+        self.assertEqual(s1['stable'], u'1.1')
+        self.assertEqual(s1['unstable'], u'1.1.1a2')
+        self.assertIsNone(s2['stable'])
+        self.assertEqual(s2['unstable'], u'0.1dev2')
+        # last_modified may be rounded when stored in MySQL,
+        # so the best we can do is make sure they're close.
+        self.assertTrue(
+            calendar.timegm(s1['last_modified'].timetuple()) -
+            calendar.timegm(p1.last_modified.timetuple()) <= 1)
+        self.assertTrue(
+            calendar.timegm(s2['last_modified'].timetuple()) -
+            calendar.timegm(p2.last_modified.timetuple()) <= 1)
 
     def test_multiple_packages_same_version(self):
         """ Can upload multiple packages that have the same version """
@@ -309,6 +327,18 @@ class TestSQLCache(unittest.TestCase):
         self.db.reload_if_needed()
         count = self.sql.query(SQLPackage).count()
         self.assertEqual(count, 1)
+
+
+class TestMySQLCache(TestSQLiteCache):
+    """ Test the SQLAlchemy cache on a MySQL DB """
+
+    DB_URL = 'mysql://root@127.0.0.1:3306/test'
+
+
+class TestPostgresCache(TestSQLiteCache):
+    """ Test the SQLAlchemy cache on a Postgres DB """
+
+    DB_URL = 'postgresql://postgres@127.0.0.1:5432/postgres'
 
 
 class TestRedisCache(unittest.TestCase):
