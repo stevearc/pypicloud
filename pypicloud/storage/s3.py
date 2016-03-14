@@ -10,6 +10,7 @@ from urllib import urlopen, quote
 import boto.s3
 from boto.cloudfront import Distribution
 from boto.s3.key import Key
+import boto.s3.connection
 from pyramid.httpexceptions import HTTPFound
 from pyramid.settings import asbool
 
@@ -20,6 +21,13 @@ from pypicloud.util import parse_filename, getdefaults
 
 LOG = logging.getLogger(__name__)
 
+SUPPORTED_CALLING_FORMATS = {
+    'SubdomainCallingFormat': boto.s3.connection.SubdomainCallingFormat,
+    'VHostCallingFormat': boto.s3.connection.VHostCallingFormat,
+    'OrdinaryCallingFormat': boto.s3.connection.OrdinaryCallingFormat,
+    'ProtocolIndependentOrdinaryCallingFormat':
+        boto.s3.connection.ProtocolIndependentOrdinaryCallingFormat
+}
 
 class S3Storage(IStorage):
 
@@ -49,6 +57,16 @@ class S3Storage(IStorage):
                                  'aws.access_key', None)
         secret_key = getdefaults(settings, 'storage.secret_key',
                                  'aws.secret_key', None)
+        host = getdefaults(settings, 'storage.host',
+                           'aws.host', boto.s3.connection.NoHostProvided)
+        is_secure = getdefaults(settings, 'storage.is_secure',
+                                'aws.is_secure', True)
+        calling_format = settings.get('storage.calling_format',
+                                      'SubdomainCallingFormat')
+
+        if calling_format not in SUPPORTED_CALLING_FORMATS:
+            raise ValueError("Only {0} are supported for calling_format"\
+                             .format(', '.join(SUPPORTED_CALLING_FORMATS)))
 
         # We used to always use boto.connect_s3 because it can look up buckets
         # in any region. New regions require AWS4-HMAC-SHA256, which boto can
@@ -59,7 +77,10 @@ class S3Storage(IStorage):
         if location is None:
             s3conn = boto.connect_s3(
                 aws_access_key_id=access_key,
-                aws_secret_access_key=secret_key)
+                aws_secret_access_key=secret_key,
+                host=host,
+                is_secure=asbool(is_secure),
+                calling_format=SUPPORTED_CALLING_FORMATS[calling_format]())
         else:
             s3conn = boto.s3.connect_to_region(location,
                                                aws_access_key_id=access_key,
