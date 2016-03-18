@@ -1,11 +1,12 @@
 """ Store packages in S3 """
-import calendar
 import logging
 import posixpath
 import time
 from contextlib import contextmanager
 from hashlib import md5
-from urllib import urlopen, quote
+from binascii import hexlify
+from six.moves.urllib.request import urlopen  # pylint: disable=F0401,E0611
+from six.moves.urllib.parse import quote  # pylint: disable=F0401,E0611
 
 import boto.s3
 from boto.cloudfront import Distribution
@@ -120,8 +121,8 @@ class S3Storage(IStorage):
         path = package.name + '/' + package.filename
         if self.prepend_hash:
             m = md5()
-            m.update(package.filename)
-            prefix = m.digest().encode('hex')[:4]
+            m.update(package.filename.encode('utf-8'))
+            prefix = hexlify(m.digest()).decode('utf-8')[:4]
             path = prefix + '/' + path
         return path
 

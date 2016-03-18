@@ -1,6 +1,7 @@
 """ Store package data in redis """
 import calendar
 import json
+import six
 from datetime import datetime
 
 from .base import ICache
@@ -62,7 +63,7 @@ class RedisCache(ICache):
         last_modified = datetime.utcfromtimestamp(
             float(data.pop('last_modified')))
         summary = data.pop('summary')
-        kwargs = dict(((k, json.loads(v)) for k, v in data.iteritems()))
+        kwargs = dict(((k, json.loads(v)) for k, v in six.iteritems(data)))
         return self.package_class(name, version, filename, last_modified,
                                   summary, **kwargs)
 
@@ -100,7 +101,7 @@ class RedisCache(ICache):
             'last_modified': calendar.timegm(dt.utctimetuple()) + dt.microsecond / 1000000.0,
             'summary': package.summary,
         }
-        for key, value in package.data.iteritems():
+        for key, value in six.iteritems(package.data):
             data[key] = json.dumps(value)
         pipe.hmset(self.redis_key(package.filename), data)
         pipe.sadd(self.redis_set, package.name)

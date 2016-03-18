@@ -2,6 +2,7 @@
 import json
 from datetime import datetime
 from contextlib import closing
+from binascii import hexlify
 
 from pyramid.response import FileResponse
 
@@ -75,7 +76,7 @@ class FileStorage(IStorage):
         destdir = os.path.dirname(destfile)
         if not os.path.exists(destdir):
             os.makedirs(destdir)
-        uid = os.urandom(4).encode('hex')
+        uid = hexlify(os.urandom(4)).decode('utf-8')
 
         # Store metadata as JSON. This could be expanded in the future
         # to store additional metadata about a package (i.e. author)

@@ -1,4 +1,5 @@
 """ Utilities for authentication and authorization """
+from base64 import b64decode
 import binascii
 
 # pylint: disable=E0611
@@ -20,8 +21,8 @@ def get_basicauth_credentials(request):
         return None
     if authmeth.lower() == 'basic':
         try:
-            auth = auth.strip().decode('base64')
-        except binascii.Error:  # can't decode
+            auth = b64decode(auth.strip())
+        except TypeError:  # can't decode
             return None
         try:
             login, password = auth.split(':', 1)

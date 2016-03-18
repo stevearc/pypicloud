@@ -87,7 +87,7 @@ if __name__ == "__main__":
         tests_require=REQUIREMENTS + TEST_REQUIREMENTS,
         test_suite='tests',
         extras_require={
-            'ldap': ['python-ldap >= 2.4.0'],
+            'ldap': ['pyldap'],
             'server': ['waitress'],
             'dynamo': ['flywheel >= 0.2.0'],
         },

@@ -1,4 +1,5 @@
 """ The access backend object base class """
+import six
 from collections import defaultdict
 from passlib.apps import custom_app_context as pwd_context
 from pyramid.security import (Authenticated, Everyone,
@@ -64,10 +65,10 @@ class IAccessBackend(object):
 
         """
         all_perms = {}
-        for user, perms in self.user_permissions(package).iteritems():
+        for user, perms in six.iteritems(self.user_permissions(package)):
             all_perms['user:' + user] = tuple(perms)
 
-        for group, perms in self.group_permissions(package).iteritems():
+        for group, perms in six.iteritems(self.group_permissions(package)):
             all_perms[group_to_principal(group)] = tuple(perms)
 
         # If there are no group or user specifications for the package, use the
@@ -86,7 +87,7 @@ class IAccessBackend(object):
         """ Construct an ACL for a package """
         acl = []
         permissions = self.allowed_permissions(package)
-        for principal, perms in permissions.iteritems():
+        for principal, perms in six.iteritems(permissions):
             for perm in perms:
                 acl.append((Allow, principal, perm))
         return acl
@@ -674,7 +675,7 @@ class IMutableAccessBackend(IAccessBackend):
                 self.approve_user(user['username'])
             self.set_user_admin(user['username'], user.get('admin', False))
 
-        for group, members in data['groups'].iteritems():
+        for group, members in six.iteritems(data['groups']):
             if len(self.group_members(group)) == 0:
                 self.create_group(group)
             current_members = self.group_members(group)
@@ -686,13 +687,13 @@ class IMutableAccessBackend(IAccessBackend):
             if not user_exists(user['username']):
                 self._register(user['username'], user['password'])
 
-        for package, groups in data['packages']['groups'].iteritems():
-            for group, permissions in groups.iteritems():
+        for package, groups in six.iteritems(data['packages']['groups']):
+            for group, permissions in six.iteritems(groups):
                 for perm in permissions:
                     self.edit_group_permission(package, group, perm, True)
 
-        for package, users in data['packages']['users'].iteritems():
-            for user, permissions in users.iteritems():
+        for package, users in six.iteritems(data['packages']['users']):
+            for user, permissions in six.iteritems(users):
                 for perm in permissions:
                     self.edit_user_permission(package, user, perm, True)
 
