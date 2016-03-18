@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """ Tests for database cache implementations """
+import six
 import sys
 import transaction
 import calendar
@@ -540,6 +541,7 @@ class TestRedisCache(unittest.TestCase):
         for pkg in pkgs:
             self.db.save(pkg)
         saved_pkgs = self.db.distinct()
+
         self.assertItemsEqual(saved_pkgs, set([p.name for p in pkgs]))
 
     def test_search_or(self):

@@ -1,11 +1,14 @@
 language: python
-python: "2.7"
+python: "3.6"
 services:
   - redis-server
   - mysql
   - postgresql
 env:
   - TOXENV=py27
+  - TOXENV=py34
+  - TOXENV=py35
+  - TOXENV=py36
 install:
   - pip install tox coveralls
 before_script:

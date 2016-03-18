@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """ Tests for access backends """
 from __future__ import unicode_literals
+import six
 import transaction
 from mock import MagicMock, patch
 from pyramid.authorization import ACLAuthorizationPolicy
@@ -1178,7 +1179,7 @@ class TestSQLiteBackend(unittest.TestCase):
             """ Assertion that handles unordered lists inside dicts """
             if isinstance(obj1, dict):
                 self.assertEqual(len(obj1), len(obj2))
-                for key, val in obj1.iteritems():
+                for key, val in six.iteritems(obj1):
                     assert_nice_equals(val, obj2[key])
             elif isinstance(obj1, list):
                 self.assertItemsEqual(obj1, obj2)

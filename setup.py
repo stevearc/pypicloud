@@ -52,6 +52,9 @@ if __name__ == "__main__":
             'Programming Language :: Python',
             'Programming Language :: Python :: 2',
             'Programming Language :: Python :: 2.7',
+            'Programming Language :: Python :: 3.4',
+            'Programming Language :: Python :: 3.5',
+            'Programming Language :: Python :: 3.6',
             'Development Status :: 4 - Beta',
             'Framework :: Pyramid',
             'Intended Audience :: System Administrators',
@@ -87,7 +90,7 @@ if __name__ == "__main__":
         tests_require=REQUIREMENTS + TEST_REQUIREMENTS,
         test_suite='tests',
         extras_require={
-            'ldap': ['python-ldap >= 2.4.0'],
+            'ldap': ['pyldap'],
             'server': ['waitress'],
             'dynamo': ['flywheel >= 0.2.0'],
         },
