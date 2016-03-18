@@ -30,3 +30,8 @@ section of the docs.
     pserve server.ini
 
 It's running! Go to http://localhost:6543/ to view the web interface.
+
+Docker
+------
+There is a docker image if you're into that sort of thing. You can find it at:
+https://github.com/stevearc/pypicloud-docker

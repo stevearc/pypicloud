@@ -52,19 +52,19 @@ If your bucket does not yet exist, it will be created in this region on
 startup. If blank, the classic US region will be used.
 
 ``storage.host``
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 **Argument:** string, optional
 
 Specify S3 compatible API fqdn/IP. On other systems, this variable could be called an endpoint.
 
 ``storage.is_secure``
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 **Argument:** boolean, optional
 
 Use secure connection (https) or not (http). Default is True.
 
 ``storage.calling_format``
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string, optional
 
 Choose how to call the S3 API. Supported formats are SubdomainCallingFormat, VHostCallingFormat, OrdinaryCallingFormat and 
@@ -96,6 +96,15 @@ day)). In practice, there is no real reason why these generated urls need to
 expire at all. S3 does it for security, but expiring links isn't part of the
 python package security model. So in theory you can bump this number up.
 
+``storage.redirect_urls``
+~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** bool, optional
+
+The short story: set this to ``true`` if you only use pip and don't have to
+support easy_install. It will dramatically speed up your server.
+
+The long story: :ref:`redirect_detail`
+
 CloudFront
 ----------
 This option will store your packages in S3 but use CloudFront to deliver the packages.
@@ -105,7 +114,7 @@ but also the settings listed below.
 Set ``pypi.storage = cloudfront`` OR ``pypi.s3 = pypicloud.storage.CloudFrontS3Storage``
 
 ``storage.cloud_front_domain``
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string
 
 The CloudFront domain you have set up. This CloudFront distribution must be set up to
@@ -114,7 +123,7 @@ use your S3 bucket as the origin.
 Example: ``https://dabcdefgh12345.cloudfront.net``
 
 ``storage.cloud_front_key_id``
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string, optional
 
 If you want to protect your packages from public access you need to set up the CloudFront
@@ -123,7 +132,7 @@ distribution to use signed URLs. This setting specifies the key id of the `Cloud
 that is currently active on your AWS account.
 
 ``storage.cloud_front_key_file``
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string, optional
 
 Only needed when setting up CloudFront with signed URLs. This setting should be
