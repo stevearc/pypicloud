@@ -152,7 +152,7 @@ class S3Storage(IStorage):
 
             yield pkg
 
-    def _get_url(self, package):
+    def _generate_url(self, package):
         """ Generate a signed url to the S3 file """
         key = Key(self.bucket, self.get_path(package))
         return key.generate_url(self.expire_after)
@@ -161,10 +161,10 @@ class S3Storage(IStorage):
         if self.redirect_urls:
             return super(S3Storage, self).get_url(package)
         else:
-            return self._get_url(package)
+            return self._generate_url(package)
 
     def download_response(self, package):
-        return HTTPFound(location=self._get_url(package))
+        return HTTPFound(location=self._generate_url(package))
 
     def upload(self, package, data):
         key = Key(self.bucket)
@@ -183,7 +183,7 @@ class S3Storage(IStorage):
 
     @contextmanager
     def open(self, package):
-        url = self._get_url(package)
+        url = self._generate_url(package)
         handle = urlopen(url)
         try:
             yield handle
@@ -219,7 +219,7 @@ class CloudFrontS3Storage(S3Storage):
 
         return kwargs
 
-    def _get_url(self, package):
+    def _generate_url(self, package):
         """ Get the fully-qualified CloudFront path for a package """
         path = self.calculate_path(package)
         url = self.cloud_front_domain + '/' + quote(path)
