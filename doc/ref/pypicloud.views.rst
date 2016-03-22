@@ -9,6 +9,7 @@ Submodules
    pypicloud.views.admin
    pypicloud.views.api
    pypicloud.views.login
+   pypicloud.views.packages
    pypicloud.views.simple
 
 Module contents

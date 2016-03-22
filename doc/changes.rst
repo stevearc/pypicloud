@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.3.10
+------
+* Feature: S3 backend setting ``storage.redirect_urls``
+
 0.3.9
 -----
 * Bug fix: SQL cache works with MySQL (:issue:`74`)

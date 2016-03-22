@@ -36,13 +36,14 @@ class S3Storage(IStorage):
     test = False
 
     def __init__(self, request=None, bucket=None, expire_after=None,
-                 bucket_prefix=None, prepend_hash=None,
+                 bucket_prefix=None, prepend_hash=None, redirect_urls=None,
                  **kwargs):
         super(S3Storage, self).__init__(request, **kwargs)
         self.bucket = bucket
         self.expire_after = expire_after
         self.bucket_prefix = bucket_prefix
         self.prepend_hash = prepend_hash
+        self.redirect_urls = redirect_urls
 
     @classmethod
     def configure(cls, settings):
@@ -64,6 +65,8 @@ class S3Storage(IStorage):
                                 'aws.is_secure', True)
         calling_format = settings.get('storage.calling_format',
                                       'SubdomainCallingFormat')
+        kwargs['redirect_urls'] = asbool(settings.get('storage.redirect_urls',
+                                                      False))
 
         if calling_format not in SUPPORTED_CALLING_FORMATS:
             raise ValueError("Only {0} are supported for calling_format"
@@ -149,12 +152,19 @@ class S3Storage(IStorage):
 
             yield pkg
 
-    def get_url(self, package):
+    def _generate_url(self, package):
+        """ Generate a signed url to the S3 file """
         key = Key(self.bucket, self.get_path(package))
         return key.generate_url(self.expire_after)
 
+    def get_url(self, package):
+        if self.redirect_urls:
+            return super(S3Storage, self).get_url(package)
+        else:
+            return self._generate_url(package)
+
     def download_response(self, package):
-        return HTTPFound(location=self.get_url(package))
+        return HTTPFound(location=self._generate_url(package))
 
     def upload(self, package, data):
         key = Key(self.bucket)
@@ -173,7 +183,7 @@ class S3Storage(IStorage):
 
     @contextmanager
     def open(self, package):
-        url = self.get_url(package)
+        url = self._generate_url(package)
         handle = urlopen(url)
         try:
             yield handle
@@ -209,7 +219,7 @@ class CloudFrontS3Storage(S3Storage):
 
         return kwargs
 
-    def get_url(self, package):
+    def _generate_url(self, package):
         """ Get the fully-qualified CloudFront path for a package """
         path = self.calculate_path(package)
         url = self.cloud_front_domain + '/' + quote(path)

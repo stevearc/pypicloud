@@ -24,7 +24,7 @@ project = u'pypicloud'
 copyright = u'2013, Steven Arcangeli'
 github_user = u'mathcamp'
 
-release = '0.3.9'
+release = '0.3.10'
 version = '.'.join(release.split('.')[:2])
 
 exclude_patterns = ['_build']
