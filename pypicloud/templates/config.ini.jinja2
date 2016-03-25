@@ -57,7 +57,7 @@ enable-threads = true
 {%- if env == 'docker' %}
 http = 0.0.0.0:8080
 virtualenv = /env
-{%- else -%}
+{%- else %}
 socket = 127.0.0.1:3031
 {% if venv is defined -%}virtualenv = {{ venv }}{%- endif %}
 {%- endif %}
