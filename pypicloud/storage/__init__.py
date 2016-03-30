@@ -4,6 +4,7 @@ from functools import partial
 from .base import IStorage
 from .files import FileStorage
 from .s3 import S3Storage, CloudFrontS3Storage
+from .gcs import GCSStorage
 
 from pyramid.path import DottedNameResolver
 
@@ -14,6 +15,8 @@ def get_storage_impl(settings):
     storage = settings.get('pypi.storage', 'file')
     if storage == 's3':
         storage = 'pypicloud.storage.S3Storage'
+    elif storage =='gcs':
+        storage = 'pypicloud.storage.GCSStorage'
     elif storage == 'cloudfront':
         storage = 'pypicloud.storage.CloudFrontS3Storage'
     elif storage == 'file':

@@ -41,3 +41,7 @@ pypicloud_env
 _build
 _local.db
 *.ini
+
+#pycharm
+.idea
+*.idea

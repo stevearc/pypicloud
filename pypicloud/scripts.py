@@ -119,7 +119,7 @@ def make_config(argv=None):
     data['reload_templates'] = env == 'dev'
 
     storage = prompt_option("Where do you want to store your packages?",
-                            ['s3', 'filesystem'])
+                            ['s3', 'filesystem', 'gcs'])
     if storage == 'filesystem':
         storage = 'file'
 
@@ -143,6 +143,10 @@ def make_config(argv=None):
             return True
 
         data['s3_bucket'] = prompt("S3 bucket name?", validate=bucket_validate)
+
+    if storage == 'gcs':
+        data ['bucket'] = prompt("GCS bucket name?")
+        print 'GCS Connection requires .boto file and gcs-oauth2-boto-plugin'
 
     data['encrypt_key'] = b64encode(os.urandom(32))
     data['validate_key'] = b64encode(os.urandom(32))
