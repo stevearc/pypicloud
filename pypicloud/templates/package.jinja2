@@ -4,7 +4,7 @@
   <title>Package Index</title>
 </head>
 <body>
-  {% for filename, url in pkgs.iteritems() %}
+  {% for filename, url in pkgs|dictsort %}
     <a href="{{ url }}">{{ filename }}</a><br>
   {%- endfor %}
 </body>
