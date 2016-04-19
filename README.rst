@@ -1,40 +1,39 @@
-PyPI Cloud - Hexadite
+PyPI Cloud
 ==========
+:Build: |build|_ |coverage|_
+:Documentation: http://pypicloud.readthedocs.org/
+:Downloads: http://pypi.python.org/pypi/pypicloud
+:Source: https://github.com/mathcamp/pypicloud
+
+.. |build| image:: https://travis-ci.org/mathcamp/pypicloud.png?branch=master
+.. _build: https://travis-ci.org/mathcamp/pypicloud
+.. |coverage| image:: https://coveralls.io/repos/mathcamp/pypicloud/badge.png?branch=master
+.. _coverage: https://coveralls.io/r/mathcamp/pypicloud?branch=master
 
 This package is a Pyramid app that runs a simple PyPI server where all the
-packages can be stored on GCS or S3.
+packages are stored on Amazon's Simple Storage Service (S3) or Google Cloud Storage (GCS).
 
-Installation
-============
+GCS backend requires gcs-oauth2-boto-plugin and a .boto configuration file.
 
-Create a new virtualenv for the project and activate it
+`LIVE DEMO <http://pypi.stevearc.com>`_
 
-Download the package, install with python setup.py install - this will also handle basic requirements.
+Quick Start
+===========
+For more detailed step-by-step instructions, check out the `getting started
+<http://pypicloud.readthedocs.org/en/latest/topics/getting_started.html>`_
+section of the docs.
 
-Working with GCS required a fix of gcs-oauth2-boto-plugin, install the gcs-oauth2-boto-plugin-hexadite version.
+::
 
-Set up and configure the .boto file as described here: https://cloud.google.com/storage/docs/gspythonlibrary - using a service account! User account will not work.
+    virtualenv mypypi
+    source mypypi/bin/activate
+    pip install pypicloud[server]
+    pypicloud-make-config -t server.ini
+    pserve server.ini
 
-In the .boto file, set the value of gs_access_key_id equal to the value of gs_service_client_id
+It's running! Go to http://localhost:6543/ to view the web interface.
 
-Run the command 'pypicloud-make-config', choose the relevant env, set the storage backend to gcs
-
-Configure the cache as described here: http://pypicloud.readthedocs.org/en/latest/topics/cache.html
-
-Run the server! If using waitress, 'pserve <configfile.ini>'.
-
-
-
-Sources
-=======
-https://github.com/mathcamp/pypicloud
-
-https://github.com/GoogleCloudPlatform/gcs-oauth2-boto-plugin
-
-Original pypicloud docs: http://pypicloud.readthedocs.org/en/latest/index.html
-
-Google Cloud Storage Python: https://cloud.google.com/storage/docs/gspythonlibrary
-
-Boto Docs: http://boto.cloudhackers.com/en/latest/ref/gs.html
-
-
+Docker
+------
+There is a docker image if you're into that sort of thing. You can find it at:
+https://github.com/stevearc/pypicloud-docker
