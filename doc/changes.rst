@@ -2,6 +2,11 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.3.11
+------
+* Bug fix: Missing newline in config template (:pr:`77`)
+* Feature: ``pypi.always_show_upstream`` for tweaking fallback behavior (:issue:`82`)
+
 0.3.10
 ------
 * Feature: S3 backend setting ``storage.redirect_urls``
