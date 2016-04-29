@@ -2,7 +2,10 @@
 
 Fallbacks
 =========
-Below is a detailed table for each possible fallback setting.
+Below is a detailed table for each possible fallback setting. The columns
+indicate whether or not any package of that name is stored in pypicloud, whether
+the user has read permissions, whether the user has `can_update_cache`
+permissions, and whether the user is logged in.
 
 
 Fallback = none
@@ -25,8 +28,8 @@ Package  Read  Can update cache  Logged in  Response
 ☑        ☑     ☑                 ☑          Serve package list
 =======  ====  ================  =========  =========
 
-Fallback = redirect
-^^^^^^^^^^^^^^^^^^^
+Fallback = redirect, always_show_upstream = False
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 =======  ====  ================  =========  =========
 Package  Read  Can update cache  Logged in  Response
@@ -45,8 +48,28 @@ Package  Read  Can update cache  Logged in  Response
 ☑        ☑     ☑                 ☑          Serve package list
 =======  ====  ================  =========  =========
 
-Fallback = cache
-^^^^^^^^^^^^^^^^
+Fallback = redirect, always_show_upstream = True
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+=======  ====  ================  =========  =========
+Package  Read  Can update cache  Logged in  Response
+=======  ====  ================  =========  =========
+☐        ☐     ☐                 ☐          302 to fallback
+☐        ☐     ☐                 ☑          302 to fallback
+☐        ☑     ☐                 ☐          302 to fallback
+☐        ☑     ☐                 ☑          302 to fallback
+☐        ☑     ☑                 ☐          302 to fallback
+☐        ☑     ☑                 ☑          302 to fallback
+☑        ☐     ☐                 ☐          401 (to force upload of basic auth)
+☑        ☐     ☐                 ☑          302 to fallback
+☑        ☑     ☐                 ☐          Serve packages + redirect links [1]_
+☑        ☑     ☐                 ☑          Serve packages + redirect links [1]_
+☑        ☑     ☑                 ☐          Serve packages + redirect links [1]_
+☑        ☑     ☑                 ☑          Serve packages + redirect links [1]_
+=======  ====  ================  =========  =========
+
+Fallback = cache, always_show_upstream = False
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 =======  ====  ================  =========  =========
 Package  Read  Can update cache  Logged in  Response
@@ -65,8 +88,8 @@ Package  Read  Can update cache  Logged in  Response
 ☑        ☑     ☑                 ☑          Serve package list
 =======  ====  ================  =========  =========
 
-Fallback = mirror
-^^^^^^^^^^^^^^^^^
+Fallback = cache, always_show_upstream = True
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 =======  ====  ================  =========  =========
 Package  Read  Can update cache  Logged in  Response

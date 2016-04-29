@@ -68,7 +68,7 @@ def download_package(context, request):
     """ Download package, or redirect to the download link """
     package = request.db.fetch(context.filename)
     if not package:
-        if request.registry.fallback not in ['cache', 'mirror']:
+        if request.registry.fallback != 'cache':
             return HTTPNotFound()
         if not request.access.can_update_cache():
             return request.forbid()

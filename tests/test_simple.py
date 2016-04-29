@@ -127,6 +127,7 @@ class PackageReadTestBase(unittest.TestCase):
 
     """ Base class test for reading packages """
     fallback = None
+    always_show_upstream = None
     fallback_url = 'http://pypi.python.org/pypi/'
 
     @classmethod
@@ -148,6 +149,7 @@ class PackageReadTestBase(unittest.TestCase):
         """ Construct a fake request """
         request = MagicMock()
         request.registry.fallback = self.fallback
+        request.registry.always_show_upstream = self.always_show_upstream
         request.registry.fallback_url = self.fallback_url
         request.userid = user
         request.access.can_update_cache = lambda: 'c' in perms
@@ -197,11 +199,21 @@ class PackageReadTestBase(unittest.TestCase):
         ret = package_versions(self.package, request)
         self.assertEqual(ret, {'pkgs': self.fallback_packages})
 
+    def should_serve_and_redirect(self, request):
+        """ Should serve mixture of package urls and redirect urls """
+        ret = package_versions(self.package, request)
+        f2name = self.package2.filename
+        self.assertEqual(ret, {'pkgs': {
+            self.package.filename: self.package.get_url(request),
+            f2name: self.fallback_packages[f2name],
+        }})
+
 
 class TestRedirect(PackageReadTestBase):
 
-    """ Tests for reading packages with fallback=redirect """
+    """ Test reading packages with fallback=redirect and always_show_upstream=false """
     fallback = 'redirect'
+    always_show_upstream = False
 
     def test_no_package_no_read_no_user(self):
         """ No package, no read perms, no user """
@@ -252,10 +264,70 @@ class TestRedirect(PackageReadTestBase):
         self.should_serve(self.get_request(self.package, 'rc', 'foo'))
 
 
+class TestRedirectAlwaysShow(PackageReadTestBase):
+
+    """ Test reading packages with fallback=redirect and always_show_upstream=truue """
+    fallback = 'redirect'
+    always_show_upstream = True
+
+    def test_no_package_no_read_no_user(self):
+        """ No package, no read perms, no user """
+        self.should_redirect(self.get_request())
+
+    def test_no_package_no_read_user(self):
+        """ No package, no read perms, user """
+        self.should_redirect(self.get_request(user='foo'))
+
+    def test_no_package_read_no_user(self):
+        """ No package, read perms, no user """
+        self.should_redirect(self.get_request(perms='r'))
+
+    def test_no_package_read_user(self):
+        """ No package, read perms, user """
+        self.should_redirect(self.get_request(perms='r', user='foo'))
+
+    def test_no_package_write_no_user(self):
+        """ No package, write perms, no user """
+        self.should_redirect(self.get_request(perms='rc'))
+
+    def test_no_package_write_user(self):
+        """ No package, write perms, user """
+        self.should_redirect(self.get_request(perms='rc', user='foo'))
+
+    def test_package_no_read_no_user(self):
+        """ Package, no read perms, no user. """
+        self.should_ask_auth(self.get_request(self.package, ''))
+
+    def test_package_no_read_user(self):
+        """ Package, no read perms, user. """
+        self.should_redirect(self.get_request(self.package, '', 'foo'))
+
+    def test_package_read_no_user(self):
+        """ Package, read perms, no user. """
+        req = self.get_request(self.package, 'r', 'foo')
+        self.should_serve_and_redirect(req)
+
+    def test_package_read_user(self):
+        """ Package, read perms, user. """
+        req = self.get_request(self.package, 'r', 'foo')
+        self.should_serve_and_redirect(req)
+
+    def test_package_write_no_user(self):
+        """ Package, write perms, no user. """
+        req = self.get_request(self.package, 'r', 'foo')
+        self.should_serve_and_redirect(req)
+
+    def test_package_write_user(self):
+        """ Package, write perms, user. """
+        req = self.get_request(self.package, 'r', 'foo')
+        self.should_serve_and_redirect(req)
+
+
 class TestCache(PackageReadTestBase):
 
-    """ Tests for reading packages with fallback=cache """
+    """ Test reading packages with fallback=cache and always_show_upstream=false """
     fallback = 'cache'
+    always_show_upstream = False
 
     def test_no_package_no_read_no_user(self):
         """ No package, no read perms, no user """
@@ -306,10 +378,11 @@ class TestCache(PackageReadTestBase):
         self.should_serve(self.get_request(self.package, 'rc', 'foo'))
 
 
-class TestMirror(PackageReadTestBase):
+class TestCacheAlwaysShow(PackageReadTestBase):
 
-    """ Tests for reading packages with fallback=mirror """
-    fallback = 'mirror'
+    """ Test reading packages with fallback=cache and always_show_upstream=true """
+    fallback = 'cache'
+    always_show_upstream = True
 
     def test_no_package_no_read_no_user(self):
         """ No package, no read perms, no user """
@@ -349,14 +422,8 @@ class TestMirror(PackageReadTestBase):
 
     def test_package_read_user(self):
         """ Package, read perms, user. """
-        # Should serve mixture of package urls and redirect urls
         req = self.get_request(self.package, 'r', 'foo')
-        ret = package_versions(self.package, req)
-        f2name = self.package2.filename
-        self.assertEqual(ret, {'pkgs': {
-            self.package.filename: self.package.get_url(req),
-            f2name: self.fallback_packages[f2name],
-        }})
+        self.should_serve_and_redirect(req)
 
     def test_package_write_no_user(self):
         """ Package, write perms, no user. """

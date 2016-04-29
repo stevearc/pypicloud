@@ -61,11 +61,15 @@ def package_versions(context, request):
     """ Render the links for all versions of a package """
     fallback = request.registry.fallback
     if fallback == 'redirect':
-        return _simple_redirect(context, request)
+        if request.registry.always_show_upstream:
+            return _simple_redirect_always_show(context, request)
+        else:
+            return _simple_redirect(context, request)
     elif fallback == 'cache':
-        return _simple_cache(context, request)
-    elif fallback == 'mirror':
-        return _simple_mirror(context, request)
+        if request.registry.always_show_upstream:
+            return _simple_cache_always_show(context, request)
+        else:
+            return _simple_cache(context, request)
     else:
         return _simple_serve(context, request)
 
@@ -123,6 +127,27 @@ def _simple_redirect(context, request):
         return _redirect(context, request)
 
 
+def _simple_redirect_always_show(context, request):
+    """ Service /simple with fallback=redirect """
+    normalized_name = normalize_name(context.name)
+    packages = request.db.all(normalized_name)
+    if packages:
+        if not request.access.has_permission(normalized_name, 'read'):
+            if request.is_logged_in:
+                return _redirect(context, request)
+            else:
+                return request.request_login()
+        else:
+            pkgs = get_fallback_packages(request, context.name)
+            stored_pkgs = packages_to_dict(request, packages)
+            # Overwrite existing package urls
+            for filename, url in six.iteritems(stored_pkgs):
+                pkgs[filename] = url
+            return _pkg_response(pkgs)
+    else:
+        return _redirect(context, request)
+
+
 def _simple_cache(context, request):
     """ Service /simple with fallback=cache """
     normalized_name = normalize_name(context.name)
@@ -147,7 +172,7 @@ def _simple_cache(context, request):
         return _pkg_response(pkgs)
 
 
-def _simple_mirror(context, request):
+def _simple_cache_always_show(context, request):
     """ Service /simple with fallback=mirror """
     normalized_name = normalize_name(context.name)
 
