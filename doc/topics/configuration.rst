@@ -9,27 +9,35 @@ PyPICloud
 
 ``pypi.fallback``
 ~~~~~~~~~~~~~~~~~
-**Argument:** {'redirect', 'cache', 'mirror', 'none'}, optional
+**Argument:** {'redirect', 'cache', 'none'}, optional
 
 This option defines what the behavior is when a requested package is not found
 in the database. (default 'redirect')
 
-``redirect`` - Return a 302 to the package at the ``fallback_url``. This is the
-default.
+``redirect`` - Return a 302 to the package at the ``fallback_url``.
 
-``mirror`` - Download the package from ``fallback_url``, store it in the
-backend, and serve it. User must have ``cache_update`` permissions. If not,
-returns 404.
-
-``cache`` - Same as ``mirror``, but once a package has any version cached in
-pypicloud, it will not allow automatically fetching new versions from upstream.
-Use this if you need to lock down the available versions of packages for
-stability/security reasons.
+``cache`` - Download the package from ``fallback_url``, store it in the
+backend, and serve it. User must have ``cache_update`` permissions.
 
 ``none`` - Return a 404
 
+See also :ref:`always_show_upstream` below.
+
 See :ref:`fallback_detail` for more detail on exactly how each fallback option will
 function.
+
+.. _always_show_upstream:
+
+``pypi.always_show_upstream``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** bool, optional
+
+Default ``False``.
+
+This adjusts the fallback behavior when one or more versions of the requested
+package are stored in pypicloud. If ``False``, pypicloud will only show the
+client the versions that are stored. If ``True``, the local versions will be
+shown with the versions found at the ``fallback_url``.
 
 ``pypi.fallback_url``
 ~~~~~~~~~~~~~~~~~~~~~
