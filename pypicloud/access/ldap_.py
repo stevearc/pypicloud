@@ -75,7 +75,7 @@ class LDAP(object):
             ldap.SCOPE_SUBTREE,
             LDAP._all_user_search,
         )
-        LDAP._all_users = {}
+        LDAP._all_users = {"__pypicloud_ldap_admin__": LDAP._service_dn}
         for result in results:
             if LDAP._id_field in result[1]:
                 LDAP._all_users[result[1][LDAP._id_field][0]] = result[0]
@@ -142,8 +142,8 @@ class LDAP(object):
         Returns a list of all the admin DNs
         """
         if not hasattr(LDAP, "_admins"):
-            LDAP._admins = []
-            LDAP._admin_usernames = []
+            LDAP._admins = [LDAP._service_dn]
+            LDAP._admin_usernames = ["__pypicloud_ldap_admin__"]
             for admin_dn in LDAP._admin_dns:
                 LDAP._add_admins_from_dn(admin_dn)
 
