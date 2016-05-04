@@ -42,7 +42,7 @@ Returns a webpage with all links to all versions of this package.
 If :ref:`fallback <fallback>` is configured and the server does not contain the
 package, this will return either a ``302`` that points towards the fallback
 server (``redirect``), or a package index pulled from the fallback server
-(``cache`` and ``mirror``).
+(``cache``).
 
 **Example**::
 
@@ -159,7 +159,7 @@ Delete a package version from the server
 ``POST`` ``/api/fetch``
 ^^^^^^^^^^^^^^^^^^^^^^^
 Fetch packages from the ``fallback_url`` and cache them. This is only used if
-``pypi.fallback = cache`` or ``pypi.fallback = mirror``.
+``pypi.fallback = cache``.
 
 **Parameters:**
 
