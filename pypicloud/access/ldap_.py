@@ -53,6 +53,7 @@ class LDAP(object):
         LDAP._admin_dns = [
             dn for dn in settings["auth.ldap.admin_dns"].splitlines() if dn
         ]
+        LDAP._service_account = settings.get("auth.ldap.service_account")
 
         LDAP._connect()
 
@@ -76,6 +77,8 @@ class LDAP(object):
             LDAP._all_user_search,
         )
         LDAP._all_users = {}
+        if LDAP._service_account:
+            LDAP._all_users[LDAP._service_account] = LDAP._service_dn
         for result in results:
             if LDAP._id_field in result[1]:
                 LDAP._all_users[result[1][LDAP._id_field][0]] = result[0]
@@ -142,8 +145,10 @@ class LDAP(object):
         Returns a list of all the admin DNs
         """
         if not hasattr(LDAP, "_admins"):
-            LDAP._admins = []
+            LDAP._admins = [LDAP._service_dn]
             LDAP._admin_usernames = []
+            if LDAP._service_account:
+                LDAP._admin_usernames.append(LDAP._service_account)
             for admin_dn in LDAP._admin_dns:
                 LDAP._add_admins_from_dn(admin_dn)
 
