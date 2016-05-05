@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.3.12
+------
+* Feature: Setting ``auth.ldap.service_account`` for LDAP auth (:pr:`84`)
+
 0.3.11
 ------
 * Bug fix: Missing newline in config template (:pr:`77`)

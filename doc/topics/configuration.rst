@@ -64,7 +64,7 @@ group permissions (default no groups, only admin users)
 ~~~~~~~~~~~~~~~~~~~~~
 **Argument:** list, optional
 
-Only used when ``pypi.fallback = cache`` or ``pypi.fallback = mirror``. This is
+Only used when ``pypi.fallback = cache``. This is
 the list of groups that are allowed to trigger the operation that fetches
 packages from ``fallback_url``.  (default ['authenticated'])
 

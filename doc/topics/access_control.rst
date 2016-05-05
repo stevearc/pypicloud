@@ -358,7 +358,7 @@ A list of DNs to search for who should be considered an admin. It uses the
 ``admin_field`` to determine the source of admin DNs in the returned record(s).
 
 ``auth.ldap.service_account``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string, optional
 
 A username for the service DN to self-authenticate as admin.
