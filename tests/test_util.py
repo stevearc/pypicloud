@@ -56,3 +56,12 @@ class TestScrapers(unittest.TestCase):
         locator.prefer_wheel = False
         self.assertTrue(locator.score_url('http://localhost/mypkg-1.1.whl') <
                         locator.score_url('http://localhost/mypkg-1.1.tar.gz'))
+
+
+class TestNormalizeName(unittest.TestCase):
+
+    """ Tests for normalize_name """
+
+    def test_normalize_namespace_package(self):
+        """ Namespace packages must be normalized according to PEP503 """
+        self.assertEqual(util.normalize_name('repoze.lru'), 'repoze-lru')
