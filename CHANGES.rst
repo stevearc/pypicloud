@@ -6,8 +6,7 @@ If you are upgrading an existing installation, read :ref:`the instructions <upgr
 -----------------
 **Backwards incompatibility**: This version was released to handle a change in
 the way pip 8.1.2 handles package names. If you are upgrading from a previous
-version, there are :ref:`detailed instructions for how to upgrade safely
-<upgrade0.4>`.
+version, there are :ref:`detailed instructions for how to upgrade safely <upgrade0.4>`.
 
 0.3.12 - 2016/5/5
 -----------------
