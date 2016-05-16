@@ -1,5 +1,6 @@
 """ Utilities """
 import posixpath
+import re
 
 import logging
 from distlib.locators import Locator, SimpleScrapingLocator
@@ -32,7 +33,9 @@ def parse_filename(filename, name=None):
 
 def normalize_name(name):
     """ Normalize a python package name """
-    return name.lower().replace('-', '_')
+    # Lifted directly from PEP503:
+    # https://www.python.org/dev/peps/pep-0503/#id4
+    return re.sub(r"[-_.]+", "-", name).lower()
 
 
 class BetterScrapingLocator(SimpleScrapingLocator):
