@@ -169,6 +169,9 @@ class LDAP(object):
         """
         Attempts to bind as the user, then rebinds as service user again
         """
+        if password == "":
+            return False
+        
         try:
             LDAP._server.simple_bind_s(user_dn, password)
         except ldap.INVALID_CREDENTIALS:
