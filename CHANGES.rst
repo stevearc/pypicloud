@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.3.13
+------
+* Bug fix: LDAP auth disallows empty passwords for anonymous binding (:pr:`91`)
+
 0.3.12
 ------
 * Feature: Setting ``auth.ldap.service_account`` for LDAP auth (:pr:`84`)
