@@ -2,11 +2,20 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.4.1 - 2016/6/8
+----------------
+* Bug fix: LDAP auth disallows empty passwords for anonymous binding (:pr:`91`)
+* Config generator sets ``pypi.default_read = authenticated`` for prod mode
+
 0.4.0 - 2016/5/16
 -----------------
 **Backwards incompatibility**: This version was released to handle a change in
 the way pip 8.1.2 handles package names. If you are upgrading from a previous
 version, there are :ref:`detailed instructions for how to upgrade safely <upgrade0.4>`.
+
+0.3.13 - 2016/6/8
+-----------------
+* Bug fix: LDAP auth disallows empty passwords for anonymous binding (:pr:`91`)
 
 0.3.12 - 2016/5/5
 -----------------
