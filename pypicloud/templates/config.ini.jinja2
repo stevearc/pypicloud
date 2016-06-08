@@ -7,9 +7,13 @@ pyramid.debug_notfound = false
 pyramid.debug_routematch = false
 pyramid.default_locale_name = en
 
-{% if env != 'prod' -%}
 pypi.default_read =
-    everyone
+    {% if env == 'prod' -%}
+      authenticated
+    {%- else -%}
+      everyone
+    {%- endif %}
+{% if env != 'prod' -%}
 pypi.default_write =
     authenticated
 {%- endif %}
