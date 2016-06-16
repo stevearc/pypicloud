@@ -76,7 +76,7 @@ class BetterScrapingLocator(SimpleScrapingLocator):
 # distlib, but we actually want ALL wheels so we can display them to the
 # clients.  So we have to monkey patch the method. I'm sorry.
 def is_compatible(wheel, tags=None):
-    """ Hacked function to monkey path into distlib """
+    """ Hacked function to monkey patch into distlib """
     return True
 
 distlib.locators.is_compatible = is_compatible
