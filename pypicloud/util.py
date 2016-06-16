@@ -4,6 +4,7 @@ import re
 
 import logging
 import six
+import distlib.locators
 from distlib.locators import Locator, SimpleScrapingLocator
 from distlib.util import split_filename
 from six.moves.urllib.parse import urlparse  # pylint: disable=F0401,E0611
@@ -68,6 +69,17 @@ class BetterScrapingLocator(SimpleScrapingLocator):
         # more details:
         # https://bitbucket.org/vinay.sajip/distlib/pull-requests/7/update-name-comparison-to-match-pep-503
         return super(BetterScrapingLocator, self)._get_project(NormalizeNameHackString(name))
+
+
+# Distlib checks if wheels are compatible before returning them.
+# This is useful if you are attempting to install on the system running
+# distlib, but we actually want ALL wheels so we can display them to the
+# clients.  So we have to monkey patch the method. I'm sorry.
+def is_compatible(wheel, tags=None):
+    """ Hacked function to monkey patch into distlib """
+    return True
+
+distlib.locators.is_compatible = is_compatible
 
 
 class NormalizeNameHackString(six.text_type):

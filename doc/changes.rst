@@ -2,9 +2,13 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.4.2 - 2016/6/16
+-----------------
+* Bug fix: Show platform-specific versions of wheels (:issue:`91`)
+
 0.4.1 - 2016/6/8
 ----------------
-* Bug fix: LDAP auth disallows empty passwords for anonymous binding (:pr:`91`)
+* Bug fix: LDAP auth disallows empty passwords for anonymous binding (:pr:`92`)
 * Config generator sets ``pypi.default_read = authenticated`` for prod mode
 
 0.4.0 - 2016/5/16
@@ -15,7 +19,7 @@ version, there are :ref:`detailed instructions for how to upgrade safely <upgrad
 
 0.3.13 - 2016/6/8
 -----------------
-* Bug fix: LDAP auth disallows empty passwords for anonymous binding (:pr:`91`)
+* Bug fix: LDAP auth disallows empty passwords for anonymous binding (:pr:`92`)
 
 0.3.12 - 2016/5/5
 -----------------
