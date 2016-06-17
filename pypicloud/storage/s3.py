@@ -130,9 +130,9 @@ class S3Storage(IStorage):
     def list(self, factory=Package):
         keys = self.bucket.list(self.bucket_prefix)
         for key in keys:
-            # Moto doesn't send down metadata from bucket.list()
-            if self.test:
-                key = self.bucket.get_key(key.key)
+            # Boto doesn't send down metadata from bucket.list()
+            # so we are forced to retrieve each key individually.
+            key = self.bucket.get_key(key.key)
             filename = posixpath.basename(key.key)
             name = key.get_metadata('name')
             version = key.get_metadata('version')
