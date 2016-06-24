@@ -59,14 +59,18 @@ class Package(object):
         return re.match(r'^\d+(\.\d+)*$', self.version) is None
 
     def __hash__(self):
-        return hash(self.name) + hash(self.version)
+        return hash(self.name) + hash(self.version) + hash(self.filename)
 
     def __eq__(self, other):
-        return self.name == other.name and self.version == other.version
+        return (
+            self.name == other.name and
+            self.version == other.version and
+            self.filename == other.filename
+        )
 
     def __lt__(self, other):
-        return ((self.name, self.parsed_version) <
-                (other.name, other.parsed_version))
+        return ((self.name, self.parsed_version, self.filename) <
+                (other.name, other.parsed_version, other.filename))
 
     def __repr__(self):
         return unicode(self)

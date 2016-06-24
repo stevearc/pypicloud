@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
 from redis import ConnectionError
-from mock import MagicMock, patch, ANY
+from mock import MagicMock, patch
 from pyramid.testing import DummyRequest
 from sqlalchemy.exc import OperationalError
 from pytz import UTC
@@ -70,9 +70,9 @@ class TestBaseCache(unittest.TestCase):
     """ Tests for the caching base class """
 
     def test_equality(self):
-        """ Two packages with same name & version should be equal """
-        p1 = make_package(filename='wibbly')
-        p2 = make_package(filename='wobbly')
+        """ Two packages with same name, version, and filename should be equal """
+        p1 = make_package('a', '1', 'a1.zip')
+        p2 = make_package('a', '1', 'a1.zip')
         self.assertEquals(hash(p1), hash(p2))
         self.assertEquals(p1, p2)
 
@@ -688,6 +688,31 @@ class TestDynamoCache(unittest.TestCase):
             self.db.summary(),
         )
 
+    def test_reload_same_version_diff_filename(self):
+        """ reload_from_storage() inserts packages into the database """
+        pkgs = [
+            make_package(
+                'pylint',
+                '1.3',
+                'pylint-1.3.0.zip',
+                factory=DynamoPackage,
+            ),
+            make_package(
+                'pylint',
+                '1.3',
+                'pylint-1.3.0-py33-none-any.whl',
+                factory=DynamoPackage,
+            ),
+        ]
+        self.storage.list.return_value = pkgs
+
+        self.db.reload_from_storage()
+
+        self.assertEqual(
+            pkgs,
+            self.db.all('pylint'),
+        )
+
     def test_reload_stale_latest(self):
         """ Summary gets updated if the latest package goes away """
         pkgs = self._save_pkgs(
@@ -1024,7 +1049,6 @@ class TestDynamoCache(unittest.TestCase):
 
     def test_clear_all_keep_throughput(self):
         """ Calling clear_all will keep same table throughput """
-        throughput = {}
         for model in (DynamoPackage, PackageSummary):
             tablename = model.meta_.ddb_tablename(self.engine.namespace)
             desc = self.dynamo.describe_table(tablename)
