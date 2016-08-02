@@ -46,6 +46,7 @@ def _locator(request):
 def includeme(config):
     """ Set up and configure the pypicloud app """
     config.set_root_factory(Root)
+    config.add_route('health', '/health')
     config.include('pyramid_tm')
     config.include('pyramid_beaker')
     config.include('pyramid_duh')

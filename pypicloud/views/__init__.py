@@ -14,3 +14,9 @@ def get_index(request):
     return {
         'version': __version__,
     }
+
+
+@view_config(route_name='health', renderer='string')
+def health_endpoint(request):
+    """ Simple health endpoint """
+    return 'OK'
