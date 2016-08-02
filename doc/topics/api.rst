@@ -46,7 +46,7 @@ server (``redirect``), or a package index pulled from the fallback server
 
 **Example**::
 
-    curl myserver.com/flywheel/
+    curl myserver.com/simple/flywheel/
 
 ``/api/``
 ---------

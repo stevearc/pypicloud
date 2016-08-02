@@ -2,6 +2,11 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.4.3 - 2016/8/2
+-----------------
+* Bug fix: Rebuilding cache always ends up with correct name/version (:issue:`93`)
+* Feature: /health endpoint (nothing fancy, just returns 200) (:issue:`95`)
+
 0.4.2 - 2016/6/16
 -----------------
 * Bug fix: Show platform-specific versions of wheels (:issue:`91`)
