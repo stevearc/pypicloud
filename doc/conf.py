@@ -22,7 +22,7 @@ extensions = ['sphinx.ext.autodoc', 'numpydoc', 'sphinx.ext.intersphinx',
 master_doc = 'index'
 project = u'pypicloud'
 copyright = u'2013, Steven Arcangeli'
-github_user = u'mathcamp'
+github_user = u'stevearc'
 
 release = '0.4.4'
 version = '.'.join(release.split('.')[:2])

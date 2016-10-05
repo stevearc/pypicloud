@@ -3,12 +3,12 @@ PyPI Cloud
 :Build: |build|_ |coverage|_
 :Documentation: http://pypicloud.readthedocs.org/
 :Downloads: http://pypi.python.org/pypi/pypicloud
-:Source: https://github.com/mathcamp/pypicloud
+:Source: https://github.com/stevearc/pypicloud
 
-.. |build| image:: https://travis-ci.org/mathcamp/pypicloud.png?branch=master
-.. _build: https://travis-ci.org/mathcamp/pypicloud
-.. |coverage| image:: https://coveralls.io/repos/mathcamp/pypicloud/badge.png?branch=master
-.. _coverage: https://coveralls.io/r/mathcamp/pypicloud?branch=master
+.. |build| image:: https://travis-ci.org/stevearc/pypicloud.png?branch=master
+.. _build: https://travis-ci.org/stevearc/pypicloud
+.. |coverage| image:: https://coveralls.io/repos/stevearc/pypicloud/badge.png?branch=master
+.. _coverage: https://coveralls.io/r/stevearc/pypicloud?branch=master
 
 This package is a Pyramid app that runs a simple PyPI server where all the
 packages are stored on Amazon's Simple Storage Service (S3).
