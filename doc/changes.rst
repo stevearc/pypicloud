@@ -2,9 +2,13 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
-0.4.3 - 2016/8/2
+0.4.4 - 2016/10/5
 -----------------
-* Bug fix: Rebuilding cache always ends up with correct name/version (:issue:`93`)
+* Feature: Add optional AWS S3 Server Side Encryption option (:pr:`99`)
+
+0.4.3 - 2016/8/2
+----------------
+* Bug fix: Rebuilding cache always ends up with correct name/version (:pr:`93`)
 * Feature: /health endpoint (nothing fancy, just returns 200) (:issue:`95`)
 
 0.4.2 - 2016/6/16
