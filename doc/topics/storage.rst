@@ -105,6 +105,13 @@ support easy_install. It will dramatically speed up your server.
 
 The long story: :ref:`redirect_detail`
 
+``storage.server_side_encryption``
+~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** bool, optional
+
+Enables AES-256 transparent server side encryption. See the `AWS documention
+<http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingServerSideEncryption.html>`
+
 CloudFront
 ----------
 This option will store your packages in S3 but use CloudFront to deliver the packages.

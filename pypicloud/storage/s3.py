@@ -37,6 +37,7 @@ class S3Storage(IStorage):
 
     def __init__(self, request=None, bucket=None, expire_after=None,
                  bucket_prefix=None, prepend_hash=None, redirect_urls=None,
+                 use_sse=False,
                  **kwargs):
         super(S3Storage, self).__init__(request, **kwargs)
         self.bucket = bucket
@@ -44,6 +45,7 @@ class S3Storage(IStorage):
         self.bucket_prefix = bucket_prefix
         self.prepend_hash = prepend_hash
         self.redirect_urls = redirect_urls
+        self.use_sse = use_sse
 
     @classmethod
     def configure(cls, settings):
@@ -63,6 +65,9 @@ class S3Storage(IStorage):
                            'aws.host', boto.s3.connection.NoHostProvided)
         is_secure = getdefaults(settings, 'storage.is_secure',
                                 'aws.is_secure', True)
+        kwargs['use_sse'] = asbool(getdefaults(
+            settings, 'storage.server_side_encryption',
+            'aws.server_side_encryption', False))
         calling_format = settings.get('storage.calling_format',
                                       'SubdomainCallingFormat')
         kwargs['redirect_urls'] = asbool(settings.get('storage.redirect_urls',
@@ -173,7 +178,7 @@ class S3Storage(IStorage):
         key.set_metadata('version', package.version)
         # S3 doesn't support uploading from a non-file stream, so we have to
         # read it into memory :(
-        key.set_contents_from_string(data.read())
+        key.set_contents_from_string(data.read(), encrypt_key=self.use_sse)
 
     def delete(self, package):
         path = self.get_path(package)
