@@ -350,7 +350,7 @@ The field to use in combination with ``admin_dns`` to determine the admin DNs
 from the search result. As an example, this could be "groupMembers", but again,
 will depend on your LDAP setup.
 
-``auth.ldap.admin_field``
+``auth.ldap.admin_dns``
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** list
 
