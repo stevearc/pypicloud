@@ -1,5 +1,5 @@
 """ Access backend for storing permissions in using SQLAlchemy """
-from sqlalchemy import (engine_from_config, Column, Text, Boolean, Table,
+from sqlalchemy import (engine_from_config, Column, String, Boolean, Table,
                         ForeignKey)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, backref
@@ -16,8 +16,8 @@ Base = declarative_base()
 
 association_table = Table(
     'pypicloud_user_groups', Base.metadata,
-    Column('username', Text(), ForeignKey('pypicloud_users.username'), primary_key=True),
-    Column('group', Text(), ForeignKey('pypicloud_groups.name'), primary_key=True)
+    Column('username', String(length=255), ForeignKey('pypicloud_users.username'), primary_key=True),
+    Column('group', String(length=255), ForeignKey('pypicloud_groups.name'), primary_key=True)
 )
 # pylint: enable=C0103
 
@@ -26,8 +26,8 @@ class KeyVal(Base):
 
     """ Simple model for storing key-value pairs """
     __tablename__ = 'pypicloud_keyvals'
-    key = Column(Text(), primary_key=True)
-    value = Column(Text())
+    key = Column(String(length=255), primary_key=True)
+    value = Column(String(length=255))
 
     def __init__(self, key, value):
         self.key = key
@@ -38,8 +38,8 @@ class User(Base):
 
     """ User record """
     __tablename__ = 'pypicloud_users'
-    username = Column(Text(), primary_key=True)
-    password = Column('password', Text(), nullable=False)
+    username = Column(String(length=255), primary_key=True)
+    password = Column('password', String(length=255), nullable=False)
     admin = Column(Boolean(), nullable=False)
     pending = Column(Boolean(), nullable=False)
     groups = orm.relationship('Group', secondary=association_table,
@@ -59,7 +59,7 @@ class Group(Base):
 
     """ Group record """
     __tablename__ = 'pypicloud_groups'
-    name = Column(Text(), primary_key=True)
+    name = Column(String(length=255), primary_key=True)
 
     def __init__(self, name):
         self.name = name
@@ -71,7 +71,7 @@ class Permission(Base):
 
     """ Base class for user and group permissions """
     __abstract__ = True
-    package = Column(Text(), primary_key=True)
+    package = Column(String(length=255), primary_key=True)
     read = Column(Boolean())
     write = Column(Boolean())
 
@@ -97,7 +97,7 @@ class UserPermission(Permission):
 
     """ Permissions for a user on a package """
     __tablename__ = 'pypicloud_user_permissions'
-    username = Column(Text(), ForeignKey(User.username), primary_key=True)
+    username = Column(String(length=255), ForeignKey(User.username), primary_key=True)
     user = orm.relationship("User",
                             backref=backref('permissions',
                                             cascade='all, delete-orphan'))
@@ -111,7 +111,7 @@ class GroupPermission(Permission):
 
     """ Permissions for a group on a package """
     __tablename__ = 'pypicloud_group_permissions'
-    groupname = Column(Text(), ForeignKey(Group.name), primary_key=True)
+    groupname = Column(String(length=255), ForeignKey(Group.name), primary_key=True)
     group = orm.relationship("Group",
                              backref=backref('permissions',
                                              cascade='all, delete-orphan'))
