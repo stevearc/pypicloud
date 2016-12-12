@@ -1,5 +1,5 @@
 """ Access backend for storing permissions in using SQLAlchemy """
-from sqlalchemy import (engine_from_config, Column, String, Boolean, Table,
+from sqlalchemy import (engine_from_config, Column, String, Text, Boolean, Table,
                         ForeignKey)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, backref
@@ -27,7 +27,7 @@ class KeyVal(Base):
     """ Simple model for storing key-value pairs """
     __tablename__ = 'pypicloud_keyvals'
     key = Column(String(length=255), primary_key=True)
-    value = Column(String(length=255))
+    value = Column(Text())
 
     def __init__(self, key, value):
         self.key = key
@@ -39,7 +39,7 @@ class User(Base):
     """ User record """
     __tablename__ = 'pypicloud_users'
     username = Column(String(length=255), primary_key=True)
-    password = Column('password', String(length=255), nullable=False)
+    password = Column('password', Text(), nullable=False)
     admin = Column(Boolean(), nullable=False)
     pending = Column(Boolean(), nullable=False)
     groups = orm.relationship('Group', secondary=association_table,
