@@ -290,7 +290,7 @@ class TestSQLiteCache(unittest.TestCase):
         pkgs = [
             make_package(factory=SQLPackage),
             make_package('somepackage', version='1.3', filename='mypath3',
-                         summary='this is MyPKG', factory=SQLPackage),
+                         summary='this is mypkg', factory=SQLPackage),
             make_package('mypkg2', '1.3.4', 'my/other/path',
                          factory=SQLPackage),
             make_package('package', factory=SQLPackage),
@@ -306,7 +306,7 @@ class TestSQLiteCache(unittest.TestCase):
             {
                 'name': 'somepackage',
                 'version': '1.3',
-                'summary': 'this is MyPKG'
+                'summary': 'this is mypkg'
             },
             {
                 'name': 'mypkg2',
@@ -315,10 +315,6 @@ class TestSQLiteCache(unittest.TestCase):
             }
         ]
         packages = self.db.search(criteria, 'or')
-
-        # Sort the results so the lists are in the same order
-        expected.sort(key=lambda item: (item['name'], item['version']))
-        packages.sort(key=lambda item: (item['name'], item['version']))
 
         self.assertListEqual(packages, expected)
 
@@ -553,7 +549,7 @@ class TestRedisCache(unittest.TestCase):
         pkgs = [
             make_package(factory=SQLPackage),
             make_package('somepackage', version='1.3', filename='mypath3',
-                         summary='this is MyPKG', factory=SQLPackage),
+                         summary='this is mypkg', factory=SQLPackage),
             make_package('mypkg2', '1.3.4', 'my/other/path',
                          factory=SQLPackage),
             make_package('package', factory=SQLPackage),
@@ -565,7 +561,7 @@ class TestRedisCache(unittest.TestCase):
             {
                 'name': 'somepackage',
                 'version': '1.3',
-                'summary': 'this is MyPKG'
+                'summary': 'this is mypkg'
             },
             {
                 'name': 'mypkg2',
@@ -735,7 +731,7 @@ class TestDynamoCache(unittest.TestCase):
         pkgs = [
             make_package(factory=DynamoPackage),
             make_package('somepackage', version='1.3', filename='mypath3',
-                         summary='this is MyPKG', factory=DynamoPackage),
+                         summary='this is mypkg', factory=DynamoPackage),
             make_package('mypkg2', '1.3.4', 'my/other/path',
                          factory=DynamoPackage),
             make_package('package', factory=DynamoPackage),
@@ -756,7 +752,7 @@ class TestDynamoCache(unittest.TestCase):
             {
                 'name': 'somepackage',
                 'version': '1.3',
-                'summary': 'this is MyPKG'
+                'summary': 'this is mypkg'
             },
         ]
         packages = self.db.search(criteria, 'or')
