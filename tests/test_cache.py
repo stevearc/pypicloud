@@ -739,9 +739,9 @@ class TestDynamoCache(unittest.TestCase):
         criteria = {'name': ['mypkg'], 'summary': ['mypkg']}
         expected = [
             {
-                'name': 'somepackage',
-                'version': '1.3',
-                'summary': 'this is MyPKG'
+                'name': 'mypkg',
+                'version': '1.1',
+                'summary': 'summary'
             },
             {
                 'name': 'mypkg2',
@@ -749,10 +749,10 @@ class TestDynamoCache(unittest.TestCase):
                 'summary': 'summary'
             },
             {
-                'name': 'mypkg',
-                'version': '1.1',
-                'summary': 'summary'
-            }
+                'name': 'somepackage',
+                'version': '1.3',
+                'summary': 'this is MyPKG'
+            },
         ]
         packages = self.db.search(criteria, 'or')
         self.assertListEqual(packages, expected)
