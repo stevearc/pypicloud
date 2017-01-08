@@ -315,6 +315,11 @@ class TestSQLiteCache(unittest.TestCase):
             }
         ]
         packages = self.db.search(criteria, 'or')
+
+        # Sort the results so the lists are in the same order
+        expected.sort(key=lambda item: (item['name'], item['version']))
+        packages.sort(key=lambda item: (item['name'], item['version']))
+
         self.assertListEqual(packages, expected)
 
     def test_summary(self):
