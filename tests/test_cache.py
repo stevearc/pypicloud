@@ -315,7 +315,8 @@ class TestSQLiteCache(unittest.TestCase):
             }
         ]
         packages = self.db.search(criteria, 'or')
-
+        packages.sort(key=lambda item: (item['name'], item['version']))
+        expected.sort(key=lambda item: (item['name'], item['version']))
         self.assertListEqual(packages, expected)
 
     def test_summary(self):
@@ -575,6 +576,8 @@ class TestRedisCache(unittest.TestCase):
             }
         ]
         packages = self.db.search(criteria, 'or')
+        packages.sort(key=lambda item: (item['name'], item['version']))
+        expected.sort(key=lambda item: (item['name'], item['version']))
         self.assertListEqual(packages, expected)
 
     def test_multiple_packages_same_version(self):
