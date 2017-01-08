@@ -86,3 +86,18 @@ your ``$HOME/.pypirc``::
 Now to upload a package you should run::
 
     python setup.py sdist upload -r pypicloud
+
+Searching Packages
+------------------
+After packages have been uploaded, you can search for them via pip::
+
+    pip search -i http://localhost:6543/pypi/ QUERY1 [QUERY2 ...]
+
+If you want to configure pip to use PyPI Cloud for search, you can update your
+preferences in the ``$HOME/.pip/pip.conf`` file::
+
+    [search]
+    index = http://localhost:6543/pypi/
+
+Note that this will ONLY return results from the PyPi Cloud repository. The
+official PyPi repository will not be queried.

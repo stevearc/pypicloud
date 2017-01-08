@@ -1,6 +1,5 @@
 """ Tests for pypicloud """
 from datetime import datetime
-from types import MethodType
 
 from collections import defaultdict
 from mock import MagicMock
@@ -19,10 +18,11 @@ except ImportError:
 
 
 def make_package(name='mypkg', version='1.1', filename=None,
-                 last_modified=datetime.utcnow(), factory=Package, **kwargs):
+                 last_modified=datetime.utcnow(), summary='summary',
+                 factory=Package, **kwargs):
     """ Convenience method for constructing a package """
     filename = filename or '%s-%s.tar.gz' % (name, version)
-    return factory(name, version, filename, last_modified, **kwargs)
+    return factory(name, version, filename, last_modified, summary, **kwargs)
 
 
 class DummyStorage(IStorage):

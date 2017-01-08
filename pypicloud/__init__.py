@@ -51,6 +51,7 @@ def includeme(config):
     config.include('pyramid_beaker')
     config.include('pyramid_duh')
     config.include('pyramid_duh.auth')
+    config.include('pyramid_rpc.xmlrpc')
     config.include('pypicloud.auth')
     config.include('pypicloud.access')
     config.include('pypicloud.cache')
@@ -113,6 +114,8 @@ def includeme(config):
     config.add_static_view(name='static/%s' % __version__,
                            path='pypicloud:static',
                            cache_max_age=cache_max_age)
+
+    config.add_xmlrpc_endpoint('pypi', '/pypi/')
 
 
 def traceback_formatter(excpt, value, tback):

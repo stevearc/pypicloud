@@ -16,6 +16,7 @@ parts
 bin
 var
 sdist
+packages
 develop-eggs
 .installed.cfg
 
@@ -41,3 +42,4 @@ pypicloud_env
 _build
 _local.db
 *.ini
+.idea

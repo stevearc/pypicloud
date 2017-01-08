@@ -72,7 +72,7 @@ class ICache(object):
         for pkg in packages:
             self.save(pkg)
 
-    def upload(self, filename, data, name=None, version=None):
+    def upload(self, filename, data, name=None, version=None, summary=None):
         """
         Save this package to the storage mechanism and to the cache
 
@@ -88,6 +88,8 @@ class ICache(object):
         version : str, optional
             The version number of the package (if not provided, will be parsed
             from filename)
+        summary : str, optional
+            The summary of the package
 
         Returns
         -------
@@ -107,7 +109,7 @@ class ICache(object):
         old_pkg = self.fetch(filename)
         if old_pkg is not None and not self.allow_overwrite:
             raise ValueError("Package '%s' already exists!" % filename)
-        new_pkg = self.package_class(name, version, filename)
+        new_pkg = self.package_class(name, version, filename, summary=summary)
         self.storage.upload(new_pkg, data)
         self.save(new_pkg)
         return new_pkg
@@ -166,6 +168,29 @@ class ICache(object):
         -------
         names : list
             List of package names
+
+        """
+        raise NotImplementedError
+
+    def search(self, criteria, query_type):
+        """
+        Perform a search from pip
+
+        Parameters
+        ----------
+        criteria : dict
+            Dictionary containing the search criteria. Pip sends search criteria
+            for "name" and "summary" (typically, both of these lists have the
+            same search values).
+
+            Example:
+            {
+                "name": ["value1", "value2", ..., "valueN"],
+                "summary": ["value1", "value2", ..., "valueN"]
+            }
+
+        query_type : str
+            Type of query to perform. By default, pip sends "or".
 
         """
         raise NotImplementedError

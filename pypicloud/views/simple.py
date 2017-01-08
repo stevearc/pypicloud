@@ -1,4 +1,5 @@
 """ Views for simple pip interaction """
+import inspect
 import posixpath
 
 import logging
@@ -6,6 +7,7 @@ import six
 from pyramid.httpexceptions import HTTPBadRequest, HTTPFound, HTTPNotFound
 from pyramid.view import view_config
 from pyramid_duh import argify, addslash
+from pyramid_rpc.xmlrpc import xmlrpc_method
 
 from pypicloud.route import Root, SimplePackageResource, SimpleResource
 from pypicloud.util import normalize_name, parse_filename
@@ -18,7 +20,7 @@ LOG = logging.getLogger(__name__)
 @view_config(context=SimpleResource, request_method='POST', subpath=(),
              renderer='json')
 @argify
-def upload(request, content, name=None, version=None):
+def upload(request, content, name=None, version=None, summary=None):
     """ Handle update commands """
     action = request.param(':action', 'file_upload')
     # Direct uploads from the web UI go here, and don't have a name/version
@@ -31,11 +33,21 @@ def upload(request, content, name=None, version=None):
             return request.forbid()
         try:
             return request.db.upload(content.filename, content.file, name=name,
-                                     version=version)
+                                     version=version, summary=summary)
         except ValueError as e:
             return HTTPBadRequest(*e.args)
     else:
         return HTTPBadRequest("Unknown action '%s'" % action)
+
+
+@xmlrpc_method(endpoint='pypi')
+def search(request, criteria, query_type):
+    """
+    Perform searches from pip. This handles XML RPC requests to the "pypi"
+    endpoint (configured as /pypi/) that specify the method "search".
+
+    """
+    return request.db.search(criteria, query_type)
 
 
 @view_config(context=SimpleResource, request_method='GET', subpath=(),

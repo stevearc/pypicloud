@@ -4,7 +4,7 @@ from datetime import datetime
 import logging
 import transaction
 from pkg_resources import parse_version
-from sqlalchemy import (engine_from_config, distinct, Column, DateTime, Text,
+from sqlalchemy import (engine_from_config, distinct, or_, Column, DateTime,
                         String)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -81,6 +81,7 @@ class SQLPackage(Package, Base):
     name = Column(String(255, convert_unicode=True), index=True, nullable=False)
     version = Column(String(50, convert_unicode=True), nullable=False)
     last_modified = Column(DateTime(), index=True, nullable=False)
+    summary = Column(String(255, convert_unicode=True), index=True, nullable=True)
     data = Column(JSONEncodedDict(), nullable=False)
 
 
@@ -162,6 +163,35 @@ class SQLCache(ICache):
         names = self.db.query(distinct(SQLPackage.name))\
             .order_by(SQLPackage.name).all()
         return [n[0] for n in names]
+
+    def search(self, criteria, query_type):
+        """ Perform a search. """
+        conditions = []
+        packages = []
+        for key, queries in criteria.items():
+            # Make sure search key exists in the package class.
+            # It should be either "name" or "summary".
+            field = getattr(self.package_class, key, None)
+            if not field:
+                continue
+
+            for query in queries:
+                # Generate condition and add to list
+                condition = field.like('%' + query + '%')
+                conditions.append(condition)
+
+        if query_type == 'or':
+            results = self.db.query(SQLPackage).filter(or_(*conditions))
+        else:
+            results = self.db.query(SQLPackage).filter(*conditions)
+
+        for result in results.all():
+            packages.append({
+                'name': result.name,
+                'summary': result.summary,
+                'version': result.version,
+            })
+        return packages
 
     def summary(self):
         packages = {}
