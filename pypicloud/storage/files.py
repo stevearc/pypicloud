@@ -79,8 +79,8 @@ class FileStorage(IStorage):
             os.makedirs(destdir)
         uid = os.urandom(4).encode('hex')
 
-        # Store metadata as JSON. This could be expanded in the future if
-        # additional metadata should be stored.
+        # Store metadata as JSON. This could be expanded in the future
+        # to store additional metadata about a package (i.e. author)
         tempfile = os.path.join(destdir, '.metadata.' + uid)
         metadata = {'summary': package.summary}
         with open(tempfile, 'w') as mfile:

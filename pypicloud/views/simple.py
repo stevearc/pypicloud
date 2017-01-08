@@ -1,5 +1,4 @@
 """ Views for simple pip interaction """
-import inspect
 import posixpath
 
 import logging
