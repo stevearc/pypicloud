@@ -124,52 +124,6 @@ class DynamoCache(ICache):
             names.add(summary.name)
         return sorted(names)
 
-    def search(self, criteria, query_type):
-        """ Perform a search. """
-        name_queries = criteria.get('name', [])
-        summary_queries = criteria.get('summary', [])
-        packages = []
-        packages_found = set()
-
-        for key in self.distinct():
-            # Search all versions of this package key
-            for package in self.all(key):
-                # Skip this result if it has already been selected
-                if package.name in packages_found:
-                    continue
-
-                # Search package names
-                for query in name_queries:
-                    # Look for this query anywhere in the package name
-                    if query.lower() in package.name.lower():
-                        # Found a match, adding to the packages_found
-                        # set and generating a result
-                        packages_found.add(package.name)
-                        packages.append({
-                            'name': package.name,
-                            'summary': package.summary,
-                            'version': package.version,
-                        })
-
-                # Skip this result if it was selected by the name search
-                if package.name in packages_found:
-                    continue
-
-                # Search package summaries
-                for query in summary_queries:
-                    # Look for this query anywhere in the package summary
-                    if query.lower() in package.summary.lower():
-                        # Found a match, adding to the packages_found
-                        # set and generating a result
-                        packages_found.add(package.name)
-                        packages.append({
-                            'name': package.name,
-                            'summary': package.summary,
-                            'version': package.version,
-                        })
-
-        return packages
-
     def summary(self):
         summaries = sorted(self.engine.scan(PackageSummary),
                            key=lambda s: s.name)
