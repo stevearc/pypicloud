@@ -43,10 +43,6 @@ TEST_REQUIREMENTS = [
     'webtest',
 ]
 
-if sys.version_info[:2] < (2, 7):
-    REQUIREMENTS.append('argparse')
-    TEST_REQUIREMENTS.append('unittest2')
-
 if __name__ == "__main__":
     setup(
         name='pypicloud',
@@ -56,7 +52,6 @@ if __name__ == "__main__":
         classifiers=[
             'Programming Language :: Python',
             'Programming Language :: Python :: 2',
-            'Programming Language :: Python :: 2.6',
             'Programming Language :: Python :: 2.7',
             'Development Status :: 4 - Beta',
             'Framework :: Pyramid',
