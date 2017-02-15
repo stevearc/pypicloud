@@ -55,7 +55,7 @@ class TestSimple(MockServerTest):
         self.assertEqual(response, self.request.forbid())
 
     def test_upload_duplicate(self):
-        """ Uploading a duplicate package returns 400 """
+        """ Uploading a duplicate package returns 409 """
         self.params = {
             ':action': 'file_upload',
         }
@@ -63,7 +63,7 @@ class TestSimple(MockServerTest):
         content.filename = 'foo-1.2.tar.gz'
         self.db.upload(content.filename, content, name)
         response = upload(self.request, content, name, version)
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 409)
 
     def test_list(self):
         """ Simple list should return api call """

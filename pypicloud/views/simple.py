@@ -3,7 +3,8 @@ import posixpath
 
 import logging
 import six
-from pyramid.httpexceptions import HTTPBadRequest, HTTPFound, HTTPNotFound
+from pyramid.httpexceptions import (HTTPBadRequest, HTTPFound, HTTPNotFound,
+                                    HTTPConflict)
 from pyramid.view import view_config
 from pyramid_duh import argify, addslash
 
@@ -33,7 +34,7 @@ def upload(request, content, name=None, version=None):
             return request.db.upload(content.filename, content.file, name=name,
                                      version=version)
         except ValueError as e:
-            return HTTPBadRequest(*e.args)
+            return HTTPConflict(*e.args)
     else:
         return HTTPBadRequest("Unknown action '%s'" % action)
 
