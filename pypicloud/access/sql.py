@@ -4,9 +4,7 @@ from sqlalchemy import (engine_from_config, Column, String, Text, Boolean, Table
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, backref
 from sqlalchemy import orm
-# pylint: disable=F0401,E0611
-from zope.sqlalchemy import ZopeTransactionExtension
-# pylint: enable=F0401,E0611
+import zope.sqlalchemy
 
 from .base import IMutableAccessBackend
 
@@ -133,17 +131,14 @@ class SQLAccessBackend(IMutableAccessBackend):
         super(SQLAccessBackend, self).__init__(request, **kwargs)
         self.db = dbmaker()
 
-        def cleanup(_):
-            """ Close the session after the request """
-            self.db.close()
-        request.add_finished_callback(cleanup)
+        if request is not None:
+            zope.sqlalchemy.register(self.db, transaction_manager=request.tm)
 
     @classmethod
     def configure(cls, settings):
         kwargs = super(SQLAccessBackend, cls).configure(settings)
         engine = engine_from_config(settings, prefix='auth.db.')
-        kwargs['dbmaker'] = sessionmaker(
-            bind=engine, extension=ZopeTransactionExtension())
+        kwargs['dbmaker'] = sessionmaker(bind=engine)
         # Create SQL schema if not exists
         Base.metadata.create_all(bind=engine)
         return kwargs

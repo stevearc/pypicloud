@@ -4,15 +4,12 @@ from datetime import datetime
 import logging
 import transaction
 from pkg_resources import parse_version
-from sqlalchemy import (engine_from_config, distinct, Column, DateTime, Text,
-                        String)
+from sqlalchemy import engine_from_config, distinct, Column, DateTime, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.types import TypeDecorator, TEXT
 from sqlalchemy.ext.mutable import Mutable
-# pylint: disable=F0401,E0611
-from zope.sqlalchemy import ZopeTransactionExtension
-# pylint: enable=F0401,E0611
+import zope.sqlalchemy
 
 from .base import ICache
 from pypicloud.models import Package
@@ -129,10 +126,7 @@ class SQLCache(ICache):
         self.db = self.dbmaker()
 
         if request is not None:
-            def cleanup(_):
-                """ Close the session after the request """
-                self.db.close()
-            request.add_finished_callback(cleanup)
+            zope.sqlalchemy.register(self.db, transaction_manager=request.tm)
 
     def reload_if_needed(self):
         super(SQLCache, self).reload_if_needed()
@@ -146,8 +140,7 @@ class SQLCache(ICache):
         engine = engine_from_config(settings, prefix='db.')
         # Create SQL schema if not exists
         create_schema(engine)
-        kwargs['dbmaker'] = sessionmaker(bind=engine,
-                                         extension=ZopeTransactionExtension())
+        kwargs['dbmaker'] = sessionmaker(bind=engine)
         return kwargs
 
     def fetch(self, filename):
