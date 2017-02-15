@@ -16,6 +16,7 @@ from pypicloud.access.base import group_to_principal
 from pypicloud.access.sql import (SQLAccessBackend, User, UserPermission,
                                   association_table, GroupPermission, Group, Base)
 from pypicloud.route import Root
+import zope.sqlalchemy
 
 
 try:
@@ -647,8 +648,13 @@ class TestSQLiteBackend(unittest.TestCase):
 
     def setUp(self):
         super(TestSQLiteBackend, self).setUp()
+        transaction.begin()
+        request = MagicMock()
+        request.tm = transaction.manager
+        self.access = SQLAccessBackend(request, **self.kwargs)
         self.db = self.kwargs['dbmaker']()
-        self.access = SQLAccessBackend(MagicMock(), **self.kwargs)
+        zope.sqlalchemy.register(self.db,
+                                 transaction_manager=transaction.manager)
 
     def tearDown(self):
         super(TestSQLiteBackend, self).tearDown()

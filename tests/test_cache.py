@@ -164,7 +164,9 @@ class TestSQLiteCache(unittest.TestCase):
 
     def setUp(self):
         super(TestSQLiteCache, self).setUp()
+        transaction.begin()
         self.request = DummyRequest()
+        self.request.tm = transaction.manager
         self.db = SQLCache(self.request, **self.kwargs)
         self.sql = self.db.db
         self.storage = self.db.storage = MagicMock(spec=IStorage)
