@@ -110,7 +110,7 @@ The long story: :ref:`redirect_detail`
 **Argument:** bool, optional
 
 Enables AES-256 transparent server side encryption. See the `AWS documention
-<http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingServerSideEncryption.html>`.
+<http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingServerSideEncryption.html>`_.
 Default is False.
 
 CloudFront
