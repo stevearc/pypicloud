@@ -1,0 +1,78 @@
+[app:main]
+use = egg:pypicloud
+
+pyramid.reload_templates = False
+pyramid.debug_authorization = false
+pyramid.debug_notfound = false
+pyramid.debug_routematch = false
+pyramid.default_locale_name = en
+
+pypi.default_read =
+    everyone
+pypi.default_write =
+    authenticated
+
+pypi.storage = {{storage_type}}
+{% if storage_type == 's3' %}
+storage.access_key = {{access_key}}
+storage.secret_key = {{secret_key}}
+{% endif %}
+storage.bucket = {{bucket_name}}
+
+db.url = sqlite:///%(here)s/db.sqlite
+
+auth.admins =
+  {{default_user}}
+
+user.{{default_user}} = {{default_pass}}
+
+# For beaker
+session.encrypt_key = {{encrypt_key}}
+session.validate_key = {{validate_key}}
+session.secure = {{secure_session}}
+
+###
+# wsgi server configuration
+###
+
+[server:main]
+use = egg:waitress#main
+host = 0.0.0.0
+port = {{port_number}}
+
+###
+# logging configuration
+# http://docs.pylonsproject.org/projects/pyramid/en/latest/narr/logging.html
+###
+
+[loggers]
+keys = root, boto, pypicloud
+
+[handlers]
+keys = console
+
+[formatters]
+keys = generic
+
+[logger_root]
+level = INFO
+handlers = console
+
+[logger_pypicloud]
+level = DEBUG
+qualname = pypicloud
+handlers =
+
+[logger_boto]
+level = WARN
+qualname = boto
+handlers =
+
+[handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+level = NOTSET
+formatter = generic
+
+[formatter_generic]
+format = %(levelname)s %(asctime)s [%(name)s] %(message)s

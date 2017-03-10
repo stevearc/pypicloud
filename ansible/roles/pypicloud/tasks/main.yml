@@ -1,0 +1,33 @@
+---
+  - name: Create user.
+    user: home=/home/{{deployment_name}} name={{deployment_name}} shell=/bin/bash state=present
+    sudo_user: root
+
+  - name: Update needed system packages
+    apt: pkg={{item}} state=installed update-cache=yes
+    with_items: 
+      - build-essential
+      - python-pip
+      - python-virtualenv
+      - python-dev
+    sudo_user: root
+
+  - name: Install pypicloud python package
+    pip: name=pypicloud version={{pypicloud_version}} virtualenv=/home/{{deployment_name}}/venv/
+    sudo_user: "{{deployment_name}}"
+
+  - name: Install waitress python package
+    pip: name=waitress version={{pypicloud_version}} virtualenv=/home/{{deployment_name}}/venv/
+    sudo_user: "{{deployment_name}}"
+
+  - name: Install pypicloud conf file.
+    template: src=server.ini.j2 dest=/home/{{deployment_name}}/server.ini mode=0600
+    sudo_user: "{{deployment_name}}"
+
+  - name: Install upstart conf file.
+    template: src=pypicloud.conf.j2 dest=/etc/init/pypicloud.conf mode=0600
+    sudo_user: root
+
+  - name: Restart pypicloud
+    service: name=pypicloud state=restarted
+    sudo_user: root

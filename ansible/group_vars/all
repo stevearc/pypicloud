@@ -1,0 +1,7 @@
+---
+hostname: pypi
+pypicloud_version: 0.2.10
+timezone: America/New_York
+locale: en_US.UTF-8
+deployment_name: pypicloud
+port_number: 6543

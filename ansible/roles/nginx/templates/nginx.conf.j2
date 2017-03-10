@@ -1,0 +1,56 @@
+upstream {{deployment_name}}_process {
+    server 127.0.0.1:{{port_number}};
+}
+
+server {
+        listen 80;
+
+        server_name  {{hostname}}.{{domainname}};
+
+        access_log  /var/log/nginx/{{deployment_name}}.access.log;
+        error_log /var/log/nginx/{{deployment_name}}.error.log;
+
+        keepalive_timeout 3;
+
+        root /home/{{deployment_name}}/;
+
+        location / {
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header Host $http_host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Url-Scheme $scheme;
+                proxy_redirect off;
+
+                proxy_pass http://{{deployment_name}}_process;
+                break;
+        }
+}
+
+{% if secure_session %}
+server {
+        listen  443 ssl;
+
+        server_name  {{hostname}}.{{domainname}};
+
+        ssl_certificate  /etc/ssl/certs/{{deployment_name}}.crt;
+        ssl_certificate_key /etc/ssl/private/{{deployment_name}}.key;
+
+        access_log  /home/{{deployment_name}}/logs/access.{{mode}}.log;
+        error_log /home/{{deployment_name}}/logs/error.{{mode}}.log;
+
+        keepalive_timeout 3;
+
+        root /home/{{deployment_name}}/;
+
+        location / {
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header Host $http_host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Url-Scheme $scheme;
+                proxy_redirect off;
+
+                proxy_pass http://{{deployment_name}}_process;
+                break;
+        }
+}
+{% endif %}

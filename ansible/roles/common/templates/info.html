@@ -1,0 +1,12 @@
+{{ansible_fqdn}}
+<ul>
+{% for key, value in ansible_facts recursive %}
+  <li>
+  {% if value is string %}
+    {{ key }}: {{value}}
+  {% else %}
+    {{ key }}<ul>{{ loop(value.items()) }}</ul>
+  {% endif %}
+  </li>
+{% endfor %}
+</ul>

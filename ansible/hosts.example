@@ -1,0 +1,8 @@
+[local]
+127.0.0.1
+
+[production]
+0.0.0.0
+
+[staging]
+0.0.0.0

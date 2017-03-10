@@ -1,0 +1,9 @@
+# pypicloud - A pypi server
+#
+
+description	"pypicloud daemon"
+
+start on runlevel [2345]
+stop on runlevel [!2345]
+
+exec su - pypicloud -c "source venv/bin/activate && pserve /home/pypicloud/server.ini"
