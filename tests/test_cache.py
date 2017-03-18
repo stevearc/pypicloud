@@ -146,7 +146,7 @@ class TestSQLiteCache(unittest.TestCase):
 
     """ Tests for the SQLAlchemy cache """
 
-    DB_URL = 'sqlite:///:memory:'
+    DB_URL = 'sqlite://'
 
     @classmethod
     def setUpClass(cls):
@@ -332,7 +332,7 @@ class TestSQLiteCache(unittest.TestCase):
 class TestMySQLCache(TestSQLiteCache):
     """ Test the SQLAlchemy cache on a MySQL DB """
 
-    DB_URL = 'mysql://root@127.0.0.1:3306/test'
+    DB_URL = 'mysql://root@127.0.0.1:3306/test?charset=utf8mb4'
 
 
 class TestPostgresCache(TestSQLiteCache):

@@ -16,8 +16,12 @@ Base = declarative_base()
 
 association_table = Table(
     'pypicloud_user_groups', Base.metadata,
-    Column('username', String(length=255), ForeignKey('pypicloud_users.username'), primary_key=True),
-    Column('group', String(length=255), ForeignKey('pypicloud_groups.name'), primary_key=True)
+    Column('username', String(length=255),
+           ForeignKey('pypicloud_users.username', ondelete='CASCADE'),
+           primary_key=True),
+    Column('group', String(length=255),
+           ForeignKey('pypicloud_groups.name', ondelete='CASCADE'),
+           primary_key=True)
 )
 # pylint: enable=C0103
 

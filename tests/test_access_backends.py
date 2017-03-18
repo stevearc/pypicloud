@@ -1,16 +1,19 @@
+# -*- coding: utf-8 -*-
 """ Tests for access backends """
+from __future__ import unicode_literals
 import transaction
 from mock import MagicMock, patch
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.security import Everyone, Authenticated
 from pyramid.testing import DummyRequest
+from sqlalchemy.exc import OperationalError
 
 from pypicloud.access import (IAccessBackend, IMutableAccessBackend,
                               ConfigAccessBackend, RemoteAccessBackend,
                               includeme, pwd_context)
 from pypicloud.access.base import group_to_principal
 from pypicloud.access.sql import (SQLAccessBackend, User, UserPermission,
-                                  association_table, GroupPermission, Group)
+                                  association_table, GroupPermission, Group, Base)
 from pypicloud.route import Root
 
 
@@ -223,7 +226,7 @@ class TestBaseBackend(BaseACLTest):
         """ keyword 'sql' loads SQLBackend """
         config = MagicMock()
         config.get_settings.return_value = {
-            'auth.db.url': 'sqlite:///:memory:',
+            'auth.db.url': 'sqlite://',
             'pypi.access_backend': 'sql',
         }
         includeme(config)
@@ -235,7 +238,7 @@ class TestBaseBackend(BaseACLTest):
         """ Can pass dotted path to load arbirary backend """
         config = MagicMock()
         config.get_settings.return_value = {
-            'auth.db.url': 'sqlite:///:memory:',
+            'auth.db.url': 'sqlite://',
             'pypi.access_backend': 'pypicloud.access.sql.SQLAccessBackend',
         }
         includeme(config)
@@ -625,33 +628,38 @@ class TestRemoteBackend(unittest.TestCase):
         self.assertEqual(groups, self.requests.get().json())
 
 
-class TestSQLBackend(unittest.TestCase):
-
+class TestSQLiteBackend(unittest.TestCase):
     """ Tests for the SQL access backend """
+
+    DB_URL = 'sqlite://'
+
     @classmethod
     def setUpClass(cls):
-        super(TestSQLBackend, cls).setUpClass()
+        super(TestSQLiteBackend, cls).setUpClass()
         cls.settings = {
-            'auth.db.url': 'sqlite:///:memory:',
+            'auth.db.url': cls.DB_URL,
         }
-        cls.kwargs = SQLAccessBackend.configure(cls.settings)
+        try:
+            cls.kwargs = SQLAccessBackend.configure(cls.settings)
+        except OperationalError:
+            raise unittest.SkipTest("Couldn't connect to database")
 
     def setUp(self):
-        super(TestSQLBackend, self).setUp()
+        super(TestSQLiteBackend, self).setUp()
         self.db = self.kwargs['dbmaker']()
         self.access = SQLAccessBackend(MagicMock(), **self.kwargs)
 
     def tearDown(self):
-        super(TestSQLBackend, self).tearDown()
+        super(TestSQLiteBackend, self).tearDown()
         transaction.abort()
-        self.db.query(User).delete()
-        self.db.query(UserPermission).delete()
-        self.db.query(GroupPermission).delete()
-        self.db.query(Group).delete()
-        self.db.execute(association_table.delete())  # pylint: disable=E1120
-        transaction.commit()
         self.access.db.close()
         self.db.close()
+        self._drop_and_recreate()
+
+    def _drop_and_recreate(self):
+        """ Drop all tables and recreate them """
+        Base.metadata.drop_all(bind=self.db.get_bind())
+        Base.metadata.create_all(bind=self.db.get_bind())
 
     def test_verify(self):
         """ Verify login credentials against database """
@@ -1154,14 +1162,17 @@ class TestSQLBackend(unittest.TestCase):
         self.access.edit_group_permission('pkg1', 'g1', 'read', True)
         self.access.edit_group_permission('pkg2', 'g2', 'read', True)
         self.access.edit_group_permission('pkg2', 'g2', 'write', True)
+        transaction.commit()
 
         data1 = self.access.dump()
 
-        SQLAccessBackend.configure(self.settings)
+        self.access.db.close()
+        self.db.close()
+        self._drop_and_recreate()
         kwargs = SQLAccessBackend.configure(self.settings)
-        access2 = SQLAccessBackend(MagicMock(), **kwargs)
-        access2.load(data1)
-        data2 = access2.dump()
+        self.access = SQLAccessBackend(MagicMock(), **kwargs)
+        self.access.load(data1)
+        data2 = self.access.dump()
 
         def assert_nice_equals(obj1, obj2):
             """ Assertion that handles unordered lists inside dicts """
@@ -1177,6 +1188,27 @@ class TestSQLBackend(unittest.TestCase):
         assert_nice_equals(data2, data1)
 
         # Load operation should be idempotent
-        access2.load(data2)
-        data3 = access2.dump()
+        self.access.load(data2)
+        data3 = self.access.dump()
         assert_nice_equals(data3, data2)
+
+    def test_save_unicode(self):
+        """ register() can accept a username with unicode """
+        username, passw = 'foo™', 'bar™'
+        self.access.register(username, passw)
+        transaction.commit()
+        user = self.db.query(User).first()
+        self.assertEqual(user.username, username)
+        self.assertTrue(pwd_context.verify(passw, user.password))
+
+
+class TestMySQLBackend(TestSQLiteBackend):
+    """ Test the SQLAlchemy access backend on a MySQL DB """
+
+    DB_URL = 'mysql://root@127.0.0.1:3306/test?charset=utf8mb4'
+
+
+class TestPostgresBackend(TestSQLiteBackend):
+    """ Test the SQLAlchemy access backend on a Postgres DB """
+
+    DB_URL = 'postgresql://postgres@127.0.0.1:5432/postgres'
