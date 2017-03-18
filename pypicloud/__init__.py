@@ -1,10 +1,12 @@
 """ S3-backed pypi server """
 import os
 import sys
-import traceback
+
+import calendar
 import datetime
 
 import logging
+import traceback
 from pyramid.config import Configurator
 from pyramid.renderers import JSON, render
 from pyramid.settings import asbool
@@ -25,7 +27,7 @@ def to_json(value):
 
 json_renderer = JSON()  # pylint: disable=C0103
 json_renderer.add_adapter(datetime.datetime, lambda obj, r:
-                          float(obj.strftime('%s.%f')))
+                          calendar.timegm(obj.utctimetuple()))
 
 
 def _app_url(request, *paths, **params):
