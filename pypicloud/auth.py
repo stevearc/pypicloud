@@ -21,8 +21,8 @@ def get_basicauth_credentials(request):
         return None
     if authmeth.lower() == 'basic':
         try:
-            auth = b64decode(auth.strip())
-        except TypeError:  # can't decode
+            auth = b64decode(auth.strip()).decode('utf8')
+        except (TypeError, binascii.Error):  # can't decode
             return None
         try:
             login, password = auth.split(':', 1)

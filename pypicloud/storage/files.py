@@ -70,7 +70,7 @@ class FileStorage(IStorage):
                             request=self.request,
                             content_type='application/octet-stream')
 
-    def upload(self, package, data):
+    def upload(self, package, datastream):
         destfile = self.get_path(package)
         dest_meta_file = self.get_metadata_path(package)
         destdir = os.path.dirname(destfile)
@@ -89,8 +89,8 @@ class FileStorage(IStorage):
 
         # Write to a temporary file
         tempfile = os.path.join(destdir, '.' + package.filename + '.' + uid)
-        with open(tempfile, 'w') as ofile:
-            for chunk in iter(lambda: data.read(16 * 1024), ''):
+        with open(tempfile, 'wb') as ofile:
+            for chunk in iter(lambda: datastream.read(16 * 1024), b''):
                 ofile.write(chunk)
 
         os.rename(tempfile, destfile)

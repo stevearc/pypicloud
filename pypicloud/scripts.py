@@ -35,10 +35,15 @@ def _gen_password():
 NO_DEFAULT = object()
 
 
+def wrapped_input(msg):
+    """ Wraps raw_input for tests """
+    return raw_input(msg)
+
+
 def prompt(msg, default=NO_DEFAULT, validate=None):
     """ Prompt user for input """
     while True:
-        response = raw_input(msg + ' ').strip()
+        response = wrapped_input(msg + ' ').strip()
         if not response:
             if default is NO_DEFAULT:
                 continue

@@ -1,4 +1,6 @@
 """ Store package data in redis """
+from __future__ import unicode_literals
+
 import calendar
 import json
 import six

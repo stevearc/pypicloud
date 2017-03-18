@@ -13,7 +13,7 @@ CHANGES = re.sub(r'\(\s*:(issue|pr|sha):.*?\)', '', CHANGES)
 CHANGES = re.sub(r':ref:`(.*?) <.*>`', r'\1', CHANGES)
 
 REQUIREMENTS = [
-    'boto',
+    'boto3',
     # We're doing enough subclassing and monkey patching to where we really do
     # need to lock this in to a specific version.
     'distlib==0.2.3',
