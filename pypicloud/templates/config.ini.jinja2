@@ -96,7 +96,7 @@ formatter = generic
 {%- else -%}
 
 [loggers]
-keys = root, boto, pypicloud
+keys = root, botocore, pypicloud
 
 [handlers]
 keys = console
@@ -113,9 +113,9 @@ level = DEBUG
 qualname = pypicloud
 handlers =
 
-[logger_boto]
+[logger_botocore]
 level = WARN
-qualname = boto
+qualname = botocore
 handlers =
 
 [handler_console]

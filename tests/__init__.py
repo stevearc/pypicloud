@@ -1,4 +1,5 @@
 """ Tests for pypicloud """
+from __future__ import unicode_literals
 import six
 from datetime import datetime
 

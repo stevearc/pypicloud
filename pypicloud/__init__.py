@@ -4,7 +4,7 @@ import sys
 
 import calendar
 import datetime
-
+import io
 import logging
 import traceback
 from pyramid.config import Configurator
@@ -132,10 +132,14 @@ def hook_exceptions():
     """
 
     if hasattr(sys.stdout, "fileno"):  # when testing, sys.stdout is StringIO
-        # reopen stdout in non buffered mode
-        sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
-        # set the hook
-        sys.excepthook = traceback_formatter
+        try:
+            # reopen stdout in non buffered mode
+            sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
+        except io.UnsupportedOperation:
+            pass
+        else:
+            # set the hook
+            sys.excepthook = traceback_formatter
 
 
 def main(config, **settings):

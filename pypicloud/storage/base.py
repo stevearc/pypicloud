@@ -44,7 +44,7 @@ class IStorage(object):
         """
         raise NotImplementedError
 
-    def upload(self, package, data):
+    def upload(self, package, datastream):
         """
         Upload a package file to the storage backend
 
@@ -52,7 +52,7 @@ class IStorage(object):
         ----------
         package : :class:`~pypicloud.models.Package`
             The package metadata
-        data : file
+        datastream : file
             A file-like object that contains the package data
 
         """
