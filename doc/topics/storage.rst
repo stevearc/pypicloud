@@ -145,3 +145,10 @@ that is currently active on your AWS account.
 
 Only needed when setting up CloudFront with signed URLs. This setting should be
 set to the full path of the CloudFront private key file.
+
+``storage.cloud_front_key_string``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+The same as ``cloud_front_key_file``, but contains the raw private key instead
+of a path to a file.
