@@ -53,15 +53,17 @@ class TestApi(MockServerTest):
     def test_register_not_allowed(self):
         """ If registration is disabled, register() returns 404 """
         self.request.named_subpaths = {'username': 'a'}
-        self.access.allow_register = False
+        self.access.allow_register.return_value = False
         self.access.need_admin.return_value = False
         ret = api.register(self.request, 'b')
-        self.assertTrue(isinstance(ret, HTTPNotFound))
+        self.assertTrue(isinstance(ret, HTTPForbidden))
 
     def test_register(self):
         """ Registration registers user with access backend """
         self.request.named_subpaths = {'username': 'a'}
         self.access.need_admin.return_value = False
+        self.access.user_data.return_value = None
+        self.access.pending_users.return_value = []
         api.register(self.request, 'b')
         self.access.register.assert_called_with('a', 'b')
 
@@ -69,6 +71,8 @@ class TestApi(MockServerTest):
         """ If access needs admin, first registered user is set as admin """
         self.request.named_subpaths = {'username': 'a'}
         self.access.need_admin.return_value = True
+        self.access.user_data.return_value = None
+        self.access.pending_users.return_value = []
         api.register(self.request, 'b')
         self.access.register.assert_called_with('a', 'b')
         self.access.approve_user.assert_called_with('a')

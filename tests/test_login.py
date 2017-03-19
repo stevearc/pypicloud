@@ -61,13 +61,15 @@ class TestLogin(MockServerTest):
     def test_register_disabled(self):
         """ If registration is disabled, registering new user returns 403 """
         self.request.access.allow_register.return_value = False
+        self.request.access.need_admin.return_value = False
         ret = login.register(self.request, 'dsa', 'pass')
         self.assertEqual(ret.status_code, 403)
 
     def test_register_duplicate(self):
         """ If registering duplicate user, registration returns 400 """
         ret = login.register(self.request, 'dsa', 'pass')
-        self.assertEqual(ret.status_code, 400)
+        self.assertEqual(ret['code'], 400)
+        self.assertEqual(self.request.response.status_code, 400)
 
     @patch('pypicloud.views.login.forget')
     def test_logout(self, forget):

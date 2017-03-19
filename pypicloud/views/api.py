@@ -6,11 +6,12 @@ import six
 from contextlib import closing
 from paste.httpheaders import CONTENT_DISPOSITION  # pylint: disable=E0611
 from pyramid.httpexceptions import HTTPNotFound, HTTPForbidden, HTTPBadRequest
-from pyramid.security import NO_PERMISSION_REQUIRED, remember
+from pyramid.security import NO_PERMISSION_REQUIRED
 from pyramid.view import view_config
 from pyramid_duh import argify, addslash
 from six.moves.urllib.request import urlopen  # pylint: disable=F0401,E0611
 
+from .login import handle_register_request
 from pypicloud.route import (APIResource, APIPackageResource,
                              APIPackagingResource, APIPackageFileResource)
 from pypicloud.util import normalize_name
@@ -128,15 +129,8 @@ def delete_package(context, request):
 @argify
 def register(request, password):
     """ Register a user """
-    if not request.access.allow_register and not request.access.need_admin():
-        return HTTPNotFound()
     username = request.named_subpaths['username']
-    request.access.register(username, password)
-    if request.access.need_admin():
-        request.access.approve_user(username)
-        request.access.set_user_admin(username, True)
-        request.response.headers.extend(remember(request, username))
-    return request.response
+    return handle_register_request(request, username, password)
 
 
 @view_config(context=APIResource, name='user', subpath=('password'),
