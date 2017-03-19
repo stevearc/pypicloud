@@ -114,6 +114,9 @@ angular.module('pypicloud')
   };
 
   function deleteUser(user) {
+    if (!confirm("Are you sure you want to delete " + user.username + "?")) {
+      return;
+    }
     $http({method: 'delete', url: $scope.ADMIN + 'user/' + user.username});
     var idx = $scope.users.indexOf(user);
     $scope.users.splice(idx, 1);
@@ -144,6 +147,9 @@ angular.module('pypicloud')
   });
 
   function deleteGroup(group) {
+    if (!confirm("Are you sure you want to delete group " + group + "?")) {
+      return;
+    }
     $http({method: 'delete', url: $scope.ADMIN + 'group/' + group});
     var idx = $scope.groups.indexOf(group);
     $scope.groups.splice(idx, 1);
