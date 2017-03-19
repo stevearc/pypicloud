@@ -146,6 +146,8 @@ angular.module('pypicloud', ['ui.bootstrap', 'ngRoute', 'angularFileUpload', 'ng
     $location.path('/new_admin');
   }
 
+  $scope.showUpload = USER != null || _.contains(DEFAULT_WRITE, 'everyone');
+
   var addPackages = function(packages) {
     var allNames = _.pluck($scope.packages, 'name');
     _.each(packages, function(pkg) {

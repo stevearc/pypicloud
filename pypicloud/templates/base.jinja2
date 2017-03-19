@@ -55,6 +55,7 @@ role="navigation">
     var CAN_UPDATE_CACHE = {{ request.access.can_update_cache() | tojson | safe }};
     var FALLBACK_URL = {{ request.registry.fallback_url | tojson | safe }};
     var DEFAULT_READ = {{ request.access.default_read | tojson | safe }};
+    var DEFAULT_WRITE = {{ request.access.default_write | tojson | safe }};
     var SECURE_COOKIE = {{ request.registry.secure_cookie | tojson | safe }};
   </script>
   {% block scripts %}
