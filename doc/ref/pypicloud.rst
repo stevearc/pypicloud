@@ -17,7 +17,6 @@ Submodules
 .. toctree::
 
    pypicloud.auth
-   pypicloud.compat
    pypicloud.models
    pypicloud.route
    pypicloud.scripts

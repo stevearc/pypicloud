@@ -1,10 +1,10 @@
 """ Model objects """
 import re
-from datetime import datetime
 
 import pkg_resources
+from datetime import datetime
+from functools import total_ordering
 
-from .compat import total_ordering
 from .util import normalize_name
 
 
