@@ -41,7 +41,7 @@ TEST_REQUIREMENTS = [
     'nose',
     'redis',
     'requests',
-    'webtest',
+    'webtest==2.0.24',
 ]
 
 if sys.version_info[:2] < (2, 7):
