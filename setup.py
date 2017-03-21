@@ -22,7 +22,7 @@ REQUIREMENTS = [
     'paste',
     'passlib',
     'pycrypto',
-    'pyramid',
+    'pyramid~=1.7.5',
     'pyramid_beaker',
     'pyramid_duh>=0.1.1',
     'pyramid_jinja2',
