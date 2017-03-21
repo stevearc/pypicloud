@@ -4,8 +4,8 @@ from datetime import datetime
 import logging
 import transaction
 from pkg_resources import parse_version
-from sqlalchemy import (engine_from_config, distinct, or_, Column, DateTime,
-                        String)
+from sqlalchemy import (engine_from_config, distinct, and_, or_, Column,
+                        DateTime, String)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.types import TypeDecorator, TEXT
@@ -165,7 +165,26 @@ class SQLCache(ICache):
         return [n[0] for n in names]
 
     def search(self, criteria, query_type):
-        """ Perform a search. """
+        """
+        Perform a search.
+
+        Queries are performed as follows:
+
+
+        For the AND query_type, queries within a column will utilize the AND
+        operator, but will not conflict with AND queries from another column.
+
+            (column1 LIKE '%a%' AND column1 LIKE '%b%')
+            OR
+            (column2 LIKE '%c%' AND column2 LIKE '%d%')
+
+        For the OR query_type, all queries will utilize the OR operator:
+
+            (column1 LIKE '%a%' OR column1 LIKE '%b%')
+            OR
+            (column2 LIKE '%c%' OR column2 LIKE '%d%')
+
+        """
         conditions = []
         packages = []
         for key, queries in criteria.items():
@@ -175,15 +194,24 @@ class SQLCache(ICache):
             if not field:
                 continue
 
+            column_conditions = []
+
             for query in queries:
                 # Generate condition and add to list
                 condition = field.like('%' + query + '%')
-                conditions.append(condition)
+                column_conditions.append(condition)
 
-        if query_type == 'or':
-            results = self.db.query(SQLPackage).filter(or_(*conditions))
-        else:
-            results = self.db.query(SQLPackage).filter(*conditions)
+            # Check if conditions for this column were generated
+            if column_conditions:
+                if query_type == 'and':
+                    operator = and_
+                else:
+                    operator = or_
+                conditions.append(operator(*column_conditions))
+
+        # Piece together the queries. Refer to the method docstring for
+        # examples as to how this works.
+        results = self.db.query(SQLPackage).filter(or_(*conditions))
 
         for result in results.all():
             packages.append({
