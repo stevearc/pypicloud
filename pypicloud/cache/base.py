@@ -224,6 +224,10 @@ class ICache(object):
 
                 # Search package summaries
                 for query in summary_queries:
+                    # Skip if there is not a package summary
+                    if not package.summary:
+                        continue
+
                     # Look for this query anywhere in the package summary
                     if query.lower() in package.summary.lower():
                         # Found a match, adding to the packages_found

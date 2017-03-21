@@ -48,7 +48,7 @@ class FileStorage(IStorage):
             if self.METADATA_FILE in files:
                 with open(os.path.join(root, self.METADATA_FILE), 'r') as mfile:
                     try:
-                        metadata = json.loads(mfile.read())
+                        metadata = json.loads(mfile)
                     except ValueError:
                         # If JSON fails to decode, don't sweat it.
                         pass
@@ -84,8 +84,7 @@ class FileStorage(IStorage):
         tempfile = os.path.join(destdir, '.metadata.' + uid)
         metadata = {'summary': package.summary}
         with open(tempfile, 'w') as mfile:
-            json_data = json.dumps(metadata)
-            mfile.write(json_data)
+            json.dumps(metadata, mfile)
 
         os.rename(tempfile, dest_meta_file)
 
@@ -99,9 +98,16 @@ class FileStorage(IStorage):
 
     def delete(self, package):
         filename = self.get_path(package)
-        meta_file = self.get_path(package, metadata=True)
+
         os.unlink(filename)
-        os.unlink(meta_file)
+
+        # Try to delete metadata file
+        meta_file = self.get_path(package, metadata=True)
+        try:
+            os.unlink(meta_file)
+        except OSError:
+            pass
+
         version_dir = os.path.dirname(filename)
         try:
             os.rmdir(version_dir)
