@@ -170,19 +170,18 @@ class SQLCache(ICache):
 
         Queries are performed as follows:
 
+            For the AND query_type, queries within a column will utilize the
+            AND operator, but will not conflict with queries in another column.
 
-        For the AND query_type, queries within a column will utilize the AND
-        operator, but will not conflict with AND queries from another column.
+                (column1 LIKE '%a%' AND column1 LIKE '%b%')
+                OR
+                (column2 LIKE '%c%' AND column2 LIKE '%d%')
 
-            (column1 LIKE '%a%' AND column1 LIKE '%b%')
-            OR
-            (column2 LIKE '%c%' AND column2 LIKE '%d%')
+            For the OR query_type, all queries will utilize the OR operator:
 
-        For the OR query_type, all queries will utilize the OR operator:
-
-            (column1 LIKE '%a%' OR column1 LIKE '%b%')
-            OR
-            (column2 LIKE '%c%' OR column2 LIKE '%d%')
+                (column1 LIKE '%a%' OR column1 LIKE '%b%')
+                OR
+                (column2 LIKE '%c%' OR column2 LIKE '%d%')
 
         """
         conditions = []
