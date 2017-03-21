@@ -48,7 +48,7 @@ class FileStorage(IStorage):
             if self.METADATA_FILE in files:
                 with open(os.path.join(root, self.METADATA_FILE), 'r') as mfile:
                     try:
-                        metadata = json.loads(mfile)
+                        metadata = json.load(mfile)
                     except ValueError:
                         # If JSON fails to decode, don't sweat it.
                         pass
@@ -84,7 +84,7 @@ class FileStorage(IStorage):
         tempfile = os.path.join(destdir, '.metadata.' + uid)
         metadata = {'summary': package.summary}
         with open(tempfile, 'w') as mfile:
-            json.dumps(metadata, mfile)
+            json.dump(metadata, mfile)
 
         os.rename(tempfile, dest_meta_file)
 
