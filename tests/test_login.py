@@ -65,6 +65,24 @@ class TestLogin(MockServerTest):
         ret = login.register(self.request, 'dsa', 'pass')
         self.assertEqual(ret.status_code, 403)
 
+    def test_register_long_username(self):
+        """ Super long usernames can't register """
+        self.request.access.user_data.return_value = None
+        ret = login.register(self.request, 200 * 'a', 'pass')
+        self.assertEqual(ret['code'], 400)
+
+    def test_register_blank_username(self):
+        """ Blank usernames can't register """
+        self.request.access.user_data.return_value = None
+        ret = login.register(self.request, '', 'pass')
+        self.assertEqual(ret['code'], 400)
+
+    def test_register_long_password(self):
+        """ Super long passwords can't register """
+        self.request.access.user_data.return_value = None
+        ret = login.register(self.request, 'abc', 200 * 'a')
+        self.assertEqual(ret['code'], 400)
+
     def test_register_duplicate(self):
         """ If registering duplicate user, registration returns 400 """
         ret = login.register(self.request, 'dsa', 'pass')

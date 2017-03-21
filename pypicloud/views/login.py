@@ -57,8 +57,12 @@ def handle_register_request(request, username, password):
     """ Process a request to register a new user """
     if not request.access.allow_register() and not request.access.need_admin():
         return HTTPForbidden()
-    # TODO: sanitize username/password
+    username = username.strip()
     try:
+        if len(username) > 100 or len(username) < 1:
+            raise ValueError("Username must be between 1 and 100 characters")
+        if len(password) > 100:
+            raise ValueError("Password cannot exceed 100 characters")
         if register_new_user(request.access, username, password):
             request.response.headers.extend(remember(request, username))
     except ValueError as e:
