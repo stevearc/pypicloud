@@ -140,8 +140,6 @@ class TestBaseCache(unittest.TestCase):
             cache.clear_all()
         with self.assertRaises(NotImplementedError):
             cache.save(make_package())
-        with self.assertRaises(NotImplementedError):
-            cache.search({'name': [], 'summary': []}, 'or')
 
 
 class TestSQLiteCache(unittest.TestCase):
