@@ -351,7 +351,7 @@ from the search result. As an example, this could be "groupMembers", but again,
 will depend on your LDAP setup.
 
 ``auth.ldap.admin_dns``
-~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** list
 
 A list of DNs to search for who should be considered an admin. It uses the

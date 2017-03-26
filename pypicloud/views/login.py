@@ -39,17 +39,47 @@ def do_login(request, username, password):
         return HTTPForbidden()
 
 
+def register_new_user(access, username, password):
+    """ Register a new user & handle duplicate detection """
+    if access.user_data(username) is not None:
+        raise ValueError("User '%s' already exists!" % username)
+    if username in access.pending_users():
+        raise ValueError("User '%s' has already registered!" % username)
+    access.register(username, password)
+    if access.need_admin():
+        access.approve_user(username)
+        access.set_user_admin(username, True)
+        return True
+    return False
+
+
+def handle_register_request(request, username, password):
+    """ Process a request to register a new user """
+    if not request.access.allow_register() and not request.access.need_admin():
+        return HTTPForbidden()
+    username = username.strip()
+    try:
+        if len(username) > 100 or len(username) < 1:
+            raise ValueError("Username must be between 1 and 100 characters")
+        if len(password) > 100:
+            raise ValueError("Password cannot exceed 100 characters")
+        if register_new_user(request.access, username, password):
+            request.response.headers.extend(remember(request, username))
+    except ValueError as e:
+        request.response.status_code = 400
+        return {
+            'code': 400,
+            'message': e.message,
+        }
+    return request.response
+
+
 @view_config(context=Root, name='login', request_method='PUT', subpath=(),
              renderer='json', permission=NO_PERMISSION_REQUIRED)
 @argify
 def register(request, username, password):
     """ Check credentials and log in """
-    if not request.access.allow_register():
-        return HTTPForbidden()
-    if request.access.user_data(username) is not None:
-        return HTTPBadRequest()
-    request.access.register(username, password)
-    return request.response
+    return handle_register_request(request, username, password)
 
 
 @view_config(context=Root, name='logout', subpath=())

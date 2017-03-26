@@ -5,14 +5,14 @@ The fast way to get set up:
 
 .. code-block:: bash
 
-    wget https://raw.github.com/mathcamp/devbox/0.1.0/devbox/unbox.py && \
-    python unbox.py git@github.com:mathcamp/pypicloud
+    wget https://raw.github.com/stevearc/devbox/0.1.0/devbox/unbox.py && \
+    python unbox.py git@github.com:stevearc/pypicloud
 
 The slow way to get set up:
 
 .. code-block:: bash
 
-    $ git clone git@github.com:mathcamp/pypicloud
+    $ git clone git@github.com:stevearc/pypicloud
     $ cd pypicloud
     $ virtualenv pypicloud_env
     $ . pypicloud_env/bin/activate

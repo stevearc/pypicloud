@@ -4,7 +4,7 @@ import sys
 import transaction
 import calendar
 from redis import ConnectionError
-from mock import MagicMock, patch, ANY
+from mock import MagicMock, patch
 from pyramid.testing import DummyRequest
 from sqlalchemy.exc import OperationalError
 
@@ -146,7 +146,7 @@ class TestSQLiteCache(unittest.TestCase):
 
     """ Tests for the SQLAlchemy cache """
 
-    DB_URL = 'sqlite:///:memory:'
+    DB_URL = 'sqlite://'
 
     @classmethod
     def setUpClass(cls):
@@ -332,7 +332,7 @@ class TestSQLiteCache(unittest.TestCase):
 class TestMySQLCache(TestSQLiteCache):
     """ Test the SQLAlchemy cache on a MySQL DB """
 
-    DB_URL = 'mysql://root@127.0.0.1:3306/test'
+    DB_URL = 'mysql://root@127.0.0.1:3306/test?charset=utf8mb4'
 
 
 class TestPostgresCache(TestSQLiteCache):
@@ -380,11 +380,14 @@ class TestRedisCache(unittest.TestCase):
         """ Assert that a package exists in redis """
         self.assertTrue(self.redis.sismember(self.db.redis_set, pkg.name))
         data = self.redis.hgetall(self.db.redis_key(pkg.filename))
+        dt = pkg.last_modified
+        lm = calendar.timegm(dt.utctimetuple()) + dt.microsecond / 1000000.0
+        lm_str = ("%.6f" % lm).rstrip('0').rstrip('.')
         pkg_data = {
             'name': pkg.name,
             'version': pkg.version,
             'filename': pkg.filename,
-            'last_modified': pkg.last_modified.strftime('%s.%f'),
+            'last_modified': lm_str,
         }
         pkg_data.update(pkg.data)
 

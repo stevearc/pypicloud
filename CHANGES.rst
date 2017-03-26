@@ -2,6 +2,14 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.4.5 - 2017/3/25
+-----------------
+* Bug fix: Access backend now works with MySQL family (:pr:`106`)
+* Bug fix: Return http 409 for duplicate upload to work better with twine (:issue:`112`)
+* Bug fix: Show upload button in interface if ``default_write = everyone``
+* Confirm prompt before deleting a user or group in the admin interface
+* Do some basica sanity checking of username/password inputs
+
 0.4.4 - 2016/10/5
 -----------------
 * Feature: Add optional AWS S3 Server Side Encryption option (:pr:`99`)

@@ -28,7 +28,7 @@ endpoint that will then return a HTTP redirect to the signed S3 url? Then we
 only have to sign one url per ``pip install``.
 
 **Problem**: Because `legacy code is the worst thing in the world
-<https://github.com/mathcamp/pypicloud/issues/54>`_. For reasons that I am
+<https://github.com/stevearc/pypicloud/issues/54>`_. For reasons that I am
 unable/unwilling to fully debug, ``easy_install`` cannot handle that. It just
 can't.
 

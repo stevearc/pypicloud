@@ -13,7 +13,7 @@ failure. Simply copy your config.ini file to a new server and run pypicloud
 there. The only data that needs to be persisted is in S3, which handles the
 redundancy requirements for you.
 
-Code lives here: https://github.com/mathcamp/pypicloud
+Code lives here: https://github.com/stevearc/pypicloud
 
 User Guide
 ----------

@@ -146,6 +146,8 @@ angular.module('pypicloud', ['ui.bootstrap', 'ngRoute', 'angularFileUpload', 'ng
     $location.path('/new_admin');
   }
 
+  $scope.showUpload = USER != null || _.contains(DEFAULT_WRITE, 'everyone');
+
   var addPackages = function(packages) {
     var allNames = _.pluck($scope.packages, 'name');
     _.each(packages, function(pkg) {
@@ -240,12 +242,13 @@ angular.module('pypicloud', ['ui.bootstrap', 'ngRoute', 'angularFileUpload', 'ng
       $scope.error = false;
       $scope.registered = username;
     }).error(function(data, status, headers, config) {
+      $scope.error = true;
       if (status === 400) {
-        $scope.error = true;
-        $scope.errorMsg = 'User already exists';
-      } else {
-        $scope.error = true;
+        $scope.errorMsg = data.message == null ? "Error during registration" : data.message;
+      } else if (status === 403) {
         $scope.errorMsg = 'Registration has been disabled';
+      } else {
+        $scope.errorMsg = "Error during registration: " + data.message;
       }
     });
   };
@@ -388,7 +391,11 @@ angular.module('pypicloud', ['ui.bootstrap', 'ngRoute', 'angularFileUpload', 'ng
 
 .controller('NewAdminCtrl', ['$scope', '$http', '$location', function($scope, $http, $location) {
   $scope.register = function(username, password) {
-    $http.put($scope.API + 'user/' + username, {password:password}).success(function(data, status, headers, config) {
+    var data = {
+      username: username,
+      password: password
+    };
+    $http.put(ROOT + 'login', data).success(function(data, status, headers, config) {
       window.location = ROOT;
     });
   };
