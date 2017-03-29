@@ -14,8 +14,6 @@ class FileStorage(IStorage):
 
     """ Stores package files on the filesystem """
 
-    METADATA_FILE = 'metadata.json'
-
     def __init__(self, request=None, **kwargs):
         self.directory = kwargs.pop('directory')
         super(FileStorage, self).__init__(request, **kwargs)
@@ -29,32 +27,23 @@ class FileStorage(IStorage):
         kwargs['directory'] = directory
         return kwargs
 
-    def get_path(self, package, metadata=False):
-        """
-        Get the fully-qualified file path for a package and its metadata file.
-        """
-        if metadata:
-            filename = self.METADATA_FILE
-        else:
-            filename = package.filename
+    def get_path(self, package):
+        """ Get the fully-qualified file path for a package """
         return os.path.join(self.directory, package.name, package.version,
-                            filename)
+                            package.filename)
+
+    def path_to_meta_path(self, path):
+        """ Construct the filename for a metadata file """
+        return path + '.meta'
+
+    def get_metadata_path(self, package):
+        """ Get the fully-qualified file path for a package metadata file """
+        return self.path_to_meta_path(self.get_path(package))
 
     def list(self, factory=Package):
         for root, _, files in os.walk(self.directory):
-            metadata = {}
-
-            # Read the metadata file
-            if self.METADATA_FILE in files:
-                with open(os.path.join(root, self.METADATA_FILE), 'r') as mfile:
-                    try:
-                        metadata = json.load(mfile)
-                    except ValueError:
-                        # If JSON fails to decode, don't sweat it.
-                        pass
-
             for filename in files:
-                if filename == self.METADATA_FILE:
+                if filename.endswith('.meta'):
                     # We don't want to yield for this file
                     continue
 
@@ -63,6 +52,15 @@ class FileStorage(IStorage):
                 fullpath = os.path.join(root, filename)
                 last_modified = datetime.fromtimestamp(os.path.getmtime(
                     fullpath))
+                metadata = {}
+                metafile = self.path_to_meta_path(fullpath)
+                if os.path.exists(metafile):
+                    with open(metafile, 'r') as mfile:
+                        try:
+                            metadata = json.load(mfile)
+                        except ValueError:
+                            # If JSON fails to decode, don't sweat it.
+                            pass
                 yield factory(name, version, filename, last_modified,
                               **metadata)
 
@@ -73,7 +71,7 @@ class FileStorage(IStorage):
 
     def upload(self, package, data):
         destfile = self.get_path(package)
-        dest_meta_file = self.get_path(package, metadata=True)
+        dest_meta_file = self.get_metadata_path(package)
         destdir = os.path.dirname(destfile)
         if not os.path.exists(destdir):
             os.makedirs(destdir)
@@ -98,16 +96,13 @@ class FileStorage(IStorage):
 
     def delete(self, package):
         filename = self.get_path(package)
-
+        meta_file = self.get_metadata_path(package)
         os.unlink(filename)
-
-        # Try to delete metadata file
-        meta_file = self.get_path(package, metadata=True)
         try:
             os.unlink(meta_file)
         except OSError:
+            # Metadata file may not exist
             pass
-
         version_dir = os.path.dirname(filename)
         try:
             os.rmdir(version_dir)

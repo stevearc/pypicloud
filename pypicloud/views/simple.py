@@ -47,7 +47,11 @@ def search(request, criteria, query_type):
     endpoint (configured as /pypi/) that specify the method "search".
 
     """
-    return request.db.search(criteria, query_type)
+    filtered = []
+    for pkg in request.db.search(criteria, query_type):
+        if request.access.has_permission(pkg.name, 'read'):
+            filtered.append(pkg.search_summary())
+    return filtered
 
 
 @view_config(context=SimpleResource, request_method='GET', subpath=(),

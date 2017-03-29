@@ -1,6 +1,4 @@
 """ Setup file """
-import sys
-
 from setuptools import setup, find_packages
 
 import os
@@ -22,7 +20,7 @@ REQUIREMENTS = [
     'paste',
     'passlib',
     'pycrypto',
-    'pyramid~=1.7.5',
+    'pyramid',
     'pyramid_beaker',
     'pyramid_duh>=0.1.1',
     'pyramid_jinja2',
@@ -41,7 +39,7 @@ TEST_REQUIREMENTS = [
     'nose',
     'redis',
     'requests',
-    'webtest==2.0.24',
+    'webtest',
 ]
 
 if __name__ == "__main__":

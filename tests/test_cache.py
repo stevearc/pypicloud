@@ -295,27 +295,8 @@ class TestSQLiteCache(unittest.TestCase):
         ]
         self.sql.add_all(pkgs)
         criteria = {'name': ['mypkg'], 'summary': ['mypkg']}
-        expected = [
-            {
-                'name': 'mypkg',
-                'version': '1.1',
-                'summary': 'summary'
-            },
-            {
-                'name': 'somepackage',
-                'version': '1.3',
-                'summary': 'this is mypkg'
-            },
-            {
-                'name': 'mypkg2',
-                'version': '1.3.4',
-                'summary': 'summary'
-            }
-        ]
         packages = self.db.search(criteria, 'or')
-        packages.sort(key=lambda item: (item['name'], item['version']))
-        expected.sort(key=lambda item: (item['name'], item['version']))
-        self.assertListEqual(packages, expected)
+        self.assertItemsEqual(packages, pkgs[:-1])
 
     def test_search_and(self):
         """ search() returns packages that match the query """
@@ -329,27 +310,8 @@ class TestSQLiteCache(unittest.TestCase):
         ]
         self.sql.add_all(pkgs)
         criteria = {'name': ['my', 'pkg'], 'summary': ['this', 'mypkg']}
-        expected = [
-            {
-                'name': 'mypkg',
-                'version': '1.1',
-                'summary': 'summary'
-            },
-            {
-                'name': 'somepackage',
-                'version': '1.3',
-                'summary': 'this is mypkg'
-            },
-            {
-                'name': 'mypkg2',
-                'version': '1.3.4',
-                'summary': 'summary'
-            }
-        ]
         packages = self.db.search(criteria, 'and')
-        packages.sort(key=lambda item: (item['name'], item['version']))
-        expected.sort(key=lambda item: (item['name'], item['version']))
-        self.assertListEqual(packages, expected)
+        self.assertItemsEqual(packages, pkgs[:-1])
 
     def test_summary(self):
         """ summary constructs per-package metadata summary """
@@ -593,27 +555,8 @@ class TestRedisCache(unittest.TestCase):
         for pkg in pkgs:
             self.db.save(pkg)
         criteria = {'name': ['mypkg'], 'summary': ['mypkg']}
-        expected = [
-            {
-                'name': 'somepackage',
-                'version': '1.3',
-                'summary': 'this is mypkg'
-            },
-            {
-                'name': 'mypkg2',
-                'version': '1.3.4',
-                'summary': 'summary'
-            },
-            {
-                'name': 'mypkg',
-                'version': '1.1',
-                'summary': 'summary'
-            }
-        ]
         packages = self.db.search(criteria, 'or')
-        packages.sort(key=lambda item: (item['name'], item['version']))
-        expected.sort(key=lambda item: (item['name'], item['version']))
-        self.assertListEqual(packages, expected)
+        self.assertItemsEqual(packages, pkgs[:-1])
 
     def test_search_and(self):
         """ search() returns packages that match the query """
@@ -628,27 +571,8 @@ class TestRedisCache(unittest.TestCase):
         for pkg in pkgs:
             self.db.save(pkg)
         criteria = {'name': ['my', 'pkg'], 'summary': ['this', 'mypkg']}
-        expected = [
-            {
-                'name': 'somepackage',
-                'version': '1.3',
-                'summary': 'this is mypkg'
-            },
-            {
-                'name': 'mypkg2',
-                'version': '1.3.4',
-                'summary': 'summary'
-            },
-            {
-                'name': 'mypkg',
-                'version': '1.1',
-                'summary': 'summary'
-            }
-        ]
         packages = self.db.search(criteria, 'and')
-        packages.sort(key=lambda item: (item['name'], item['version']))
-        expected.sort(key=lambda item: (item['name'], item['version']))
-        self.assertListEqual(packages, expected)
+        self.assertItemsEqual(packages, pkgs[:-1])
 
     def test_multiple_packages_same_version(self):
         """ Can upload multiple packages that have the same version """
@@ -811,25 +735,8 @@ class TestDynamoCache(unittest.TestCase):
         ]
         self._save_pkgs(*pkgs)
         criteria = {'name': ['mypkg'], 'summary': ['mypkg']}
-        expected = [
-            {
-                'name': 'mypkg',
-                'version': '1.1',
-                'summary': 'summary'
-            },
-            {
-                'name': 'mypkg2',
-                'version': '1.3.4',
-                'summary': 'summary'
-            },
-            {
-                'name': 'somepackage',
-                'version': '1.3',
-                'summary': 'this is mypkg'
-            },
-        ]
         packages = self.db.search(criteria, 'or')
-        self.assertListEqual(packages, expected)
+        self.assertItemsEqual(packages, pkgs[:-1])
 
     def test_search_and(self):
         """ search() returns packages that match the query """
@@ -843,25 +750,8 @@ class TestDynamoCache(unittest.TestCase):
         ]
         self._save_pkgs(*pkgs)
         criteria = {'name': ['my', 'pkg'], 'summary': ['this', 'mypkg']}
-        expected = [
-            {
-                'name': 'mypkg',
-                'version': '1.1',
-                'summary': 'summary'
-            },
-            {
-                'name': 'mypkg2',
-                'version': '1.3.4',
-                'summary': 'summary'
-            },
-            {
-                'name': 'somepackage',
-                'version': '1.3',
-                'summary': 'this is mypkg'
-            },
-        ]
         packages = self.db.search(criteria, 'and')
-        self.assertListEqual(packages, expected)
+        self.assertItemsEqual(packages, pkgs[:-1])
 
     def test_summary(self):
         """ summary constructs per-package metadata summary """

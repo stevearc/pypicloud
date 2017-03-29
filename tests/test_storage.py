@@ -230,7 +230,7 @@ class TestFileStorage(unittest.TestCase):
         self.assertTrue(os.path.exists(filename))
         with open(filename, 'r') as ifile:
             self.assertEqual(ifile.read(), 'foobar')
-        meta_file = self.storage.get_path(package, metadata=True)
+        meta_file = self.storage.get_metadata_path(package)
         self.assertTrue(os.path.exists(meta_file))
         with open(meta_file, 'r') as mfile:
             self.assertEqual(json.loads(mfile.read()),
@@ -240,7 +240,7 @@ class TestFileStorage(unittest.TestCase):
         """ Can iterate over uploaded packages """
         package = make_package()
         path = self.storage.get_path(package)
-        meta_file = self.storage.get_path(package, metadata=True)
+        meta_file = self.storage.get_metadata_path(package)
         os.makedirs(os.path.dirname(path))
         with open(path, 'w') as ofile:
             ofile.write('foobar')
@@ -258,7 +258,7 @@ class TestFileStorage(unittest.TestCase):
         """ delete() should remove package from storage """
         package = make_package()
         path = self.storage.get_path(package)
-        meta_path = self.storage.get_path(package, metadata=True)
+        meta_path = self.storage.get_metadata_path(package)
         os.makedirs(os.path.dirname(path))
         with open(path, 'w') as ofile:
             ofile.write('foobar')

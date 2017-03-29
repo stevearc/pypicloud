@@ -89,3 +89,11 @@ class Package(object):
             'url': self.get_url(request),
             'summary': self.summary,
         }
+
+    def search_summary(self):
+        """ Data to return from a pip search """
+        return {
+            'name': self.name,
+            'summary': self.summary or '',  # May be None
+            'version': self.version,
+        }

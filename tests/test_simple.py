@@ -86,10 +86,37 @@ class TestSimple(MockServerTest):
             {
                 'name': 'foo',
                 'version': '1.1',
-                'summary': None
+                'summary': '',
             }
         ]
         self.assertListEqual(response, expected)
+
+    def test_search_permission_filter(self):
+        """ Pip search only gets results that user has read perms for """
+        self.params = {
+            ':action': 'file_upload',
+        }
+        name1, version1, content1 = 'pkg1', '1.1', MagicMock()
+        content1.filename = 'pkg1-1.1.tar.gz'
+        name2, version2, content2 = 'pkg2', '1.0', MagicMock()
+        content2.filename = 'pkg2-1.0.tar.gz'
+        name3, version3, content3 = 'other', '1.0', MagicMock()
+        content3.filename = 'other-1.0.tar.gz'
+        upload(self.request, content1, name1, version1)
+        upload(self.request, content2, name2, version2)
+        upload(self.request, content3, name3, version3)
+        self.request.access.has_permission.side_effect = lambda x, _: x == 'pkg1'
+        criteria = {
+            'name': ['pkg'],
+        }
+        response = search(self.request, criteria, 'and')
+        self.assertItemsEqual(response, [
+            {
+                'name': 'pkg1',
+                'version': '1.1',
+                'summary': '',
+            }
+        ])
 
     def test_list(self):
         """ Simple list should return api call """

@@ -195,7 +195,6 @@ class ICache(object):
         name_queries = criteria.get('name', [])
         summary_queries = criteria.get('summary', [])
         packages = []
-        packages_found = set()
 
         # Create matchers for the queries
         match_name = create_matcher(name_queries, query_type)
@@ -203,40 +202,17 @@ class ICache(object):
 
         for key in self.distinct():
             # Search all versions of this package key
+            # TODO: maybe make sure we find the most recent version?
             for package in self.all(key):
-                # Skip this result if it has already been selected
-                if package.name in packages_found:
-                    continue
-
-                # Search package names
                 if match_name(package.name):
-                    # Found a match, adding to the packages_found
-                    # set and generating a result
-                    packages_found.add(package.name)
-                    packages.append({
-                        'name': package.name,
-                        'summary': package.summary,
-                        'version': package.version,
-                    })
+                    # Found a match, adding to the packages_found set and
+                    # generating a result
+                    packages.append(package)
+                    break
 
-                # Skip this result if it was selected by the name search
-                if package.name in packages_found:
-                    continue
-
-                # Skip if there is not a package summary
-                if not package.summary:
-                    continue
-
-                # Search package summaries
-                if match_summary(package.summary):
-                    # Found a match, adding to the packages_found
-                    # set and generating a result
-                    packages_found.add(package.name)
-                    packages.append({
-                        'name': package.name,
-                        'summary': package.summary,
-                        'version': package.version,
-                    })
+                if package.summary is not None and match_summary(package.summary):
+                    packages.append(package)
+                    break
 
         return packages
 

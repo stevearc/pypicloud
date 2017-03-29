@@ -185,7 +185,6 @@ class SQLCache(ICache):
 
         """
         conditions = []
-        packages = []
         for key, queries in criteria.items():
             # Make sure search key exists in the package class.
             # It should be either "name" or "summary".
@@ -212,13 +211,7 @@ class SQLCache(ICache):
         # examples as to how this works.
         results = self.db.query(SQLPackage).filter(or_(*conditions))
 
-        for result in results.all():
-            packages.append({
-                'name': result.name,
-                'summary': result.summary,
-                'version': result.version,
-            })
-        return packages
+        return results.all()
 
     def summary(self):
         packages = {}

@@ -4,7 +4,7 @@ pep8
 autopep8
 nose
 mock
-webtest==2.0.24
+webtest
 sphinx
 sphinx_rtd_theme
 numpydoc
