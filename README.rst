@@ -11,7 +11,9 @@ PyPI Cloud
 .. _coverage: https://coveralls.io/r/stevearc/pypicloud?branch=master
 
 This package is a Pyramid app that runs a simple PyPI server where all the
-packages are stored on Amazon's Simple Storage Service (S3).
+packages are stored on Amazon's Simple Storage Service (S3) or Google Cloud Storage (GCS).
+
+GCS backend requires gcs-oauth2-boto-plugin and a .boto configuration file.
 
 `LIVE DEMO <http://pypi.stevearc.com>`_
 

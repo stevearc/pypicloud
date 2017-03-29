@@ -21,6 +21,8 @@ pypi.default_write =
 pypi.storage = {{ storage }}
 {% if storage == 'file' -%}
 storage.dir = %(here)s/packages
+{% elif storage == 'gcs' -%}
+storage.bucket = {{ bucket }}
 {%- else -%}
 storage.access_key = {{ access_key }}
 storage.secret_key = {{ secret_key }}
