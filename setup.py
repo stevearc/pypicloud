@@ -22,10 +22,11 @@ REQUIREMENTS = [
     'paste',
     'passlib',
     'pycrypto',
-    'pyramid',
+    'pyramid~=1.7.5',
     'pyramid_beaker',
     'pyramid_duh>=0.1.1',
     'pyramid_jinja2',
+    'pyramid_rpc',
     'pyramid_tm',
     'rsa',
     'six',
@@ -40,7 +41,7 @@ TEST_REQUIREMENTS = [
     'nose',
     'redis',
     'requests',
-    'webtest',
+    'webtest==2.0.24',
 ]
 
 if __name__ == "__main__":

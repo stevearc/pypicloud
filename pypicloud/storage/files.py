@@ -1,4 +1,5 @@
 """ Store packages as files on disk """
+import json
 from datetime import datetime
 from contextlib import closing
 
@@ -13,6 +14,8 @@ class FileStorage(IStorage):
 
     """ Stores package files on the filesystem """
 
+    METADATA_FILE = 'metadata.json'
+
     def __init__(self, request=None, **kwargs):
         self.directory = kwargs.pop('directory')
         super(FileStorage, self).__init__(request, **kwargs)
@@ -26,20 +29,42 @@ class FileStorage(IStorage):
         kwargs['directory'] = directory
         return kwargs
 
-    def get_path(self, package):
-        """ Get the fully-qualified file path for a package """
+    def get_path(self, package, metadata=False):
+        """
+        Get the fully-qualified file path for a package and its metadata file.
+        """
+        if metadata:
+            filename = self.METADATA_FILE
+        else:
+            filename = package.filename
         return os.path.join(self.directory, package.name, package.version,
-                            package.filename)
+                            filename)
 
     def list(self, factory=Package):
         for root, _, files in os.walk(self.directory):
+            metadata = {}
+
+            # Read the metadata file
+            if self.METADATA_FILE in files:
+                with open(os.path.join(root, self.METADATA_FILE), 'r') as mfile:
+                    try:
+                        metadata = json.load(mfile)
+                    except ValueError:
+                        # If JSON fails to decode, don't sweat it.
+                        pass
+
             for filename in files:
+                if filename == self.METADATA_FILE:
+                    # We don't want to yield for this file
+                    continue
+
                 shortpath = root[len(self.directory):].strip('/')
                 name, version = shortpath.split('/')
                 fullpath = os.path.join(root, filename)
                 last_modified = datetime.fromtimestamp(os.path.getmtime(
                     fullpath))
-                yield factory(name, version, filename, last_modified)
+                yield factory(name, version, filename, last_modified,
+                              **metadata)
 
     def download_response(self, package):
         return FileResponse(self.get_path(package),
@@ -48,12 +73,23 @@ class FileStorage(IStorage):
 
     def upload(self, package, data):
         destfile = self.get_path(package)
+        dest_meta_file = self.get_path(package, metadata=True)
         destdir = os.path.dirname(destfile)
         if not os.path.exists(destdir):
             os.makedirs(destdir)
         uid = os.urandom(4).encode('hex')
-        tempfile = os.path.join(destdir, '.' + package.filename + '.' + uid)
+
+        # Store metadata as JSON. This could be expanded in the future
+        # to store additional metadata about a package (i.e. author)
+        tempfile = os.path.join(destdir, '.metadata.' + uid)
+        metadata = {'summary': package.summary}
+        with open(tempfile, 'w') as mfile:
+            json.dump(metadata, mfile)
+
+        os.rename(tempfile, dest_meta_file)
+
         # Write to a temporary file
+        tempfile = os.path.join(destdir, '.' + package.filename + '.' + uid)
         with open(tempfile, 'w') as ofile:
             for chunk in iter(lambda: data.read(16 * 1024), ''):
                 ofile.write(chunk)
@@ -62,7 +98,16 @@ class FileStorage(IStorage):
 
     def delete(self, package):
         filename = self.get_path(package)
+
         os.unlink(filename)
+
+        # Try to delete metadata file
+        meta_file = self.get_path(package, metadata=True)
+        try:
+            os.unlink(meta_file)
+        except OSError:
+            pass
+
         version_dir = os.path.dirname(filename)
         try:
             os.rmdir(version_dir)

@@ -8,8 +8,7 @@ from pyramid.settings import asbool
 import posixpath
 from pypicloud.models import Package
 from pypicloud.storage import get_storage_impl
-from pypicloud.util import parse_filename, normalize_name
-
+from pypicloud.util import create_matcher, parse_filename, normalize_name
 
 LOG = logging.getLogger(__name__)
 
@@ -72,7 +71,7 @@ class ICache(object):
         for pkg in packages:
             self.save(pkg)
 
-    def upload(self, filename, data, name=None, version=None):
+    def upload(self, filename, data, name=None, version=None, summary=None):
         """
         Save this package to the storage mechanism and to the cache
 
@@ -88,6 +87,8 @@ class ICache(object):
         version : str, optional
             The version number of the package (if not provided, will be parsed
             from filename)
+        summary : str, optional
+            The summary of the package
 
         Returns
         -------
@@ -107,7 +108,7 @@ class ICache(object):
         old_pkg = self.fetch(filename)
         if old_pkg is not None and not self.allow_overwrite:
             raise ValueError("Package '%s' already exists!" % filename)
-        new_pkg = self.package_class(name, version, filename)
+        new_pkg = self.package_class(name, version, filename, summary=summary)
         self.storage.upload(new_pkg, data)
         self.save(new_pkg)
         return new_pkg
@@ -169,6 +170,75 @@ class ICache(object):
 
         """
         raise NotImplementedError
+
+    def search(self, criteria, query_type):
+        """
+        Perform a search from pip
+
+        Parameters
+        ----------
+        criteria : dict
+            Dictionary containing the search criteria. Pip sends search criteria
+            for "name" and "summary" (typically, both of these lists have the
+            same search values).
+
+            Example:
+            {
+                "name": ["value1", "value2", ..., "valueN"],
+                "summary": ["value1", "value2", ..., "valueN"]
+            }
+
+        query_type : str
+            Type of query to perform. By default, pip sends "or".
+
+        """
+        name_queries = criteria.get('name', [])
+        summary_queries = criteria.get('summary', [])
+        packages = []
+        packages_found = set()
+
+        # Create matchers for the queries
+        match_name = create_matcher(name_queries, query_type)
+        match_summary = create_matcher(summary_queries, query_type)
+
+        for key in self.distinct():
+            # Search all versions of this package key
+            for package in self.all(key):
+                # Skip this result if it has already been selected
+                if package.name in packages_found:
+                    continue
+
+                # Search package names
+                if match_name(package.name):
+                    # Found a match, adding to the packages_found
+                    # set and generating a result
+                    packages_found.add(package.name)
+                    packages.append({
+                        'name': package.name,
+                        'summary': package.summary,
+                        'version': package.version,
+                    })
+
+                # Skip this result if it was selected by the name search
+                if package.name in packages_found:
+                    continue
+
+                # Skip if there is not a package summary
+                if not package.summary:
+                    continue
+
+                # Search package summaries
+                if match_summary(package.summary):
+                    # Found a match, adding to the packages_found
+                    # set and generating a result
+                    packages_found.add(package.name)
+                    packages.append({
+                        'name': package.name,
+                        'summary': package.summary,
+                        'version': package.version,
+                    })
+
+        return packages
 
     def summary(self):
         """

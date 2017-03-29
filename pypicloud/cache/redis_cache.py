@@ -61,9 +61,10 @@ class RedisCache(ICache):
         filename = data.pop('filename')
         last_modified = datetime.utcfromtimestamp(
             float(data.pop('last_modified')))
+        summary = data.pop('summary')
         kwargs = dict(((k, json.loads(v)) for k, v in data.iteritems()))
         return self.package_class(name, version, filename, last_modified,
-                                  **kwargs)
+                                  summary, **kwargs)
 
     def all(self, name):
         filenames = self.db.smembers(self.redis_filename_set(name))
@@ -97,6 +98,7 @@ class RedisCache(ICache):
             'version': package.version,
             'filename': package.filename,
             'last_modified': calendar.timegm(dt.utctimetuple()) + dt.microsecond / 1000000.0,
+            'summary': package.summary,
         }
         for key, value in package.data.iteritems():
             data[key] = json.dumps(value)

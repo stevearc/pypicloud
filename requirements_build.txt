@@ -3,7 +3,7 @@ pep8
 nose
 mock==1.0.1
 coverage
-webtest
+webtest==2.0.24
 redis
 requests
 moto
