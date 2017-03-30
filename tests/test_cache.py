@@ -283,6 +283,36 @@ class TestSQLiteCache(unittest.TestCase):
         saved_pkgs = self.db.distinct()
         self.assertItemsEqual(saved_pkgs, set([p.name for p in pkgs]))
 
+    def test_search_or(self):
+        """ search() returns packages that match the query """
+        pkgs = [
+            make_package(factory=SQLPackage),
+            make_package('somepackage', version='1.3', filename='mypath3',
+                         summary='this is mypkg', factory=SQLPackage),
+            make_package('mypkg2', '1.3.4', 'my/other/path',
+                         factory=SQLPackage),
+            make_package('package', factory=SQLPackage),
+        ]
+        self.sql.add_all(pkgs)
+        criteria = {'name': ['mypkg'], 'summary': ['mypkg']}
+        packages = self.db.search(criteria, 'or')
+        self.assertItemsEqual(packages, pkgs[:-1])
+
+    def test_search_and(self):
+        """ search() returns packages that match the query """
+        pkgs = [
+            make_package(factory=SQLPackage),
+            make_package('somepackage', version='1.3', filename='mypath3',
+                         summary='this is mypkg', factory=SQLPackage),
+            make_package('mypkg2', '1.3.4', 'my/other/path',
+                         factory=SQLPackage),
+            make_package('package', factory=SQLPackage),
+        ]
+        self.sql.add_all(pkgs)
+        criteria = {'name': ['my', 'pkg'], 'summary': ['this', 'mypkg']}
+        packages = self.db.search(criteria, 'and')
+        self.assertItemsEqual(packages, pkgs[:-1])
+
     def test_summary(self):
         """ summary constructs per-package metadata summary """
         self.db.upload('pkg1-0.3.tar.gz', None, 'pkg1', '0.3')
@@ -388,6 +418,7 @@ class TestRedisCache(unittest.TestCase):
             'version': pkg.version,
             'filename': pkg.filename,
             'last_modified': lm_str,
+            'summary': pkg.summary,
         }
         pkg_data.update(pkg.data)
 
@@ -407,6 +438,7 @@ class TestRedisCache(unittest.TestCase):
         self.assertEqual(loaded.version, pkg.version)
         self.assertEqual(loaded.filename, pkg.filename)
         self.assertEqual(loaded.last_modified, pkg.last_modified)
+        self.assertEqual(loaded.summary, pkg.summary)
         self.assertEqual(loaded.data, kwargs)
 
     def test_delete(self):
@@ -509,6 +541,38 @@ class TestRedisCache(unittest.TestCase):
             self.db.save(pkg)
         saved_pkgs = self.db.distinct()
         self.assertItemsEqual(saved_pkgs, set([p.name for p in pkgs]))
+
+    def test_search_or(self):
+        """ search() returns packages that match the query """
+        pkgs = [
+            make_package(factory=SQLPackage),
+            make_package('somepackage', version='1.3', filename='mypath3',
+                         summary='this is mypkg', factory=SQLPackage),
+            make_package('mypkg2', '1.3.4', 'my/other/path',
+                         factory=SQLPackage),
+            make_package('package', factory=SQLPackage),
+        ]
+        for pkg in pkgs:
+            self.db.save(pkg)
+        criteria = {'name': ['mypkg'], 'summary': ['mypkg']}
+        packages = self.db.search(criteria, 'or')
+        self.assertItemsEqual(packages, pkgs[:-1])
+
+    def test_search_and(self):
+        """ search() returns packages that match the query """
+        pkgs = [
+            make_package(factory=SQLPackage),
+            make_package('somepackage', version='1.3', filename='mypath3',
+                         summary='this is mypkg', factory=SQLPackage),
+            make_package('mypkg2', '1.3.4', 'my/other/path',
+                         factory=SQLPackage),
+            make_package('package', factory=SQLPackage),
+        ]
+        for pkg in pkgs:
+            self.db.save(pkg)
+        criteria = {'name': ['my', 'pkg'], 'summary': ['this', 'mypkg']}
+        packages = self.db.search(criteria, 'and')
+        self.assertItemsEqual(packages, pkgs[:-1])
 
     def test_multiple_packages_same_version(self):
         """ Can upload multiple packages that have the same version """
@@ -658,6 +722,36 @@ class TestDynamoCache(unittest.TestCase):
         self._save_pkgs(*pkgs)
         saved_pkgs = self.db.distinct()
         self.assertItemsEqual(saved_pkgs, set([p.name for p in pkgs]))
+
+    def test_search_or(self):
+        """ search() returns packages that match the query """
+        pkgs = [
+            make_package(factory=DynamoPackage),
+            make_package('somepackage', version='1.3', filename='mypath3',
+                         summary='this is mypkg', factory=DynamoPackage),
+            make_package('mypkg2', '1.3.4', 'my/other/path',
+                         factory=DynamoPackage),
+            make_package('package', factory=DynamoPackage),
+        ]
+        self._save_pkgs(*pkgs)
+        criteria = {'name': ['mypkg'], 'summary': ['mypkg']}
+        packages = self.db.search(criteria, 'or')
+        self.assertItemsEqual(packages, pkgs[:-1])
+
+    def test_search_and(self):
+        """ search() returns packages that match the query """
+        pkgs = [
+            make_package(factory=DynamoPackage),
+            make_package('somepackage', version='1.3', filename='mypath3',
+                         summary='this is mypkg', factory=DynamoPackage),
+            make_package('mypkg2', '1.3.4', 'my/other/path',
+                         factory=DynamoPackage),
+            make_package('package', factory=DynamoPackage),
+        ]
+        self._save_pkgs(*pkgs)
+        criteria = {'name': ['my', 'pkg'], 'summary': ['this', 'mypkg']}
+        packages = self.db.search(criteria, 'and')
+        self.assertItemsEqual(packages, pkgs[:-1])
 
     def test_summary(self):
         """ summary constructs per-package metadata summary """

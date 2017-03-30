@@ -24,12 +24,15 @@ class Package(object):
         The name of the package file
     last_modified : datetime, optional
         The datetime when this package was uploaded (default now)
+    summary : str, optional
+        The summary of the package
     **kwargs : dict
         Metadata about the package
 
     """
 
-    def __init__(self, name, version, filename, last_modified=None, **kwargs):
+    def __init__(self, name, version, filename, last_modified=None,
+                 summary=None, **kwargs):
         self.name = normalize_name(name)
         self.version = version
         self._parsed_version = None
@@ -38,6 +41,7 @@ class Package(object):
             self.last_modified = last_modified
         else:
             self.last_modified = datetime.utcnow()
+        self.summary = summary
         self.data = kwargs
 
     def get_url(self, request):
@@ -83,4 +87,13 @@ class Package(object):
             'last_modified': self.last_modified,
             'version': self.version,
             'url': self.get_url(request),
+            'summary': self.summary,
+        }
+
+    def search_summary(self):
+        """ Data to return from a pip search """
+        return {
+            'name': self.name,
+            'summary': self.summary or '',  # May be None
+            'version': self.version,
         }

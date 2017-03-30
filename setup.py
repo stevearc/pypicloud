@@ -1,6 +1,4 @@
 """ Setup file """
-import sys
-
 from setuptools import setup, find_packages
 
 import os
@@ -26,6 +24,7 @@ REQUIREMENTS = [
     'pyramid_beaker',
     'pyramid_duh>=0.1.1',
     'pyramid_jinja2',
+    'pyramid_rpc',
     'pyramid_tm',
     'rsa',
     'six',
@@ -46,7 +45,7 @@ TEST_REQUIREMENTS = [
 if __name__ == "__main__":
     setup(
         name='pypicloud',
-        version='0.4.5',
+        version='0.5.0',
         description='Private PyPI backed by S3',
         long_description=README + '\n\n' + CHANGES,
         classifiers=[

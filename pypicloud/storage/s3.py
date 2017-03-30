@@ -141,6 +141,7 @@ class S3Storage(IStorage):
             filename = posixpath.basename(key.key)
             name = key.get_metadata('name')
             version = key.get_metadata('version')
+            summary = key.get_metadata('summary')
 
             # We used to not store metadata. This is for backwards
             # compatibility
@@ -153,7 +154,8 @@ class S3Storage(IStorage):
 
             last_modified = boto.utils.parse_ts(key.last_modified)
 
-            pkg = factory(name, version, filename, last_modified, path=key.key)
+            pkg = factory(name, version, filename, last_modified, summary,
+                          path=key.key)
 
             yield pkg
 
@@ -176,6 +178,7 @@ class S3Storage(IStorage):
         key.key = self.get_path(package)
         key.set_metadata('name', package.name)
         key.set_metadata('version', package.version)
+        key.set_metadata('summary', package.summary)
         # S3 doesn't support uploading from a non-file stream, so we have to
         # read it into memory :(
         key.set_contents_from_string(data.read(), encrypt_key=self.use_sse)

@@ -34,6 +34,7 @@ class DynamoPackage(Package, Model):
     name = Field()
     version = Field()
     last_modified = Field(data_type=datetime)
+    summary = Field()
     data = Field(data_type=dict)
 
 

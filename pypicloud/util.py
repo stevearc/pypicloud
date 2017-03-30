@@ -118,3 +118,27 @@ def getdefaults(settings, *args):
                          "(replaced by '%s')", key, canonical)
             return settings[key]
     return default
+
+
+def create_matcher(queries, query_type):
+    """
+    Create a matcher for a list of queries
+
+    Parameters
+    ----------
+    queries : list
+        List of queries
+
+    query_type: str
+        Type of query to run: ["or"|"and"]
+
+    Returns
+    -------
+        Matcher function
+
+    """
+    queries = [query.lower() for query in queries]
+    if query_type == 'or':
+        return lambda x: any((q in x.lower() for q in queries))
+    else:
+        return lambda x: all((q in x.lower() for q in queries))

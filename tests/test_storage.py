@@ -1,4 +1,5 @@
 """ Tests for package storage backends """
+import json
 import time
 from cStringIO import StringIO
 from datetime import datetime
@@ -52,15 +53,17 @@ class TestS3Storage(unittest.TestCase):
     def test_list(self):
         """ Can construct a package from a S3 Key """
         key = Key(self.bucket)
-        name, version, filename = 'mypkg', '1.2', 'pkg.tar.gz'
+        name, version, filename, summary = 'mypkg', '1.2', 'pkg.tar.gz', 'text'
         key.key = name + '/' + filename
         key.set_metadata('name', name)
         key.set_metadata('version', version)
+        key.set_metadata('summary', summary)
         key.set_contents_from_string('foobar')
         package = list(self.storage.list(Package))[0]
         self.assertEquals(package.name, name)
         self.assertEquals(package.version, version)
         self.assertEquals(package.filename, filename)
+        self.assertEquals(package.summary, summary)
 
     def test_list_no_metadata(self):
         """ Test that list works on old keys with no metadata """
@@ -73,6 +76,7 @@ class TestS3Storage(unittest.TestCase):
         self.assertEquals(package.name, name)
         self.assertEquals(package.version, version)
         self.assertEquals(package.filename, filename)
+        self.assertEquals(package.summary, None)
 
     def test_get_url(self):
         """ Mock s3 and test package url generation """
@@ -108,6 +112,7 @@ class TestS3Storage(unittest.TestCase):
         self.assertEqual(key.get_contents_as_string(), datastr)
         self.assertEqual(key.get_metadata('name'), package.name)
         self.assertEqual(key.get_metadata('version'), package.version)
+        self.assertEqual(key.get_metadata('summary'), package.summary)
 
     def test_upload_prepend_hash(self):
         """ If prepend_hash = True, attach a hash to the file path """
@@ -225,29 +230,43 @@ class TestFileStorage(unittest.TestCase):
         self.assertTrue(os.path.exists(filename))
         with open(filename, 'r') as ifile:
             self.assertEqual(ifile.read(), 'foobar')
+        meta_file = self.storage.get_metadata_path(package)
+        self.assertTrue(os.path.exists(meta_file))
+        with open(meta_file, 'r') as mfile:
+            self.assertEqual(json.loads(mfile.read()),
+                             {'summary': package.summary})
 
     def test_list(self):
         """ Can iterate over uploaded packages """
         package = make_package()
         path = self.storage.get_path(package)
+        meta_file = self.storage.get_metadata_path(package)
         os.makedirs(os.path.dirname(path))
         with open(path, 'w') as ofile:
             ofile.write('foobar')
+
+        with open(meta_file, 'w') as mfile:
+            mfile.write(json.dumps({'summary': package.summary}))
 
         pkg = list(self.storage.list(Package))[0]
         self.assertEquals(pkg.name, package.name)
         self.assertEquals(pkg.version, package.version)
         self.assertEquals(pkg.filename, package.filename)
+        self.assertEquals(pkg.summary, package.summary)
 
     def test_delete(self):
         """ delete() should remove package from storage """
         package = make_package()
         path = self.storage.get_path(package)
+        meta_path = self.storage.get_metadata_path(package)
         os.makedirs(os.path.dirname(path))
         with open(path, 'w') as ofile:
             ofile.write('foobar')
+        with open(meta_path, 'w') as mfile:
+            mfile.write('foobar')
         self.storage.delete(package)
         self.assertFalse(os.path.exists(path))
+        self.assertFalse(os.path.exists(meta_path))
 
     def test_create_package_dir(self):
         """ configure() will create the package dir if it doesn't exist """

@@ -2,6 +2,12 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.5.0 - 2017/3/29
+-----------------
+**Upgrade breaks**: SQL caching database. You will need to rebuild it.
+
+* Feature: Pip search works now (:pr:`107`)
+
 0.4.5 - 2017/3/25
 -----------------
 * Bug fix: Access backend now works with MySQL family (:pr:`106`)
