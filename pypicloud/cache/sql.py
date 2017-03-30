@@ -211,7 +211,14 @@ class SQLCache(ICache):
         # examples as to how this works.
         results = self.db.query(SQLPackage).filter(or_(*conditions))
 
-        return results.all()
+        # Extract only the most recent version for each package
+        latest_map = {}
+        for package in results.all():
+            if package.name not in latest_map or \
+               package > latest_map[package.name]:
+                latest_map[package.name] = package
+
+        return latest_map.values()
 
     def summary(self):
         packages = {}

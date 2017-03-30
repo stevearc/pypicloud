@@ -202,17 +202,18 @@ class ICache(object):
 
         for key in self.distinct():
             # Search all versions of this package key
-            # TODO: maybe make sure we find the most recent version?
+            latest = None
             for package in self.all(key):
-                if match_name(package.name):
-                    # Found a match, adding to the packages_found set and
-                    # generating a result
-                    packages.append(package)
-                    break
-
-                if package.summary is not None and match_summary(package.summary):
-                    packages.append(package)
-                    break
+                # Search for a match. If we've already found a match, make sure
+                # we find the most recent version that matches.
+                if latest is None or package > latest:
+                    if match_name(package.name):
+                        latest = package
+                    elif (package.summary is not None and
+                          match_summary(package.summary)):
+                        latest = package
+            if latest is not None:
+                packages.append(latest)
 
         return packages
 
