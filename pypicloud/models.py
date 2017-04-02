@@ -2,12 +2,14 @@
 import re
 
 import pkg_resources
+import six
 from datetime import datetime
 from functools import total_ordering
 
 from .util import normalize_name
 
 
+@six.python_2_unicode_compatible
 @total_ordering
 class Package(object):
 
@@ -72,12 +74,9 @@ class Package(object):
                 (other.name, other.parsed_version))
 
     def __repr__(self):
-        return unicode(self)
+        return self.__str__()
 
     def __str__(self):
-        return unicode(self).encode('utf-8')
-
-    def __unicode__(self):
         return u'Package(%s)' % (self.filename)
 
     def __json__(self, request):

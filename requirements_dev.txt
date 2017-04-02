@@ -15,5 +15,5 @@ flywheel>=0.2.0
 tox
 bumpversion
 wheel
-mysql-python
+mysqlclient
 psycopg2

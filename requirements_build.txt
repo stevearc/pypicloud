@@ -8,6 +8,6 @@ redis
 requests
 moto
 flywheel>=0.2.0
-python-ldap
-mysql-python
+pyldap
+mysqlclient
 psycopg2

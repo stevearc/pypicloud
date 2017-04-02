@@ -1,4 +1,5 @@
 """ Tests for view security and auth """
+import six
 import base64
 import webtest
 from collections import defaultdict
@@ -18,10 +19,14 @@ except ImportError:
 
 def _auth(username, password):
     """ Generate a basic auth header """
-    base64string = base64.encodestring('%s:%s' %
-                                       (username, password)).replace('\n', '')
+    base64string = base64.b64encode(
+        ('%s:%s' % (username, password)).encode('utf8')) \
+        .decode('utf8').replace('\n', '')
+    header = 'Basic ' + base64string
+    if six.PY2:
+        header = header.encode('utf8')
     return {
-        'Authorization': 'Basic %s' % base64string,
+        'Authorization': header
     }
 
 
@@ -97,7 +102,7 @@ class TestEndpointSecurity(unittest.TestCase):
     def test_api_pkg_versions_unauthed(self):
         """ /api/package/<pkg>/<filename> requires write perms """
         params = {
-            'content': webtest.forms.Upload('filename.txt', 'datadatadata'),
+            'content': webtest.forms.Upload('filename.txt', b'datadatadata'),
         }
         url = '/api/package/%s/%s/' % (self.package.name,
                                        self.package.filename)
@@ -109,7 +114,7 @@ class TestEndpointSecurity(unittest.TestCase):
         """ /api/package/<pkg>/<filename> requires write perms """
         package = make_package(self.package.name, '1.5')
         params = {
-            'content': webtest.forms.Upload(package.filename, 'datadatadata'),
+            'content': webtest.forms.Upload(package.filename, b'datadatadata'),
         }
         url = '/api/package/%s/%s' % (package.name, package.filename)
         response = self.app.post(url, params,

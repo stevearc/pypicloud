@@ -1,5 +1,5 @@
 """ Unit tests for the simple endpoints """
-from types import MethodType
+import six
 
 from mock import MagicMock, patch
 
@@ -208,10 +208,8 @@ class PackageReadTestBase(unittest.TestCase):
         request.access.can_update_cache = lambda: 'c' in perms
         request.access.has_permission.side_effect = lambda n, p: 'r' in perms
         request.is_logged_in = user is not None
-        request.request_login = MethodType(
-            _request_login,
-            request,
-            request.__class__)
+        request.request_login = six.create_bound_method(_request_login,
+                                                        request)
         pkgs = []
         if package is not None:
             pkgs.append(package)

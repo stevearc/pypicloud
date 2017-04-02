@@ -1,21 +1,18 @@
 """ Tests for package storage backends """
 import json
 import time
-from cStringIO import StringIO
-from datetime import datetime
+from six import BytesIO
 
 import shutil
 import tempfile
 from mock import MagicMock, patch
 from moto import mock_s3
-from urlparse import urlparse, parse_qs
+from six.moves.urllib.parse import urlparse, parse_qs  # pylint: disable=F0401,E0611
 
-import boto
+import boto3
 import os
 import pypicloud
 import re
-from boto.s3.key import Key
-import boto.exception
 from pypicloud.models import Package
 from pypicloud.storage import S3Storage, CloudFrontS3Storage, FileStorage
 from . import make_package
@@ -39,8 +36,8 @@ class TestS3Storage(unittest.TestCase):
             'storage.access_key': 'abc',
             'storage.secret_key': 'bcd',
         }
-        conn = boto.connect_s3()
-        self.bucket = conn.create_bucket('mybucket')
+        self.s3 = boto3.resource('s3')
+        self.bucket = self.s3.create_bucket(Bucket='mybucket')
         patch.object(S3Storage, 'test', True).start()
         kwargs = S3Storage.configure(self.settings)
         self.storage = S3Storage(MagicMock(), **kwargs)
@@ -52,13 +49,13 @@ class TestS3Storage(unittest.TestCase):
 
     def test_list(self):
         """ Can construct a package from a S3 Key """
-        key = Key(self.bucket)
         name, version, filename, summary = 'mypkg', '1.2', 'pkg.tar.gz', 'text'
-        key.key = name + '/' + filename
-        key.set_metadata('name', name)
-        key.set_metadata('version', version)
-        key.set_metadata('summary', summary)
-        key.set_contents_from_string('foobar')
+        key = self.bucket.Object(name + '/' + filename)
+        key.put(Metadata={
+            'name': name,
+            'version': version,
+            'summary': summary,
+        }, Body='foobar')
         package = list(self.storage.list(Package))[0]
         self.assertEquals(package.name, name)
         self.assertEquals(package.version, version)
@@ -67,11 +64,10 @@ class TestS3Storage(unittest.TestCase):
 
     def test_list_no_metadata(self):
         """ Test that list works on old keys with no metadata """
-        key = Key(self.bucket)
         name, version = 'mypkg', '1.2'
         filename = '%s-%s.tar.gz' % (name, version)
-        key.key = name + '/' + filename
-        key.set_contents_from_string('foobar')
+        key = self.bucket.Object(name + '/' + filename)
+        key.put(Body='foobar')
         package = list(self.storage.list(Package))[0]
         self.assertEquals(package.name, name)
         self.assertEquals(package.version, version)
@@ -85,7 +81,7 @@ class TestS3Storage(unittest.TestCase):
 
         parts = urlparse(response.location)
         self.assertEqual(parts.scheme, 'https')
-        self.assertEqual(parts.netloc, 'mybucket.s3.amazonaws.com')
+        self.assertEqual(parts.hostname, 'mybucket.s3.amazonaws.com')
         self.assertEqual(parts.path, '/' + self.storage.get_path(package))
         query = parse_qs(parts.query)
         self.assertItemsEqual(query.keys(), ['Expires', 'Signature',
@@ -97,58 +93,50 @@ class TestS3Storage(unittest.TestCase):
     def test_delete(self):
         """ delete() should remove package from storage """
         package = make_package()
-        self.storage.upload(package, StringIO())
+        self.storage.upload(package, BytesIO())
         self.storage.delete(package)
-        keys = list(self.bucket.list())
+        keys = list(self.bucket.objects.all())
         self.assertEqual(len(keys), 0)
 
     def test_upload(self):
         """ Uploading package sets metadata and sends to S3 """
         package = make_package()
-        datastr = 'foobar'
-        data = StringIO(datastr)
+        datastr = b'foobar'
+        data = BytesIO(datastr)
         self.storage.upload(package, data)
-        key = list(self.bucket.list())[0]
-        self.assertEqual(key.get_contents_as_string(), datastr)
-        self.assertEqual(key.get_metadata('name'), package.name)
-        self.assertEqual(key.get_metadata('version'), package.version)
-        self.assertEqual(key.get_metadata('summary'), package.summary)
+        key = list(self.bucket.objects.all())[0].Object()
+        contents = BytesIO()
+        key.download_fileobj(contents)
+        self.assertEqual(contents.getvalue(), datastr)
+        self.assertEqual(key.metadata['name'], package.name)
+        self.assertEqual(key.metadata['version'], package.version)
+        self.assertEqual(key.metadata['summary'], package.summary)
 
     def test_upload_prepend_hash(self):
         """ If prepend_hash = True, attach a hash to the file path """
         self.storage.prepend_hash = True
         package = make_package()
-        data = StringIO()
+        data = BytesIO()
         self.storage.upload(package, data)
-        key = list(self.bucket.list())[0]
+        key = list(self.bucket.objects.all())[0]
 
         pattern = r'^[0-9a-f]{4}/%s/%s$' % (re.escape(package.name),
                                             re.escape(package.filename))
         match = re.match(pattern, key.key)
         self.assertIsNotNone(match)
 
-    @patch.object(pypicloud.storage.s3, 'boto')
-    def test_create_bucket(self, boto_mock):
+    def test_create_bucket(self):
         """ If S3 bucket doesn't exist, create it """
-        conn = boto_mock.s3.connect_to_region()
-        boto_mock.exception.S3ResponseError = boto.exception.S3ResponseError
-
-        def raise_not_found(*_, **__):
-            """ Raise a 'bucket not found' exception """
-            e = boto.exception.S3ResponseError(400, 'missing')
-            e.error_code = 'NoSuchBucket'
-            raise e
-        conn.get_bucket = raise_not_found
         settings = {
             'storage.bucket': 'new_bucket',
             'storage.region': 'us-east-1',
         }
         S3Storage.configure(settings)
-        conn.create_bucket.assert_called_with('new_bucket',
-                                              location='us-east-1')
+        bucket = self.s3.Bucket('new_bucket')
+        bucket.load()
 
 
-class TestCloudFrontS3Storage(TestS3Storage):
+class TestCloudFrontS3Storage(unittest.TestCase):
 
     """ Tests for storing packages on S3 with CloudFront in front """
 
@@ -179,8 +167,8 @@ class TestCloudFrontS3Storage(TestS3Storage):
                                               '-----END RSA PRIVATE KEY-----',
             'storage.cloud_front_key_id': 'key-id'
         }
-        conn = boto.connect_s3()
-        self.bucket = conn.create_bucket('mybucket')
+        s3 = boto3.resource('s3')
+        self.bucket = s3.create_bucket(Bucket='mybucket')
         patch.object(CloudFrontS3Storage, 'test', True).start()
         kwargs = CloudFrontS3Storage.configure(self.settings)
         self.storage = CloudFrontS3Storage(MagicMock(), **kwargs)
@@ -223,8 +211,8 @@ class TestFileStorage(unittest.TestCase):
     def test_upload(self):
         """ Uploading package saves file """
         package = make_package()
-        datastr = 'foobar'
-        data = StringIO(datastr)
+        datastr = b'foobar'
+        data = BytesIO(datastr)
         self.storage.upload(package, data)
         filename = self.storage.get_path(package)
         self.assertTrue(os.path.exists(filename))

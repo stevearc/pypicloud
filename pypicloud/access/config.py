@@ -1,5 +1,6 @@
 """ Backend that reads access control rules from config file """
 import logging
+import six
 from collections import defaultdict
 from pyramid.security import Everyone, Authenticated
 from pyramid.settings import aslist, asbool
@@ -37,7 +38,7 @@ class ConfigAccessBackend(IAccessBackend):
         group_map = {}
 
         # Build dict that maps users to list of groups
-        for key, value in settings.iteritems():
+        for key, value in six.iteritems(settings):
             if not key.startswith('group.'):
                 continue
             group_name = key[len('group.'):]
@@ -82,7 +83,7 @@ class ConfigAccessBackend(IAccessBackend):
             return self._perms_from_short(self._settings.get(key))
         perms = {}
         group_prefix = 'package.%s.group.' % package
-        for key, value in self._settings.iteritems():
+        for key, value in six.iteritems(self._settings):
             if not key.startswith(group_prefix):
                 continue
             group = key[len(group_prefix):]
@@ -95,7 +96,7 @@ class ConfigAccessBackend(IAccessBackend):
             return self._perms_from_short(self._settings.get(key))
         perms = {}
         user_prefix = 'package.%s.user.' % package
-        for key, value in self._settings.iteritems():
+        for key, value in six.iteritems(self._settings):
             if not key.startswith(user_prefix):
                 continue
             user = key[len(user_prefix):]
@@ -123,7 +124,7 @@ class ConfigAccessBackend(IAccessBackend):
 
     def user_package_permissions(self, username):
         perms = []
-        for key, value in self._settings.iteritems():
+        for key, value in six.iteritems(self._settings):
             pieces = key.split('.')
             if (len(pieces) != 4 or pieces[0] != 'package' or
                     pieces[2] != 'user'):
@@ -139,7 +140,7 @@ class ConfigAccessBackend(IAccessBackend):
 
     def group_package_permissions(self, group):
         perms = []
-        for key, value in self._settings.iteritems():
+        for key, value in six.iteritems(self._settings):
             pieces = key.split('.')
             if (len(pieces) != 4 or pieces[0] != 'package' or
                     pieces[2] != 'group'):
@@ -166,7 +167,7 @@ class ConfigAccessBackend(IAccessBackend):
             for admin in admins:
                 lines.append('    {0}'.format(admin))
 
-        for group, members in data['groups'].iteritems():
+        for group, members in six.iteritems(data['groups']):
             lines.append('group.{0} ='.format(group))
             for member in members:
                 lines.append('    {0}'.format(member))
@@ -180,14 +181,14 @@ class ConfigAccessBackend(IAccessBackend):
                 ret += 'w'
             return ret
 
-        for package, groups in data['packages']['groups'].iteritems():
-            for group, permissions in groups.iteritems():
+        for package, groups in six.iteritems(data['packages']['groups']):
+            for group, permissions in six.iteritems(groups):
                 lines.append('package.{0}.group.{1} = {2}'
                              .format(package, group,
                                      encode_permissions(permissions)))
 
-        for package, users in data['packages']['users'].iteritems():
-            for user, permissions in users.iteritems():
+        for package, users in six.iteritems(data['packages']['users']):
+            for user, permissions in six.iteritems(users):
                 lines.append('package.{0}.user.{1} = {2}'
                              .format(package, user,
                                      encode_permissions(permissions)))

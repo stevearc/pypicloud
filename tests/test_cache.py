@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """ Tests for database cache implementations """
+from __future__ import unicode_literals
+import six
 import sys
 import transaction
 import calendar
@@ -431,6 +433,10 @@ class TestRedisCache(unittest.TestCase):
             'expire': 7237,
         }
         pkg = make_package(**kwargs)
+        # Due to some rounding weirdness in old Py3 versions, we need to remove
+        # the microseconds to avoid a flappy test.
+        # See: https://bugs.python.org/issue23517
+        pkg.last_modified = pkg.last_modified.replace(microsecond=0)
         self.db.save(pkg)
 
         loaded = self.db.fetch(pkg.filename)
@@ -540,6 +546,7 @@ class TestRedisCache(unittest.TestCase):
         for pkg in pkgs:
             self.db.save(pkg)
         saved_pkgs = self.db.distinct()
+
         self.assertItemsEqual(saved_pkgs, set([p.name for p in pkgs]))
 
     def test_search_or(self):

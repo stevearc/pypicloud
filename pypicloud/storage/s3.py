@@ -1,18 +1,20 @@
 """ Store packages in S3 """
-import calendar
-import logging
 import posixpath
-import time
-from contextlib import contextmanager
-from hashlib import md5
-from urllib import urlopen, quote
+from binascii import hexlify
 
-import boto.s3
-from boto.cloudfront import Distribution
-from boto.s3.key import Key
-import boto.s3.connection
+import boto3
+import logging
+import rsa
+from botocore.config import Config
+from botocore.signers import CloudFrontSigner
+from botocore.exceptions import ClientError
+from contextlib import contextmanager
+from datetime import datetime, timedelta
+from hashlib import md5
 from pyramid.httpexceptions import HTTPFound
 from pyramid.settings import asbool
+from six.moves.urllib.parse import quote  # pylint: disable=F0401,E0611
+from six.moves.urllib.request import urlopen  # pylint: disable=F0401,E0611
 
 from .base import IStorage
 from pypicloud.models import Package
@@ -20,14 +22,6 @@ from pypicloud.util import parse_filename, getdefaults
 
 
 LOG = logging.getLogger(__name__)
-
-SUPPORTED_CALLING_FORMATS = {
-    'SubdomainCallingFormat': boto.s3.connection.SubdomainCallingFormat,
-    'VHostCallingFormat': boto.s3.connection.VHostCallingFormat,
-    'OrdinaryCallingFormat': boto.s3.connection.OrdinaryCallingFormat,
-    'ProtocolIndependentOrdinaryCallingFormat':
-        boto.s3.connection.ProtocolIndependentOrdinaryCallingFormat
-}
 
 
 class S3Storage(IStorage):
@@ -37,7 +31,7 @@ class S3Storage(IStorage):
 
     def __init__(self, request=None, bucket=None, expire_after=None,
                  bucket_prefix=None, prepend_hash=None, redirect_urls=None,
-                 use_sse=False,
+                 sse=None,
                  **kwargs):
         super(S3Storage, self).__init__(request, **kwargs)
         self.bucket = bucket
@@ -45,73 +39,74 @@ class S3Storage(IStorage):
         self.bucket_prefix = bucket_prefix
         self.prepend_hash = prepend_hash
         self.redirect_urls = redirect_urls
-        self.use_sse = use_sse
+        self.sse = sse
 
     @classmethod
     def configure(cls, settings):
         kwargs = super(S3Storage, cls).configure(settings)
-        kwargs['expire_after'] = int(getdefaults(
-            settings, 'storage.expire_after', 'aws.expire_after', 60 * 60 *
-            24))
-        kwargs['bucket_prefix'] = getdefaults(
-            settings, 'storage.prefix', 'aws.prefix', '')
-        kwargs['prepend_hash'] = asbool(getdefaults(
-            settings, 'storage.prepend_hash', 'aws.prepend_hash', True))
-        access_key = getdefaults(settings, 'storage.access_key',
-                                 'aws.access_key', None)
-        secret_key = getdefaults(settings, 'storage.secret_key',
-                                 'aws.secret_key', None)
-        host = getdefaults(settings, 'storage.host',
-                           'aws.host', boto.s3.connection.NoHostProvided)
-        is_secure = getdefaults(settings, 'storage.is_secure',
-                                'aws.is_secure', True)
-        kwargs['use_sse'] = asbool(getdefaults(
-            settings, 'storage.server_side_encryption',
-            'aws.server_side_encryption', False))
-        calling_format = settings.get('storage.calling_format',
-                                      'SubdomainCallingFormat')
+        kwargs['expire_after'] = int(settings.get('storage.expire_after',
+                                                  60 * 60 * 24))
+        kwargs['bucket_prefix'] = settings.get('storage.prefix', '')
+        kwargs['prepend_hash'] = asbool(settings.get('storage.prepend_hash',
+                                                     True))
+        access_key = settings.get('storage.access_key')
+        secret_key = settings.get('storage.secret_key')
+        region = settings.get('storage.region')
+        signature_version = settings.get('storage.signature_version')
+        user_agent = settings.get('storage.user_agent')
+        user_agent_extra = settings.get('storage.user_agent_extra')
+        use_accelerate_endpoint = \
+            settings.get('storage.use_accelerate_endpoint', False)
+        payload_signing_enabled = \
+            settings.get('storage.payload_signing_enabled', False)
+        addressing_style = settings.get('storage.addressing_style', 'auto')
+        endpoint_url = getdefaults(settings, 'storage.endpoint_url',
+                                   'storage.host', None)
+        use_ssl = getdefaults(settings, 'storage.use_ssl', 'storage.is_secure',
+                              True)
+        verify = settings.get('storage.verify')
+        kwargs['sse'] = sse = settings.get('storage.server_side_encryption')
+        if sse not in [None, 'AES256', 'aws:kms']:
+            LOG.warn("Unrecognized value %r for 'storage.sse'. See "
+                     "https://boto3.readthedocs.io/en/latest/reference/services/s3.html#S3.Object.put "
+                     "for more details", sse)
         kwargs['redirect_urls'] = asbool(settings.get('storage.redirect_urls',
                                                       False))
 
-        if calling_format not in SUPPORTED_CALLING_FORMATS:
-            raise ValueError("Only {0} are supported for calling_format"
-                             .format(', '.join(SUPPORTED_CALLING_FORMATS)))
+        config = Config(
+            region_name=region,
+            signature_version=signature_version,
+            user_agent=user_agent,
+            user_agent_extra=user_agent_extra,
+            s3={
+                'use_accelerate_endpoint': use_accelerate_endpoint,
+                'payload_signing_enabled': payload_signing_enabled,
+                'addressing_style': addressing_style,
+            },
+        )
+        s3conn = boto3.resource(
+            's3', region_name=region, use_ssl=use_ssl, verify=verify,
+            endpoint_url=endpoint_url, aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key, config=config
+        )
 
-        # We used to always use boto.connect_s3 because it can look up buckets
-        # in any region. New regions require AWS4-HMAC-SHA256, which boto can
-        # only do with a region connection. So if the region is specified (and
-        # it must be for new regions like eu-central-1), use a region
-        # connection.
-        location = settings.get('storage.region')
-        if location is None:
-            s3conn = boto.connect_s3(
-                aws_access_key_id=access_key,
-                aws_secret_access_key=secret_key,
-                host=host,
-                is_secure=asbool(is_secure),
-                calling_format=SUPPORTED_CALLING_FORMATS[calling_format]())
-        else:
-            s3conn = boto.s3.connect_to_region(location,
-                                               aws_access_key_id=access_key,
-                                               aws_secret_access_key=secret_key)
-        aws_bucket = getdefaults(settings, 'storage.bucket', 'aws.bucket',
-                                 None)
-        if aws_bucket is None:
+        bucket_name = settings.get('storage.bucket')
+        if bucket_name is None:
             raise ValueError("You must specify the 'storage.bucket'")
+        bucket = s3conn.Bucket(bucket_name)
         try:
-            bucket = s3conn.get_bucket(aws_bucket)
-        except boto.exception.S3ResponseError as e:
-            if e.error_code != 'NoSuchBucket':
-                if e.status == 301:
+            bucket.load()
+        except ClientError as e:
+            if e.response['Error']['Code'] == '404':
+                LOG.info("Creating S3 bucket %s", bucket_name)
+                bucket.create()
+                bucket.wait_until_exists()
+            else:
+                if e.response['Error']['Code'] == '301':
                     LOG.warn("Bucket found in different region. Check that "
                              "the S3 bucket specified in 'storage.bucket' is "
                              "in 'storage.region'")
                 raise
-            location = getdefaults(settings, 'storage.region', 'aws.region',
-                                   boto.s3.connection.Location.DEFAULT)
-            LOG.info("Creating S3 bucket %s in region %s", aws_bucket,
-                     location)
-            bucket = s3conn.create_bucket(aws_bucket, location=location)
         kwargs['bucket'] = bucket
         return kwargs
 
@@ -120,8 +115,8 @@ class S3Storage(IStorage):
         path = package.name + '/' + package.filename
         if self.prepend_hash:
             m = md5()
-            m.update(package.filename)
-            prefix = m.digest().encode('hex')[:4]
+            m.update(package.filename.encode('utf-8'))
+            prefix = hexlify(m.digest()).decode('utf-8')[:4]
             path = prefix + '/' + path
         return path
 
@@ -133,15 +128,14 @@ class S3Storage(IStorage):
         return package.data['path']
 
     def list(self, factory=Package):
-        keys = self.bucket.list(self.bucket_prefix)
-        for key in keys:
-            # Boto doesn't send down metadata from bucket.list()
-            # so we are forced to retrieve each key individually.
-            key = self.bucket.get_key(key.key)
-            filename = posixpath.basename(key.key)
-            name = key.get_metadata('name')
-            version = key.get_metadata('version')
-            summary = key.get_metadata('summary')
+        keys = self.bucket.objects.filter(Prefix=self.bucket_prefix)
+        for summary in keys:
+            # ObjectSummary has no metadata, so we have to fetch it.
+            obj = summary.Object()
+            filename = posixpath.basename(obj.key)
+            name = obj.metadata.get('name')
+            version = obj.metadata.get('version')
+            summary = obj.metadata.get('summary')
 
             # We used to not store metadata. This is for backwards
             # compatibility
@@ -149,20 +143,24 @@ class S3Storage(IStorage):
                 try:
                     name, version = parse_filename(filename)
                 except ValueError:
-                    LOG.warning("S3 file %s has no package name", key.key)
+                    LOG.warning("S3 file %s has no package name", obj.key)
                     continue
 
-            last_modified = boto.utils.parse_ts(key.last_modified)
-
-            pkg = factory(name, version, filename, last_modified, summary,
-                          path=key.key)
+            pkg = factory(name, version, filename, obj.last_modified, summary,
+                          path=obj.key)
 
             yield pkg
 
     def _generate_url(self, package):
         """ Generate a signed url to the S3 file """
-        key = Key(self.bucket, self.get_path(package))
-        return key.generate_url(self.expire_after)
+        return self.bucket.meta.client.generate_presigned_url(
+            'get_object',
+            Params={
+                'Bucket': self.bucket.name,
+                'Key': self.get_path(package),
+            },
+            ExpiresIn=self.expire_after,
+        )
 
     def get_url(self, package):
         if self.redirect_urls:
@@ -173,21 +171,29 @@ class S3Storage(IStorage):
     def download_response(self, package):
         return HTTPFound(location=self._generate_url(package))
 
-    def upload(self, package, data):
-        key = Key(self.bucket)
-        key.key = self.get_path(package)
-        key.set_metadata('name', package.name)
-        key.set_metadata('version', package.version)
-        key.set_metadata('summary', package.summary)
-        # S3 doesn't support uploading from a non-file stream, so we have to
-        # read it into memory :(
-        key.set_contents_from_string(data.read(), encrypt_key=self.use_sse)
+    def upload(self, package, datastream):
+        key = self.bucket.Object(self.get_path(package))
+        kwargs = {}
+        if self.sse is not None:
+            kwargs['ServerSideEncryption'] = self.sse
+        key.put(
+            Metadata={
+                'name': package.name,
+                'version': package.version,
+                'summary': package.summary,
+            },
+            Body=datastream,
+            **kwargs
+        )
 
     def delete(self, package):
-        path = self.get_path(package)
-        key = Key(self.bucket)
-        key.key = path
-        key.delete()
+        self.bucket.delete_objects(Delete={
+            'Objects': [
+                {
+                    'Key': self.get_path(package),
+                }
+            ]
+        })
 
     @contextmanager
     def open(self, package):
@@ -202,40 +208,52 @@ class S3Storage(IStorage):
 class CloudFrontS3Storage(S3Storage):
 
     """ Storage backend that uses S3 and CloudFront """
-    def __init__(self, request=None, bucket=None, expire_after=None, bucket_prefix=None,
-                 prepend_hash=None, cloud_front_domain=None, cloud_front_key_file=None,
-                 cloud_front_key_string=None, cloud_front_key_id=None, **kwargs):
-        super(CloudFrontS3Storage, self).__init__(request, bucket, expire_after, bucket_prefix, prepend_hash, **kwargs)
-        self.cloud_front_domain = cloud_front_domain
-        self.cloud_front_key_file = cloud_front_key_file
-        self.cloud_front_key_id = cloud_front_key_id
-        self.cloud_front_key_string = cloud_front_key_string
+    def __init__(self, request=None, domain=None, private_key=None,
+                 key_id=None, **kwargs):
+        super(CloudFrontS3Storage, self).__init__(request, **kwargs)
+        self.domain = domain
+        self.private_key = private_key
+        self.key_id = key_id
+        self.private_key = private_key
 
-        self.distribution = Distribution()
+        self.cf_signer = None
+        if key_id is not None:
+            self.cf_signer = CloudFrontSigner(self.key_id, self._rsa_signer)
+
+        self.client = boto3.client('cloudfront')
 
     @classmethod
     def configure(cls, settings):
         kwargs = super(CloudFrontS3Storage, cls).configure(settings)
-        kwargs['cloud_front_domain'] = getdefaults(
-            settings, 'storage.cloud_front_domain', 'aws.cloud_front_domain', '')
-        kwargs['cloud_front_key_file'] = getdefaults(
-            settings, 'storage.cloud_front_key_file', 'aws.cloud_front_key_file', None)
-        kwargs['cloud_front_key_string'] = getdefaults(
-            settings, 'storage.cloud_front_key_string', 'aws.cloud_front_key_string', None)
-        kwargs['cloud_front_key_id'] = getdefaults(
-            settings, 'storage.cloud_front_key_id', 'aws.cloud_front_key_id', '')
+        kwargs['domain'] = settings['storage.cloud_front_domain']
+        kwargs['key_id'] = settings.get('storage.cloud_front_key_id')
+        private_key = settings.get('storage.cloud_front_key_string')
+        if private_key is None:
+            key_file = settings.get('storage.cloud_front_key_file')
+            if key_file:
+                with open(key_file, 'r') as ifile:
+                    private_key = ifile.read()
+        kwargs['private_key'] = private_key
 
         return kwargs
 
+    def _rsa_signer(self, message):
+        """ Generate a RSA signature for a message """
+        return rsa.sign(
+            message,
+            rsa.PrivateKey.load_pkcs1(self.private_key.encode('utf8')),
+            'SHA-1')  # CloudFront requires SHA-1 hash
+
     def _generate_url(self, package):
         """ Get the fully-qualified CloudFront path for a package """
-        path = self.calculate_path(package)
-        url = self.cloud_front_domain + '/' + quote(path)
+        path = self.get_path(package)
+        url = self.domain + '/' + quote(path)
 
-        if self.cloud_front_key_file or self.cloud_front_key_string:
-            expire_time = int(time.time() + self.expire_after)
-            url = self.distribution.create_signed_url(
-                url, self.cloud_front_key_id, expire_time, private_key_file=self.cloud_front_key_file,
-                private_key_string=self.cloud_front_key_string)
+        # No key id, no signer, so we don't have to sign the URL
+        if self.cf_signer is None:
+            return url
 
-        return url
+        # To sign with a canned policy:
+        expires = datetime.utcnow() + timedelta(seconds=self.expire_after)
+        return self.cf_signer.generate_presigned_url(
+            url, date_less_than=expires)
