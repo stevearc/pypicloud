@@ -153,10 +153,6 @@ angular.module('pypicloud', ['ui.bootstrap', 'ngRoute', 'angularFileUpload', 'ng
     var allNames = _.pluck($scope.packages, 'name');
     _.each(packages, function(pkg) {
       if (!_.contains(allNames, pkg.name)) {
-        pkg.unstable = pkg.version;
-        if (pkg.version.match(/^\d+(\.\d+)*$/)) {
-          pkg.stable = pkg.version;
-        }
         $scope.packages.push(pkg);
       }
     });

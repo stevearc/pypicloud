@@ -89,20 +89,18 @@ class TestBaseCache(unittest.TestCase):
         cache = DummyCache()
         cache.upload('pkg1-0.3.tar.gz', None)
         cache.upload('pkg1-1.1.tar.gz', None)
-        p1 = cache.upload('pkg1a2.tar.gz', None, 'pkg1', '1.1.1a2')
-        p2 = cache.upload('pkg2.tar.gz', None, 'pkg2', '0.1dev2')
+        p1 = cache.upload('pkg1a2.tar.gz', None, 'pkg1', '1.1.1a2', 'summary')
+        p2 = cache.upload('pkg2.tar.gz', None, 'pkg2', '0.1dev2', 'summary')
         summaries = cache.summary()
         self.assertItemsEqual(summaries, [
             {
                 'name': 'pkg1',
-                'stable': '1.1',
-                'unstable': '1.1.1a2',
+                'summary': 'summary',
                 'last_modified': p1.last_modified,
             },
             {
                 'name': 'pkg2',
-                'stable': None,
-                'unstable': '0.1dev2',
+                'summary': 'summary',
                 'last_modified': p2.last_modified,
             },
         ])
@@ -327,10 +325,6 @@ class TestSQLiteCache(unittest.TestCase):
         # Order them correctly. assertItemsEqual isn't playing nice in py2.6
         if s1['name'] == 'pkg2':
             s1, s2 = s2, s1
-        self.assertEqual(s1['stable'], u'1.1')
-        self.assertEqual(s1['unstable'], u'1.1.1a2')
-        self.assertIsNone(s2['stable'])
-        self.assertEqual(s2['unstable'], u'0.1dev2')
         # last_modified may be rounded when stored in MySQL,
         # so the best we can do is make sure they're close.
         self.assertTrue(
@@ -637,10 +631,8 @@ class TestDynamoCache(unittest.TestCase):
         """ Save a DynamoPackage to the db """
         for pkg in pkgs:
             self.engine.save(pkg)
-            summary = (self.engine.get(PackageSummary, name=pkg.name) or
-                       PackageSummary(pkg))
-            summary.update_with(pkg)
-            self.engine.sync(summary)
+            summary = PackageSummary(pkg)
+            self.engine.save(summary, overwrite=True)
 
     def test_upload(self):
         """ upload() saves package and uploads to storage """
@@ -766,20 +758,18 @@ class TestDynamoCache(unittest.TestCase):
         """ summary constructs per-package metadata summary """
         self.db.upload('pkg1-0.3a2.tar.gz', None, 'pkg1', '0.3a2')
         self.db.upload('pkg1-1.1.tar.gz', None, 'pkg1', '1.1')
-        p1 = self.db.upload('pkg1a2.tar.gz', None, 'pkg1', '1.1.1a2')
-        p2 = self.db.upload('pkg2.tar.gz', None, 'pkg2', '0.1dev2')
+        p1 = self.db.upload('pkg1a2.tar.gz', None, 'pkg1', '1.1.1a2', 'summary')
+        p2 = self.db.upload('pkg2.tar.gz', None, 'pkg2', '0.1dev2', 'summary')
         summaries = self.db.summary()
         self.assertItemsEqual(summaries, [
             {
                 'name': 'pkg1',
-                'stable': '1.1',
-                'unstable': '1.1.1a2',
+                'summary': 'summary',
                 'last_modified': p1.last_modified.replace(tzinfo=UTC),
             },
             {
                 'name': 'pkg2',
-                'stable': None,
-                'unstable': '0.1dev2',
+                'summary': 'summary',
                 'last_modified': p2.last_modified.replace(tzinfo=UTC),
             },
         ])
@@ -819,35 +809,3 @@ class TestDynamoCache(unittest.TestCase):
             for index in desc.global_indexes:
                 self.assertEqual(index.throughput.read, 7)
                 self.assertEqual(index.throughput.write, 7)
-
-    def test_update_wrong_summary(self):
-        """ Updating summary with wrong package doesn't blow up """
-        pkg1 = make_package('mypkg', '1.0', factory=DynamoPackage)
-        pkg2 = make_package('mypkg2', '1.3', factory=DynamoPackage)
-        summary = PackageSummary(pkg1)
-        summary.update_with(pkg2)
-        self.assertEqual(summary.stable, pkg1.version)
-
-    def test_delete_updates_summary(self):
-        """ Deleting a package updates the summary """
-        pkg1 = make_package('mypkg', '1.0', factory=DynamoPackage)
-        pkg2 = make_package('mypkg', '1.3', factory=DynamoPackage)
-        self._save_pkgs(pkg1, pkg2)
-        self.db.delete(pkg2)
-        summary = self.engine.scan(PackageSummary).first()
-        self.assertEqual(summary.stable, pkg1.version)
-
-    def test_delete_regression(self):
-        """
-        Regression test. Dynamo cache would sometimes remove the wrong package.
-
-        See https://github.com/stevearc/pypicloud/issues/118
-        """
-        pkg1 = make_package('mypkg', '1.0', 'mypkg-1.0.tar.gz',
-                            factory=DynamoPackage)
-        pkg2 = make_package('mypkg', '1.0', 'mypkg-1.0.whl',
-                            factory=DynamoPackage)
-        self._save_pkgs(pkg1, pkg2)
-        self.db.delete(pkg2)
-        pkg = self.engine.scan(DynamoPackage).first()
-        self.assertEqual(pkg.filename, pkg1.filename)

@@ -221,19 +221,10 @@ class SQLCache(ICache):
             if pkg is None:
                 pkg = {
                     'name': package.name,
-                    'stable': None,
-                    'unstable': '0',
+                    'summary': package.summary,
                     'last_modified': datetime.fromtimestamp(0),
                 }
                 packages[package.name] = pkg
-            if not package.is_prerelease:
-                if pkg['stable'] is None:
-                    pkg['stable'] = package.version
-                else:
-                    pkg['stable'] = max(pkg['stable'], package.version,
-                                        key=parse_version)
-            pkg['unstable'] = max(pkg['unstable'], package.version,
-                                  key=parse_version)
             pkg['last_modified'] = max(pkg['last_modified'],
                                        package.last_modified)
 

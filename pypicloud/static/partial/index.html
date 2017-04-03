@@ -97,16 +97,14 @@
         <thead>
           <tr>
             <th>Package</th>
-            <th>Stable</th>
-            <th>Unstable</th>
-            <th>Last upload</th>
+            <th>Description</th>
+            <th>Updated</th>
           </tr>
         </thead>
         <tbody>
           <tr ng-repeat="package in filtered = (packages | filter:searchText) | orderBy:'name' | startFrom:(currentPage - 1)*pageSize | limitTo:pageSize" ng-click="showPackage(package.name)">
             <td>{{ package.name }}</td>
-            <td>{{ package.stable }}</td>
-            <td>{{ package.unstable }}</td>
+            <td>{{ package.summary }}</td>
             <td>{{ package.last_modified * 1000 | date:'yyyy-MM-dd HH:mm' }}</td>
           </tr>
         </tbody>

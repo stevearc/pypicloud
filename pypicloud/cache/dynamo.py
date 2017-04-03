@@ -42,32 +42,13 @@ class PackageSummary(Model):
 
     """ Aggregate data about packages """
     name = Field(hash_key=True)
-    stable = Field()
-    unstable = Field()
+    summary = Field()
     last_modified = Field(data_type=datetime)
 
     def __init__(self, package):
         super(PackageSummary, self).__init__(package.name)
-        self.unstable = package.version
-        if not package.is_prerelease:
-            self.stable = package.version
         self.last_modified = package.last_modified.replace(tzinfo=UTC)
-
-    def update_with(self, package):
-        """ Update summary with a package """
-        if self.name != package.name:
-            LOG.error("Summary name '%s' doesn't match package name '%s'",
-                      self.name, package.name)
-            return
-        self.unstable = max(self.unstable, package.version, key=parse_version)
-        self.last_modified = max(self.last_modified.replace(tzinfo=UTC),
-                                 package.last_modified.replace(tzinfo=UTC))
-        if not package.is_prerelease:
-            if self.stable is None:
-                self.stable = package.version
-            else:
-                self.stable = max(self.stable, package.version,
-                                  key=parse_version)
+        self.summary = package.summary
 
 
 class DynamoCache(ICache):
@@ -130,28 +111,12 @@ class DynamoCache(ICache):
         return [s.__json__() for s in summaries]
 
     def clear(self, package):
-        summary = self.engine.get(PackageSummary, name=package.name)
-        if summary is not None and \
-            (summary.unstable == package.version or
-             summary.stable == package.version or
-             summary.last_modified == package.last_modified):
-            summary.stable = None
-            summary.unstable = '0'
-            summary.last_modified = datetime.fromtimestamp(0) \
-                .replace(tzinfo=UTC)
-            all_packages = self.engine.scan(DynamoPackage)\
-                .filter(DynamoPackage.filename != package.filename,
-                        name=package.name)
-            delete_summary = True
-            for pkg in all_packages:
-                delete_summary = False
-                summary.update_with(pkg)
-            if delete_summary:
-                summary.delete()
-            else:
-                summary.sync()
-
         self.engine.delete(package)
+        remaining = self.engine(DynamoPackage) \
+            .filter(DynamoPackage.name == package.name) \
+            .count()
+        if remaining == 0:
+            self.engine.delete_key(PackageSummary, name=package.name)
 
     def clear_all(self):
         # We're replacing the schema, so make sure we save and restore the
@@ -175,11 +140,5 @@ class DynamoCache(ICache):
         self.engine.create_schema(throughput=throughput)
 
     def save(self, package):
-        summary = self.engine.get(PackageSummary, name=package.name)
-        if summary is None:
-            summary = PackageSummary(package)
-        else:
-            summary.update_with(package)
-
-        self.engine.save(package)
-        self.engine.sync(summary)
+        summary = PackageSummary(package)
+        self.engine.save([package, summary], overwrite=True)

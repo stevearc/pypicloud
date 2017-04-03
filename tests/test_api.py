@@ -1,7 +1,6 @@
 """ Tests for API endpoints """
-from distlib.database import Distribution
 from mock import MagicMock, patch
-from pyramid.httpexceptions import HTTPBadRequest, HTTPNotFound, HTTPForbidden
+from pyramid.httpexceptions import HTTPBadRequest, HTTPForbidden
 
 from . import MockServerTest, make_package
 from pypicloud.views import api
@@ -37,8 +36,7 @@ class TestApi(MockServerTest):
         pkgs = api.all_packages(self.request, True)
         self.assertEqual(pkgs['packages'], [{
             'name': p1.name,
-            'stable': p1.version,
-            'unstable': p1.version,
+            'summary': None,
             'last_modified': p1.last_modified,
         }])
 
