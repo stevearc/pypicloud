@@ -8,6 +8,10 @@ If you are upgrading an existing installation, read :ref:`the instructions <upgr
 
 * Feature: Pip search works now (:pr:`107`)
 
+0.4.6 - 2017/4/17
+-----------------
+* Bug fix: Deleting packages while using the Dynamo cache would sometimes remove the wrong package from Dynamo (:issue:`118`)
+
 0.4.5 - 2017/3/25
 -----------------
 * Bug fix: Access backend now works with MySQL family (:pr:`106`)
