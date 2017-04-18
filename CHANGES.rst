@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.5.1 - 2017/4/17
+-----------------
+* Bug fix: Deleting packages while using the Dynamo cache would sometimes remove the wrong package from Dynamo (:issue:`118`)
+
 0.5.0 - 2017/3/29
 -----------------
 **Upgrade breaks**: SQL caching database. You will need to rebuild it.
