@@ -1,7 +1,9 @@
 """ API endpoints for admin controls """
 import gzip
 import json
-from paste.httpheaders import CONTENT_DISPOSITION  # pylint: disable=E0611
+# pylint: disable=E0611,W0403
+from paste.httpheaders import CONTENT_DISPOSITION
+# pylint: enable=E0611,W0403
 from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.response import FileIter
 from pyramid.view import view_config, view_defaults

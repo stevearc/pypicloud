@@ -31,7 +31,7 @@ class ICache(object):
         This will be called when the server first starts
 
         """
-        if len(self.distinct()) == 0:
+        if not self.distinct():
             LOG.info("Cache is empty. Rebuilding from storage backend...")
             self.reload_from_storage()
             LOG.info("Cache repopulated")

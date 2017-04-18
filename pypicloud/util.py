@@ -2,9 +2,9 @@
 import posixpath
 import re
 
+import distlib.locators
 import logging
 import six
-import distlib.locators
 from distlib.locators import Locator, SimpleScrapingLocator
 from distlib.util import split_filename
 from six.moves.urllib.parse import urlparse  # pylint: disable=F0401,E0611

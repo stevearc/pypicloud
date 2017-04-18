@@ -1,5 +1,5 @@
 waitress
-pylint==1.5.1
+pylint==1.7.1
 pep8
 autopep8
 nose
