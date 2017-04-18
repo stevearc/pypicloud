@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.4.6 - 2017/4/17
+-----------------
+* Bug fix: Deleting packages while using the Dynamo cache would sometimes remove the wrong package from Dynamo (:issue:`118`)
+
 0.4.5 - 2017/3/25
 -----------------
 * Bug fix: Access backend now works with MySQL family (:pr:`106`)
