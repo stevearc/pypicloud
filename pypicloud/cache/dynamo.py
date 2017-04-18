@@ -142,9 +142,9 @@ class DynamoCache(ICache):
                 .filter(DynamoPackage.filename != package.filename,
                         name=package.name)
             delete_summary = True
-            for package in all_packages:
+            for pkg in all_packages:
                 delete_summary = False
-                summary.update_with(package)
+                summary.update_with(pkg)
             if delete_summary:
                 summary.delete()
             else:

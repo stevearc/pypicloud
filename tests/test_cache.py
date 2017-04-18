@@ -733,3 +733,18 @@ class TestDynamoCache(unittest.TestCase):
         self.db.delete(pkg2)
         summary = self.engine.scan(PackageSummary).first()
         self.assertEqual(summary.stable, pkg1.version)
+
+    def test_delete_regression(self):
+        """
+        Regression test. Dynamo cache would sometimes remove the wrong package.
+
+        See https://github.com/stevearc/pypicloud/issues/118
+        """
+        pkg1 = make_package('mypkg', '1.0', 'mypkg-1.0.tar.gz',
+                            factory=DynamoPackage)
+        pkg2 = make_package('mypkg', '1.0', 'mypkg-1.0.whl',
+                            factory=DynamoPackage)
+        self._save_pkgs(pkg1, pkg2)
+        self.db.delete(pkg2)
+        pkg = self.engine.scan(DynamoPackage).first()
+        self.assertEqual(pkg.filename, pkg1.filename)
