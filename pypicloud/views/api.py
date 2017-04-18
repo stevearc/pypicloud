@@ -4,7 +4,9 @@ import posixpath
 import logging
 import six
 from contextlib import closing
-from paste.httpheaders import CONTENT_DISPOSITION  # pylint: disable=E0611
+# pylint: disable=E0611,W0403
+from paste.httpheaders import CONTENT_DISPOSITION
+# pylint: enable=E0611,W0403
 from pyramid.httpexceptions import HTTPNotFound, HTTPForbidden, HTTPBadRequest
 from pyramid.security import NO_PERMISSION_REQUIRED
 from pyramid.view import view_config

@@ -72,7 +72,7 @@ class IAccessBackend(object):
 
         # If there are no group or user specifications for the package, use the
         # default
-        if len(all_perms) == 0:
+        if not all_perms:
             for principal in groups_to_principals(self.default_read):
                 all_perms[principal] = ('read',)
             for principal in groups_to_principals(self.default_write):
@@ -675,7 +675,7 @@ class IMutableAccessBackend(IAccessBackend):
             self.set_user_admin(user['username'], user.get('admin', False))
 
         for group, members in data['groups'].iteritems():
-            if len(self.group_members(group)) == 0:
+            if not self.group_members(group):
                 self.create_group(group)
             current_members = self.group_members(group)
             add_members = set(members) - set(current_members)

@@ -1,9 +1,9 @@
 """ Utilities for authentication and authorization """
 import binascii
 
-# pylint: disable=E0611
+# pylint: disable=E0611,W0403
 from paste.httpheaders import AUTHORIZATION, WWW_AUTHENTICATE
-# pylint: enable=E0611
+# pylint: enable=E0611,W0403
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.httpexceptions import HTTPForbidden, HTTPUnauthorized
 from pyramid.security import Everyone, authenticated_userid

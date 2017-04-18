@@ -289,7 +289,7 @@ class TestSQLiteCache(unittest.TestCase):
         self.db.upload('pkg1-1.1.tar.gz', None, 'pkg1', '1.1')
         p1 = self.db.upload('pkg1a2.tar.gz', None, 'pkg1', '1.1.1a2')
         p2 = self.db.upload('pkg2.tar.gz', None, 'pkg2', '0.1dev2')
-        s1, s2 = self.db.summary()
+        s1, s2 = self.db.summary()  # pylint: disable=E0632
         # Order them correctly. assertItemsEqual isn't playing nice in py2.6
         if s1['name'] == 'pkg2':
             s1, s2 = s2, s1

@@ -4,9 +4,9 @@ from sqlalchemy import (engine_from_config, Column, String, Text, Boolean, Table
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, backref
 from sqlalchemy import orm
-# pylint: disable=F0401,E0611
+# pylint: disable=F0401,E0611,W0403
 from zope.sqlalchemy import ZopeTransactionExtension
-# pylint: enable=F0401,E0611
+# pylint: enable=F0401,E0611,W0403
 
 from .base import IMutableAccessBackend
 
