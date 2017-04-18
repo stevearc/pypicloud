@@ -10,9 +10,9 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.types import TypeDecorator, TEXT
 from sqlalchemy.ext.mutable import Mutable
-# pylint: disable=F0401,E0611
+# pylint: disable=F0401,E0611,W0403
 from zope.sqlalchemy import ZopeTransactionExtension
-# pylint: enable=F0401,E0611
+# pylint: enable=F0401,E0611,W0403
 
 from .base import ICache
 from pypicloud.models import Package

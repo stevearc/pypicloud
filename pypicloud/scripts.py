@@ -72,7 +72,7 @@ def promptyn(msg, default=None):
             return True
         elif confirm in ('n', 'no'):
             return False
-        elif len(confirm) == 0 and default is not None:
+        elif not confirm and default is not None:
             return default
 
 
