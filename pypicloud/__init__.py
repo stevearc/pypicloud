@@ -121,7 +121,8 @@ def includeme(config):
                            path='pypicloud:static',
                            cache_max_age=cache_max_age)
 
-    config.add_xmlrpc_endpoint('pypi', '/pypi/')
+    config.add_xmlrpc_endpoint('pypi', '/pypi', request_method='POST',
+                               header='Content-Type:text/xml')
 
 
 def traceback_formatter(excpt, value, tback):
