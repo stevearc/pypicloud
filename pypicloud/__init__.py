@@ -17,7 +17,7 @@ from .route import Root
 from .util import BetterScrapingLocator
 
 
-__version__ = '0.5.1'
+__version__ = '0.5.2'
 LOG = logging.getLogger(__name__)
 
 
@@ -48,8 +48,13 @@ def _locator(request):
 def includeme(config):
     """ Set up and configure the pypicloud app """
     config.set_root_factory(Root)
+    settings = config.get_settings()
     config.add_route('health', '/health')
     config.include('pyramid_tm')
+    # Beaker should be set by default to invalidate corrupt sessions, otherwise
+    # a bad cookie will break the website for you and the only fix is to
+    # manually delete the cookie.
+    settings.setdefault('session.invalidate_corrupt', 'true')
     config.include('pyramid_beaker')
     config.include('pyramid_duh')
     config.include('pyramid_duh.auth')
@@ -57,7 +62,6 @@ def includeme(config):
     config.include('pypicloud.auth')
     config.include('pypicloud.access')
     config.include('pypicloud.cache')
-    settings = config.get_settings()
 
     config.add_renderer('json', json_renderer)
     # Jinja2 configuration
@@ -117,7 +121,8 @@ def includeme(config):
                            path='pypicloud:static',
                            cache_max_age=cache_max_age)
 
-    config.add_xmlrpc_endpoint('pypi', '/pypi/')
+    config.add_xmlrpc_endpoint('pypi', '/pypi', request_method='POST',
+                               header='Content-Type:text/xml')
 
 
 def traceback_formatter(excpt, value, tback):
