@@ -2,6 +2,12 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.5.2 - 2017/4/22
+-----------------
+* Bug fix: The ``/pypi`` path was broken for viewing & uploading packages (:issue:`119`)
+* Update docs to recommend ``/simple`` as the install/upload URL
+* Beaker session sets ``invalidate_corrupt = true`` by default
+
 0.5.1 - 2017/4/17
 -----------------
 * Bug fix: Deleting packages while using the Dynamo cache would sometimes remove the wrong package from Dynamo (:issue:`118`)
