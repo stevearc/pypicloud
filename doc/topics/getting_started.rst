@@ -62,13 +62,13 @@ Installing Packages
 -------------------
 After you have the webserver started, you can install packages using::
 
-    pip install -i http://localhost:6543/pypi/ PACKAGE1 [PACKAGE2 ...]
+    pip install -i http://localhost:6543/simple/ PACKAGE1 [PACKAGE2 ...]
 
 If you want to configure pip to always use PyPI Cloud, you can put your
 preferences into the ``$HOME/.pip/pip.conf`` file::
 
     [global]
-    index-url = http://localhost:6543/pypi/
+    index-url = http://localhost:6543/simple/
 
 Uploading Packages
 ------------------
@@ -79,7 +79,7 @@ your ``$HOME/.pypirc``::
     index-servers = pypicloud
 
     [pypicloud]
-    repository: http://localhost:6543/pypi/
+    repository: http://localhost:6543/simple/
     username: <<username>>
     password: <<password>>
 
@@ -91,13 +91,13 @@ Searching Packages
 ------------------
 After packages have been uploaded, you can search for them via pip::
 
-    pip search -i http://localhost:6543/pypi/ QUERY1 [QUERY2 ...]
+    pip search -i http://localhost:6543/simple/ QUERY1 [QUERY2 ...]
 
 If you want to configure pip to use PyPI Cloud for search, you can update your
 preferences in the ``$HOME/.pip/pip.conf`` file::
 
     [search]
-    index = http://localhost:6543/pypi/
+    index = http://localhost:6543/simple/
 
 Note that this will ONLY return results from the PyPi Cloud repository. The
 official PyPi repository will not be queried.
