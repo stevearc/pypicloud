@@ -17,7 +17,7 @@ from .route import Root
 from .util import BetterScrapingLocator
 
 
-__version__ = '0.5.2'
+__version__ = '0.5.3'
 LOG = logging.getLogger(__name__)
 
 
