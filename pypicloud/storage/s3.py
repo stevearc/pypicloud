@@ -178,7 +178,9 @@ class S3Storage(IStorage):
         key.key = self.get_path(package)
         key.set_metadata('name', package.name)
         key.set_metadata('version', package.version)
-        key.set_metadata('summary', package.summary)
+        # The summary can be None if this package was fetched from upstream
+        if package.summary:
+            key.set_metadata('summary', package.summary)
         # S3 doesn't support uploading from a non-file stream, so we have to
         # read it into memory :(
         key.set_contents_from_string(data.read(), encrypt_key=self.use_sse)
