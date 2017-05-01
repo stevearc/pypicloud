@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.5.3 - 2017/4/30
+-----------------
+* Bug fix: S3 uploads failing from web interface and when fallback=cache (:issue:`120`)
+
 0.5.2 - 2017/4/22
 -----------------
 * Bug fix: The ``/pypi`` path was broken for viewing & uploading packages (:issue:`119`)
