@@ -29,6 +29,7 @@ REQUIREMENTS = [
     'rsa',
     'six',
     'transaction',
+    'waitress',
     'zope.sqlalchemy',
 ]
 
