@@ -108,8 +108,12 @@ def download_package(context, request):
 def upload_package(context, request, content):
     """ Upload a package """
     try:
-        return request.db.upload(content.filename, content.file,
+        request.db.upload(content.filename, content.file,
                                  name=context.name)
+        response = request.response
+        request.db.reload_from_storage()
+        return response
+
     except ValueError as e:  # pragma: no cover
         return HTTPBadRequest(*e.args)
 
