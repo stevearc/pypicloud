@@ -12,6 +12,7 @@ from pyramid.security import NO_PERMISSION_REQUIRED
 from pyramid.view import view_config
 from pyramid_duh import argify, addslash
 from six.moves.urllib.request import urlopen  # pylint: disable=F0401,E0611
+from six.moves.urllib.parse import quote_plus
 
 from .login import handle_register_request
 from pypicloud.route import (APIResource, APIPackageResource,
@@ -69,7 +70,7 @@ def fetch_dist(request, package_name, package_url):
              permission='read')
 def download_package(context, request):
     """ Download package, or redirect to the download link """
-    package = request.db.fetch(context.filename)
+    package = request.db.fetch(quote_plus(context.filename))
     if not package:
         if request.registry.fallback != 'cache':
             return HTTPNotFound()
@@ -84,13 +85,13 @@ def download_package(context, request):
             if dist is not None:
                 break
             for url in url_set:
-                if posixpath.basename(url) == context.filename:
+                if posixpath.basename(url) == quote_plus(context.filename):
                     source_url = url
                     dist = dists[version]
                     break
         if dist is None:
             return HTTPNotFound()
-        LOG.info("Caching %s from %s", context.filename,
+        LOG.info("Caching %s from %s", quote_plus(context.filename),
                  request.registry.fallback_url)
         package, data = fetch_dist(request, dist.name, source_url)
         disp = CONTENT_DISPOSITION.tuples(filename=package.filename)
@@ -118,9 +119,9 @@ def upload_package(context, request, content):
              subpath=(), permission='write')
 def delete_package(context, request):
     """ Delete a package """
-    package = request.db.fetch(context.filename)
+    package = request.db.fetch(quote_plus(context.filename))
     if package is None:
-        return HTTPBadRequest("Could not find %s" % context.filename)
+        return HTTPBadRequest("Could not find %s" % quote_plus(context.filename))
     request.db.delete(package)
     return request.response
 
