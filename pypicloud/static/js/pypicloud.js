@@ -79,6 +79,7 @@ angular.module('pypicloud', ['ui.bootstrap', 'ngRoute', 'angularFileUpload', 'ng
   $rootScope._ = _;
   $rootScope.USER = USER;
   $rootScope.ROOT = ROOT;
+  $rootScope.DOWNLOAD_URL = DOWNLOAD_URL;
   $rootScope.API = ROOT + 'api/';
   $rootScope.ADMIN = ROOT + 'admin/';
   $rootScope.IS_ADMIN = IS_ADMIN;
