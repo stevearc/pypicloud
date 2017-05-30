@@ -81,6 +81,12 @@ False)
 
 The HTTP Basic Auth realm (default 'pypi')
 
+``pypi.download_url``
+~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+Overide for the root server URL displayed in the banner of the homepage.
+
 ``pypi.use_fallback`` (deprecated)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** bool, optional
@@ -98,7 +104,6 @@ A dotted path to a subclass of :class:`~pypicloud.storage.base.IStorage`. The
 default is :class:`~pypicloud.storage.files.FileStorage`. Each storage option may
 have additional configuration options. Documentation for the built-in storage
 backends can be found at :ref:`storage`.
-
 
 Cache
 ^^^^^
