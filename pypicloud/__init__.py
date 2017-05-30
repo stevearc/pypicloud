@@ -115,6 +115,8 @@ def includeme(config):
     config.add_request_method(_locator, name='locator', reify=True)
     config.add_request_method(lambda x: __version__, name='pypicloud_version',
                               reify=True)
+    config.add_request_method(lambda x: settings.get('pypi.download_url'),
+                              name='custom_download_url', reify=True)
 
     cache_max_age = int(settings.get('pyramid.cache_max_age', 3600))
     config.add_static_view(name='static/%s' % __version__,
