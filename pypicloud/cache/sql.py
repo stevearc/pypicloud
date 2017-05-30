@@ -79,7 +79,7 @@ class SQLPackage(Package, Base):
     __tablename__ = 'packages'
     filename = Column(String(255, convert_unicode=True), primary_key=True)
     name = Column(String(255, convert_unicode=True), index=True, nullable=False)
-    version = Column(String(50, convert_unicode=True), nullable=False)
+    version = Column(String(1000, convert_unicode=True), nullable=False)
     last_modified = Column(DateTime(), index=True, nullable=False)
     summary = Column(String(255, convert_unicode=True), index=True, nullable=True)
     data = Column(JSONEncodedDict(), nullable=False)
