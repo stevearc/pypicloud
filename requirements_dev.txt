@@ -3,7 +3,7 @@ pylint==1.7.1
 pep8
 autopep8
 nose
-mock
+mock==1.0.1
 webtest
 sphinx
 sphinx_rtd_theme
