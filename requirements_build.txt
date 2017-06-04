@@ -6,7 +6,7 @@ coverage
 webtest
 redis
 requests
-moto
+moto<1.0.0
 flywheel>=0.2.0
 python-ldap
 mysql-python
