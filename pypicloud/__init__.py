@@ -9,7 +9,7 @@ import logging
 import traceback
 from pyramid.config import Configurator
 from pyramid.renderers import JSON, render
-from pyramid.settings import asbool
+from pyramid.settings import asbool, aslist
 from pyramid_beaker import session_factory_from_settings
 from six.moves.urllib.parse import urlencode  # pylint: disable=F0401,E0611
 
@@ -145,6 +145,16 @@ def hook_exceptions():
         sys.excepthook = traceback_formatter
 
 
+def maybe_profile(app, settings):
+    """ If settings enable, wrap the WSGI app with profiler middleware """
+    if not asbool(settings.get('profile.enable')):
+        return app
+    from werkzeug.contrib.profiler import ProfilerMiddleware
+    profile_dir = settings.get('profile.dir')
+    sort_by = aslist(settings.get('profile.sort_by', ['time', 'calls']))
+    return ProfilerMiddleware(app, sort_by=sort_by, profile_dir=profile_dir)
+
+
 def main(config, **settings):
     """ This function returns a Pyramid WSGI application.
     """
@@ -152,4 +162,5 @@ def main(config, **settings):
     config = Configurator(settings=settings)
     config.include('pypicloud')
     config.scan('pypicloud.views')
-    return config.make_wsgi_app()
+    app = config.make_wsgi_app()
+    return maybe_profile(app, settings)
