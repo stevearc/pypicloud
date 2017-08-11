@@ -94,6 +94,13 @@ Overide for the root server URL displayed in the banner of the homepage.
 Replaced by ``pypi.fallback``. Setting to ``True`` has no effect. Setting to
 ``False`` will set ``pypi.fallback = none``.
 
+``pypi.download_url``
+~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+The URL displayed to users in the install instructions on the
+landing page. (default `app_url`)
+
 Storage
 ^^^^^^^
 ``pypi.storage``
