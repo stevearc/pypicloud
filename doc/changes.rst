@@ -2,6 +2,11 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.5.4 - 2017/8/10
+-----------------
+* Allow overriding the displayed download URL in the web interface (:pr:`125`)
+* Bump up the DB size of the version field (SQL-only) (:pr:`128`)
+
 0.5.3 - 2017/4/30
 -----------------
 * Bug fix: S3 uploads failing from web interface and when fallback=cache (:issue:`120`)
