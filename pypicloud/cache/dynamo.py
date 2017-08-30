@@ -95,6 +95,7 @@ class DynamoCache(ICache):
             connection = DynamoDBConnection.connect(region,
                                                     access_key=access_key,
                                                     secret_key=secret_key)
+            LOG.info('DynamoDB connection made to {}'.format(region))
         elif host is not None:
             connection = DynamoDBConnection.connect('us-east-1',
                                                     host=host,
@@ -102,6 +103,7 @@ class DynamoCache(ICache):
                                                     is_secure=secure,
                                                     access_key=access_key,
                                                     secret_key=secret_key)
+            LOG.info('DynamoDB connection made to {}:{}'.format(host, port))
         else:
             raise ValueError("Must specify either db.region or db.host!")
         kwargs['engine'] = engine = Engine(namespace=namespace,
@@ -112,7 +114,11 @@ class DynamoCache(ICache):
         return kwargs
 
     def fetch(self, filename):
-        return self.engine.get(DynamoPackage, filename=filename)
+        dynamo_package = self.engine.get(DynamoPackage, filename=filename)
+        LOG.info('Package {}:{} found for file {}'.format(dynamo_package.name,
+                                                          dynamo_package.version,
+                                                          filename))
+        return dynamo_package
 
     def all(self, name):
         return sorted(self.engine.query(DynamoPackage).filter(name=name),
@@ -147,10 +153,13 @@ class DynamoCache(ICache):
                 delete_summary = False
                 summary.update_with(pkg)
             if delete_summary:
+                LOG.info('Deleting PackageSummary {}'.format(summary.name))
                 summary.delete()
             else:
+                LOG.info('Syncing PackageSummary {}'.format(summary.name))
                 summary.sync()
-
+        LOG.info('Deleting package {}:{} from DynamoDB'.format(package.name,
+                                                               package.version))
         self.engine.delete(package)
 
     def clear_all(self):
@@ -172,14 +181,19 @@ class DynamoCache(ICache):
                 }
 
         self.engine.delete_schema()
+        LOG.info('DynamoDB schemas deleted, recreating...')
         self.engine.create_schema(throughput=throughput)
+        LOG.info('DynamoDB schemas recreated.')
 
     def save(self, package):
         summary = self.engine.get(PackageSummary, name=package.name)
         if summary is None:
+            LOG.info('Creating PackageSummary {}'.format(package.name))
             summary = PackageSummary(package)
         else:
+            LOG.info('Updating PackageSummary {}'.format(package.name))
             summary.update_with(package)
 
         self.engine.save(package)
+        LOG.info('Package {}:{} saved'.format(package.name, package.version))
         self.engine.sync(summary)
