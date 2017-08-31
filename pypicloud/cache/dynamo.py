@@ -115,9 +115,10 @@ class DynamoCache(ICache):
 
     def fetch(self, filename):
         dynamo_package = self.engine.get(DynamoPackage, filename=filename)
-        LOG.info('Package {}:{} found for file {}'.format(dynamo_package.name,
-                                                          dynamo_package.version,
-                                                          filename))
+        if dynamo_package is not None:
+            LOG.info('Package {}:{} found for file {}'.format(dynamo_package.name,
+                                                              dynamo_package.version,
+                                                              filename))
         return dynamo_package
 
     def all(self, name):

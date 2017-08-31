@@ -170,7 +170,7 @@ class S3Storage(IStorage):
                 package.name, package.version
             ))
         else:
-            LOG.info('URL generated for {}:{} at {}. Expires at {}.'.format(
+            LOG.debug('URL generated for {}:{} at {}. Expires at {}.'.format(
                 package.name, package.version, url, time.ctime(expire_time)))
         return url
 
