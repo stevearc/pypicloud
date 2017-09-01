@@ -51,7 +51,7 @@ def package_versions(context, request):
     normalized_name = normalize_name(context.name)
     versions = request.db.all(normalized_name)
     if not versions:
-        LOG.error('No versions found for {}'.format(normalized_name))
+        LOG.error('No versions found for %s' % normalized_name)
     return {
         'packages': versions,
         'write': request.access.has_permission(normalized_name, 'write'),

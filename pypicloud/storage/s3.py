@@ -201,7 +201,7 @@ class S3Storage(IStorage):
         key = Key(self.bucket)
         key.key = path
         key.delete()
-        LOG.info('{} deleted'.format(key.key))
+        LOG.info('%s deleted' % key.key)
 
     @contextmanager
     def open(self, package):

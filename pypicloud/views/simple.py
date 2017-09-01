@@ -89,12 +89,12 @@ def package_versions(context, request):
     else:
         response = _simple_serve(context, request)
     if isinstance(response, HTTPNotFound):
-        LOG.error('HTTPNotFound: {}'.format(response.detail))
+        LOG.error('HTTPNotFound: %s' % response.detail)
     elif isinstance(response, HTTPFound):
-        LOG.info('Serving a redirect to {}'.format(response.location))
+        LOG.info('Serving a redirect to %s' % response.location)
     elif isinstance(response, dict) and 'pkgs' in response:
-        LOG.info('Found {} files for {}'.format(len(response['pkgs']),
-                                                normalize_name(context.name)))
+        LOG.info('Found %d files for %s' % len(response['pkgs']),
+                 normalize_name(context.name))
     return response
 
 
@@ -110,7 +110,7 @@ def get_fallback_packages(request, package_name, redirect=True):
                 url = request.app_url('api', 'package', dist.name, filename)
             pkgs[filename] = url
     if not pkgs:
-        LOG.error('No fallback packages found for {}'.format(package_name))
+        LOG.error('No fallback packages found for %s' % package_name)
     return pkgs
 
 
