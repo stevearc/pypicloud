@@ -75,24 +75,6 @@ def is_compatible(wheel, tags=None):
 distlib.locators.is_compatible = is_compatible
 
 
-def getdefaults(settings, *args):
-    """
-    Attempt multiple gets from a dict, returning a default value if none of the
-    keys are found.
-
-    """
-    assert len(args) >= 3
-    args, default = args[:-1], args[-1]
-    canonical = args[0]
-    for key in args:
-        if key in settings:
-            if key != canonical:
-                LOG.warn("Using deprecated option '%s' "
-                         "(replaced by '%s')", key, canonical)
-            return settings[key]
-    return default
-
-
 def create_matcher(queries, query_type):
     """
     Create a matcher for a list of queries

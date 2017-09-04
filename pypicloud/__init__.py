@@ -87,11 +87,6 @@ def includeme(config):
                                                 default_url)
 
     fallback_mode = settings.get('pypi.fallback', 'redirect')
-    # Compatibility with the deprecated pypi.use_fallback option
-    if 'pypi.fallback' not in settings and 'pypi.use_fallback' in settings:
-        LOG.warn("Using deprecated option 'pypi.use_fallback'")
-        use_fallback = asbool(settings['pypi.use_fallback'])
-        fallback_mode = 'redirect' if use_fallback else 'none'
     always_show_upstream = settings.get('pypi.always_show_upstream')
 
     # Using fallback=mirror is the same as fallback=cache and
@@ -100,10 +95,6 @@ def includeme(config):
         always_show_upstream = fallback_mode == 'mirror'
     else:
         always_show_upstream = asbool(always_show_upstream)
-    if fallback_mode == 'mirror':
-        LOG.warn("pypi.fallback = mirror is deprecated. You can now use "
-                 "pypi.fallback = cache and pypi.always_show_upstream = true")
-        fallback_mode = 'cache'
 
     modes = ('redirect', 'cache', 'none')
     if fallback_mode not in modes:

@@ -216,7 +216,7 @@ class TestBaseBackend(BaseACLTest):
         """ keyword 'remote' loads RemoteBackend """
         config = MagicMock()
         config.get_settings.return_value = {
-            'pypi.access_backend': 'remote',
+            'pypi.auth': 'remote',
             'auth.backend_server': 'http://example.com',
         }
         includeme(config)
@@ -229,7 +229,7 @@ class TestBaseBackend(BaseACLTest):
         config = MagicMock()
         config.get_settings.return_value = {
             'auth.db.url': 'sqlite://',
-            'pypi.access_backend': 'sql',
+            'pypi.auth': 'sql',
         }
         includeme(config)
         config.add_request_method.assert_called_with(
@@ -241,7 +241,7 @@ class TestBaseBackend(BaseACLTest):
         config = MagicMock()
         config.get_settings.return_value = {
             'auth.db.url': 'sqlite://',
-            'pypi.access_backend': 'pypicloud.access.sql.SQLAccessBackend',
+            'pypi.auth': 'pypicloud.access.sql.SQLAccessBackend',
         }
         includeme(config)
         config.add_request_method.assert_called_with(

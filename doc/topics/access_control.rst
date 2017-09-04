@@ -111,14 +111,6 @@ read/write access to all packages, and can perform maintenance tasks.
 Whitespace-delimited list of users that belong to this group. Groups can have
 separately-defined read/write permissions on packages.
 
-``auth.zero_security_mode`` (deprecated)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** bool, optional
-
-Replaced by ``pypi.default_read`` and ``pypi.default_write``. If enabled, will
-set ``pypi.default_read = everyone`` and ``pypi.default_write =
-authenticated``.
-
 SQL Database
 ------------
 You can opt to store all user and group permissions inside a SQL database. The

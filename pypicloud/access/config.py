@@ -26,12 +26,6 @@ class ConfigAccessBackend(IAccessBackend):
     @classmethod
     def configure(cls, settings):
         kwargs = super(ConfigAccessBackend, cls).configure(settings)
-        if asbool(settings.get('auth.zero_security_mode', False)):
-            LOG.warn("Using deprecated option 'auth.zero_security_mode' "
-                     "(replaced by 'pypi.default_read' and "
-                     "'pypi.default_write'")
-            kwargs['default_read'] = [Everyone]
-            kwargs['default_write'] = [Authenticated]
         kwargs['settings'] = settings
         kwargs['admins'] = aslist(settings.get('auth.admins', []))
         user_groups = defaultdict(list)
