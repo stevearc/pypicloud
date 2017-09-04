@@ -6,7 +6,7 @@ coverage
 webtest
 redis
 requests
-moto<1.0.0
+moto
 flywheel>=0.2.0
 pyldap
 mysqlclient

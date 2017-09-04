@@ -2,6 +2,17 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.0.0rc1 - 2017/9/4
+-------------------
+* Python3 support thanks to boto3
+* Removing stable/unstable version from package summary
+* Remove old deprecated settings
+* Performance tweaks
+
+**NOTE** Because of the boto3 rewrite, many settings have changed. You will need
+to review the settings for your storage & cache backends to make sure they are
+correct, as well as rebuilding your cache as per usual.
+
 0.5.4 - 2017/8/10
 -----------------
 * Allow overriding the displayed download URL in the web interface (:pr:`125`)

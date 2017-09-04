@@ -10,7 +10,7 @@ sphinx_rtd_theme
 numpydoc
 redis
 requests
-moto<1.0.0
+moto
 flywheel>=0.2.0
 tox
 bumpversion
