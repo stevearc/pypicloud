@@ -3,11 +3,11 @@ from datetime import datetime
 
 import logging
 import transaction
-from pkg_resources import parse_version
 from sqlalchemy import (engine_from_config, distinct, and_, or_, Column,
                         DateTime, String)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.sql import func
 from sqlalchemy.types import TypeDecorator, TEXT
 from sqlalchemy.ext.mutable import Mutable
 import zope.sqlalchemy
@@ -215,20 +215,32 @@ class SQLCache(ICache):
         return latest_map.values()
 
     def summary(self):
-        packages = {}
-        for package in self.db.query(SQLPackage):
-            pkg = packages.get(package.name)
-            if pkg is None:
-                pkg = {
-                    'name': package.name,
-                    'summary': package.summary,
-                    'last_modified': datetime.fromtimestamp(0),
-                }
-                packages[package.name] = pkg
-            pkg['last_modified'] = max(pkg['last_modified'],
-                                       package.last_modified)
+        subquery = self.db.query(
+            SQLPackage.name,
+            func.max(SQLPackage.last_modified).label('last_modified'),
+        ).group_by(SQLPackage.name).subquery()
+        rows = self.db.query(
+            SQLPackage.name,
+            SQLPackage.last_modified,
+            SQLPackage.summary,
+        ).filter(
+            (SQLPackage.name == subquery.c.name) &
+            (SQLPackage.last_modified == subquery.c.last_modified)
+        )
 
-        return packages.values()
+        # Dedupe because two packages may share the same last_modified
+        seen_packages = set()
+        packages = []
+        for row in rows:
+            if row[0] in seen_packages:
+                continue
+            seen_packages.add(row[0])
+            packages.append({
+                'name': row[0],
+                'last_modified': row[1],
+                'summary': row[2],
+            })
+        return packages
 
     def clear(self, package):
         self.db.delete(package)
