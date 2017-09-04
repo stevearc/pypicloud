@@ -1,3 +1,0 @@
-#!/bin/bash -e
-./pypicloud_env/bin/python git_hooks/hook.py
-python setup.py check --restructuredtext -s

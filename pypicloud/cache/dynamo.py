@@ -114,6 +114,7 @@ class DynamoCache(ICache):
         self.engine.delete(package)
         remaining = self.engine(DynamoPackage) \
             .filter(DynamoPackage.name == package.name) \
+            .scan_limit(1) \
             .count()
         if remaining == 0:
             self.engine.delete_key(PackageSummary, name=package.name)
