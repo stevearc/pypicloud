@@ -69,6 +69,8 @@ class RedisCache(ICache):
         last_modified = datetime.utcfromtimestamp(
             float(data.pop('last_modified')))
         summary = data.pop('summary')
+        if summary == '':
+            summary = None
         kwargs = dict(((k, json.loads(v)) for k, v in six.iteritems(data)))
         return self.package_class(name, version, filename, last_modified,
                                   summary, **kwargs)
@@ -91,6 +93,8 @@ class RedisCache(ICache):
             pipe.hgetall(self.redis_summary_key(name))
         summaries = pipe.execute()
         for summary in summaries:
+            if summary['summary'] == '':
+                summary['summary'] = None
             summary['last_modified'] = datetime.utcfromtimestamp(
                 float(summary['last_modified'])
             )
@@ -119,13 +123,14 @@ class RedisCache(ICache):
             pipe = self.db.pipeline()
             should_execute = True
         dt = package.last_modified
-        last_modified = calendar.timegm(dt.utctimetuple()) + dt.microsecond / 1000000.0
+        last_modified = (calendar.timegm(dt.utctimetuple()) +
+                         dt.microsecond / 1000000.0)
         data = {
             'name': package.name,
             'version': package.version,
             'filename': package.filename,
             'last_modified': last_modified,
-            'summary': package.summary,
+            'summary': package.summary or '',
         }
         for key, value in six.iteritems(package.data):
             data[key] = json.dumps(value)
@@ -134,7 +139,7 @@ class RedisCache(ICache):
         pipe.sadd(self.redis_filename_set(package.name), package.filename)
         pipe.hmset(self.redis_summary_key(package.name), {
             'name': package.name,
-            'summary': package.summary,
+            'summary': package.summary or '',
             'last_modified': last_modified,
         })
         if should_execute:
