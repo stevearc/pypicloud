@@ -151,6 +151,9 @@ angular.module('pypicloud', ['ui.bootstrap', 'ngRoute', 'angularFileUpload', 'ng
 
   var addPackages = function(packages) {
     var allNames = _.pluck($scope.packages, 'name');
+    var uniquePkgs = _.uniq(packages, false, function(pkg) {
+      return pkg.name;
+    });
     _.each(packages, function(pkg) {
       if (!_.contains(allNames, pkg.name)) {
         $scope.packages.push(pkg);
