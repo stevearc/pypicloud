@@ -1,6 +1,7 @@
 """ Views for simple pip interaction """
 import posixpath
 
+import pkg_resources
 import logging
 import six
 from pyramid.httpexceptions import (HTTPBadRequest, HTTPFound, HTTPNotFound,
@@ -88,6 +89,36 @@ def package_versions(context, request):
             return _simple_cache(context, request)
     else:
         return _simple_serve(context, request)
+
+
+@view_config(context=SimplePackageResource, name='json', request_method='GET',
+             subpath=(), renderer='json')
+@addslash
+def package_versions_json(context, request):
+    """ Render the package versions in JSON format """
+    pkgs = package_versions(context, request)
+    if not isinstance(pkgs, dict):
+        return pkgs
+    response = {
+        'info': {
+            'name': context.name,
+        },
+        'releases': {},
+    }
+    max_version = None
+    for filename, url in six.iteritems(pkgs['pkgs']):
+        name, version_str = parse_filename(filename)
+        version = pkg_resources.parse_version(version_str)
+        if max_version is None or version > max_version:
+            max_version = version
+
+        response['releases'].setdefault(version_str, []).append({
+            'filename': filename,
+            'url': url,
+        })
+    if max_version is not None:
+        response['urls'] = response['releases'].get(str(max_version), [])
+    return response
 
 
 def get_fallback_packages(request, package_name, redirect=True):

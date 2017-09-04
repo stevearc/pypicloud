@@ -48,6 +48,17 @@ server (``redirect``), or a package index pulled from the fallback server
 
     curl myserver.com/simple/flywheel/
 
+``GET`` ``/pypi/<package>/json``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Returns information about all versions of the package in JSON format. This is
+similar to what PyPI does (ex: `https://pypi.python.org/pypi/requests/json
+<https://pypi.python.org/pypi/requests/json>`__) but the information is more
+limited because pypicloud doesn't store as much package metadata.
+
+**Example**::
+
+    curl myserver.com/simple/flywheel/json/
+
 ``/api/``
 ---------
 These endpoints are used by the web interface

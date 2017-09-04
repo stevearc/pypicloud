@@ -6,6 +6,7 @@ from mock import MagicMock, patch
 from . import MockServerTest, make_package
 from pypicloud.auth import _request_login
 from pypicloud.views.simple import (upload, search, simple, package_versions,
+                                    package_versions_json,
                                     get_fallback_packages)
 
 
@@ -244,6 +245,16 @@ class PackageReadTestBase(unittest.TestCase):
         self.assertEqual(ret, {'pkgs': {
             self.package.filename: self.package.get_url(request),
         }})
+        # Check the /json endpoint too
+        ret = package_versions_json(self.package, request)
+        self.assertEqual(ret['releases'], {
+            '1.1': [
+                {
+                    'filename': self.package.filename,
+                    'url': self.package.get_url(request),
+                },
+            ],
+        })
 
     def should_cache(self, request):
         """ When requested, the endpoint should serve the fallback packages """

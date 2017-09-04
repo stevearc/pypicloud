@@ -25,10 +25,6 @@ def to_json(value):
     """ A json filter for jinja2 """
     return render('json', value)
 
-json_renderer = JSON()  # pylint: disable=C0103
-json_renderer.add_adapter(datetime.datetime, lambda obj, r:
-                          calendar.timegm(obj.utctimetuple()))
-
 
 def _app_url(request, *paths, **params):
     """ Get the base url for the root of the app plus an optional path """
@@ -63,6 +59,12 @@ def includeme(config):
     config.include('pypicloud.access')
     config.include('pypicloud.cache')
 
+    # If we're reloading templates, we should also pretty-print json
+    reload_templates = asbool(settings.get('pyramid.reload_templates'))
+    indent = 4 if reload_templates else None
+    json_renderer = JSON(indent=indent)
+    json_renderer.add_adapter(datetime.datetime, lambda obj, r:
+                              calendar.timegm(obj.utctimetuple()))
     config.add_renderer('json', json_renderer)
     # Jinja2 configuration
     settings['jinja2.filters'] = {
