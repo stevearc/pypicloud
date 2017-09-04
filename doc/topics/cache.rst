@@ -58,8 +58,8 @@ The AWS region to use for the cache tables. You must specify either this or
 ``db.host``.
 
 
-``db.access_key``, ``db.secret_key``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+``db.aws_access_key_id``, ``db.aws_secret_access_key``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string, optional
 
 Your AWS access key id and secret access key. If they are not specified then

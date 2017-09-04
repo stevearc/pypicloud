@@ -606,8 +606,8 @@ class TestDynamoCache(unittest.TestCase):
             'db.host': host,
             'db.port': port,
             'db.namespace': 'test.',
-            'db.access_key': '',
-            'db.secret_key': '',
+            'db.aws_access_key_id': '',
+            'db.aws_secret_access_key': '',
         }
         cls.kwargs = DynamoCache.configure(settings)
         cls.engine = cls.kwargs['engine']

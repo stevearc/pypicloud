@@ -11,7 +11,6 @@ from six.moves.urllib.parse import urlparse, parse_qs  # pylint: disable=F0401,E
 
 import boto3
 import os
-import pypicloud
 import re
 from pypicloud.models import Package
 from pypicloud.storage import S3Storage, CloudFrontS3Storage, FileStorage
@@ -33,8 +32,8 @@ class TestS3Storage(unittest.TestCase):
         self.s3_mock.start()
         self.settings = {
             'storage.bucket': 'mybucket',
-            'storage.access_key': 'abc',
-            'storage.secret_key': 'bcd',
+            'storage.aws_access_key_id': 'abc',
+            'storage.aws_secret_access_key': 'bcd',
         }
         self.s3 = boto3.resource('s3')
         self.bucket = self.s3.create_bucket(Bucket='mybucket')
@@ -88,7 +87,7 @@ class TestS3Storage(unittest.TestCase):
                                              'AWSAccessKeyId'])
         self.assertTrue(int(query['Expires'][0]) > time.time())
         self.assertEqual(query['AWSAccessKeyId'][0],
-                         self.settings['storage.access_key'])
+                         self.settings['storage.aws_access_key_id'])
 
     def test_delete(self):
         """ delete() should remove package from storage """
@@ -129,7 +128,7 @@ class TestS3Storage(unittest.TestCase):
         """ If S3 bucket doesn't exist, create it """
         settings = {
             'storage.bucket': 'new_bucket',
-            'storage.region': 'us-east-1',
+            'storage.region_name': 'us-east-1',
         }
         S3Storage.configure(settings)
         bucket = self.s3.Bucket('new_bucket')
@@ -146,8 +145,8 @@ class TestCloudFrontS3Storage(unittest.TestCase):
         self.s3_mock.start()
         self.settings = {
             'storage.bucket': 'mybucket',
-            'storage.access_key': 'abc',
-            'storage.secret_key': 'bcd',
+            'storage.aws_access_key_id': 'abc',
+            'storage.aws_secret_access_key': 'bcd',
             'storage.cloud_front_domain': 'https://abcdef.cloudfront.net',
             'storage.cloud_front_key_file': '',
             'storage.cloud_front_key_string': '-----BEGIN RSA PRIVATE KEY-----\n'

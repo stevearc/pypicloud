@@ -8,6 +8,7 @@ from pyramid.settings import asbool
 
 from .base import ICache
 from pypicloud.models import Package
+from pypicloud.util import get_settings
 
 
 try:
@@ -64,8 +65,8 @@ class DynamoCache(ICache):
     def configure(cls, settings):
         kwargs = super(DynamoCache, cls).configure(settings)
 
-        access_key = settings.get('db.access_key')
-        secret_key = settings.get('db.secret_key')
+        access_key = settings.get('db.aws_access_key_id')
+        secret_key = settings.get('db.aws_secret_access_key')
         region = settings.get('db.region')
         host = settings.get('db.host')
         port = int(settings.get('db.port', 8000))

@@ -142,3 +142,29 @@ def create_matcher(queries, query_type):
         return lambda x: any((q in x.lower() for q in queries))
     else:
         return lambda x: all((q in x.lower() for q in queries))
+
+
+def get_settings(settings, prefix, **kwargs):
+    """
+    Convenience method for fetching settings
+
+    Returns a dict; any settings that were missing from the config file will
+    not be present in the returned dict (as opposed to being present with a
+    None value)
+
+    Parameters
+    ----------
+    settings : dict
+        The settings dict
+    prefix : str
+        String to prefix all keys with when fetching value from settings
+    **kwargs : dict
+        Mapping of setting name to conversion function (e.g. str or asbool)
+
+    """
+    computed = {}
+    for name, fxn in six.iteritems(kwargs):
+        val = settings.get(prefix + name)
+        if val is not None:
+            computed[name] = fxn(val)
+    return computed

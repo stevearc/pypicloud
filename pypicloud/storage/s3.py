@@ -12,13 +12,14 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from hashlib import md5
 from pyramid.httpexceptions import HTTPFound
-from pyramid.settings import asbool
+from pyramid.settings import asbool, falsey
+from pyramid_duh.settings import asdict
 from six.moves.urllib.parse import quote  # pylint: disable=F0401,E0611
 from six.moves.urllib.request import urlopen  # pylint: disable=F0401,E0611
 
 from .base import IStorage
 from pypicloud.models import Package
-from pypicloud.util import parse_filename, getdefaults
+from pypicloud.util import parse_filename, get_settings
 
 
 LOG = logging.getLogger(__name__)
@@ -49,22 +50,6 @@ class S3Storage(IStorage):
         kwargs['bucket_prefix'] = settings.get('storage.prefix', '')
         kwargs['prepend_hash'] = asbool(settings.get('storage.prepend_hash',
                                                      True))
-        access_key = settings.get('storage.access_key')
-        secret_key = settings.get('storage.secret_key')
-        region = settings.get('storage.region')
-        signature_version = settings.get('storage.signature_version')
-        user_agent = settings.get('storage.user_agent')
-        user_agent_extra = settings.get('storage.user_agent_extra')
-        use_accelerate_endpoint = \
-            settings.get('storage.use_accelerate_endpoint', False)
-        payload_signing_enabled = \
-            settings.get('storage.payload_signing_enabled', False)
-        addressing_style = settings.get('storage.addressing_style', 'auto')
-        endpoint_url = getdefaults(settings, 'storage.endpoint_url',
-                                   'storage.host', None)
-        use_ssl = getdefaults(settings, 'storage.use_ssl', 'storage.is_secure',
-                              True)
-        verify = settings.get('storage.verify')
         kwargs['sse'] = sse = settings.get('storage.server_side_encryption')
         if sse not in [None, 'AES256', 'aws:kms']:
             LOG.warn("Unrecognized value %r for 'storage.sse'. See "
@@ -73,26 +58,60 @@ class S3Storage(IStorage):
         kwargs['redirect_urls'] = asbool(settings.get('storage.redirect_urls',
                                                       False))
 
-        config = Config(
-            region_name=region,
-            signature_version=signature_version,
-            user_agent=user_agent,
-            user_agent_extra=user_agent_extra,
-            s3={
-                'use_accelerate_endpoint': use_accelerate_endpoint,
-                'payload_signing_enabled': payload_signing_enabled,
-                'addressing_style': addressing_style,
-            },
+        config_settings = get_settings(
+            settings,
+            'storage.',
+            region_name=str,
+            signature_version=str,
+            user_agent=str,
+            user_agent_extra=str,
+            connect_timeout=int,
+            read_timeout=int,
+            parameter_validation=asbool,
+            max_pool_connections=int,
+            proxies=asdict,
         )
+        config_settings['s3'] = get_settings(
+            settings,
+            'storage.',
+            use_accelerate_endpoint=asbool,
+            payload_signing_enabled=asbool,
+            addressing_style=str,
+        )
+        config = Config(**config_settings)
+
+        def verify_value(val):
+            """ Verify can be a boolean (False) or a string """
+            s = str(val).strip().lower()
+            if s in falsey:
+                return False
+            else:
+                return str(val)
+
         s3conn = boto3.resource(
-            's3', region_name=region, use_ssl=use_ssl, verify=verify,
-            endpoint_url=endpoint_url, aws_access_key_id=access_key,
-            aws_secret_access_key=secret_key, config=config
+            's3',
+            config=config,
+            **get_settings(
+                settings,
+                'storage.',
+                region_name=str,
+                api_version=str,
+                use_ssl=asbool,
+                verify=verify_value,
+                endpoint_url=str,
+                aws_access_key_id=str,
+                aws_secret_access_key=str,
+                aws_session_token=str,
+            )
         )
 
         bucket_name = settings.get('storage.bucket')
         if bucket_name is None:
             raise ValueError("You must specify the 'storage.bucket'")
+        if '.' in bucket_name:
+            LOG.warn("Your bucket name %r has a '.' in it. This may cause "
+                     "HTTPS problems for you, as Amazon's certificate for S3 "
+                     "urls is only valid for *.s3.amazonaws.com", bucket_name)
         bucket = s3conn.Bucket(bucket_name)
         try:
             bucket.load()
@@ -105,7 +124,7 @@ class S3Storage(IStorage):
                 if e.response['Error']['Code'] == '301':
                     LOG.warn("Bucket found in different region. Check that "
                              "the S3 bucket specified in 'storage.bucket' is "
-                             "in 'storage.region'")
+                             "in 'storage.region_name'")
                 raise
         kwargs['bucket'] = bucket
         return kwargs

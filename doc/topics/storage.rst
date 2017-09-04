@@ -24,6 +24,24 @@ This option will store your packages in S3.
 
 Set ``pypi.storage = s3`` OR ``pypi.s3 = pypicloud.storage.S3Storage``
 
+A few key, required options are mentioned below, but pypicloud attempts to
+support all options that can be passed to `resource
+<http://boto3.readthedocs.io/en/latest/reference/core/session.html#boto3.session.Session.resource>`__
+or to the `Config
+<https://botocore.readthedocs.io/en/stable/reference/config.html#botocore.config.Config>`__
+object. In general you can simply prefix the option with ``storage.`` and
+pypicloud will pass it on. For example, to set the signature version on the
+Config object::
+
+    storage.signature_version = s3v4
+
+Note that there is a ``s3`` option dict as well. Those options should also just
+be prefixed with ``storage.``. For example::
+
+    storage.use_accelerate_endpoint = true
+
+Will pass the Config object the option ``Config(s3={'use_accelerate_endpoint': True})``.
+
 ``storage.bucket``
 ~~~~~~~~~~~~~~~~~~
 **Argument:** string
@@ -35,41 +53,13 @@ The name of the S3 bucket to store packages in.
     Your bucket must not have "." in it. Amazon's SSL certificate for S3 urls
     is only valid for \*.s3.amazonaws.com
 
-``storage.access_key``, ``storage.secret_key``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** string, optional
-
-Your AWS access key id and secret access key. If they are not specified then
-pypicloud will attempt to get the values from the environment variables
-``AWS_ACCESS_KEY_ID`` and ``AWS_SECRET_ACCESS_KEY``.
-
-``storage.region``
-~~~~~~~~~~~~~~~~~~
+``storage.region_name``
+~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string, semi-optional
 
 This is required if your bucket is in a new region, such as ``eu-central-1``.
 If your bucket does not yet exist, it will be created in this region on
 startup. If blank, the classic US region will be used.
-
-``storage.host``
-~~~~~~~~~~~~~~~~
-**Argument:** string, optional
-
-Specify S3 compatible API fqdn/IP. On other systems, this variable could be called an endpoint.
-
-``storage.is_secure``
-~~~~~~~~~~~~~~~~~~~~~
-**Argument:** boolean, optional
-
-Use secure connection (https) or not (http). Default is True.
-
-``storage.calling_format``
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** string, optional
-
-Choose how to call the S3 API. Supported formats are SubdomainCallingFormat, VHostCallingFormat, OrdinaryCallingFormat and 
-ProtocolIndependentOrdinaryCallingFormat.
-For example, not all S3 compatible API use <bucket>.<host> format, so put this value to OrdinaryCallingFormat.
 
 ``storage.prefix``
 ~~~~~~~~~~~~~~~~~~
@@ -107,11 +97,11 @@ The long story: :ref:`redirect_detail`
 
 ``storage.server_side_encryption``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** bool, optional
+**Argument:** str, optional
 
 Enables AES-256 transparent server side encryption. See the `AWS documention
 <http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingServerSideEncryption.html>`_.
-Default is False.
+Default is None.
 
 CloudFront
 ----------
