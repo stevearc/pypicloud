@@ -43,6 +43,10 @@ class RedisCache(ICache):
         """ Get the key to a redis set of filenames for a package """
         return "%sset:%s" % (self.redis_prefix, name)
 
+    def redis_summary_key(self, name):
+        """ Get the redis key to a summary for a package """
+        return "%ssummary:%s" % (self.redis_prefix, name)
+
     def reload_from_storage(self):
         self.clear_all()
         packages = self.storage.list(self.package_class)
@@ -81,11 +85,28 @@ class RedisCache(ICache):
     def distinct(self):
         return list(self.db.smembers(self.redis_set))
 
+    def summary(self):
+        pipe = self.db.pipeline()
+        for name in self.db.smembers(self.redis_set):
+            pipe.hgetall(self.redis_summary_key(name))
+        summaries = pipe.execute()
+        for summary in summaries:
+            summary['last_modified'] = datetime.utcfromtimestamp(
+                float(summary['last_modified'])
+            )
+        return summaries
+
     def clear(self, package):
-        del self.db[self.redis_key(package.filename)]
-        self.db.srem(self.redis_filename_set(package.name), package.filename)
-        if self.db.scard(self.redis_filename_set(package.name)) == 0:
-            self.db.srem(self.redis_set, package.name)
+        pipe = self.db.pipeline()
+        pipe.delete(self.redis_key(package.filename))
+        pipe.srem(self.redis_filename_set(package.name), package.filename)
+        pipe.scard(self.redis_filename_set(package.name))
+        count = pipe.execute()[2]
+        if count == 0:
+            pipe = self.db.pipeline()
+            pipe.srem(self.redis_set, package.name)
+            pipe.delete(self.redis_summary_key(package.name))
+            pipe.execute()
 
     def clear_all(self):
         keys = self.db.keys(self.redis_prefix + '*')
@@ -93,14 +114,17 @@ class RedisCache(ICache):
             self.db.delete(*keys)
 
     def save(self, package, pipe=None):
+        should_execute = False
         if pipe is None:
-            pipe = self.db
+            pipe = self.db.pipeline()
+            should_execute = True
         dt = package.last_modified
+        last_modified = calendar.timegm(dt.utctimetuple()) + dt.microsecond / 1000000.0
         data = {
             'name': package.name,
             'version': package.version,
             'filename': package.filename,
-            'last_modified': calendar.timegm(dt.utctimetuple()) + dt.microsecond / 1000000.0,
+            'last_modified': last_modified,
             'summary': package.summary,
         }
         for key, value in six.iteritems(package.data):
@@ -108,3 +132,10 @@ class RedisCache(ICache):
         pipe.hmset(self.redis_key(package.filename), data)
         pipe.sadd(self.redis_set, package.name)
         pipe.sadd(self.redis_filename_set(package.name), package.filename)
+        pipe.hmset(self.redis_summary_key(package.name), {
+            'name': package.name,
+            'summary': package.summary,
+            'last_modified': last_modified,
+        })
+        if should_execute:
+            pipe.execute()

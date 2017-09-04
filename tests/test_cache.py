@@ -6,7 +6,7 @@ import sys
 import transaction
 import calendar
 from redis import ConnectionError
-from mock import MagicMock, patch
+from mock import MagicMock, patch, ANY
 from pyramid.testing import DummyRequest
 from sqlalchemy.exc import OperationalError
 
@@ -545,6 +545,21 @@ class TestRedisCache(unittest.TestCase):
 
         self.assertItemsEqual(saved_pkgs, set([p.name for p in pkgs]))
 
+    def test_delete_package(self):
+        """ Deleting the last package of a name removes from distinct() """
+        pkgs = [
+            make_package(factory=SQLPackage),
+            make_package('mypkg2', '1.3.4', 'my/other/path',
+                         factory=SQLPackage),
+        ]
+        for pkg in pkgs:
+            self.db.save(pkg)
+        self.db.clear(pkgs[0])
+        saved_pkgs = self.db.distinct()
+        self.assertEqual(saved_pkgs, ['mypkg2'])
+        summaries = self.db.summary()
+        self.assertEqual(len(summaries), 1)
+
     def test_search_or(self):
         """ search() returns packages that match the query """
         pkgs = [
@@ -588,6 +603,35 @@ class TestRedisCache(unittest.TestCase):
 
             all_versions = self.db.all(name)
             self.assertEqual(len(all_versions), 2)
+
+    def test_summary(self):
+        """ summary constructs per-package metadata summary """
+        self.db.upload('pkg1-0.3a2.tar.gz', None, 'pkg1', '0.3a2')
+        self.db.upload('pkg1-1.1.tar.gz', None, 'pkg1', '1.1')
+        p1 = self.db.upload('pkg1a2.tar.gz', None, 'pkg1', '1.1.1a2', 'summary')
+        p2 = self.db.upload('pkg2.tar.gz', None, 'pkg2', '0.1dev2', 'summary')
+        summaries = self.db.summary()
+        self.assertItemsEqual(summaries, [
+            {
+                'name': 'pkg1',
+                'summary': 'summary',
+                'last_modified': ANY,
+            },
+            {
+                'name': 'pkg2',
+                'summary': 'summary',
+                'last_modified': ANY,
+            },
+        ])
+        # Have to compare the last_modified fuzzily
+        self.assertEqual(
+            summaries[0]['last_modified'].utctimetuple(),
+            p1.last_modified.utctimetuple(),
+        )
+        self.assertEqual(
+            summaries[1]['last_modified'].utctimetuple(),
+            p2.last_modified.utctimetuple(),
+        )
 
 
 class TestDynamoCache(unittest.TestCase):
