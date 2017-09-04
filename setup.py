@@ -16,7 +16,7 @@ REQUIREMENTS = [
     'boto3',
     # We're doing enough subclassing and monkey patching to where we really do
     # need to lock this in to a specific version.
-    'distlib==0.2.3',
+    'distlib==0.2.5',
     'paste',
     'passlib',
     'pycrypto',

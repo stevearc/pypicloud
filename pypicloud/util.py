@@ -63,13 +63,6 @@ class BetterScrapingLocator(SimpleScrapingLocator):
             filename,
         )
 
-    def _get_project(self, name):
-        # We're overriding _get_project so that we can wrap the name with the
-        # NormalizeNameHackString. This is hopefully temporary. See this PR for
-        # more details:
-        # https://bitbucket.org/vinay.sajip/distlib/pull-requests/7/update-name-comparison-to-match-pep-503
-        return super(BetterScrapingLocator, self)._get_project(NormalizeNameHackString(name))
-
 
 # Distlib checks if wheels are compatible before returning them.
 # This is useful if you are attempting to install on the system running
@@ -80,26 +73,6 @@ def is_compatible(wheel, tags=None):
     return True
 
 distlib.locators.is_compatible = is_compatible
-
-
-class NormalizeNameHackString(six.text_type):
-    """
-    Super hacked wrapper around a string that runs normalize_name before doing
-    equality comparisons
-
-    """
-
-    def lower(self):
-        # lower() needs to return another NormalizeNameHackString in order to
-        # plumb this hack far enough into distlib.
-        lower = super(NormalizeNameHackString, self).lower()
-        return NormalizeNameHackString(lower)
-
-    def __eq__(self, other):
-        if isinstance(other, six.string_types):
-            return normalize_name(self) == normalize_name(other)
-        else:
-            return False
 
 
 def getdefaults(settings, *args):
