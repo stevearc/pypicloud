@@ -20,7 +20,8 @@ The directory where the package files should be stored.
 
 S3
 --
-This option will store your packages in S3.
+This option will store your packages in S3. Be sure you have set the correct
+:ref:`s3_policy`.
 
 Set ``pypi.storage = s3`` OR ``pypi.s3 = pypicloud.storage.S3Storage``
 

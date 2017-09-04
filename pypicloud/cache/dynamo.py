@@ -73,15 +73,15 @@ class DynamoCache(ICache):
         secure = asbool(settings.get('db.secure', False))
         namespace = settings.get('db.namespace', ())
 
-        if region is not None:
+        if host is not None:
             connection = DynamoDBConnection.connect(region,
-                                                    access_key=access_key,
-                                                    secret_key=secret_key)
-        elif host is not None:
-            connection = DynamoDBConnection.connect('us-east-1',
                                                     host=host,
                                                     port=port,
                                                     is_secure=secure,
+                                                    access_key=access_key,
+                                                    secret_key=secret_key)
+        elif region is not None:
+            connection = DynamoDBConnection.connect(region,
                                                     access_key=access_key,
                                                     secret_key=secret_key)
         else:
