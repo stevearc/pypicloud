@@ -1,22 +1,17 @@
 """ Tests for pypicloud """
 from __future__ import unicode_literals
-import six
-from datetime import datetime
 
+import six
+import unittest
 from collections import defaultdict
+from datetime import datetime
 from mock import MagicMock
 from pyramid.testing import DummyRequest
 
+from pypicloud.auth import _is_logged_in
 from pypicloud.cache import ICache
 from pypicloud.models import Package
 from pypicloud.storage import IStorage
-from pypicloud.auth import _is_logged_in
-
-
-try:
-    import unittest2 as unittest  # pylint: disable=F0401
-except ImportError:
-    import unittest
 
 
 if six.PY3:
@@ -24,11 +19,12 @@ if six.PY3:
 
 
 def make_package(name='mypkg', version='1.1', filename=None,
-                 last_modified=datetime.utcnow(), summary='summary',
+                 last_modified=None, summary='summary',
                  factory=Package, **kwargs):
     """ Convenience method for constructing a package """
     filename = filename or '%s-%s.tar.gz' % (name, version)
-    return factory(name, version, filename, last_modified, summary, **kwargs)
+    return factory(name, version, filename, last_modified or datetime.utcnow(),
+                   summary, **kwargs)
 
 
 class DummyStorage(IStorage):

@@ -91,3 +91,11 @@ The port to connect to when using ``db.host`` (default 8000)
 **Argument:** bool, optional
 
 Force https connection when using ``db.host`` (default False)
+
+``db.graceful_reload``
+~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** bool, optional
+
+When reloading the cache from storage, keep the cache in a usable state while
+adding and removing the necessary packages. Note that this may take longer
+because multiple passes will be made to ensure correctness. (default False)

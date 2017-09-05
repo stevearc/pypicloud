@@ -1,14 +1,14 @@
 """ Store package data in DynamoDB """
-from datetime import datetime
-
 import logging
+import six
+from collections import defaultdict
+from datetime import datetime
 from dynamo3 import DynamoDBConnection
 from pkg_resources import parse_version
 from pyramid.settings import asbool
 
 from .base import ICache
 from pypicloud.models import Package
-from pypicloud.util import get_settings
 
 
 try:
@@ -57,9 +57,11 @@ class DynamoCache(ICache):
     """ Caching database that uses DynamoDB """
     package_class = DynamoPackage
 
-    def __init__(self, request=None, engine=None, **kwargs):
+    def __init__(self, request=None, engine=None, graceful_reload=False,
+                 **kwargs):
         super(DynamoCache, self).__init__(request, **kwargs)
         self.engine = engine
+        self.graceful_reload = graceful_reload
 
     @classmethod
     def configure(cls, settings):
@@ -72,6 +74,7 @@ class DynamoCache(ICache):
         port = int(settings.get('db.port', 8000))
         secure = asbool(settings.get('db.secure', False))
         namespace = settings.get('db.namespace', ())
+        graceful_reload = asbool(settings.get('db.graceful_reload', False))
 
         if host is not None:
             connection = DynamoDBConnection.connect(region,
@@ -88,6 +91,7 @@ class DynamoCache(ICache):
             raise ValueError("Must specify either db.region or db.host!")
         kwargs['engine'] = engine = Engine(namespace=namespace,
                                            dynamo=connection)
+        kwargs['graceful_reload'] = graceful_reload
 
         engine.register(DynamoPackage, PackageSummary)
         engine.create_schema()
@@ -113,12 +117,17 @@ class DynamoCache(ICache):
 
     def clear(self, package):
         self.engine.delete(package)
+        self._maybe_delete_summary(package.name)
+
+    def _maybe_delete_summary(self, package_name):
+        """ Check for any package with the name. Delete summary if 0 """
         remaining = self.engine(DynamoPackage) \
-            .filter(DynamoPackage.name == package.name) \
+            .filter(DynamoPackage.name == package_name) \
             .scan_limit(1) \
             .count()
         if remaining == 0:
-            self.engine.delete_key(PackageSummary, name=package.name)
+            LOG.info("Removing package summary %s", package_name)
+            self.engine.delete_key(PackageSummary, name=package_name)
 
     def clear_all(self):
         # We're replacing the schema, so make sure we save and restore the
@@ -144,3 +153,74 @@ class DynamoCache(ICache):
     def save(self, package):
         summary = PackageSummary(package)
         self.engine.save([package, summary], overwrite=True)
+
+    def reload_from_storage(self):
+        if not self.graceful_reload:
+            return super(DynamoCache, self).reload_from_storage()
+        LOG.info("Rebuilding cache from storage")
+        # Log start time
+        start = datetime.utcnow().replace(tzinfo=UTC)
+        # Fetch packages from storage s1
+        s1 = set(self.storage.list(self.package_class))
+        # Fetch cache packages c1
+        c1 = set(self.engine.scan(DynamoPackage))
+        # Add missing packages to cache (s1 - c1)
+        missing = s1 - c1
+        if missing:
+            LOG.info("Adding %d missing packages to cache", len(missing))
+            self.engine.save(missing)
+        # Delete extra packages from cache (c1 - s1) when last_modified < start
+        # The time filter helps us avoid deleting packages that were
+        # concurrently uploaded.
+        extra1 = [p for p in (c1 - s1) if p.last_modified < start]
+        if extra1:
+            LOG.info("Removing %d extra packages from cache", len(extra1))
+            self.engine.delete(extra1)
+
+        # If any packages were concurrently deleted during the cache rebuild,
+        # we can detect them by polling storage again and looking for any
+        # packages that were present in s1 and are missing from s2
+        s2 = set(self.storage.list(self.package_class))
+        # Delete extra packages from cache (s1 - s2)
+        extra2 = s1 - s2
+        if extra2:
+            LOG.info("Removing %d packages from cache that were concurrently "
+                     "deleted during rebuild", len(extra2))
+            self.engine.delete(extra2)
+            # Remove these concurrently-deleted files from the list of packages
+            # that were missing from the cache. Don't want to use those to
+            # update the summaries below.
+            missing -= extra2
+
+        # Update the PackageSummary for added packages
+        packages_by_name = defaultdict(list)
+        for package in missing:
+            # Set the tz here so we can compare against the PackageSummary
+            package.last_modified = package.last_modified.replace(tzinfo=UTC)
+            packages_by_name[package.name].append(package)
+        summaries = self.engine.get(PackageSummary, packages_by_name.keys())
+        summaries_by_name = {}
+        for summary in summaries:
+            summaries_by_name[summary.name] = summary
+        for name, packages in six.iteritems(packages_by_name):
+            if name in summaries_by_name:
+                summary = summaries_by_name[name]
+            else:
+                summary = PackageSummary(packages[0])
+                summaries.append(summary)
+            for package in packages:
+                if package.last_modified > summary.last_modified:
+                    summary.last_modified = package.last_modified
+                    summary.summary = package.summary
+        if summaries:
+            LOG.info("Updating %d package summaries", len(summaries))
+            self.engine.save(summaries, overwrite=True)
+
+        # Remove the PackageSummary for deleted packages
+        removed = set()
+        for package in extra1:
+            removed.add(package.name)
+        for package in extra2:
+            removed.add(package.name)
+        for name in removed:
+            self._maybe_delete_summary(name)
