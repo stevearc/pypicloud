@@ -42,6 +42,7 @@ def upload(request, content, name=None, version=None, summary=None):
 
 
 @xmlrpc_method(endpoint='pypi')
+@xmlrpc_method(endpoint='pypi_slash')
 def search(request, criteria, query_type):
     """
     Perform searches from pip. This handles XML RPC requests to the "pypi"
