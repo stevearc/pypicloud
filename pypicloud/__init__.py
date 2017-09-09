@@ -125,6 +125,8 @@ def includeme(config):
 
     config.add_xmlrpc_endpoint('pypi', '/pypi', request_method='POST',
                                header='Content-Type:text/xml')
+    config.add_xmlrpc_endpoint('pypi_slash', '/pypi/', request_method='POST',
+                               header='Content-Type:text/xml')
 
 
 def traceback_formatter(excpt, value, tback):
