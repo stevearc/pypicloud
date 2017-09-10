@@ -1,18 +1,18 @@
 """LDAP authentication plugin for pypicloud."""
+import logging
+from functools import wraps
+from pyramid.settings import aslist
+
+from .base import IAccessBackend
 
 
 try:
     import ldap
-except ImportError:
+except ImportError:  # pragma: no cover
     raise ImportError(
         "You must 'pip install pypicloud[ldap]' before using ldap as the "
         "authentication backend."
     )
-
-import logging
-from functools import wraps
-
-from .base import IAccessBackend
 
 
 def reconnect(func):
@@ -50,9 +50,7 @@ class LDAP(object):
         LDAP._base_dn = settings["auth.ldap.base_dn"]
         LDAP._all_user_search = settings["auth.ldap.all_user_search"]
         LDAP._admin_field = settings["auth.ldap.admin_field"]
-        LDAP._admin_dns = [
-            dn for dn in settings["auth.ldap.admin_dns"].splitlines() if dn
-        ]
+        LDAP._admin_dns = aslist(settings["auth.ldap.admin_dns"])
         LDAP._service_account = settings.get("auth.ldap.service_account")
 
         LDAP._connect()
@@ -79,18 +77,19 @@ class LDAP(object):
         LDAP._all_users = {}
         if LDAP._service_account:
             LDAP._all_users[LDAP._service_account] = LDAP._service_dn
-        for result in results:
-            if LDAP._id_field in result[1]:
-                LDAP._all_users[result[1][LDAP._id_field][0]] = result[0]
+        for dn, attributes in results:
+            if LDAP._id_field in attributes:
+                LDAP._all_users[attributes[LDAP._id_field][0]] = dn
 
     @staticmethod
-    def all_users():
-        """
-        Returns a list of all user DNs
-        """
-        if not hasattr(LDAP, "_all_users"):
-            LDAP._initialize_cache()
-        return list(set(LDAP._all_users.values()))
+    def clear_cache():
+        """ Clear the cached data """
+        if hasattr(LDAP, '_all_users'):
+            del LDAP._all_users
+        if hasattr(LDAP, '_admins'):
+            del LDAP._admins
+        if hasattr(LDAP, '_admin_usernames'):
+            del LDAP._admin_usernames
 
     @staticmethod
     def all_usernames():
@@ -116,7 +115,7 @@ class LDAP(object):
         """
         Given a DN fragement, add users to _admins and _admin_usernames
         """
-        res = LDAP._server.search_s(admin_dn, ldap.SCOPE_SUBTREE)
+        res = LDAP._server.search_s(admin_dn, ldap.SCOPE_BASE)
         try:
             admins = res[0][1][LDAP._admin_field]
         except (IndexError, KeyError) as err:
@@ -128,7 +127,7 @@ class LDAP(object):
                 LDAP._admin_usernames.append(
                     LDAP._server.search_s(
                         admin,
-                        ldap.SCOPE_SUBTREE,
+                        ldap.SCOPE_BASE,
                     )[0][1][LDAP._id_field][0]
                 )
             except (IndexError, KeyError) as error:
@@ -189,118 +188,49 @@ class LDAPAccessBackend(IAccessBackend):
     This backend allows you to authenticate against a remote LDAP server.
     """
 
-    def __init__(self, request=None, group_map=None, **kwargs):
-        super(LDAPAccessBackend, self).__init__(request, **kwargs)
-        self.group_map = group_map
-
     @classmethod
     def configure(cls, settings):
         kwargs = super(LDAPAccessBackend, cls).configure(settings)
         LDAP.configure(settings)
-        kwargs["group_map"] = {
-            "admin": ("read", "write"),
-            "authenticated": ("read",),
-        }
-        for group in kwargs['default_read']:
-            kwargs['group_map'][group] = ('read',)
-        for group in kwargs['default_write']:
-            kwargs['group_map'][group] = ('read', 'write')
         return kwargs
 
-    def allow_register(self):
-        return False
-
-    def _get_password_hash(self, *_):
-        return ""
+    def _get_password_hash(self, *_):  # pragma: no cover
+        raise RuntimeError("LDAP should never call _get_password_hash")
 
     def verify_user(self, username, password):
-        """
-        Look up the user DN and attempt to bind with the password
-        """
         user_dn = LDAP.user_dn(username)
         return LDAP.bind_user(user_dn, password) if user_dn else False
 
     def groups(self, username=None):
-        """
-        Get a list of all groups
-
-        If a username is specified, get all groups that the user belongs to
-        """
-        if username is None or self.is_admin(username):
-            return ["admin"]
-        else:
-            return []
+        # We're not supporting groups for LDAP
+        return []  # pragma: no cover
 
     def group_members(self, group):
-        """
-        Get a list of users that belong to a group
-        """
-        if group == "admin":
-            return LDAP.admin_usernames()
-        elif group in ("authenticated", "everyone"):
-            return LDAP.all_usernames()
-        else:
-            return []
+        # We're not supporting groups for LDAP
+        return []  # pragma: no cover
 
     def is_admin(self, username):
-        """
-        Check if the user is an admin
-        """
         return username in LDAP.admin_usernames()
 
     def group_permissions(self, package, group=None):
-        """
-        Get a mapping of all groups to their permissions on a package
-
-        If a group is specified, return the list of permissions for that group
-        """
         if group is None:
-            return self.group_map
+            return {}
         else:
-            return self.group_map.get(group, [])
+            return []
 
     def user_permissions(self, package, username=None):
-        """
-        Get a mapping of all users to their permissions for a package
-
-        If a username is specified, return a list of permissions for that user
-        """
         if username is None:
-            return self.group_map
+            return {}
         else:
-            perms = set()
-            for user_group in self.groups(username):
-                perms.update(self.group_permissions(user_group))
-            return list(perms)
+            return []
 
     def user_package_permissions(self, username):
-        """
-        Get a list of all packages that a user has permissions to
-        """
-        all_perms = []
-        for package in self.request.db.summary():
-            all_perms.append({
-                "package": package["name"],
-                "permissions": self.user_permissions(package, username),
-            })
-        return all_perms
+        return []
 
     def group_package_permissions(self, group):
-        """
-        Get a list of all packages that a group has permissions on
-        """
-        all_perms = []
-        for package in self.request.db.summary():
-            all_perms.append({
-                "package": package["name"],
-                "permissions": self.group_permissions(package, group),
-            })
-        return all_perms
+        return []
 
     def user_data(self, username=None):
-        """
-        Get a list of all users or data for a single user
-        """
         if username is None:
             users = []
             for user in LDAP.all_usernames():
@@ -312,3 +242,7 @@ class LDAPAccessBackend(IAccessBackend):
                 "admin": self.is_admin(username),
                 "groups": self.groups(username),
             }
+
+    def clear_cache(self):
+        """ Clear the cached LDAP data """
+        LDAP.clear_cache()

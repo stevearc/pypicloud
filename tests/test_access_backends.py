@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 """ Tests for access backends """
 from __future__ import unicode_literals
+
 import six
 import transaction
+import unittest
+import zope.sqlalchemy
 from mock import MagicMock, patch
+from mockldap import MockLdap
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.security import Everyone, Authenticated
 from pyramid.testing import DummyRequest
@@ -13,16 +17,11 @@ from pypicloud.access import (IAccessBackend, IMutableAccessBackend,
                               ConfigAccessBackend, RemoteAccessBackend,
                               includeme, pwd_context)
 from pypicloud.access.base import group_to_principal
+from pypicloud.access.ldap_ import LDAPAccessBackend
 from pypicloud.access.sql import (SQLAccessBackend, User, UserPermission,
-                                  association_table, GroupPermission, Group, Base)
+                                  association_table, GroupPermission, Group,
+                                  Base)
 from pypicloud.route import Root
-import zope.sqlalchemy
-
-
-try:
-    import unittest2 as unittest  # pylint: disable=F0401
-except ImportError:
-    import unittest
 
 
 class PartialEq(object):
@@ -1219,3 +1218,143 @@ class TestPostgresBackend(TestSQLiteBackend):
     """ Test the SQLAlchemy access backend on a Postgres DB """
 
     DB_URL = 'postgresql://postgres@127.0.0.1:5432/postgres'
+
+
+class TestLDAPBackend(BaseACLTest):
+    """ Test the LDAP access backend """
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestLDAPBackend, cls).setUpClass()
+        test = ('o=test', {'o': ['test'], 'objectClass': ['top']})
+        users = ('ou=users,o=test', {'ou': ['users'], 'objectClass': ['top']})
+        admin_list = ('cn=adminlist,o=test', {'cn': ['adminlist'], 'admins': ['cn=admin,ou=users,o=test'], 'objectClass': ['top']})
+        service = ('cn=service,ou=users,o=test', {'cn': ['service'], 'userPassword': ['snerp'], 'objectClass': ['top']})
+        u1 = ('cn=u1,ou=users,o=test', {'cn': ['u1'], 'userPassword': ['foobar'], 'objectClass': ['top']})
+        admin = ('cn=admin,ou=users,o=test', {'cn': ['admin'], 'userPassword': ['toor'], 'objectClass': ['top']})
+        directory = dict([test, users, admin_list, service, u1, admin])
+        cls.mockldap = MockLdap(directory)
+
+    @classmethod
+    def tearDownClass(cls):
+        super(TestLDAPBackend, cls).tearDownClass()
+        del cls.mockldap
+
+    def setUp(self):
+        super(TestLDAPBackend, self).setUp()
+        self.mockldap.start()
+        self.ldapobj = self.mockldap['ldap://localhost/']
+        self.backend = self._backend()
+
+    def tearDown(self):
+        super(TestLDAPBackend, self).tearDown()
+        self.backend.clear_cache()
+        self.mockldap.stop()
+        del self.ldapobj
+
+    def _backend(self, settings_override=None):
+        """ Wrapper to instantiate a LDAPAccessBackend """
+        settings = {
+            'auth.ldap.url': 'ldap://localhost/',
+            'auth.ldap.service_dn': 'cn=service,ou=users,o=test',
+            'auth.ldap.service_password': 'snerp',
+            'auth.ldap.base_dn': 'ou=users,o=test',
+            'auth.ldap.all_user_search': '(cn=*)',
+            'auth.ldap.id_field': 'cn',
+            'auth.ldap.admin_field': 'admins',
+            'auth.ldap.admin_dns': [
+                'cn=adminlist,o=test',
+            ],
+            'auth.ldap.service_account': '',
+        }
+        settings.update(settings_override or {})
+        kwargs = LDAPAccessBackend.configure(settings)
+        request = DummyRequest()
+        request.userid = None
+        return LDAPAccessBackend(request, **kwargs)
+
+    def test_verify(self):
+        """ Users can log in with correct password """
+        valid = self.backend.verify_user('u1', 'foobar')
+        self.assertTrue(valid)
+
+    def test_no_verify(self):
+        """ Verification fails with wrong password """
+        valid = self.backend.verify_user('u1', 'foobarz')
+        self.assertFalse(valid)
+
+    def test_disallow_anonymous_bind(self):
+        """ Users cannot log in with empty password """
+        valid = self.backend.verify_user('u1', '')
+        self.assertFalse(valid)
+
+    def test_admin(self):
+        """ Specified users have 'admin' permissions """
+        self.assertTrue(self.backend.is_admin('admin'))
+
+    def test_not_admin(self):
+        """ Only specified users have 'admin' permissions """
+        self.assertFalse(self.backend.is_admin('u1'))
+
+    def test_need_admin(self):
+        """ LDAP backend is immutable and never needs admin """
+        self.assertFalse(self.backend.need_admin())
+
+    def test_user_data(self):
+        """ Retrieve all users """
+        users = self.backend.user_data()
+        self.assertItemsEqual(users, [
+            {
+                'username': 'service',
+                'admin': False,
+            },
+            {
+                'username': 'u1',
+                'admin': False,
+            },
+            {
+                'username': 'admin',
+                'admin': True,
+            },
+        ])
+
+    def test_single_user_data(self):
+        """ Get data for a single user """
+        user = self.backend.user_data('u1')
+        self.assertItemsEqual(user, {
+            'username': 'u1',
+            'admin': False,
+            'groups': [],
+        })
+
+    def test_service_account(self):
+        """ service_account allows the service account to be admin """
+        backend = self._backend({
+            'auth.ldap.service_account': 'root',
+        })
+        user = backend.user_data('root')
+        self.assertEqual(user, {
+            'username': 'root',
+            'admin': True,
+            'groups': [],
+        })
+        users = self.backend.user_data()
+        usernames = [u['username'] for u in users]
+        self.assertItemsEqual(usernames, ['u1', 'admin', 'service', 'root'])
+
+    def test_allowed_permissions(self):
+        """ Default settings will only allow authenticated to read """
+        perms = self.backend.allowed_permissions('mypkg')
+        self.assertEqual(perms, {
+            Authenticated: ('read',),
+        })
+
+    def test_user_package_perms(self):
+        """ No user package perms in LDAP """
+        perms = self.backend.user_package_permissions('u1')
+        self.assertEqual(perms, [])
+
+    def test_group_package_perms(self):
+        """ No group package perms in LDAP """
+        perms = self.backend.group_package_permissions('group')
+        self.assertEqual(perms, [])

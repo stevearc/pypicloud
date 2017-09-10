@@ -35,6 +35,7 @@ REQUIREMENTS = [
 TEST_REQUIREMENTS = [
     'flywheel',
     'mock',
+    'mockldap',
     'moto',
     'nose',
     'redis',
