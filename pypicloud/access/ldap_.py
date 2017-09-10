@@ -190,17 +190,11 @@ class LDAPAccessBackend(IAccessBackend):
         user = self.conn.get_user(username)
         return user is not None and user.is_admin
 
-    def group_permissions(self, package, group=None):
-        if group is None:
-            return {}
-        else:
-            return []
+    def group_permissions(self, package):
+        return {}
 
-    def user_permissions(self, package, username=None):
-        if username is None:
-            return {}
-        else:
-            return []
+    def user_permissions(self, package):
+        return {}
 
     def user_package_permissions(self, username):
         return []

@@ -283,58 +283,39 @@ class IAccessBackend(object):
         """
         raise NotImplementedError
 
-    def group_permissions(self, package, group=None):
+    def group_permissions(self, package):
         """
         Get a mapping of all groups to their permissions on a package
-
-        If a group is specified, just return the list of permissions for that
-        group
 
         Parameters
         ----------
         package : str
             The name of a python package
-        group : str, optional
-            The name of a single group the check
 
 
         Returns
         -------
         permissions : dict
-            If group is None, mapping of group name to a list of permissions
+            mapping of group name to a list of permissions
             (which can contain 'read' and/or 'write')
-        permissions : list
-            If group is not None, a list of permissions for that group
-
-        Notes
-        -----
-        You may specify special groups 'everyone' and/or 'authenticated', which
-        correspond to all users and all logged in users respectively.
 
         """
         raise NotImplementedError
 
-    def user_permissions(self, package, username=None):
+    def user_permissions(self, package):
         """
         Get a mapping of all users to their permissions for a package
-
-        If a username is specified, just return the list of permissions for
-        that user
 
         Parameters
         ----------
         package : str
             The name of a python package
-        username : str
-            The name of a single user the check
 
         Returns
         -------
         permissions : dict
             Mapping of username to a list of permissions (which can contain
             'read' and/or 'write')
-        permissions : list
-            If username is not None, a list of permissions for that user
 
         """
         raise NotImplementedError

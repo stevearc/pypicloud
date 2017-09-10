@@ -183,33 +183,19 @@ class SQLAccessBackend(IMutableAccessBackend):
         user = self.db.query(User).filter_by(username=username).first()
         return user and user.admin
 
-    def group_permissions(self, package, group=None):
-        if group is None:
-            query = self.db.query(GroupPermission).filter_by(package=package)
-            perms = {}
-            for perm in query:
-                perms[perm.groupname] = perm.permissions
-            return perms
-        else:
-            perm = self.db.query(GroupPermission)\
-                .filter_by(package=package, groupname=group).first()
-            if perm:
-                return perm.permissions
-            return []
+    def group_permissions(self, package):
+        query = self.db.query(GroupPermission).filter_by(package=package)
+        perms = {}
+        for perm in query:
+            perms[perm.groupname] = perm.permissions
+        return perms
 
-    def user_permissions(self, package, username=None):
-        if username is None:
-            query = self.db.query(UserPermission).filter_by(package=package)
-            perms = {}
-            for perm in query:
-                perms[perm.username] = perm.permissions
-            return perms
-        else:
-            perm = self.db.query(UserPermission)\
-                .filter_by(package=package, username=username).first()
-            if perm:
-                return perm.permissions
-            return []
+    def user_permissions(self, package):
+        query = self.db.query(UserPermission).filter_by(package=package)
+        perms = {}
+        for perm in query:
+            perms[perm.username] = perm.permissions
+        return perms
 
     def user_package_permissions(self, username):
         query = self.db.query(UserPermission).filter_by(username=username)

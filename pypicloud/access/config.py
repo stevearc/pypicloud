@@ -71,10 +71,7 @@ class ConfigAccessBackend(IAccessBackend):
             perms.append('write')
         return perms
 
-    def group_permissions(self, package, group=None):
-        if group is not None:
-            key = 'package.%s.group.%s' % (package, group)
-            return self._perms_from_short(self._settings.get(key))
+    def group_permissions(self, package):
         perms = {}
         group_prefix = 'package.%s.group.' % package
         for key, value in six.iteritems(self._settings):
@@ -84,10 +81,7 @@ class ConfigAccessBackend(IAccessBackend):
             perms[group] = self._perms_from_short(value)
         return perms
 
-    def user_permissions(self, package, username=None):
-        if username is not None:
-            key = 'package.%s.user.%s' % (package, username)
-            return self._perms_from_short(self._settings.get(key))
+    def user_permissions(self, package):
         perms = {}
         user_prefix = 'package.%s.user.' % package
         for key, value in six.iteritems(self._settings):

@@ -348,16 +348,6 @@ class TestConfigBackend(BaseACLTest):
         perms = backend.group_permissions('mypkg')
         self.assertEqual(perms, {'g1': ['read'], 'g2': ['read', 'write']})
 
-    def test_group_permissions(self):
-        """ Fetch permissions for a single group on a package """
-        settings = {
-            'package.mypkg.group.g1': 'r',
-            'package.mypkg.group.g2': 'rw',
-        }
-        backend = self._backend(settings)
-        perms = backend.group_permissions('mypkg', 'g1')
-        self.assertEqual(perms, ['read'])
-
     @patch('pypicloud.access.base.effective_principals')
     def test_everyone_permission(self, principals):
         """ All users have 'everyone' permissions """
@@ -385,16 +375,6 @@ class TestConfigBackend(BaseACLTest):
         backend = self._backend(settings)
         perms = backend.user_permissions('mypkg')
         self.assertEqual(perms, {'u1': ['read'], 'u2': ['read', 'write']})
-
-    def test_user_perms(self):
-        """ Fetch permissions on a package for one user """
-        settings = {
-            'package.mypkg.user.u1': 'r',
-            'package.mypkg.user.u2': 'rw',
-        }
-        backend = self._backend(settings)
-        perms = backend.user_permissions('mypkg', 'u1')
-        self.assertEqual(perms, ['read'])
 
     def test_user_package_perms(self):
         """ Fetch all packages a user has permissions on """
@@ -564,34 +544,10 @@ class TestRemoteBackend(unittest.TestCase):
                                              params=params, auth=self.auth)
         self.assertEqual(perms, self.requests.get().json())
 
-    def test_group_perms(self):
-        """ Query server for group permissions on a package """
-        perms = self.backend.group_permissions('mypkg', 'grp')
-        params = {'package': 'mypkg', 'group': 'grp'}
-        self.requests.get.assert_called_with('server/group_permissions',
-                                             params=params, auth=self.auth)
-        self.assertEqual(perms, self.requests.get().json())
-
     def test_all_user_perms(self):
         """ Query server for all user permissions on a package """
         perms = self.backend.user_permissions('mypkg')
         params = {'package': 'mypkg'}
-        self.requests.get.assert_called_with('server/user_permissions',
-                                             params=params, auth=self.auth)
-        self.assertEqual(perms, self.requests.get().json())
-
-    def test_user_perms(self):
-        """ Query server for a user's permissions on a package """
-        perms = self.backend.user_permissions('mypkg', 'u1')
-        params = {'package': 'mypkg', 'username': 'u1'}
-        self.requests.get.assert_called_with('server/user_permissions',
-                                             params=params, auth=self.auth)
-        self.assertEqual(perms, self.requests.get().json())
-
-    def test_user_perms_with_username(self):
-        """ Query server for a user's permissions on a package """
-        perms = self.backend.user_permissions('mypkg', 'a')
-        params = {'package': 'mypkg', 'username': 'a'}
         self.requests.get.assert_called_with('server/user_permissions',
                                              params=params, auth=self.auth)
         self.assertEqual(perms, self.requests.get().json())
@@ -752,17 +708,6 @@ class TestSQLiteBackend(unittest.TestCase):
             'foo2': ['read', 'write'],
         })
 
-    def test_user_permissions(self):
-        """ Retrieve a user's permissions on package from database """
-        user = make_user('foo', 'bar', False)
-        user2 = make_user('foo2', 'bar', False)
-        p1 = UserPermission('pkg1', 'foo', True, False)
-        p2 = UserPermission('pkg1', 'foo2', True, True)
-        self.db.add_all([user, user2, p1, p2])
-        transaction.commit()
-        perms = self.access.user_permissions('pkg1', 'foo')
-        self.assertEqual(perms, ['read'])
-
     def test_all_group_permissions(self):
         """ Retrieve all group permissions from database """
         g1 = Group('brotatos')
@@ -776,17 +721,6 @@ class TestSQLiteBackend(unittest.TestCase):
             'brotatos': ['read'],
             'sharkfest': ['read', 'write'],
         })
-
-    def test_group_permissions(self):
-        """ Retrieve a group's permissions from database """
-        g1 = Group('brotatos')
-        g2 = Group('sharkfest')
-        p1 = GroupPermission('pkg1', 'brotatos', True, False)
-        p2 = GroupPermission('pkg1', 'sharkfest', True, True)
-        self.db.add_all([g1, g2, p1, p2])
-        transaction.commit()
-        perms = self.access.group_permissions('pkg1', 'brotatos')
-        self.assertEqual(perms, ['read'])
 
     def test_user_package_perms(self):
         """ Fetch all packages a user has permissions on """

@@ -68,20 +68,16 @@ class RemoteAccessBackend(IAccessBackend):
         params = {'username': username}
         return self._req(uri, params)
 
-    def group_permissions(self, package, group=None):
+    def group_permissions(self, package):
         uri = self._settings.get('auth.uri.group_permissions',
                                  '/group_permissions')
         params = {'package': package}
-        if group is not None:
-            params['group'] = group
         return self._req(uri, params)
 
-    def user_permissions(self, package, username=None):
+    def user_permissions(self, package):
         uri = self._settings.get('auth.uri.user_permissions',
                                  '/user_permissions')
         params = {'package': package}
-        if username is not None:
-            params['username'] = username
         return self._req(uri, params)
 
     def user_package_permissions(self, username):
