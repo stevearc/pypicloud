@@ -1243,14 +1243,11 @@ class TestLDAPBackend(BaseACLTest):
     def setUp(self):
         super(TestLDAPBackend, self).setUp()
         self.mockldap.start()
-        self.ldapobj = self.mockldap['ldap://localhost/']
         self.backend = self._backend()
 
     def tearDown(self):
         super(TestLDAPBackend, self).tearDown()
-        self.backend.clear_cache()
         self.mockldap.stop()
-        del self.ldapobj
 
     def _backend(self, settings_override=None):
         """ Wrapper to instantiate a LDAPAccessBackend """
@@ -1265,7 +1262,6 @@ class TestLDAPBackend(BaseACLTest):
             'auth.ldap.admin_dns': [
                 'cn=adminlist,o=test',
             ],
-            'auth.ldap.service_account': '',
         }
         settings.update(settings_override or {})
         kwargs = LDAPAccessBackend.configure(settings)
@@ -1338,7 +1334,7 @@ class TestLDAPBackend(BaseACLTest):
             'admin': True,
             'groups': [],
         })
-        users = self.backend.user_data()
+        users = backend.user_data()
         usernames = [u['username'] for u in users]
         self.assertItemsEqual(usernames, ['u1', 'admin', 'service', 'root'])
 

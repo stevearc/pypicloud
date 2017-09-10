@@ -307,9 +307,10 @@ perform the initial bind with. It only requires read access to your LDAP.
 
 ``auth.ldap.service_password``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** string
+**Argument:** string, optional
 
-The password for the LDAP service account.
+The password for the LDAP service account. Default will use an empty string for
+an anonymous bind.
 
 ``auth.ldap.base_dn``
 ~~~~~~~~~~~~~~~~~~~~~
@@ -328,11 +329,10 @@ depending on your organization's LDAP configuration.
 
 ``auth.ldap.id_field``
 ~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** string
+**Argument:** string, optional
 
 The field in the LDAP return when using ``all_user_search`` on ``base_dn`` to
-determine the account name from the record. As an example this could be "name",
-but it will depend on how your LDAP is set up.
+determine the account name from the record. (default ``cn``)
 
 ``auth.ldap.admin_field``
 ~~~~~~~~~~~~~~~~~~~~~~~~~
