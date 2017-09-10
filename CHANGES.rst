@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.5.5 - 2017/9/9
+----------------
+* Allow search endpoint to have a trailing slash (:issue:`133`)
+
 0.5.4 - 2017/8/10
 -----------------
 * Allow overriding the displayed download URL in the web interface (:pr:`125`)
