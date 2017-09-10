@@ -13,6 +13,10 @@ If you are upgrading an existing installation, read :ref:`the instructions <upgr
 to review the settings for your storage & cache backends to make sure they are
 correct, as well as rebuilding your cache as per usual.
 
+0.5.5 - 2017/9/9
+----------------
+* Allow search endpoint to have a trailing slash (:issue:`133`)
+
 0.5.4 - 2017/8/10
 -----------------
 * Allow overriding the displayed download URL in the web interface (:pr:`125`)
