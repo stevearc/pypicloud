@@ -1231,7 +1231,7 @@ class TestLDAPBackend(BaseACLTest):
         admin_list = ('cn=adminlist,o=test', {'cn': ['adminlist'], 'admins': ['cn=admin,ou=users,o=test'], 'objectClass': ['top']})
         service = ('cn=service,ou=users,o=test', {'cn': ['service'], 'userPassword': ['snerp'], 'objectClass': ['top']})
         u1 = ('cn=u1,ou=users,o=test', {'cn': ['u1'], 'userPassword': ['foobar'], 'objectClass': ['top']})
-        admin = ('cn=admin,ou=users,o=test', {'cn': ['admin'], 'userPassword': ['toor'], 'objectClass': ['top']})
+        admin = ('cn=admin,ou=users,o=test', {'cn': ['admin'], 'userPassword': ['toor'], 'roles': ['admin'], 'objectClass': ['top']})
         directory = dict([test, users, admin_list, service, u1, admin])
         cls.mockldap = MockLdap(directory)
 
@@ -1256,12 +1256,9 @@ class TestLDAPBackend(BaseACLTest):
             'auth.ldap.service_dn': 'cn=service,ou=users,o=test',
             'auth.ldap.service_password': 'snerp',
             'auth.ldap.base_dn': 'ou=users,o=test',
-            'auth.ldap.all_user_search': '(cn=*)',
-            'auth.ldap.id_field': 'cn',
-            'auth.ldap.admin_field': 'admins',
-            'auth.ldap.admin_dns': [
-                'cn=adminlist,o=test',
-            ],
+            'auth.ldap.user_search_filter': '(cn={username})',
+            'auth.ldap.admin_field': 'roles',
+            'auth.ldap.admin_value': 'admin',
         }
         settings.update(settings_override or {})
         kwargs = LDAPAccessBackend.configure(settings)
@@ -1277,6 +1274,11 @@ class TestLDAPBackend(BaseACLTest):
     def test_no_verify(self):
         """ Verification fails with wrong password """
         valid = self.backend.verify_user('u1', 'foobarz')
+        self.assertFalse(valid)
+
+    def test_verify_no_user(self):
+        """ Verify fails if user is unknown """
+        valid = self.backend.verify_user('notreal', 'foobar')
         self.assertFalse(valid)
 
     def test_disallow_anonymous_bind(self):
@@ -1296,24 +1298,6 @@ class TestLDAPBackend(BaseACLTest):
         """ LDAP backend is immutable and never needs admin """
         self.assertFalse(self.backend.need_admin())
 
-    def test_user_data(self):
-        """ Retrieve all users """
-        users = self.backend.user_data()
-        self.assertItemsEqual(users, [
-            {
-                'username': 'service',
-                'admin': False,
-            },
-            {
-                'username': 'u1',
-                'admin': False,
-            },
-            {
-                'username': 'admin',
-                'admin': True,
-            },
-        ])
-
     def test_single_user_data(self):
         """ Get data for a single user """
         user = self.backend.user_data('u1')
@@ -1323,10 +1307,10 @@ class TestLDAPBackend(BaseACLTest):
             'groups': [],
         })
 
-    def test_service_account(self):
-        """ service_account allows the service account to be admin """
+    def test_service_username(self):
+        """ service_username allows the service account to be admin """
         backend = self._backend({
-            'auth.ldap.service_account': 'root',
+            'auth.ldap.service_username': 'root',
         })
         user = backend.user_data('root')
         self.assertEqual(user, {
@@ -1334,9 +1318,6 @@ class TestLDAPBackend(BaseACLTest):
             'admin': True,
             'groups': [],
         })
-        users = backend.user_data()
-        usernames = [u['username'] for u in users]
-        self.assertItemsEqual(usernames, ['u1', 'admin', 'service', 'root'])
 
     def test_allowed_permissions(self):
         """ Default settings will only allow authenticated to read """
@@ -1354,3 +1335,28 @@ class TestLDAPBackend(BaseACLTest):
         """ No group package perms in LDAP """
         perms = self.backend.group_package_permissions('group')
         self.assertEqual(perms, [])
+
+    def test_user_dn_format(self):
+        """ Can use user_dn_format instead of base_dn """
+        backend = self._backend({
+            'auth.ldap.user_dn_format': 'cn={username},ou=users,o=test',
+            'auth.ldap.base_dn': None,
+            'auth.ldap.user_search_filter': None,
+        })
+        valid = backend.verify_user('u1', 'foobar')
+        self.assertTrue(valid)
+
+    def test_only_user_dn_format(self):
+        """ Cannot use user_dn_format with base_dn """
+        with self.assertRaises(ValueError):
+            self._backend({
+                'auth.ldap.user_dn_format': 'cn={username},ou=users,o=test',
+            })
+
+    def test_mandatory_search(self):
+        """ Must use user_dn_format or base_dn """
+        with self.assertRaises(ValueError):
+            self._backend({
+                'auth.ldap.base_dn': None,
+                'auth.ldap.user_search_filter': None,
+            })

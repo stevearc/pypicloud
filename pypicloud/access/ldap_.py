@@ -1,9 +1,10 @@
 """LDAP authentication plugin for pypicloud."""
 import logging
+from collections import namedtuple
 from functools import wraps
-from pyramid.settings import aslist
 
 from .base import IAccessBackend
+from pypicloud.util import TimedCache
 
 
 try:
@@ -13,6 +14,9 @@ except ImportError:  # pragma: no cover
         "You must 'pip install pypicloud[ldap]' before using ldap as the "
         "authentication backend."
     )
+
+
+LOG = logging.getLogger(__name__)
 
 
 def reconnect(func):
@@ -33,24 +37,41 @@ def reconnect(func):
     return _reconnect
 
 
+User = namedtuple('User', ['username', 'dn', 'is_admin'])
+
+
 class LDAP(object):
     """ Handles interactions with the remote LDAP server """
 
-    def __init__(self, id_field, url, service_dn, service_password, base_dn,
-                 all_user_search, admin_field, admin_dns, service_account):
-        self._id_field = id_field
+    def __init__(self, admin_field, admin_value, base_dn, cache_time,
+                 service_dn, service_password, service_username, url,
+                 user_search_filter, user_dn_format):
         self._url = url
         self._service_dn = service_dn
         self._service_password = service_password
         self._base_dn = base_dn
-        self._all_user_search = all_user_search
+        self._user_search_filter = user_search_filter
+        self._user_dn_format = user_dn_format
+        if user_dn_format is not None:
+            if base_dn is not None or user_search_filter is not None:
+                raise ValueError("Cannot use user_dn_format with base_dn "
+                                 "and user_search_filter")
+        else:
+            if base_dn is None or user_search_filter is None:
+                raise ValueError("Must provide user_dn_format or both base_dn "
+                                 "and user_search_filter")
         self._admin_field = admin_field
-        self._admin_dns = admin_dns
-        self._service_account = service_account
+        self._admin_value = admin_value
         self._server = None
-        self._all_users = None
-        self._admins = None
-        self._admin_usernames = None
+        if cache_time is not None:
+            cache_time = int(cache_time)
+        self._cache = TimedCache(cache_time, self._fetch_user)
+        if service_username is not None:
+            self._cache.set_expire(
+                service_username,
+                User(service_username, service_dn, True),
+                None
+            )
 
     def connect(self):
         """ Initializes the python-ldap module and does the initial bind """
@@ -58,80 +79,47 @@ class LDAP(object):
         self._server.simple_bind_s(self._service_dn, self._service_password)
 
     @reconnect
-    def _initialize_cache(self):
-        """ Retrieve the list of all user names and DNs to cache """
-        results = self._server.search_s(
-            self._base_dn,
-            ldap.SCOPE_SUBTREE,
-            self._all_user_search,
-        )
-        self._all_users = {}
-        if self._service_account:
-            self._all_users[self._service_account] = self._service_dn
-        for dn, attributes in results:
-            if self._id_field in attributes:
-                self._all_users[attributes[self._id_field][0]] = dn
+    def _fetch_user(self, username):
+        """ Fetch a user entry from the LDAP server """
+        search_attrs = []
+        if self._admin_field is not None:
+            search_attrs.append(self._admin_field)
+        if self._user_dn_format is not None:
+            dn = self._user_dn_format.format(username=username)
+            LOG.debug("LDAP searching user %r with dn %r", username, dn)
+            results = self._server.search_s(dn, ldap.SCOPE_BASE,
+                                            attrlist=search_attrs)
+        else:
+            search_filter = self._user_search_filter.format(username=username)
+            LOG.debug("LDAP searching user %r with filter %r", username,
+                      search_filter)
+            results = self._server.search_s(
+                self._base_dn,
+                ldap.SCOPE_SUBTREE,
+                search_filter,
+                search_attrs,
+            )
+        if not results:
+            LOG.debug("LDAP user %r not found", username)
+            return None
+        if len(results) > 1:
+            raise ValueError("More than one user found for %r: %r" %
+                             (username, [r[0] for r in results]))
+        dn, attributes = results[0]
 
-    def all_usernames(self):
-        """ Returns a list of all user names """
-        if self._all_users is None:
-            self._initialize_cache()
-        return list(set(self._all_users.keys()))
+        is_admin = False
+        if self._admin_field is not None and self._admin_value is not None:
+            if self._admin_field in attributes:
+                is_admin = self._admin_value in attributes[self._admin_field]
 
-    def user_dn(self, username):
-        """ Returns the dn for the username """
-        if self._all_users is None:
-            self._initialize_cache()
-        return self._all_users.get(username)
+        return User(username, dn, is_admin)
 
-    @reconnect
-    def _add_admins_from_dn(self, admin_dn):
-        """
-        Given a DN fragement, add users to _admins and _admin_usernames
-        """
-        res = self._server.search_s(admin_dn, ldap.SCOPE_BASE)
-        try:
-            admins = res[0][1][self._admin_field]
-        except (IndexError, KeyError) as err:
-            logging.warn("Error retrieving admins from %s: %r", admin_dn, err)
-            return
-
-        for admin in admins:
-            try:
-                self._admin_usernames.append(
-                    self._server.search_s(
-                        admin,
-                        ldap.SCOPE_BASE,
-                    )[0][1][self._id_field][0]
-                )
-            except (IndexError, KeyError) as error:
-                logging.warn("Error looking up admin %s: %r", admin, error)
-            else:
-                self._admins.append(admin)
-
-        self._admin_usernames = list(set(self._admin_usernames))
-        self._admins = list(set(self._admins))
-
-    def admins(self):
-        """ Returns a list of all the admin DNs """
-        if self._admins is None:
-            self._admins = [self._service_dn]
-            self._admin_usernames = []
-            if self._service_account:
-                self._admin_usernames.append(self._service_account)
-            for admin_dn in self._admin_dns:
-                self._add_admins_from_dn(admin_dn)
-
-        return self._admins
-
-    def admin_usernames(self):
-        """ Returns a list of the admin usernames """
-        if self._admin_usernames is None:
-            self.admins()
-        return self._admin_usernames
+    def get_user(self, username):
+        """ Get the User object or None """
+        return self._cache.get(username)
 
     @reconnect
-    def bind_user(self, user_dn, password):
+    def verify_user(self, username, password):
         """
         Attempts to bind as the user, then rebinds as service user again
         """
@@ -139,15 +127,22 @@ class LDAP(object):
         # Explicitly disallow empty passwords.
         if password == "":
             return False
+        user = self._cache.get(username)
+        if user is None:
+            return False
 
         try:
-            self._server.simple_bind_s(user_dn, password)
+            LOG.debug("LDAP binding user %r", user.dn)
+            self._server.simple_bind_s(user.dn, password)
         except ldap.INVALID_CREDENTIALS:
             return False
         else:
             return True
         finally:
-            self.connect()
+            self._server.simple_bind_s(
+                self._service_dn,
+                self._service_password
+            )
 
 
 class LDAPAccessBackend(IAccessBackend):
@@ -161,18 +156,18 @@ class LDAPAccessBackend(IAccessBackend):
     @classmethod
     def configure(cls, settings):
         kwargs = super(LDAPAccessBackend, cls).configure(settings)
-        ldap_args = {}
-        ldap_args['admin_dns'] = aslist(settings["auth.ldap.admin_dns"])
-        ldap_args['admin_field'] = settings["auth.ldap.admin_field"]
-        ldap_args['all_user_search'] = settings["auth.ldap.all_user_search"]
-        ldap_args['base_dn'] = settings["auth.ldap.base_dn"]
-        ldap_args['id_field'] = settings.get("auth.ldap.id_field", 'cn')
-        ldap_args['service_account'] = settings.get("auth.ldap.service_account")
-        ldap_args['service_dn'] = settings["auth.ldap.service_dn"]
-        ldap_args['service_password'] = settings.get("auth.ldap.service_password", '')
-        ldap_args['url'] = settings["auth.ldap.url"]
-
-        conn = LDAP(**ldap_args)
+        conn = LDAP(
+            admin_field=settings.get('auth.ldap.admin_field'),
+            admin_value=settings.get('auth.ldap.admin_value'),
+            base_dn=settings.get('auth.ldap.base_dn'),
+            cache_time=settings.get('auth.ldap.cache_time'),
+            service_dn=settings['auth.ldap.service_dn'],
+            service_password=settings.get('auth.ldap.service_password', ''),
+            service_username=settings.get('auth.ldap.service_username'),
+            url=settings['auth.ldap.url'],
+            user_dn_format=settings.get('auth.ldap.user_dn_format'),
+            user_search_filter=settings.get('auth.ldap.user_search_filter'),
+        )
         conn.connect()
         kwargs['conn'] = conn
         return kwargs
@@ -181,8 +176,7 @@ class LDAPAccessBackend(IAccessBackend):
         raise RuntimeError("LDAP should never call _get_password_hash")
 
     def verify_user(self, username, password):
-        user_dn = self.conn.user_dn(username)
-        return self.conn.bind_user(user_dn, password) if user_dn else False
+        return self.conn.verify_user(username, password)
 
     def groups(self, username=None):
         # We're not supporting groups for LDAP
@@ -193,7 +187,8 @@ class LDAPAccessBackend(IAccessBackend):
         return []  # pragma: no cover
 
     def is_admin(self, username):
-        return username in self.conn.admin_usernames()
+        user = self.conn.get_user(username)
+        return user is not None and user.is_admin
 
     def group_permissions(self, package, group=None):
         if group is None:
@@ -215,10 +210,7 @@ class LDAPAccessBackend(IAccessBackend):
 
     def user_data(self, username=None):
         if username is None:
-            users = []
-            for user in self.conn.all_usernames():
-                users.append({"username": user, "admin": self.is_admin(user)})
-            return users
+            return []
         else:
             return {
                 "username": username,
