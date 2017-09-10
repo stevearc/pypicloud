@@ -57,6 +57,14 @@ You will need to ``pip install pypicloud[dynamo]`` before running the server.
 The AWS region to use for the cache tables. You must specify either this or
 ``db.host``.
 
+``db.graceful_reload``
+~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** bool, optional
+
+When reloading the cache from storage, keep the cache in a usable state while
+adding and removing the necessary packages. Note that this may take longer
+because multiple passes will be made to ensure correctness. (default ``False``)
+
 
 ``db.aws_access_key_id``, ``db.aws_secret_access_key``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -98,4 +106,4 @@ Force https connection when using ``db.host`` (default False)
 
 When reloading the cache from storage, keep the cache in a usable state while
 adding and removing the necessary packages. Note that this may take longer
-because multiple passes will be made to ensure correctness. (default False)
+because multiple passes will be made to ensure correctness. (default ``False``)
