@@ -17,7 +17,7 @@ from .route import Root
 from .util import BetterScrapingLocator
 
 
-__version__ = '0.5.4'
+__version__ = '0.5.5'
 LOG = logging.getLogger(__name__)
 
 
@@ -124,6 +124,8 @@ def includeme(config):
                            cache_max_age=cache_max_age)
 
     config.add_xmlrpc_endpoint('pypi', '/pypi', request_method='POST',
+                               header='Content-Type:text/xml')
+    config.add_xmlrpc_endpoint('pypi_slash', '/pypi/', request_method='POST',
                                header='Content-Type:text/xml')
 
 
