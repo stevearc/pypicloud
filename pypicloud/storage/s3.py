@@ -123,6 +123,7 @@ class S3Storage(IStorage):
             m.update(package.filename)
             prefix = m.digest().encode('hex')[:4]
             path = prefix + '/' + path
+        LOG.debug('Package {} path at {}'.format(package, path))
         return path
 
     def get_path(self, package):
@@ -162,7 +163,16 @@ class S3Storage(IStorage):
     def _generate_url(self, package):
         """ Generate a signed url to the S3 file """
         key = Key(self.bucket, self.get_path(package))
-        return key.generate_url(self.expire_after)
+        expire_time = time.time() + self.expire_after
+        url = key.generate_url(self.expire_after)
+        if not url:
+            LOG.error('Could not generate url for {}:{}'.format(
+                package.name, package.version
+            ))
+        else:
+            LOG.debug('URL generated for {}:{} at {}. Expires at {}.'.format(
+                package.name, package.version, url, time.ctime(expire_time)))
+        return url
 
     def get_url(self, package):
         if self.redirect_urls:
@@ -184,12 +194,14 @@ class S3Storage(IStorage):
         # S3 doesn't support uploading from a non-file stream, so we have to
         # read it into memory :(
         key.set_contents_from_string(data.read(), encrypt_key=self.use_sse)
+        LOG.info('Uploaded {} {} to {}'.format(package.name, package.version, key.key))
 
     def delete(self, package):
         path = self.get_path(package)
         key = Key(self.bucket)
         key.key = path
         key.delete()
+        LOG.info('%s deleted' % key.key)
 
     @contextmanager
     def open(self, package):

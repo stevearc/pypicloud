@@ -79,16 +79,24 @@ def package_versions(context, request):
     fallback = request.registry.fallback
     if fallback == 'redirect':
         if request.registry.always_show_upstream:
-            return _simple_redirect_always_show(context, request)
+            response = _simple_redirect_always_show(context, request)
         else:
-            return _simple_redirect(context, request)
+            response = _simple_redirect(context, request)
     elif fallback == 'cache':
         if request.registry.always_show_upstream:
-            return _simple_cache_always_show(context, request)
+            response = _simple_cache_always_show(context, request)
         else:
-            return _simple_cache(context, request)
+            response = _simple_cache(context, request)
     else:
-        return _simple_serve(context, request)
+        response = _simple_serve(context, request)
+    if isinstance(response, HTTPNotFound):
+        LOG.error('HTTPNotFound: %s' % response.detail)
+    elif isinstance(response, HTTPFound):
+        LOG.info('Serving a redirect to %s' % response.location)
+    elif isinstance(response, dict) and 'pkgs' in response:
+        LOG.info('Found %d files for %s' % len(response['pkgs']),
+                 normalize_name(context.name))
+    return response
 
 
 def get_fallback_packages(request, package_name, redirect=True):
@@ -102,6 +110,8 @@ def get_fallback_packages(request, package_name, redirect=True):
             if not redirect:
                 url = request.app_url('api', 'package', dist.name, filename)
             pkgs[filename] = url
+    if not pkgs:
+        LOG.error('No fallback packages found for %s' % package_name)
     return pkgs
 
 
