@@ -28,11 +28,10 @@ VENV_URL = ("https://pypi.python.org/packages/source/v/"
             "virtualenv/virtualenv-%s.tar.gz" % VENV_VERSION)
 
 
-def _create_dynamodb_role(settings, bucket):
-    """ Create the AWS Role needed for Lambda with a DynamoDB cache """
+def _create_role(role_name, description, policy):
+    """ Idempotently create the IAM Role """
     iam = boto3.client('iam')
     iam_resource = boto3.resource('iam')
-    role_name = "pypicloud_lambda_dynamo"
     role = iam_resource.Role(role_name)
     try:
         role.load()
@@ -49,11 +48,11 @@ def _create_dynamodb_role(settings, bucket):
             "Action": ["sts:AssumeRole"]
             }]}
             """,
-            Description="Lambda role for syncing S3 package changes to DynamoDB",
+            Description=description,
         )
         role.load()
 
-    policy_name = "inline_dynamo"
+    policy_name = "inline_policy"
     exists = False
     for role_policy in role.policies.all():
         if role_policy.name == policy_name:
@@ -61,71 +60,107 @@ def _create_dynamodb_role(settings, bucket):
             break
     if not exists:
         print("Attaching inline role policy")
-        # Jump through hoops to get the table names
-        from pypicloud.cache.dynamo import DynamoPackage, PackageSummary
-        namespace = settings.get('db.namespace', ())
-        policy = """{
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Effect": "Allow",
-                    "Action": "logs:*",
-                    "Resource": "arn:aws:logs:*"
-                },
-                {
-                    "Effect": "Allow",
-                    "Action": [
-                        "s3:GetObject"
-                    ],
-                    "Resource": "arn:aws:s3:::%s/*"
-                },
-                {
-                    "Effect": "Allow",
-                    "Action": [
-                        "dynamodb:ListTables"
-                    ],
-                    "Resource": "*"
-                },
-                {
-                    "Effect": "Allow",
-                    "Action": [
-                        "dynamodb:BatchGetItem",
-                        "dynamodb:BatchWriteItem",
-                        "dynamodb:DeleteItem",
-                        "dynamodb:DescribeLimits",
-                        "dynamodb:DescribeTable",
-                        "dynamodb:GetItem",
-                        "dynamodb:GetRecords",
-                        "dynamodb:PutItem",
-                        "dynamodb:Query",
-                        "dynamodb:Scan",
-                        "dynamodb:UpdateItem"
-                    ],
-                    "Resource": [%s]
-                }]}
-        """
-        dynamo = boto3.client('dynamodb', region_name=settings['db.region_name'])
-        table_arns = []
-        for model in (DynamoPackage, PackageSummary):
-            tablename = model.meta_.ddb_tablename(namespace)
-            try:
-                result = dynamo.describe_table(TableName=tablename)
-            except dynamo.exceptions.ResourceNotFoundException:
-                print("Could not find DynamoDB table %r. "
-                      "Try running the server first to create the tables" %
-                      tablename)
-                sys.exit(1)
-            table_arns.append(result['Table']['TableArn'])
-        index_arns = [t + '/index/*' for t in table_arns]
-        table_arns.extend(index_arns)
-        table_arns = ['"' + t + '"' for t in table_arns]
-        full_policy = policy % (bucket.name, (','.join(table_arns)))
         iam.put_role_policy(
             RoleName=role_name,
             PolicyName=policy_name,
-            PolicyDocument=full_policy,
+            PolicyDocument=policy,
         )
     return role.arn
+
+
+def _create_dynamodb_role(settings, bucket):
+    """ Create the AWS Role needed for Lambda with a DynamoDB cache """
+    # Jump through hoops to get the table names
+    from pypicloud.cache.dynamo import DynamoPackage, PackageSummary
+    namespace = settings.get('db.namespace', ())
+    policy = """{
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": "logs:*",
+                "Resource": "arn:aws:logs:*"
+            },
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "s3:GetObject"
+                ],
+                "Resource": "arn:aws:s3:::%s/*"
+            },
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "dynamodb:ListTables"
+                ],
+                "Resource": "*"
+            },
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "dynamodb:BatchGetItem",
+                    "dynamodb:BatchWriteItem",
+                    "dynamodb:DeleteItem",
+                    "dynamodb:DescribeLimits",
+                    "dynamodb:DescribeTable",
+                    "dynamodb:GetItem",
+                    "dynamodb:GetRecords",
+                    "dynamodb:PutItem",
+                    "dynamodb:Query",
+                    "dynamodb:Scan",
+                    "dynamodb:UpdateItem"
+                ],
+                "Resource": [%s]
+            }]}
+    """
+    dynamo = boto3.client('dynamodb', region_name=settings['db.region_name'])
+    table_arns = []
+    for model in (DynamoPackage, PackageSummary):
+        tablename = model.meta_.ddb_tablename(namespace)
+        try:
+            result = dynamo.describe_table(TableName=tablename)
+        except dynamo.exceptions.ResourceNotFoundException:
+            print("Could not find DynamoDB table %r. "
+                  "Try running the server first to create the tables" %
+                  tablename)
+            sys.exit(1)
+        table_arns.append(result['Table']['TableArn'])
+    index_arns = [t + '/index/*' for t in table_arns]
+    table_arns.extend(index_arns)
+    table_arns = ['"' + t + '"' for t in table_arns]
+    full_policy = policy % (bucket.name, (','.join(table_arns)))
+
+    return _create_role(
+        "pypicloud_lambda_dynamo",
+        "Lambda role for syncing S3 package changes to DynamoDB",
+        full_policy,
+    )
+
+
+def _create_default_role(settings, bucket):
+    """ Create the AWS Role needed for Lambda with most caches """
+    policy = """{
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": "logs:*",
+                "Resource": "arn:aws:logs:*"
+            },
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "s3:GetObject"
+                ],
+                "Resource": "arn:aws:s3:::%s/*"
+            }]}
+    """ % bucket.name
+    db = settings['pypi.db']
+    return _create_role(
+        "pypicloud_lambda_" + db,
+        "Lambda role for syncing S3 package changes to " + db,
+        policy,
+    )
 
 
 def make_virtualenv(env):
@@ -234,7 +269,6 @@ def create_sync_scripts(argv=None):
         print("No region detected in config file. Please use -r <region>")
         sys.exit(1)
 
-    bucket_name = settings['storage.bucket']
     kwargs = S3Storage.configure(settings)
     bucket = kwargs['bucket']
 
@@ -246,9 +280,7 @@ def create_sync_scripts(argv=None):
         if db == 'dynamo':
             role_arn = _create_dynamodb_role(settings, bucket)
         else:
-            # TODO support other caches
-            print("The %r cache is not supported yet" % db)
-            sys.exit(1)
+            role_arn = _create_default_role(settings, bucket)
 
     lam = boto3.client('lambda', region_name=region)
     func_arn = None
@@ -296,7 +328,7 @@ def create_sync_scripts(argv=None):
                 },
             },
             Description='Process S3 Object notifications & update pypicloud cache',
-            Timeout=15,
+            Timeout=30,
             Publish=True,
             Role=role_arn,
         )
