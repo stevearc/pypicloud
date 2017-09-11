@@ -280,4 +280,4 @@ class TestRedisCache(unittest.TestCase):
         summaries = self.db.summary()
         self.assertEqual(len(summaries), 1)
         summary = summaries[0]
-        self.assertEqual(summary['last_modified'], pkgs[1].last_modified)
+        self.assertEqual(summary['last_modified'].hour, pkgs[1].last_modified.hour)
