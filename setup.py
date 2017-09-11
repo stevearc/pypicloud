@@ -82,6 +82,8 @@ if __name__ == "__main__":
                 'ppc-migrate = pypicloud.scripts:migrate_packages',
                 'ppc-export = pypicloud.scripts:export_access',
                 'ppc-import = pypicloud.scripts:import_access',
+                'ppc-create-s3-sync = pypicloud.lambda_scripts:create_sync_scripts',
+                'ppc-build-lambda-bundle = pypicloud.lambda_scripts:build_lambda_bundle',
             ],
             'paste.app_factory': [
                 'main = pypicloud:main',
@@ -94,5 +96,6 @@ if __name__ == "__main__":
             'ldap': ['pyldap'],
             'server': ['waitress'],
             'dynamo': ['flywheel >= 0.2.0'],
+            'redis': ['redis'],
         },
     )
