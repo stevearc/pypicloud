@@ -112,7 +112,7 @@ class RedisCache(ICache):
             pipe.hgetall(self.redis_summary_key(name))
         summaries = [s for s in pipe.execute() if s]
         for summary in summaries:
-            if summary['summary'] == '':
+            if summary.get('summary', '') == '':
                 summary['summary'] = None
             summary['last_modified'] = datetime.utcfromtimestamp(
                 float(summary['last_modified'])
