@@ -7,8 +7,11 @@ services:
 env:
   - TOXENV=py27
   - TOXENV=py34
-  - TOXENV=py35
   - TOXENV=py36
+matrix:
+  include:
+  - python: "3.5"
+    env: TOXENV=py35
 install:
   - pip install tox coveralls
 before_script:
