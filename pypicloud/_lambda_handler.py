@@ -16,6 +16,11 @@ def handle_s3_event(event, context):
     from pypicloud.util import parse_filename
 
     settings = json.loads(os.environ['PYPICLOUD_SETTINGS'])
+    # Set 'file' storage as a hack. We're going to load the cache, which will
+    # load a storage. We won't actually be using the storage for anything, but
+    # the settings have to be present.
+    settings.setdefault('pypi.storage', 'file')
+    settings.setdefault('storage.dir', '/tmp')
     cache_impl = get_cache_impl(settings)
     kwargs = cache_impl.configure(settings)
     cache = cache_impl(**kwargs)

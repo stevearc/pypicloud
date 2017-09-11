@@ -304,11 +304,6 @@ def create_sync_scripts(argv=None):
         # Pull out only the cache db settings
         small_settings = {
             'pypi.db': settings['pypi.db'],
-            # Set 'file' storage as a hack. The lambda handler loads the cache,
-            # which will load a storage. We won't actually be using the storage
-            # for anything.
-            'pypi.storage': 'file',
-            'storage.dir': '/tmp',
         }
         for key, val in six.iteritems(settings):
             if key.startswith('db.'):
