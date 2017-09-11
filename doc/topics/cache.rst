@@ -50,8 +50,8 @@ Set ``pypi.db = dynamo`` OR ``pypi.db = pypicloud.cache.dynamo.DynamoCache``
 
 You will need to ``pip install pypicloud[dynamo]`` before running the server.
 
-``db.region``
-~~~~~~~~~~~~~
+``db.region_name``
+~~~~~~~~~~~~~~~~~~
 **Argument:** string
 
 The AWS region to use for the cache tables. You must specify either this or

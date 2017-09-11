@@ -69,7 +69,7 @@ class DynamoCache(ICache):
 
         access_key = settings.get('db.aws_access_key_id')
         secret_key = settings.get('db.aws_secret_access_key')
-        region = settings.get('db.region')
+        region = settings.get('db.region_name')
         host = settings.get('db.host')
         port = int(settings.get('db.port', 8000))
         secure = asbool(settings.get('db.secure', False))
@@ -88,7 +88,7 @@ class DynamoCache(ICache):
                                                     access_key=access_key,
                                                     secret_key=secret_key)
         else:
-            raise ValueError("Must specify either db.region or db.host!")
+            raise ValueError("Must specify either db.region_name or db.host!")
         kwargs['engine'] = engine = Engine(namespace=namespace,
                                            dynamo=connection)
         kwargs['graceful_reload'] = graceful_reload

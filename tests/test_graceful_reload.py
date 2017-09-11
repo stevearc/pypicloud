@@ -24,7 +24,7 @@ class TestDynamoCache(unittest.TestCase):
         host, port = host.split(':')
         settings = {
             'pypi.storage': 'tests.DummyStorage',
-            'db.region': 'us-east-1',
+            'db.region_name': 'us-east-1',
             'db.host': host,
             'db.port': port,
             'db.namespace': 'test.',
