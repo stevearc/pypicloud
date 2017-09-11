@@ -1192,7 +1192,7 @@ class TestLDAPBackend(BaseACLTest):
             'auth.ldap.base_dn': 'ou=users,o=test',
             'auth.ldap.user_search_filter': '(cn={username})',
             'auth.ldap.admin_field': 'roles',
-            'auth.ldap.admin_value': 'admin',
+            'auth.ldap.admin_value': ['admin'],
         }
         settings.update(settings_override or {})
         kwargs = LDAPAccessBackend.configure(settings)

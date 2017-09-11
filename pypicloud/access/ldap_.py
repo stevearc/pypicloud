@@ -2,6 +2,7 @@
 import logging
 from collections import namedtuple
 from functools import wraps
+from pyramid.settings import aslist
 
 from .base import IAccessBackend
 from pypicloud.util import TimedCache
@@ -108,9 +109,10 @@ class LDAP(object):
         dn, attributes = results[0]
 
         is_admin = False
-        if self._admin_field is not None and self._admin_value is not None:
+        if self._admin_field is not None:
             if self._admin_field in attributes:
-                is_admin = self._admin_value in attributes[self._admin_field]
+                is_admin = any((val in attributes[self._admin_field]
+                                for val in self._admin_value))
 
         return User(username, dn, is_admin)
 
@@ -158,7 +160,7 @@ class LDAPAccessBackend(IAccessBackend):
         kwargs = super(LDAPAccessBackend, cls).configure(settings)
         conn = LDAP(
             admin_field=settings.get('auth.ldap.admin_field'),
-            admin_value=settings.get('auth.ldap.admin_value'),
+            admin_value=aslist(settings.get('auth.ldap.admin_value', [])),
             base_dn=settings.get('auth.ldap.base_dn'),
             cache_time=settings.get('auth.ldap.cache_time'),
             service_dn=settings['auth.ldap.service_dn'],

@@ -379,7 +379,7 @@ Note that the result of the search must be exactly one entry.
 **Argument:** string, optional
 
 When fetching the user entry, check to see if the ``admin_field`` attribute
-contains ``admin_value``. If so, the user is an admin.
+contains any of ``admin_value``. If so, the user is an admin.
 
 For example, if this is your LDAP directory::
 
@@ -398,6 +398,15 @@ You would use these settings:
 
     auth.ldap.admin_field = roles
     auth.ldap.admin_value = pypi_admin
+
+You could also use ``admin_value`` to specify the usernames of admins:
+
+.. code-block:: ini
+
+    auth.ldap.admin_field = cn
+    auth.ldap.admin_value =
+      user1
+      user2
 
 If this and ``admin_value`` are not provided, the only admin account on
 pypicloud will be the service account (if you provided the
