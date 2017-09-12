@@ -31,6 +31,14 @@ The database url to use for the caching database. Should be a `SQLAlchemy url
   it will choke on unicode package names. If you're using 5.5.3 or greater you
   can specify the ``utf8mb4`` charset, otherwise use ``utf8``.
 
+``db.graceful_reload``
+~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** bool, optional
+
+When reloading the cache from storage, keep the cache in a usable state while
+adding and removing the necessary packages. Note that this may take longer
+because multiple passes will be made to ensure correctness. (default ``False``)
+
 Redis
 -----
 Set ``pypi.db = redis`` OR ``pypi.db = pypicloud.cache.RedisCache``

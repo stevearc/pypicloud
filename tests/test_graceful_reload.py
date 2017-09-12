@@ -1,13 +1,16 @@
 """ Tests for gracefully reloading the caches """
+import transaction
 import unittest
 from datetime import datetime, timedelta
 from mock import MagicMock
 from pyramid.testing import DummyRequest
 from redis import ConnectionError
+from sqlalchemy.exc import OperationalError
 
 from . import make_package
+from pypicloud.cache import SQLCache, RedisCache
 from pypicloud.cache.dynamo import DynamoCache, DynamoPackage, PackageSummary
-from pypicloud.cache.redis_cache import RedisCache
+from pypicloud.cache.sql import SQLPackage
 from pypicloud.storage import IStorage
 
 
@@ -281,3 +284,142 @@ class TestRedisCache(unittest.TestCase):
         self.assertEqual(len(summaries), 1)
         summary = summaries[0]
         self.assertEqual(summary['last_modified'].hour, pkgs[1].last_modified.hour)
+
+
+class TestSQLiteCache(unittest.TestCase):
+
+    """ Tests for the SQLCache """
+
+    DB_URL = 'sqlite://'
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestSQLiteCache, cls).setUpClass()
+        settings = {
+            'pypi.storage': 'tests.DummyStorage',
+            'db.url': cls.DB_URL,
+            'db.graceful_reload': True,
+        }
+        try:
+            cls.kwargs = SQLCache.configure(settings)
+        except OperationalError:
+            raise unittest.SkipTest("Couldn't connect to database")
+
+    def setUp(self):
+        super(TestSQLiteCache, self).setUp()
+        transaction.begin()
+        self.request = DummyRequest()
+        self.request.tm = transaction.manager
+        self.db = SQLCache(self.request, **self.kwargs)
+        self.sql = self.db.db
+        self.storage = self.db.storage = MagicMock(spec=IStorage)
+
+    def tearDown(self):
+        super(TestSQLiteCache, self).tearDown()
+        transaction.abort()
+        self.sql.query(SQLPackage).delete()
+        transaction.commit()
+        self.request._process_finished_callbacks()
+
+    def _make_package(self, *args, **kwargs):
+        """ Wrapper around make_package """
+        # Some SQL dbs are rounding the timestamps (looking at you MySQL >:|
+        # which is a problem if they round UP to the future, as our
+        # calculations depend on the timestamps being monotonically increasing.
+        now = datetime.utcnow() - timedelta(seconds=1)
+        kwargs.setdefault('last_modified', now)
+        kwargs.setdefault('factory', SQLPackage)
+        return make_package(*args, **kwargs)
+
+    def test_add_missing(self):
+        """ Add missing packages to cache """
+        keys = [
+            self._make_package(),
+        ]
+        self.storage.list.return_value = keys
+        self.db.reload_from_storage()
+        all_pkgs = self.sql.query(SQLPackage).all()
+        self.assertItemsEqual(all_pkgs, keys)
+
+    def test_remove_extra(self):
+        """ Remove extra packages from cache """
+        keys = [
+            self._make_package(),
+            self._make_package('mypkg2', '1.3.4'),
+        ]
+        self.db.save(keys[0])
+        self.db.save(keys[1])
+        self.storage.list.return_value = keys[:1]
+        self.db.reload_from_storage()
+        all_pkgs = self.sql.query(SQLPackage).all()
+        self.assertItemsEqual(all_pkgs, keys[:1])
+
+    def test_remove_extra_leave_concurrent(self):
+        """ Removing extra packages will leave packages that were uploaded concurrently """
+        pkgs = [
+            self._make_package(),
+            self._make_package('mypkg2'),
+        ]
+        self.db.save(pkgs[0])
+        self.db.save(pkgs[1])
+
+        # Return first pkgs[1], then pkgs[1:] because the second time we list
+        # we will have "uploaded" pkgs[2]
+        return_values = [lambda: pkgs[1:2], lambda: pkgs[1:]]
+
+        def list_storage(package_class):
+            """ mocked method for listing storage packages """
+            # The first time we list from storage, concurrently "upload"
+            # pkgs[2]
+            if len(return_values) == 2:
+                nowish = datetime.utcnow() + timedelta(seconds=1)
+                pkg = self._make_package('mypkg3', last_modified=nowish)
+                pkgs.append(pkg)
+                self.db.save(pkg)
+            return return_values.pop(0)()
+        self.storage.list.side_effect = list_storage
+
+        self.db.reload_from_storage()
+        all_pkgs = self.sql.query(SQLPackage).all()
+        self.assertItemsEqual(all_pkgs, pkgs[1:])
+
+    def test_remove_extra_concurrent_deletes(self):
+        """ Remove packages from cache that were concurrently deleted """
+        pkgs = [
+            self._make_package(),
+            self._make_package('mypkg2'),
+        ]
+        self.db.save(pkgs[0])
+
+        # Return first pkgs[:], then pkgs[:1] because the second time we list
+        # we will have "deleted" pkgs[1]
+        return_values = [pkgs[:], pkgs[:1]]
+        self.storage.list.side_effect = lambda _: return_values.pop(0)
+
+        self.db.reload_from_storage()
+        all_pkgs = self.sql.query(SQLPackage).all()
+        self.assertItemsEqual(all_pkgs, pkgs[:1])
+
+    def test_add_missing_more_recent(self):
+        """ If we sync a more recent package, update the summary """
+        pkgs = [
+            self._make_package(last_modified=datetime.utcnow() - timedelta(hours=1)),
+            self._make_package(version='1.5'),
+        ]
+        self.db.save(pkgs[0])
+        self.storage.list.return_value = pkgs
+        self.db.reload_from_storage()
+        all_pkgs = self.sql.query(SQLPackage).all()
+        self.assertItemsEqual(all_pkgs, pkgs)
+
+
+class TestMySQLCache(TestSQLiteCache):
+    """ Test the SQLAlchemy cache on a MySQL DB """
+
+    DB_URL = 'mysql://root@127.0.0.1:3306/test?charset=utf8mb4'
+
+
+class TestPostgresCache(TestSQLiteCache):
+    """ Test the SQLAlchemy cache on a Postgres DB """
+
+    DB_URL = 'postgresql://postgres@127.0.0.1:5432/postgres'

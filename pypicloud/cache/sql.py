@@ -1,20 +1,20 @@
 """ Store package data in a SQL database """
-from datetime import datetime
-
+import json
 import logging
 import transaction
+import zope.sqlalchemy
+from datetime import datetime
+from pyramid.settings import asbool
 from sqlalchemy import (engine_from_config, distinct, and_, or_, Column,
                         DateTime, String)
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.mutable import Mutable
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import func
 from sqlalchemy.types import TypeDecorator, TEXT
-from sqlalchemy.ext.mutable import Mutable
-import zope.sqlalchemy
 
 from .base import ICache
 from pypicloud.models import Package
-import json
 
 
 LOG = logging.getLogger(__name__)
@@ -122,10 +122,11 @@ class SQLCache(ICache):
     """ Caching database that uses SQLAlchemy """
     package_class = SQLPackage
 
-    def __init__(self, request=None, dbmaker=None, **kwargs):
+    def __init__(self, request=None, dbmaker=None, graceful_reload=False, **kwargs):
         super(SQLCache, self).__init__(request, **kwargs)
         self.dbmaker = dbmaker
         self.db = self.dbmaker()
+        self.graceful_reload = graceful_reload
 
         if request is not None:
             zope.sqlalchemy.register(self.db, transaction_manager=request.tm)
@@ -139,10 +140,12 @@ class SQLCache(ICache):
     @classmethod
     def configure(cls, settings):
         kwargs = super(SQLCache, cls).configure(settings)
+        graceful_reload = asbool(settings.pop('db.graceful_reload', False))
         engine = engine_from_config(settings, prefix='db.')
         # Create SQL schema if not exists
         create_schema(engine)
         kwargs['dbmaker'] = sessionmaker(bind=engine)
+        kwargs['graceful_reload'] = graceful_reload
         return kwargs
 
     def fetch(self, filename):
@@ -254,3 +257,45 @@ class SQLCache(ICache):
 
     def save(self, package):
         self.db.merge(package)
+
+    def reload_from_storage(self):
+        if not self.graceful_reload:
+            return super(SQLCache, self).reload_from_storage()
+
+        LOG.info("Rebuilding cache from storage")
+        # Log start time
+        start = datetime.utcnow()
+        # Fetch packages from storage s1
+        s1 = set(self.storage.list(self.package_class))
+        # Fetch cache packages c1
+        c1 = set(self.db.query(SQLPackage).all())
+        # Add missing packages to cache (s1 - c1)
+        missing = s1 - c1
+        if missing:
+            LOG.info("Adding %d missing packages to cache", len(missing))
+            for pkg in missing:
+                self.db.merge(pkg)
+        # Delete extra packages from cache (c1 - s1) when last_modified < start
+        # The time filter helps us avoid deleting packages that were
+        # concurrently uploaded.
+        extra1 = [p for p in (c1 - s1) if p.last_modified <= start]
+        if extra1:
+            LOG.info("Removing %d extra packages from cache", len(extra1))
+            for pkg in extra1:
+                self.db.query(SQLPackage) \
+                    .filter(SQLPackage.filename == pkg.filename) \
+                    .delete(synchronize_session=False)
+
+        # If any packages were concurrently deleted during the cache rebuild,
+        # we can detect them by polling storage again and looking for any
+        # packages that were present in s1 and are missing from s2
+        s2 = set(self.storage.list(self.package_class))
+        # Delete extra packages from cache (s1 - s2)
+        extra2 = s1 - s2
+        if extra2:
+            LOG.info("Removing %d packages from cache that were concurrently "
+                     "deleted during rebuild", len(extra2))
+            for pkg in extra2:
+                self.db.query(SQLPackage) \
+                    .filter(SQLPackage.filename == pkg.filename) \
+                    .delete(synchronize_session=False)
