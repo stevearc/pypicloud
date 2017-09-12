@@ -6,6 +6,9 @@ PyPICloud has a complete access control system that allows you to fine-tune who
 has access to your packages. There are several choices for where to store your
 user credentials and access rules.
 
+If you ever need to change your access backend, or you want to back up your
+current state, check out the :ref:`import/export <change_access>` functionality.
+
 Users and Groups
 ----------------
 The access control uses a combination of users and groups. A group is a list of

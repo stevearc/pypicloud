@@ -70,6 +70,18 @@ This is required if your bucket is in a new region, such as ``eu-central-1``.
 If your bucket does not yet exist, it will be created in this region on
 startup. If blank, the classic US region will be used.
 
+.. _s3_credentials:
+
+``storage.aws_access_key_id``, ``storage.aws_secret_access_key``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+Your AWS access key id and secret access key. If they are not specified then
+pypicloud will attempt to get the values from the environment variables
+``AWS_ACCESS_KEY_ID`` and ``AWS_SECRET_ACCESS_KEY`` or any other `credentials
+source
+<http://boto3.readthedocs.io/en/latest/guide/configuration.html#configuring-credentials>`__.
+
 ``storage.prefix``
 ~~~~~~~~~~~~~~~~~~
 **Argument:** string, optional

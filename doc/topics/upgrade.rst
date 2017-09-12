@@ -12,7 +12,10 @@ Cache Database
 This storage system is designed to be ephemeral. After an upgrade, all you need
 to do is rebuild the cache from the storage backend and that will apply any
 schema changes needed. You can use the "rebuild" button in the admin interface,
-or you can hit the :ref:`REST endpoint <rest-rebuild>`.
+or you can hit the :ref:`REST endpoint <rest-rebuild>` (note that this will not
+work if you have ``db.graceful_reload = true``).
+
+.. _change_access:
 
 Access Control
 --------------
@@ -34,8 +37,8 @@ backend to another.
 
     $ ppc-export old_config.ini | ppc-import new_config.ini
 
-Migrating Packages
-==================
+Changing Storage
+----------------
 If you would like to change your storage backend, you will need to migrate your
 existing packages to the new location. Create a config file that uses the new
 storage backend, and then run::

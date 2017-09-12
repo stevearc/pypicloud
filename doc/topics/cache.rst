@@ -52,6 +52,14 @@ You will need to ``pip install redis`` before running the server.
 The database url to use for the caching database. The format looks like this:
 ``redis://username:password@localhost:6379/0``
 
+``db.graceful_reload``
+~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** bool, optional
+
+When reloading the cache from storage, keep the cache in a usable state while
+adding and removing the necessary packages. Note that this may take longer
+because multiple passes will be made to ensure correctness. (default ``False``)
+
 DynamoDB
 --------
 Set ``pypi.db = dynamo`` OR ``pypi.db = pypicloud.cache.dynamo.DynamoCache``
@@ -65,14 +73,7 @@ You will need to ``pip install pypicloud[dynamo]`` before running the server.
 The AWS region to use for the cache tables. You must specify either this or
 ``db.host``.
 
-``db.graceful_reload``
-~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** bool, optional
-
-When reloading the cache from storage, keep the cache in a usable state while
-adding and removing the necessary packages. Note that this may take longer
-because multiple passes will be made to ensure correctness. (default ``False``)
-
+.. _dynamo_credentials:
 
 ``db.aws_access_key_id``, ``db.aws_secret_access_key``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -80,7 +81,9 @@ because multiple passes will be made to ensure correctness. (default ``False``)
 
 Your AWS access key id and secret access key. If they are not specified then
 pypicloud will attempt to get the values from the environment variables
-``AWS_ACCESS_KEY_ID`` and ``AWS_SECRET_ACCESS_KEY``.
+``AWS_ACCESS_KEY_ID`` and ``AWS_SECRET_ACCESS_KEY`` or any other `credentials
+source
+<http://boto3.readthedocs.io/en/latest/guide/configuration.html#configuring-credentials>`__.
 
 ``db.namespace``
 ~~~~~~~~~~~~~~~~
