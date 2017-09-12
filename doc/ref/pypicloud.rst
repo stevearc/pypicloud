@@ -17,6 +17,7 @@ Submodules
 .. toctree::
 
    pypicloud.auth
+   pypicloud.lambda_scripts
    pypicloud.models
    pypicloud.route
    pypicloud.scripts

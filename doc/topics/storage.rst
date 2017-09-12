@@ -20,8 +20,11 @@ The directory where the package files should be stored.
 
 S3
 --
-This option will store your packages in S3. Be sure you have set the correct
-:ref:`s3_policy`.
+This option will store your packages in S3.
+
+.. note::
+
+  Be sure you have set the correct :ref:`s3_policy`.
 
 Set ``pypi.storage = s3`` OR ``pypi.s3 = pypicloud.storage.S3Storage``
 
@@ -42,6 +45,11 @@ be prefixed with ``storage.``. For example::
     storage.use_accelerate_endpoint = true
 
 Will pass the Config object the option ``Config(s3={'use_accelerate_endpoint': True})``.
+
+.. note::
+
+  If you plan to run pypicloud in multiple regions, read more about
+  :ref:`syncing pypicloud caches using S3 notifications <s3_sync>`
 
 ``storage.bucket``
 ~~~~~~~~~~~~~~~~~~
