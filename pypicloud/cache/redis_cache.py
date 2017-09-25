@@ -47,8 +47,10 @@ class RedisCache(ICache):
         for pkg in packages:
             self.save(pkg, pipe=pipe)
         pipe.execute()
+        self.last_reloaded = datetime.now()
 
     def fetch(self, filename):
+        self.reload_if_needed()
         data = self.db.hgetall(self.redis_key(filename))
         if not data:
             return None
@@ -67,6 +69,7 @@ class RedisCache(ICache):
                                   summary, **kwargs)
 
     def all(self, name):
+        self.reload_if_needed()
         filenames = self.db.smembers(self.redis_filename_set(name))
         pipe = self.db.pipeline()
         for filename in filenames:
@@ -76,6 +79,7 @@ class RedisCache(ICache):
         return packages
 
     def distinct(self):
+        self.reload_if_needed()
         return list(self.db.smembers(self.redis_set))
 
     def clear(self, package):

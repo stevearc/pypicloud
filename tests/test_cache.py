@@ -109,7 +109,7 @@ class TestBaseCache(unittest.TestCase):
         """ Reload the cache if it's empty """
         cache = DummyCache()
         cache.reload_from_storage = MagicMock()
-        cache.reload_if_needed()
+        cache.reload_if_empty()
         self.assertTrue(cache.reload_from_storage.called)
 
     def test_no_reload_if_needed(self):
@@ -118,7 +118,7 @@ class TestBaseCache(unittest.TestCase):
         cache.reload_from_storage = MagicMock()
         cache.distinct = MagicMock()
         cache.distinct.return_value = ['hi']
-        cache.reload_if_needed()
+        cache.reload_if_empty()
         self.assertFalse(cache.reload_from_storage.called)
 
     def test_abstract_methods(self):
@@ -354,7 +354,7 @@ class TestSQLiteCache(unittest.TestCase):
         self.db.storage.list.return_value = [
             make_package(factory=SQLPackage)
         ]
-        self.db.reload_if_needed()
+        self.db.reload_if_empty()
         count = self.sql.query(SQLPackage).count()
         self.assertEqual(count, 1)
 

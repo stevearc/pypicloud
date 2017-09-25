@@ -135,6 +135,12 @@ class SQLCache(ICache):
                 self.db.close()
             request.add_finished_callback(cleanup)
 
+    def reload_if_empty(self):
+        super(SQLCache, self).reload_if_empty()
+        if self.request is None:
+            transaction.commit()
+            self.db.close()
+
     def reload_if_needed(self):
         super(SQLCache, self).reload_if_needed()
         if self.request is None:
@@ -152,14 +158,17 @@ class SQLCache(ICache):
         return kwargs
 
     def fetch(self, filename):
+        self.reload_if_needed()
         return self.db.query(SQLPackage).filter_by(filename=filename).first()
 
     def all(self, name):
+        self.reload_if_needed()
         pkgs = self.db.query(SQLPackage).filter_by(name=name).all()
         pkgs.sort(reverse=True)
         return pkgs
 
     def distinct(self):
+        self.reload_if_needed()
         names = self.db.query(distinct(SQLPackage.name))\
             .order_by(SQLPackage.name).all()
         return [n[0] for n in names]
@@ -184,6 +193,7 @@ class SQLCache(ICache):
                 (column2 LIKE '%c%' OR column2 LIKE '%d%')
 
         """
+        self.reload_if_needed()
         conditions = []
         for key, queries in criteria.items():
             # Make sure search key exists in the package class.
@@ -221,6 +231,7 @@ class SQLCache(ICache):
         return latest_map.values()
 
     def summary(self):
+        self.reload_if_needed()
         packages = {}
         for package in self.db.query(SQLPackage):
             pkg = packages.get(package.name)
