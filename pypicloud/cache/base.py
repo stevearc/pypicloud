@@ -45,7 +45,7 @@ class ICache(object):
         """
         elapsed_time = (datetime.now() - ICache.last_reloaded).seconds
         if elapsed_time >= self.reload_interval > 0:
-            LOG.info("Cache is expired (%d seconds). Rebuilding from storage backend..." % elapsed_time)
+            LOG.info("Cache is expired (%d seconds). Rebuilding from storage backend...", elapsed_time)
             self.reload_from_storage()
             LOG.info("Cache repopulated")
 
