@@ -44,7 +44,7 @@ class ICache(object):
         has been exceeded.
         """
         elapsed_time = (datetime.now() - ICache.last_reloaded).seconds
-        if self.reload_interval and elapsed_time > self.reload_interval:
+        if elapsed_time >= self.reload_interval > 0:
             LOG.info("Cache is expired (%d seconds). Rebuilding from storage backend..." % elapsed_time)
             self.reload_from_storage()
             LOG.info("Cache repopulated")
@@ -56,7 +56,7 @@ class ICache(object):
             'storage': get_storage_impl(settings),
             'allow_overwrite': asbool(settings.get('pypi.allow_overwrite',
                                                    False)),
-            'reload_interval': int(settings.get('pypi.reload_interval', None))
+            'reload_interval': int(settings.get('pypi.reload_interval', 0))
         }
 
     def get_url(self, package):
