@@ -18,13 +18,13 @@ class ICache(object):
     """ Base class for a caching database that stores package metadata """
 
     package_class = Package
+    last_reloaded = datetime(year=1970, month=1, day=1)
 
     def __init__(self, request=None, storage=None, reload_interval=None, allow_overwrite=None):
         self.request = request
         self.storage = storage(request)
         self.allow_overwrite = allow_overwrite
         self.reload_interval = reload_interval
-        self.last_reloaded = datetime(year=1970, month=1, day=1)
 
     def reload_if_empty(self):
         """
@@ -43,9 +43,9 @@ class ICache(object):
         Reload packages from storage backend if reload_interval was set and
         has been exceeded.
         """
-        if self.reload_interval and\
-                (datetime.now() - self.last_reloaded).seconds > self.reload_interval:
-            LOG.info("Cache is expired. Rebuilding from storage backend...")
+        elapsed_time = (datetime.now() - ICache.last_reloaded).seconds
+        if self.reload_interval and elapsed_time > self.reload_interval:
+            LOG.info("Cache is expired (%d seconds). Rebuilding from storage backend..." % elapsed_time)
             self.reload_from_storage()
             LOG.info("Cache repopulated")
 
@@ -84,7 +84,7 @@ class ICache(object):
         packages = self.storage.list(self.package_class)
         for pkg in packages:
             self.save(pkg)
-        self.last_reloaded = datetime.now()
+        ICache.last_reloaded = datetime.now()
 
     def upload(self, filename, data, name=None, version=None, summary=None):
         """
