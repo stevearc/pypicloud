@@ -21,7 +21,7 @@ def includeme(config):
     cache_impl = resolver.resolve(dotted_cache)
     kwargs = cache_impl.configure(settings)
     cache = cache_impl(**kwargs)
-    cache.reload_if_needed()
+    cache.reload_if_empty()
     config.add_request_method(partial(cache_impl, **kwargs), name='db',
                               reify=True)
     return cache_impl

@@ -135,8 +135,8 @@ class SQLCache(ICache):
                 self.db.close()
             request.add_finished_callback(cleanup)
 
-    def reload_if_needed(self):
-        super(SQLCache, self).reload_if_needed()
+    def reload_if_empty(self):
+        super(SQLCache, self).reload_if_empty()
         if self.request is None:
             transaction.commit()
             self.db.close()

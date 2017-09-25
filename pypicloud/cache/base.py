@@ -24,7 +24,7 @@ class ICache(object):
         self.storage = storage(request)
         self.allow_overwrite = allow_overwrite
 
-    def reload_if_needed(self):
+    def reload_if_empty(self):
         """
         Reload packages from storage backend if cache is empty
 
