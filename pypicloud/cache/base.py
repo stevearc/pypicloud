@@ -19,10 +19,12 @@ class ICache(object):
 
     package_class = Package
 
-    def __init__(self, request=None, storage=None, allow_overwrite=None):
+    def __init__(self, request=None, storage=None, reload_interval=None, allow_overwrite=None):
         self.request = request
         self.storage = storage(request)
         self.allow_overwrite = allow_overwrite
+        self.reload_interval = reload_interval
+        self.last_reloaded = datetime(year=1970, month=1, day=1)
 
     def reload_if_empty(self):
         """
@@ -43,6 +45,7 @@ class ICache(object):
             'storage': get_storage_impl(settings),
             'allow_overwrite': asbool(settings.get('pypi.allow_overwrite',
                                                    False)),
+            'reload_interval': int(settings.get('pypi.reload_interval', None))
         }
 
     def get_url(self, package):
@@ -70,6 +73,7 @@ class ICache(object):
         packages = self.storage.list(self.package_class)
         for pkg in packages:
             self.save(pkg)
+        self.last_reloaded = datetime.now()
 
     def upload(self, filename, data, name=None, version=None, summary=None):
         """
