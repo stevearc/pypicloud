@@ -112,19 +112,23 @@ class DynamoCache(ICache):
         return kwargs
 
     def fetch(self, filename):
+        self.reload_if_needed()
         return self.engine.get(DynamoPackage, filename=filename)
 
     def all(self, name):
+        self.reload_if_needed()
         return sorted(self.engine.query(DynamoPackage).filter(name=name),
                       reverse=True)
 
     def distinct(self):
+        self.reload_if_needed()
         names = set()
         for summary in self.engine.scan(PackageSummary):
             names.add(summary.name)
         return sorted(names)
 
     def summary(self):
+        self.reload_if_needed()
         summaries = sorted(self.engine.scan(PackageSummary),
                            key=lambda s: s.name)
         return [s.__json__() for s in summaries]

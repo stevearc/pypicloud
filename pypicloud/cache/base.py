@@ -38,6 +38,17 @@ class ICache(object):
             self.reload_from_storage()
             LOG.info("Cache repopulated")
 
+    def reload_if_needed(self):
+        """
+        Reload packages from storage backend if reload_interval was set and
+        has been exceeded.
+        """
+        if self.reload_interval and\
+                (datetime.now() - self.last_reloaded).seconds > self.reload_interval:
+            LOG.info("Cache is expired. Rebuilding from storage backend...")
+            self.reload_from_storage()
+            LOG.info("Cache repopulated")
+
     @classmethod
     def configure(cls, settings):
         """ Configure the cache method with app settings """
@@ -196,6 +207,7 @@ class ICache(object):
             Type of query to perform. By default, pip sends "or".
 
         """
+        self.reload_if_needed()
         name_queries = criteria.get('name', [])
         summary_queries = criteria.get('summary', [])
         packages = []
@@ -232,6 +244,7 @@ class ICache(object):
             'unstable', and 'last_modified'.
 
         """
+        self.reload_if_needed()
         packages = []
         for name in self.distinct():
             pkg = {
