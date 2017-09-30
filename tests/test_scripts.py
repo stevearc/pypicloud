@@ -107,3 +107,16 @@ class TestScripts(unittest.TestCase):
         self.assertTrue(ret)
         ret = scripts.promptyn('', False)
         self.assertFalse(ret)
+
+    def test_bucket_validate(self):
+        """ Validate bucket name """
+        ret = scripts.bucket_validate('bucketname')
+        self.assertTrue(ret)
+        ret = scripts.bucket_validate('bucket.name')
+        self.assertTrue(ret)
+        ret = scripts.bucket_validate('bucketname.')
+        self.assertFalse(ret)
+        ret = scripts.bucket_validate('.bucketname')
+        self.assertFalse(ret)
+        ret = scripts.bucket_validate('bucket..name')
+        self.assertFalse(ret)
