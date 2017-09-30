@@ -76,6 +76,20 @@ def promptyn(msg, default=None):
             return default
 
 
+def bucket_validate(name):
+    """ Check for valid bucket name """
+    if name.startswith('.'):
+        print "Bucket names cannot start with '.'"
+        return False
+    if name.endswith('.'):
+        print "Bucket names cannot end with '.'"
+        return False
+    if '..' in name:
+        print "Bucket names cannot contain '..'"
+        return False
+    return True
+
+
 def make_config(argv=None):
     """ Create a server config file """
     if argv is None:
@@ -134,13 +148,6 @@ def make_config(argv=None):
             data['secret_key'] = os.environ['AWS_SECRET_ACCESS_KEY']
         else:
             data['secret_key'] = prompt("AWS secret access key?")
-
-        def bucket_validate(name):
-            """ Check for valid bucket name """
-            if '.' in name:
-                print "Bucket names cannot contain '.'"
-                return False
-            return True
 
         data['s3_bucket'] = prompt("S3 bucket name?", validate=bucket_validate)
 
