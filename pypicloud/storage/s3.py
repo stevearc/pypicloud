@@ -127,10 +127,6 @@ class S3Storage(IStorage):
         bucket_name = settings.get('storage.bucket')
         if bucket_name is None:
             raise ValueError("You must specify the 'storage.bucket'")
-        if '.' in bucket_name:
-            LOG.warn("Your bucket name %r has a '.' in it. This may cause "
-                     "HTTPS problems for you, as Amazon's certificate for S3 "
-                     "urls is only valid for *.s3.amazonaws.com", bucket_name)
         bucket = s3conn.Bucket(bucket_name)
         try:
             bucket.load()

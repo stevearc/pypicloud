@@ -57,11 +57,6 @@ Will pass the Config object the option ``Config(s3={'use_accelerate_endpoint': T
 
 The name of the S3 bucket to store packages in.
 
-.. warning::
-
-    Your bucket must not have "." in it. Amazon's SSL certificate for S3 urls
-    is only valid for \*.s3.amazonaws.com
-
 ``storage.region_name``
 ~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string, semi-optional
