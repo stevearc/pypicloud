@@ -36,8 +36,8 @@ NO_DEFAULT = object()
 
 
 def wrapped_input(msg):
-    """ Wraps raw_input for tests """
-    return raw_input(msg)
+    """ Wraps input for tests """
+    return six.moves.input(msg)
 
 
 def prompt(msg, default=NO_DEFAULT, validate=None):
@@ -157,8 +157,8 @@ def make_config(argv=None):
 
         data['s3_bucket'] = prompt("S3 bucket name?", validate=bucket_validate)
 
-    data['encrypt_key'] = b64encode(os.urandom(32))
-    data['validate_key'] = b64encode(os.urandom(32))
+    data['encrypt_key'] = b64encode(os.urandom(32)).decode('utf-8')
+    data['validate_key'] = b64encode(os.urandom(32)).decode('utf-8')
 
     data['admin'] = prompt("Admin username?")
     data['password'] = _gen_password()
@@ -173,7 +173,7 @@ def make_config(argv=None):
             data['venv'] = sys.prefix
         data['wsgi'] = 'uwsgi'
 
-    tmpl_str = resource_string('pypicloud', 'templates/config.ini.jinja2')
+    tmpl_str = resource_string('pypicloud', 'templates/config.ini.jinja2').decode('utf-8')
     template = Template(tmpl_str)
 
     config_file = template.render(**data)
