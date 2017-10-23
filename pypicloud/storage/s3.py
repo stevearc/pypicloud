@@ -51,7 +51,7 @@ class S3Storage(IStorage):
 
     def __init__(self, request=None, bucket=None, expire_after=None,
                  bucket_prefix=None, prepend_hash=None, redirect_urls=None,
-                 sse=None,
+                 sse=None, object_acl=None,
                  **kwargs):
         super(S3Storage, self).__init__(request, **kwargs)
         self.bucket = bucket
@@ -60,6 +60,7 @@ class S3Storage(IStorage):
         self.prepend_hash = prepend_hash
         self.redirect_urls = redirect_urls
         self.sse = sse
+        self.object_acl = object_acl
 
     @classmethod
     def configure(cls, settings):
@@ -74,6 +75,7 @@ class S3Storage(IStorage):
             LOG.warn("Unrecognized value %r for 'storage.sse'. See "
                      "https://boto3.readthedocs.io/en/latest/reference/services/s3.html#S3.Object.put "
                      "for more details", sse)
+        kwargs['object_acl'] = settings.get('storage.object_acl', None)
         kwargs['redirect_urls'] = asbool(settings.get('storage.redirect_urls',
                                                       False))
 
@@ -195,6 +197,8 @@ class S3Storage(IStorage):
         kwargs = {}
         if self.sse is not None:
             kwargs['ServerSideEncryption'] = self.sse
+        if self.object_acl:
+            kwargs['ACL'] = self.object_acl
         metadata = {
             'name': package.name,
             'version': package.version,

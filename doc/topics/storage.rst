@@ -119,6 +119,15 @@ Enables AES-256 transparent server side encryption. See the `AWS documention
 <http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingServerSideEncryption.html>`_.
 Default is None.
 
+``storage.object_acl``
+~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+Sets uploaded object's "canned" ACL. See the `AWS documentation
+<http://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl>`_.
+Default is "private", i.e. only the account owner will get full access.
+May be useful, if the bucket and pypicloud are hosted in different AWS accounts.
+
 CloudFront
 ----------
 This option will store your packages in S3 but use CloudFront to deliver the packages.
