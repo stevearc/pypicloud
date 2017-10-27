@@ -5,7 +5,7 @@ from six import BytesIO
 
 import shutil
 import tempfile
-from mock import MagicMock, patch
+from mock import MagicMock, patch, ANY
 from moto import mock_s3
 from six.moves.urllib.parse import urlparse, parse_qs  # pylint: disable=F0401,E0611
 
@@ -133,6 +133,28 @@ class TestS3Storage(unittest.TestCase):
         S3Storage.configure(settings)
         bucket = self.s3.Bucket('new_bucket')
         bucket.load()
+
+    def test_object_acl(self):
+        """ Can specify an object ACL for S3 objects """
+        settings = dict(self.settings)
+        settings['storage.object_acl'] = 'authenticated-read'
+        kwargs = S3Storage.configure(settings)
+        storage = S3Storage(MagicMock(), **kwargs)
+        package = make_package()
+        storage.upload(package, BytesIO())
+        acl = list(self.bucket.objects.all())[0].Object().Acl()
+        self.assertItemsEqual(acl.grants, [
+            {
+                'Grantee': {
+                    'Type': 'CanonicalUser',
+                    'ID': ANY
+                }, 'Permission': 'FULL_CONTROL'
+            }, {
+                'Grantee': {
+                    'Type': 'Group',
+                    'URI': 'http://acs.amazonaws.com/groups/global/AuthenticatedUsers'
+                }, 'Permission': 'READ'
+            }])
 
 
 class TestCloudFrontS3Storage(unittest.TestCase):
