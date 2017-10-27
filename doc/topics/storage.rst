@@ -114,7 +114,7 @@ Enables AES-256 transparent server side encryption. See the `AWS documention
 Default is False.
 
 ``storage.object_acl``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string, optional
 
 Sets uploaded object's "canned" ACL. See the `AWS documentation
