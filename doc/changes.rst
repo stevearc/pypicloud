@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+0.5.6 - 2017/10/29
+------------------
+* Add ``storage.object_acl`` for S3 (:pr:`139`)
+
 0.5.5 - 2017/9/9
 ----------------
 * Allow search endpoint to have a trailing slash (:issue:`133`)

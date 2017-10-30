@@ -37,7 +37,7 @@ class S3Storage(IStorage):
 
     def __init__(self, request=None, bucket=None, expire_after=None,
                  bucket_prefix=None, prepend_hash=None, redirect_urls=None,
-                 use_sse=False,
+                 use_sse=False, object_acl=None,
                  **kwargs):
         super(S3Storage, self).__init__(request, **kwargs)
         self.bucket = bucket
@@ -46,6 +46,7 @@ class S3Storage(IStorage):
         self.prepend_hash = prepend_hash
         self.redirect_urls = redirect_urls
         self.use_sse = use_sse
+        self.object_acl = object_acl
 
     @classmethod
     def configure(cls, settings):
@@ -68,6 +69,7 @@ class S3Storage(IStorage):
         kwargs['use_sse'] = asbool(getdefaults(
             settings, 'storage.server_side_encryption',
             'aws.server_side_encryption', False))
+        kwargs['object_acl'] = settings.get('storage.object_acl', None)
         calling_format = settings.get('storage.calling_format',
                                       'SubdomainCallingFormat')
         kwargs['redirect_urls'] = asbool(settings.get('storage.redirect_urls',
@@ -183,7 +185,8 @@ class S3Storage(IStorage):
             key.set_metadata('summary', package.summary)
         # S3 doesn't support uploading from a non-file stream, so we have to
         # read it into memory :(
-        key.set_contents_from_string(data.read(), encrypt_key=self.use_sse)
+        key.set_contents_from_string(data.read(), encrypt_key=self.use_sse,
+                                     policy=self.object_acl)
 
     def delete(self, package):
         path = self.get_path(package)
