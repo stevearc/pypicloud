@@ -2,8 +2,8 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
-1.0.0rc2 - 2017/9/12
---------------------
+1.0.0 - 2017/10/29
+------------------
 * Python3 support thanks to boto3
 * Removing stable/unstable version from package summary
 * Changing and removing many settings
@@ -15,6 +15,10 @@ If you are upgrading an existing installation, read :ref:`the instructions <upgr
 **NOTE** Because of the boto3 rewrite, many settings have changed. You will need
 to review the settings for your storage, cache, and access backends to make sure
 they are correct, as well as rebuilding your cache as per usual.
+
+0.5.6 - 2017/10/29
+------------------
+* Add ``storage.object_acl`` for S3 (:pr:`139`)
 
 0.5.5 - 2017/9/9
 ----------------
