@@ -1,14 +1,7 @@
 Developing
 ==========
 
-The fast way to get set up:
-
-.. code-block:: bash
-
-    wget https://raw.github.com/stevearc/devbox/0.1.0/devbox/unbox.py && \
-    python unbox.py git@github.com:stevearc/pypicloud
-
-The slow way to get set up:
+To get set up:
 
 .. code-block:: bash
 
@@ -18,8 +11,6 @@ The slow way to get set up:
     $ . pypicloud_env/bin/activate
     $ pip install -r requirements_dev.txt
     $ pip install -e .
-    $ rm -r .git/hooks
-    $ ln -s ../git_hooks .git/hooks # This will run pylint before you commit
 
 Run ``ppc-make-config -d development.ini`` to create a developer config
 file.
@@ -30,8 +21,7 @@ Now you can run the server with
 
     $ pserve --reload development.ini
 
-The unit tests require a redis server to be running on port 6379. Run unit
-tests with:
+The unit tests require a redis server to be running on port 6379, MySQL on port 3306, and Postgres on port 5432. If you have docker installed you can use the ``run-test-services.sh`` script to start all the necessary servers. Run unit tests with:
 
 .. code-block:: bash
 

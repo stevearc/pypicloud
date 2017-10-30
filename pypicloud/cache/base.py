@@ -224,29 +224,23 @@ class ICache(object):
         Returns
         -------
         packages : list
-            List of package dicts, each of which contains 'name', 'stable',
-            'unstable', and 'last_modified'.
+            List of package dicts, each of which contains 'name', 'summary',
+            and 'last_modified'.
 
         """
         packages = []
         for name in self.distinct():
             pkg = {
                 'name': name,
-                'stable': None,
-                'unstable': '0',
+                'summary': '',
                 'last_modified': datetime.fromtimestamp(0),
             }
+            max_pkg = None
             for package in self.all(name):
-                if not package.is_prerelease:
-                    if pkg['stable'] is None:
-                        pkg['stable'] = package.version
-                    else:
-                        pkg['stable'] = max(pkg['stable'], package.version,
-                                            key=parse_version)
-                pkg['unstable'] = max(pkg['unstable'], package.version,
-                                      key=parse_version)
                 pkg['last_modified'] = max(pkg['last_modified'],
                                            package.last_modified)
+                max_pkg = package if max_pkg is None else max(max_pkg, package)
+            pkg['summary'] = max_pkg.summary
             packages.append(pkg)
 
         return packages

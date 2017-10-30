@@ -6,6 +6,9 @@ PyPICloud has a complete access control system that allows you to fine-tune who
 has access to your packages. There are several choices for where to store your
 user credentials and access rules.
 
+If you ever need to change your access backend, or you want to back up your
+current state, check out the :ref:`import/export <change_access>` functionality.
+
 Users and Groups
 ----------------
 The access control uses a combination of users and groups. A group is a list of
@@ -110,14 +113,6 @@ read/write access to all packages, and can perform maintenance tasks.
 
 Whitespace-delimited list of users that belong to this group. Groups can have
 separately-defined read/write permissions on packages.
-
-``auth.zero_security_mode`` (deprecated)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** bool, optional
-
-Replaced by ``pypi.default_read`` and ``pypi.default_write``. If enabled, will
-set ``pypi.default_read = everyone`` and ``pypi.default_write =
-authenticated``.
 
 SQL Database
 ------------
@@ -315,50 +310,126 @@ perform the initial bind with. It only requires read access to your LDAP.
 
 ``auth.ldap.service_password``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** string
+**Argument:** string, optional
 
-The password for the LDAP service account.
+The password for the LDAP service account. Default will use an empty string for
+an anonymous bind.
+
+``auth.ldap.service_username``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+If provided, this will allow allow you to log in to the pypicloud interface as
+the provided ``service_dn`` using this username. This account will have admin
+privileges.
+
+``auth.ldap.user_dn_format``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+This is used to find a user when they attempt to log in. If the username is part
+of the DN, then you can provide this templated string where ``{username}`` will
+be replaced with the searched username. For example, if your LDAP directory
+looks like this::
+
+  dn: CN=bob,OU=users
+  cn: bob
+  -
+
+Then you could use the setting ``auth.ldap.user_dn_format =
+CN={username},OU=users``.
+
+This option is the preferred method if possible because you can provide the full
+DN when doing the search, which is more efficient. If your directory is not in
+this format, you will need to instead use ``base_dn`` and
+``user_search_filter``.
 
 ``auth.ldap.base_dn``
 ~~~~~~~~~~~~~~~~~~~~~
-**Argument:** string
+**Argument:** string, optional
 
 The base DN under which all of your user accounts are organized in LDAP. Used
-in combination with the ``all_user_search`` to find all potential users.
+in combination with the ``user_search_filter`` to find users. See also:
+``user_dn_format``.
 
-``auth.ldap.all_user_search``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** string
+``base_dn`` and ``user_search_filter`` should be used if your directory format
+does not put the username in the DN of the user entry. For example::
 
-An LDAP search phrase, which when used with the ``base_dn`` results in a list
-of all users. As an example, this could be something like "(accountType=human)"
-depending on your organization's LDAP configuration.
+  dn: CN=Robert Paulson,OU=users
+  cn: Robert Paulson
+  unixname: bob
+  -
 
-``auth.ldap.id_field``
-~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** string
+For that directory structure, you would use the following settings:
 
-The field in the LDAP return when using ``all_user_search`` on ``base_dn`` to
-determine the account name from the record. As an example this could be "name",
-but it will depend on how your LDAP is set up.
+.. code-block:: ini
+
+    auth.ldap.base_dn = OU=users
+    auth.ldap.user_search_filter = (unixname={username})
+
+``auth.ldap.user_search_filter``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+An LDAP search filter, which when used with the ``base_dn`` results a user entry.
+The string ``{username}`` will be replaced with the username being searched for.
+For example, ``(cn={username})`` or ``(&(objectClass=person)(name={username}))``
+
+Note that the result of the search must be exactly one entry.
 
 ``auth.ldap.admin_field``
 ~~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** string
-
-The field to use in combination with ``admin_dns`` to determine the admin DNs
-from the search result. As an example, this could be "groupMembers", but again,
-will depend on your LDAP setup.
-
-``auth.ldap.admin_dns``
-~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** list
-
-A list of DNs to search for who should be considered an admin. It uses the
-``admin_field`` to determine the source of admin DNs in the returned record(s).
-
-``auth.ldap.service_account``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string, optional
 
-A username for the service DN to self-authenticate as admin.
+When fetching the user entry, check to see if the ``admin_field`` attribute
+contains any of ``admin_value``. If so, the user is an admin.
+
+For example, if this is your LDAP directory::
+
+  dn: CN=user1,OU=test
+  cn: user1
+  roles: dev
+  -
+  dn: CN=user2,OU=test
+  cn: user2
+  roles: dev
+  roles: pypi_admin
+
+You would use these settings:
+
+.. code-block:: ini
+
+    auth.ldap.admin_field = roles
+    auth.ldap.admin_value = pypi_admin
+
+You could also use ``admin_value`` to specify the usernames of admins:
+
+.. code-block:: ini
+
+    auth.ldap.admin_field = cn
+    auth.ldap.admin_value =
+      user1
+      user2
+
+If this and ``admin_value`` are not provided, the only admin account on
+pypicloud will be the service account (if you provided the
+``service_username``).
+
+``auth.ldap.admin_value``
+~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+See ``admin_field``
+
+
+``auth.ldap.cache_time``
+~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** int, optional
+
+When a user entry is pulled via searching with ``base_dn`` and
+``user_search_filter``, pypicloud will cache that entry to decrease load on your
+LDAP server. This value determines how long (in seconds) to cache the user
+entries for.
+
+The default behavior is to cache users forever (clearing the cache requires a
+server restart).

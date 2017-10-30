@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
 """ Tests for access backends """
 from __future__ import unicode_literals
+
+import six
 import transaction
+import unittest
+import zope.sqlalchemy
 from mock import MagicMock, patch
+from mockldap import MockLdap
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.security import Everyone, Authenticated
 from pyramid.testing import DummyRequest
@@ -12,15 +17,11 @@ from pypicloud.access import (IAccessBackend, IMutableAccessBackend,
                               ConfigAccessBackend, RemoteAccessBackend,
                               includeme, pwd_context)
 from pypicloud.access.base import group_to_principal
+from pypicloud.access.ldap_ import LDAPAccessBackend
 from pypicloud.access.sql import (SQLAccessBackend, User, UserPermission,
-                                  association_table, GroupPermission, Group, Base)
+                                  association_table, GroupPermission, Group,
+                                  Base)
 from pypicloud.route import Root
-
-
-try:
-    import unittest2 as unittest  # pylint: disable=F0401
-except ImportError:
-    import unittest
 
 
 class PartialEq(object):
@@ -214,7 +215,7 @@ class TestBaseBackend(BaseACLTest):
         """ keyword 'remote' loads RemoteBackend """
         config = MagicMock()
         config.get_settings.return_value = {
-            'pypi.access_backend': 'remote',
+            'pypi.auth': 'remote',
             'auth.backend_server': 'http://example.com',
         }
         includeme(config)
@@ -227,7 +228,7 @@ class TestBaseBackend(BaseACLTest):
         config = MagicMock()
         config.get_settings.return_value = {
             'auth.db.url': 'sqlite://',
-            'pypi.access_backend': 'sql',
+            'pypi.auth': 'sql',
         }
         includeme(config)
         config.add_request_method.assert_called_with(
@@ -239,7 +240,7 @@ class TestBaseBackend(BaseACLTest):
         config = MagicMock()
         config.get_settings.return_value = {
             'auth.db.url': 'sqlite://',
-            'pypi.access_backend': 'pypicloud.access.sql.SQLAccessBackend',
+            'pypi.auth': 'pypicloud.access.sql.SQLAccessBackend',
         }
         includeme(config)
         config.add_request_method.assert_called_with(
@@ -347,16 +348,6 @@ class TestConfigBackend(BaseACLTest):
         perms = backend.group_permissions('mypkg')
         self.assertEqual(perms, {'g1': ['read'], 'g2': ['read', 'write']})
 
-    def test_group_permissions(self):
-        """ Fetch permissions for a single group on a package """
-        settings = {
-            'package.mypkg.group.g1': 'r',
-            'package.mypkg.group.g2': 'rw',
-        }
-        backend = self._backend(settings)
-        perms = backend.group_permissions('mypkg', 'g1')
-        self.assertEqual(perms, ['read'])
-
     @patch('pypicloud.access.base.effective_principals')
     def test_everyone_permission(self, principals):
         """ All users have 'everyone' permissions """
@@ -384,16 +375,6 @@ class TestConfigBackend(BaseACLTest):
         backend = self._backend(settings)
         perms = backend.user_permissions('mypkg')
         self.assertEqual(perms, {'u1': ['read'], 'u2': ['read', 'write']})
-
-    def test_user_perms(self):
-        """ Fetch permissions on a package for one user """
-        settings = {
-            'package.mypkg.user.u1': 'r',
-            'package.mypkg.user.u2': 'rw',
-        }
-        backend = self._backend(settings)
-        perms = backend.user_permissions('mypkg', 'u1')
-        self.assertEqual(perms, ['read'])
 
     def test_user_package_perms(self):
         """ Fetch all packages a user has permissions on """
@@ -563,34 +544,10 @@ class TestRemoteBackend(unittest.TestCase):
                                              params=params, auth=self.auth)
         self.assertEqual(perms, self.requests.get().json())
 
-    def test_group_perms(self):
-        """ Query server for group permissions on a package """
-        perms = self.backend.group_permissions('mypkg', 'grp')
-        params = {'package': 'mypkg', 'group': 'grp'}
-        self.requests.get.assert_called_with('server/group_permissions',
-                                             params=params, auth=self.auth)
-        self.assertEqual(perms, self.requests.get().json())
-
     def test_all_user_perms(self):
         """ Query server for all user permissions on a package """
         perms = self.backend.user_permissions('mypkg')
         params = {'package': 'mypkg'}
-        self.requests.get.assert_called_with('server/user_permissions',
-                                             params=params, auth=self.auth)
-        self.assertEqual(perms, self.requests.get().json())
-
-    def test_user_perms(self):
-        """ Query server for a user's permissions on a package """
-        perms = self.backend.user_permissions('mypkg', 'u1')
-        params = {'package': 'mypkg', 'username': 'u1'}
-        self.requests.get.assert_called_with('server/user_permissions',
-                                             params=params, auth=self.auth)
-        self.assertEqual(perms, self.requests.get().json())
-
-    def test_user_perms_with_username(self):
-        """ Query server for a user's permissions on a package """
-        perms = self.backend.user_permissions('mypkg', 'a')
-        params = {'package': 'mypkg', 'username': 'a'}
         self.requests.get.assert_called_with('server/user_permissions',
                                              params=params, auth=self.auth)
         self.assertEqual(perms, self.requests.get().json())
@@ -646,8 +603,13 @@ class TestSQLiteBackend(unittest.TestCase):
 
     def setUp(self):
         super(TestSQLiteBackend, self).setUp()
+        transaction.begin()
+        request = MagicMock()
+        request.tm = transaction.manager
+        self.access = SQLAccessBackend(request, **self.kwargs)
         self.db = self.kwargs['dbmaker']()
-        self.access = SQLAccessBackend(MagicMock(), **self.kwargs)
+        zope.sqlalchemy.register(self.db,
+                                 transaction_manager=transaction.manager)
 
     def tearDown(self):
         super(TestSQLiteBackend, self).tearDown()
@@ -746,17 +708,6 @@ class TestSQLiteBackend(unittest.TestCase):
             'foo2': ['read', 'write'],
         })
 
-    def test_user_permissions(self):
-        """ Retrieve a user's permissions on package from database """
-        user = make_user('foo', 'bar', False)
-        user2 = make_user('foo2', 'bar', False)
-        p1 = UserPermission('pkg1', 'foo', True, False)
-        p2 = UserPermission('pkg1', 'foo2', True, True)
-        self.db.add_all([user, user2, p1, p2])
-        transaction.commit()
-        perms = self.access.user_permissions('pkg1', 'foo')
-        self.assertEqual(perms, ['read'])
-
     def test_all_group_permissions(self):
         """ Retrieve all group permissions from database """
         g1 = Group('brotatos')
@@ -770,17 +721,6 @@ class TestSQLiteBackend(unittest.TestCase):
             'brotatos': ['read'],
             'sharkfest': ['read', 'write'],
         })
-
-    def test_group_permissions(self):
-        """ Retrieve a group's permissions from database """
-        g1 = Group('brotatos')
-        g2 = Group('sharkfest')
-        p1 = GroupPermission('pkg1', 'brotatos', True, False)
-        p2 = GroupPermission('pkg1', 'sharkfest', True, True)
-        self.db.add_all([g1, g2, p1, p2])
-        transaction.commit()
-        perms = self.access.group_permissions('pkg1', 'brotatos')
-        self.assertEqual(perms, ['read'])
 
     def test_user_package_perms(self):
         """ Fetch all packages a user has permissions on """
@@ -1178,7 +1118,7 @@ class TestSQLiteBackend(unittest.TestCase):
             """ Assertion that handles unordered lists inside dicts """
             if isinstance(obj1, dict):
                 self.assertEqual(len(obj1), len(obj2))
-                for key, val in obj1.iteritems():
+                for key, val in six.iteritems(obj1):
                     assert_nice_equals(val, obj2[key])
             elif isinstance(obj1, list):
                 self.assertItemsEqual(obj1, obj2)
@@ -1212,3 +1152,145 @@ class TestPostgresBackend(TestSQLiteBackend):
     """ Test the SQLAlchemy access backend on a Postgres DB """
 
     DB_URL = 'postgresql://postgres@127.0.0.1:5432/postgres'
+
+
+class TestLDAPBackend(BaseACLTest):
+    """ Test the LDAP access backend """
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestLDAPBackend, cls).setUpClass()
+        test = ('o=test', {'o': ['test'], 'objectClass': ['top']})
+        users = ('ou=users,o=test', {'ou': ['users'], 'objectClass': ['top']})
+        admin_list = ('cn=adminlist,o=test', {'cn': ['adminlist'], 'admins': ['cn=admin,ou=users,o=test'], 'objectClass': ['top']})
+        service = ('cn=service,ou=users,o=test', {'cn': ['service'], 'userPassword': ['snerp'], 'objectClass': ['top']})
+        u1 = ('cn=u1,ou=users,o=test', {'cn': ['u1'], 'userPassword': ['foobar'], 'objectClass': ['top']})
+        admin = ('cn=admin,ou=users,o=test', {'cn': ['admin'], 'userPassword': ['toor'], 'roles': ['admin'], 'objectClass': ['top']})
+        directory = dict([test, users, admin_list, service, u1, admin])
+        cls.mockldap = MockLdap(directory)
+
+    @classmethod
+    def tearDownClass(cls):
+        super(TestLDAPBackend, cls).tearDownClass()
+        del cls.mockldap
+
+    def setUp(self):
+        super(TestLDAPBackend, self).setUp()
+        self.mockldap.start()
+        self.backend = self._backend()
+
+    def tearDown(self):
+        super(TestLDAPBackend, self).tearDown()
+        self.mockldap.stop()
+
+    def _backend(self, settings_override=None):
+        """ Wrapper to instantiate a LDAPAccessBackend """
+        settings = {
+            'auth.ldap.url': 'ldap://localhost/',
+            'auth.ldap.service_dn': 'cn=service,ou=users,o=test',
+            'auth.ldap.service_password': 'snerp',
+            'auth.ldap.base_dn': 'ou=users,o=test',
+            'auth.ldap.user_search_filter': '(cn={username})',
+            'auth.ldap.admin_field': 'roles',
+            'auth.ldap.admin_value': ['admin'],
+        }
+        settings.update(settings_override or {})
+        kwargs = LDAPAccessBackend.configure(settings)
+        request = DummyRequest()
+        request.userid = None
+        return LDAPAccessBackend(request, **kwargs)
+
+    def test_verify(self):
+        """ Users can log in with correct password """
+        valid = self.backend.verify_user('u1', 'foobar')
+        self.assertTrue(valid)
+
+    def test_no_verify(self):
+        """ Verification fails with wrong password """
+        valid = self.backend.verify_user('u1', 'foobarz')
+        self.assertFalse(valid)
+
+    def test_verify_no_user(self):
+        """ Verify fails if user is unknown """
+        valid = self.backend.verify_user('notreal', 'foobar')
+        self.assertFalse(valid)
+
+    def test_disallow_anonymous_bind(self):
+        """ Users cannot log in with empty password """
+        valid = self.backend.verify_user('u1', '')
+        self.assertFalse(valid)
+
+    def test_admin(self):
+        """ Specified users have 'admin' permissions """
+        self.assertTrue(self.backend.is_admin('admin'))
+
+    def test_not_admin(self):
+        """ Only specified users have 'admin' permissions """
+        self.assertFalse(self.backend.is_admin('u1'))
+
+    def test_need_admin(self):
+        """ LDAP backend is immutable and never needs admin """
+        self.assertFalse(self.backend.need_admin())
+
+    def test_single_user_data(self):
+        """ Get data for a single user """
+        user = self.backend.user_data('u1')
+        self.assertItemsEqual(user, {
+            'username': 'u1',
+            'admin': False,
+            'groups': [],
+        })
+
+    def test_service_username(self):
+        """ service_username allows the service account to be admin """
+        backend = self._backend({
+            'auth.ldap.service_username': 'root',
+        })
+        user = backend.user_data('root')
+        self.assertEqual(user, {
+            'username': 'root',
+            'admin': True,
+            'groups': [],
+        })
+
+    def test_allowed_permissions(self):
+        """ Default settings will only allow authenticated to read """
+        perms = self.backend.allowed_permissions('mypkg')
+        self.assertEqual(perms, {
+            Authenticated: ('read',),
+        })
+
+    def test_user_package_perms(self):
+        """ No user package perms in LDAP """
+        perms = self.backend.user_package_permissions('u1')
+        self.assertEqual(perms, [])
+
+    def test_group_package_perms(self):
+        """ No group package perms in LDAP """
+        perms = self.backend.group_package_permissions('group')
+        self.assertEqual(perms, [])
+
+    def test_user_dn_format(self):
+        """ Can use user_dn_format instead of base_dn """
+        backend = self._backend({
+            'auth.ldap.user_dn_format': 'cn={username},ou=users,o=test',
+            'auth.ldap.base_dn': None,
+            'auth.ldap.user_search_filter': None,
+        })
+        valid = backend.verify_user('u1', 'foobar')
+        self.assertTrue(valid)
+
+    def test_only_user_dn_format(self):
+        """ Cannot use user_dn_format with base_dn """
+        with self.assertRaises(ValueError):
+            self._backend({
+                'auth.ldap.user_dn_format': 'cn={username},ou=users,o=test',
+            })
+
+    def test_mandatory_search(self):
+        """ Must use user_dn_format or base_dn """
+        with self.assertRaises(ValueError):
+            self._backend({
+                'auth.ldap.base_dn': None,
+                'auth.ldap.user_search_filter': None,
+            })

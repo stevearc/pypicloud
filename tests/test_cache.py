@@ -1,26 +1,22 @@
 # -*- coding: utf-8 -*-
 """ Tests for database cache implementations """
-import sys
-import transaction
+from __future__ import unicode_literals
+
 import calendar
-from redis import ConnectionError
-from mock import MagicMock, patch
+import transaction
+import unittest
+from dynamo3 import Throughput
+from flywheel.fields.types import UTC
+from mock import MagicMock, patch, ANY
 from pyramid.testing import DummyRequest
+from redis import ConnectionError
 from sqlalchemy.exc import OperationalError
 
 from . import DummyCache, DummyStorage, make_package
-from dynamo3 import Throughput
-from flywheel.fields.types import UTC
 from pypicloud.cache import ICache, SQLCache, RedisCache
 from pypicloud.cache.dynamo import DynamoCache, DynamoPackage, PackageSummary
 from pypicloud.cache.sql import SQLPackage
 from pypicloud.storage import IStorage
-
-
-try:
-    import unittest2 as unittest  # pylint: disable=F0401
-except ImportError:
-    import unittest
 
 
 class TestBaseCache(unittest.TestCase):
@@ -87,20 +83,18 @@ class TestBaseCache(unittest.TestCase):
         cache = DummyCache()
         cache.upload('pkg1-0.3.tar.gz', None)
         cache.upload('pkg1-1.1.tar.gz', None)
-        p1 = cache.upload('pkg1a2.tar.gz', None, 'pkg1', '1.1.1a2')
-        p2 = cache.upload('pkg2.tar.gz', None, 'pkg2', '0.1dev2')
+        p1 = cache.upload('pkg1a2.tar.gz', None, 'pkg1', '1.1.1a2', 'summary')
+        p2 = cache.upload('pkg2.tar.gz', None, 'pkg2', '0.1dev2', 'summary')
         summaries = cache.summary()
         self.assertItemsEqual(summaries, [
             {
                 'name': 'pkg1',
-                'stable': '1.1',
-                'unstable': '1.1.1a2',
+                'summary': 'summary',
                 'last_modified': p1.last_modified,
             },
             {
                 'name': 'pkg2',
-                'stable': None,
-                'unstable': '0.1dev2',
+                'summary': 'summary',
                 'last_modified': p2.last_modified,
             },
         ])
@@ -162,7 +156,9 @@ class TestSQLiteCache(unittest.TestCase):
 
     def setUp(self):
         super(TestSQLiteCache, self).setUp()
+        transaction.begin()
         self.request = DummyRequest()
+        self.request.tm = transaction.manager
         self.db = SQLCache(self.request, **self.kwargs)
         self.sql = self.db.db
         self.storage = self.db.storage = MagicMock(spec=IStorage)
@@ -323,10 +319,6 @@ class TestSQLiteCache(unittest.TestCase):
         # Order them correctly. assertItemsEqual isn't playing nice in py2.6
         if s1['name'] == 'pkg2':
             s1, s2 = s2, s1
-        self.assertEqual(s1['stable'], u'1.1')
-        self.assertEqual(s1['unstable'], u'1.1.1a2')
-        self.assertIsNone(s2['stable'])
-        self.assertEqual(s2['unstable'], u'0.1dev2')
         # last_modified may be rounded when stored in MySQL,
         # so the best we can do is make sure they're close.
         self.assertTrue(
@@ -388,14 +380,11 @@ class TestRedisCache(unittest.TestCase):
             cls.redis.flushdb()
         except ConnectionError:
             msg = "Redis not found on port 6379"
-            if sys.version_info < (2, 7):
-                raise unittest.SkipTest(msg)
-            else:
-                setattr(
-                    cls,
-                    "setUp",
-                    lambda cls: unittest.TestCase.skipTest(cls, msg),
-                )
+            setattr(
+                cls,
+                "setUp",
+                lambda cls: unittest.TestCase.skipTest(cls, msg),
+            )
 
     def setUp(self):
         super(TestRedisCache, self).setUp()
@@ -431,6 +420,10 @@ class TestRedisCache(unittest.TestCase):
             'expire': 7237,
         }
         pkg = make_package(**kwargs)
+        # Due to some rounding weirdness in old Py3 versions, we need to remove
+        # the microseconds to avoid a flappy test.
+        # See: https://bugs.python.org/issue23517
+        pkg.last_modified = pkg.last_modified.replace(microsecond=0)
         self.db.save(pkg)
 
         loaded = self.db.fetch(pkg.filename)
@@ -540,7 +533,23 @@ class TestRedisCache(unittest.TestCase):
         for pkg in pkgs:
             self.db.save(pkg)
         saved_pkgs = self.db.distinct()
+
         self.assertItemsEqual(saved_pkgs, set([p.name for p in pkgs]))
+
+    def test_delete_package(self):
+        """ Deleting the last package of a name removes from distinct() """
+        pkgs = [
+            make_package(factory=SQLPackage),
+            make_package('mypkg2', '1.3.4', 'my/other/path',
+                         factory=SQLPackage),
+        ]
+        for pkg in pkgs:
+            self.db.save(pkg)
+        self.db.clear(pkgs[0])
+        saved_pkgs = self.db.distinct()
+        self.assertEqual(saved_pkgs, ['mypkg2'])
+        summaries = self.db.summary()
+        self.assertEqual(len(summaries), 1)
 
     def test_search_or(self):
         """ search() returns packages that match the query """
@@ -586,6 +595,35 @@ class TestRedisCache(unittest.TestCase):
             all_versions = self.db.all(name)
             self.assertEqual(len(all_versions), 2)
 
+    def test_summary(self):
+        """ summary constructs per-package metadata summary """
+        self.db.upload('pkg1-0.3a2.tar.gz', None, 'pkg1', '0.3a2')
+        self.db.upload('pkg1-1.1.tar.gz', None, 'pkg1', '1.1')
+        p1 = self.db.upload('pkg1a2.tar.gz', None, 'pkg1', '1.1.1a2', 'summary')
+        p2 = self.db.upload('pkg2.tar.gz', None, 'pkg2', '0.1dev2', 'summary')
+        summaries = self.db.summary()
+        self.assertItemsEqual(summaries, [
+            {
+                'name': 'pkg1',
+                'summary': 'summary',
+                'last_modified': ANY,
+            },
+            {
+                'name': 'pkg2',
+                'summary': 'summary',
+                'last_modified': ANY,
+            },
+        ])
+        # Have to compare the last_modified fuzzily
+        self.assertEqual(
+            summaries[0]['last_modified'].utctimetuple(),
+            p1.last_modified.utctimetuple(),
+        )
+        self.assertEqual(
+            summaries[1]['last_modified'].utctimetuple(),
+            p2.last_modified.utctimetuple(),
+        )
+
 
 class TestDynamoCache(unittest.TestCase):
 
@@ -600,11 +638,12 @@ class TestDynamoCache(unittest.TestCase):
         host, port = host.split(':')
         settings = {
             'pypi.storage': 'tests.DummyStorage',
+            'db.region_name': 'us-east-1',
             'db.host': host,
             'db.port': port,
             'db.namespace': 'test.',
-            'db.access_key': '',
-            'db.secret_key': '',
+            'db.aws_access_key_id': '',
+            'db.aws_secret_access_key': '',
         }
         cls.kwargs = DynamoCache.configure(settings)
         cls.engine = cls.kwargs['engine']
@@ -628,10 +667,8 @@ class TestDynamoCache(unittest.TestCase):
         """ Save a DynamoPackage to the db """
         for pkg in pkgs:
             self.engine.save(pkg)
-            summary = (self.engine.get(PackageSummary, name=pkg.name) or
-                       PackageSummary(pkg))
-            summary.update_with(pkg)
-            self.engine.sync(summary)
+            summary = PackageSummary(pkg)
+            self.engine.save(summary, overwrite=True)
 
     def test_upload(self):
         """ upload() saves package and uploads to storage """
@@ -757,20 +794,18 @@ class TestDynamoCache(unittest.TestCase):
         """ summary constructs per-package metadata summary """
         self.db.upload('pkg1-0.3a2.tar.gz', None, 'pkg1', '0.3a2')
         self.db.upload('pkg1-1.1.tar.gz', None, 'pkg1', '1.1')
-        p1 = self.db.upload('pkg1a2.tar.gz', None, 'pkg1', '1.1.1a2')
-        p2 = self.db.upload('pkg2.tar.gz', None, 'pkg2', '0.1dev2')
+        p1 = self.db.upload('pkg1a2.tar.gz', None, 'pkg1', '1.1.1a2', 'summary')
+        p2 = self.db.upload('pkg2.tar.gz', None, 'pkg2', '0.1dev2', 'summary')
         summaries = self.db.summary()
         self.assertItemsEqual(summaries, [
             {
                 'name': 'pkg1',
-                'stable': '1.1',
-                'unstable': '1.1.1a2',
+                'summary': 'summary',
                 'last_modified': p1.last_modified.replace(tzinfo=UTC),
             },
             {
                 'name': 'pkg2',
-                'stable': None,
-                'unstable': '0.1dev2',
+                'summary': 'summary',
                 'last_modified': p2.last_modified.replace(tzinfo=UTC),
             },
         ])
@@ -810,35 +845,3 @@ class TestDynamoCache(unittest.TestCase):
             for index in desc.global_indexes:
                 self.assertEqual(index.throughput.read, 7)
                 self.assertEqual(index.throughput.write, 7)
-
-    def test_update_wrong_summary(self):
-        """ Updating summary with wrong package doesn't blow up """
-        pkg1 = make_package('mypkg', '1.0', factory=DynamoPackage)
-        pkg2 = make_package('mypkg2', '1.3', factory=DynamoPackage)
-        summary = PackageSummary(pkg1)
-        summary.update_with(pkg2)
-        self.assertEqual(summary.stable, pkg1.version)
-
-    def test_delete_updates_summary(self):
-        """ Deleting a package updates the summary """
-        pkg1 = make_package('mypkg', '1.0', factory=DynamoPackage)
-        pkg2 = make_package('mypkg', '1.3', factory=DynamoPackage)
-        self._save_pkgs(pkg1, pkg2)
-        self.db.delete(pkg2)
-        summary = self.engine.scan(PackageSummary).first()
-        self.assertEqual(summary.stable, pkg1.version)
-
-    def test_delete_regression(self):
-        """
-        Regression test. Dynamo cache would sometimes remove the wrong package.
-
-        See https://github.com/stevearc/pypicloud/issues/118
-        """
-        pkg1 = make_package('mypkg', '1.0', 'mypkg-1.0.tar.gz',
-                            factory=DynamoPackage)
-        pkg2 = make_package('mypkg', '1.0', 'mypkg-1.0.whl',
-                            factory=DynamoPackage)
-        self._save_pkgs(pkg1, pkg2)
-        self.db.delete(pkg2)
-        pkg = self.engine.scan(DynamoPackage).first()
-        self.assertEqual(pkg.filename, pkg1.filename)

@@ -1,6 +1,7 @@
 """ Utilities """
 import posixpath
 import re
+import time
 
 import distlib.locators
 import logging
@@ -12,6 +13,7 @@ from six.moves.urllib.parse import urlparse  # pylint: disable=F0401,E0611
 
 LOG = logging.getLogger(__name__)
 ALL_EXTENSIONS = Locator.source_extensions + Locator.binary_extensions
+SENTINEL = object()
 
 
 def parse_filename(filename, name=None):
@@ -63,13 +65,6 @@ class BetterScrapingLocator(SimpleScrapingLocator):
             filename,
         )
 
-    def _get_project(self, name):
-        # We're overriding _get_project so that we can wrap the name with the
-        # NormalizeNameHackString. This is hopefully temporary. See this PR for
-        # more details:
-        # https://bitbucket.org/vinay.sajip/distlib/pull-requests/7/update-name-comparison-to-match-pep-503
-        return super(BetterScrapingLocator, self)._get_project(NormalizeNameHackString(name))
-
 
 # Distlib checks if wheels are compatible before returning them.
 # This is useful if you are attempting to install on the system running
@@ -80,44 +75,6 @@ def is_compatible(wheel, tags=None):
     return True
 
 distlib.locators.is_compatible = is_compatible
-
-
-class NormalizeNameHackString(six.text_type):
-    """
-    Super hacked wrapper around a string that runs normalize_name before doing
-    equality comparisons
-
-    """
-
-    def lower(self):
-        # lower() needs to return another NormalizeNameHackString in order to
-        # plumb this hack far enough into distlib.
-        lower = super(NormalizeNameHackString, self).lower()
-        return NormalizeNameHackString(lower)
-
-    def __eq__(self, other):
-        if isinstance(other, six.string_types):
-            return normalize_name(self) == normalize_name(other)
-        else:
-            return False
-
-
-def getdefaults(settings, *args):
-    """
-    Attempt multiple gets from a dict, returning a default value if none of the
-    keys are found.
-
-    """
-    assert len(args) >= 3
-    args, default = args[:-1], args[-1]
-    canonical = args[0]
-    for key in args:
-        if key in settings:
-            if key != canonical:
-                LOG.warn("Using deprecated option '%s' "
-                         "(replaced by '%s')", key, canonical)
-            return settings[key]
-    return default
 
 
 def create_matcher(queries, query_type):
@@ -142,3 +99,135 @@ def create_matcher(queries, query_type):
         return lambda x: any((q in x.lower() for q in queries))
     else:
         return lambda x: all((q in x.lower() for q in queries))
+
+
+def get_settings(settings, prefix, **kwargs):
+    """
+    Convenience method for fetching settings
+
+    Returns a dict; any settings that were missing from the config file will
+    not be present in the returned dict (as opposed to being present with a
+    None value)
+
+    Parameters
+    ----------
+    settings : dict
+        The settings dict
+    prefix : str
+        String to prefix all keys with when fetching value from settings
+    **kwargs : dict
+        Mapping of setting name to conversion function (e.g. str or asbool)
+
+    """
+    computed = {}
+    for name, fxn in six.iteritems(kwargs):
+        val = settings.get(prefix + name)
+        if val is not None:
+            computed[name] = fxn(val)
+    return computed
+
+
+class TimedCache(dict):
+    """
+    Dict that will store entries for a given time, then evict them
+
+    Parameters
+    ----------
+    cache_time : int or None
+        The amount of time to cache entries for, in seconds. 0 will not cache.
+        None will cache forever.
+    factory : callable, optional
+        If provided, when the TimedCache is accessed and has no value, it will
+        attempt to populate itself by calling this function with the key it was
+        accessed with. This function should return a value to cache, or None if
+        no value is found.
+
+    """
+
+    def __init__(self, cache_time, factory=None):
+        super(TimedCache, self).__init__()
+        if cache_time is not None and cache_time < 0:
+            raise ValueError("cache_time cannot be negative")
+        self._cache_time = cache_time
+        self._factory = factory
+        self._times = {}
+
+    def _has_expired(self, key):
+        """ Check if a key is both present and expired """
+        if key not in self._times or self._cache_time is None:
+            return False
+        updated = self._times[key]
+        return updated is not None and time.time() - updated > self._cache_time
+
+    def _evict(self, key):
+        """ Remove a key if it has expired """
+        if self._has_expired(key):
+            del self[key]
+
+    def __contains__(self, key):
+        self._evict(key)
+        return super(TimedCache, self).__contains__(key)
+
+    def __delitem__(self, key):
+        del self._times[key]
+        super(TimedCache, self).__delitem__(key)
+
+    def __setitem__(self, key, value):
+        if self._cache_time == 0:
+            return
+        self._times[key] = time.time()
+        super(TimedCache, self).__setitem__(key, value)
+
+    def __getitem__(self, key):
+        self._evict(key)
+        try:
+            value = super(TimedCache, self).__getitem__(key)
+        except KeyError:
+            if self._factory:
+                value = self._factory(key)
+                if value is None:
+                    raise
+            else:
+                raise
+        return value
+
+    def get(self, key, default=None):
+        self._evict(key)
+        value = super(TimedCache, self).get(key, SENTINEL)
+        if value is SENTINEL:
+            if self._factory is not None:
+                value = self._factory(key)
+                if value is not None:
+                    self[key] = value
+                    return value
+                else:
+                    return default
+            else:
+                return default
+        else:
+            return value
+
+    def set_expire(self, key, value, expiration):
+        """
+        Set a value in the cache with a specific expiration
+
+        Parameters
+        ----------
+        key : str
+        value : value
+        expiration : int or None
+            Sets the value to expire this many seconds from now. If None, will
+            never expire.
+
+        """
+        if expiration is not None:
+            if expiration <= 0:
+                try:
+                    del self[key]
+                except KeyError:
+                    pass
+                return
+            expiration = time.time() + expiration - self._cache_time
+
+        self._times[key] = expiration
+        super(TimedCache, self).__setitem__(key, value)

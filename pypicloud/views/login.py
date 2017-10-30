@@ -69,7 +69,7 @@ def handle_register_request(request, username, password):
         request.response.status_code = 400
         return {
             'code': 400,
-            'message': e.message,
+            'message': e.args[0],
         }
     return request.response
 

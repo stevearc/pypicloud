@@ -1,0 +1,8 @@
+flywheel>=0.2.0
+mysqlclient
+numpydoc
+psycopg2
+redis
+requests
+sphinx
+sphinx_rtd_theme

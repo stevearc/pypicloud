@@ -1,16 +1,21 @@
 language: python
-python: "2.7"
+python: "3.6"
 services:
   - redis-server
   - mysql
   - postgresql
 env:
   - TOXENV=py27
+  - TOXENV=py34
+  - TOXENV=py36
+matrix:
+  include:
+  - python: "3.5"
+    env: TOXENV=py35
 install:
   - pip install tox coveralls
 before_script:
   - mysql -e 'create database test;'
-  - sudo rm -f /etc/boto.cfg
 script: tox
 after_success:
   if [ "$TOXENV" == "py27" ]; then coveralls; fi

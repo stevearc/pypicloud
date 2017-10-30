@@ -6,7 +6,6 @@ from .config import ConfigAccessBackend
 from .base import IAccessBackend, IMutableAccessBackend, pwd_context
 from .remote import RemoteAccessBackend
 from .sql import SQLAccessBackend
-from pypicloud.util import getdefaults
 
 
 def includeme(config):
@@ -14,8 +13,7 @@ def includeme(config):
     settings = config.get_settings()
 
     resolver = DottedNameResolver(__name__)
-    dotted_name = getdefaults(settings, 'pypi.auth', 'pypi.access_backend',
-                              'config')
+    dotted_name = settings.get('pypi.auth', 'config')
     if dotted_name == 'config':
         dotted_name = ConfigAccessBackend
     elif dotted_name == 'remote':

@@ -1,17 +1,24 @@
 PyPICloud - PyPI backed by S3
 =============================
 This is an implementation of the PyPI server for hosting your own python
-packages. It stores the packages in S3 and dynamically generates links to them
-for pip.
+packages. It uses a three layer system for storing and serving files::
 
-After generating the S3 urls, pypicloud caches them in a database. Subsequent
-requests to download packages will use the already-generated urls in the db.
-Pypicloud supports using SQLAlchemy, Redis, or DynamoDB as the cache.
+  +---------+        +-------+        +-----------+
+  | Storage | <----> | Cache | <----> | Pypicloud |
+  +---------+        +-------+        +-----------+
 
-Pypicloud was designed to be fast and easy to replace in the case of server
-failure. Simply copy your config.ini file to a new server and run pypicloud
-there. The only data that needs to be persisted is in S3, which handles the
-redundancy requirements for you.
+The **Storage** layer is where the actual package files will be kept and served
+from. This can be S3 or a directory on the server running pypicloud.
+
+The **Cache** layer stores information about which packages are in stored in
+Storage. This can be DynamoDB, Redis, or any SQL database.
+
+The **Pypicloud** webserver itself is stateless, and you can have any number of
+them as long as they use the same Cache. (Scaling beyond a single cache requires
+:ref:`some additional work <s3_sync>`.)
+
+Pypicloud is designed to be easy to set up for small deploys, and easy to scale
+up when you need it. Go :ref:`get started!<getting_started>`
 
 Code lives here: https://github.com/stevearc/pypicloud
 
@@ -23,6 +30,7 @@ User Guide
     :glob:
 
     topics/getting_started
+    topics/getting_started_advanced
     topics/configuration
     topics/storage
     topics/cache

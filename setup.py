@@ -13,10 +13,10 @@ CHANGES = re.sub(r'\(\s*:(issue|pr|sha):.*?\)', '', CHANGES)
 CHANGES = re.sub(r':ref:`(.*?) <.*>`', r'\1', CHANGES)
 
 REQUIREMENTS = [
-    'boto',
+    'boto3>=1.4.5',
     # We're doing enough subclassing and monkey patching to where we really do
     # need to lock this in to a specific version.
-    'distlib==0.2.3',
+    'distlib==0.2.5',
     'paste',
     'passlib',
     'pycrypto',
@@ -35,6 +35,7 @@ REQUIREMENTS = [
 TEST_REQUIREMENTS = [
     'flywheel',
     'mock',
+    'mockldap',
     'moto',
     'nose',
     'redis',
@@ -45,13 +46,16 @@ TEST_REQUIREMENTS = [
 if __name__ == "__main__":
     setup(
         name='pypicloud',
-        version='0.5.6',
+        version='1.0.0',
         description='Private PyPI backed by S3',
         long_description=README + '\n\n' + CHANGES,
         classifiers=[
             'Programming Language :: Python',
             'Programming Language :: Python :: 2',
             'Programming Language :: Python :: 2.7',
+            'Programming Language :: Python :: 3.4',
+            'Programming Language :: Python :: 3.5',
+            'Programming Language :: Python :: 3.6',
             'Development Status :: 4 - Beta',
             'Framework :: Pyramid',
             'Intended Audience :: System Administrators',
@@ -78,6 +82,8 @@ if __name__ == "__main__":
                 'ppc-migrate = pypicloud.scripts:migrate_packages',
                 'ppc-export = pypicloud.scripts:export_access',
                 'ppc-import = pypicloud.scripts:import_access',
+                'ppc-create-s3-sync = pypicloud.lambda_scripts:create_sync_scripts',
+                'ppc-build-lambda-bundle = pypicloud.lambda_scripts:build_lambda_bundle',
             ],
             'paste.app_factory': [
                 'main = pypicloud:main',
@@ -87,8 +93,9 @@ if __name__ == "__main__":
         tests_require=REQUIREMENTS + TEST_REQUIREMENTS,
         test_suite='tests',
         extras_require={
-            'ldap': ['python-ldap >= 2.4.0'],
+            'ldap': ['pyldap'],
             'server': ['waitress'],
             'dynamo': ['flywheel >= 0.2.0'],
+            'redis': ['redis'],
         },
     )

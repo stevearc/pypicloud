@@ -30,14 +30,13 @@ class TestScripts(unittest.TestCase):
         scripts.gen_password()
         self.assertTrue(genpass.called)
 
-    @patch('__builtin__.raw_input')
-    def test_prompt_default(self, stdin):
+    @patch('pypicloud.scripts.wrapped_input', return_value='')
+    def test_prompt_default(self, _):
         """ If user hits 'enter', return default value """
-        stdin.return_value = ''
         ret = scripts.prompt('', default='abc')
         self.assertEqual(ret, 'abc')
 
-    @patch('__builtin__.raw_input')
+    @patch('pypicloud.scripts.wrapped_input')
     def test_prompt_no_default(self, stdin):
         """ If no default, require a value """
         invals = ['', 'foo']
@@ -45,7 +44,7 @@ class TestScripts(unittest.TestCase):
         ret = scripts.prompt('')
         self.assertEqual(ret, 'foo')
 
-    @patch('__builtin__.raw_input')
+    @patch('pypicloud.scripts.wrapped_input')
     def test_prompt_validate(self, stdin):
         """ Prompt user until return value passes validation check """
         invals = ['foo', 'bar']
@@ -106,4 +105,17 @@ class TestScripts(unittest.TestCase):
         ret = scripts.promptyn('', True)
         self.assertTrue(ret)
         ret = scripts.promptyn('', False)
+        self.assertFalse(ret)
+
+    def test_bucket_validate(self):
+        """ Validate bucket name """
+        ret = scripts.bucket_validate('bucketname')
+        self.assertTrue(ret)
+        ret = scripts.bucket_validate('bucket.name')
+        self.assertTrue(ret)
+        ret = scripts.bucket_validate('bucketname.')
+        self.assertFalse(ret)
+        ret = scripts.bucket_validate('.bucketname')
+        self.assertFalse(ret)
+        ret = scripts.bucket_validate('bucket..name')
         self.assertFalse(ret)

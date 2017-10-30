@@ -2,6 +2,20 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.0.0 - 2017/10/29
+------------------
+* Python3 support thanks to boto3
+* Removing stable/unstable version from package summary
+* Changing and removing many settings
+* Performance tweaks
+* ``graceful_reload`` option for caches, to refresh from the storage backend while remaining operational
+* Complete rewrite of LDAP access backend
+* Utilities for hooking into :ref:`S3 create & delete notifications <s3_sync>` to keep multiple caches in sync
+
+**NOTE** Because of the boto3 rewrite, many settings have changed. You will need
+to review the settings for your storage, cache, and access backends to make sure
+they are correct, as well as rebuilding your cache as per usual.
+
 0.5.6 - 2017/10/29
 ------------------
 * Add ``storage.object_acl`` for S3 (:pr:`139`)

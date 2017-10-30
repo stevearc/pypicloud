@@ -1,11 +1,12 @@
 """ Unit tests for the simple endpoints """
-from types import MethodType
+import six
 
 from mock import MagicMock, patch
 
 from . import MockServerTest, make_package
 from pypicloud.auth import _request_login
 from pypicloud.views.simple import (upload, search, simple, package_versions,
+                                    package_versions_json,
                                     get_fallback_packages)
 
 
@@ -208,10 +209,8 @@ class PackageReadTestBase(unittest.TestCase):
         request.access.can_update_cache = lambda: 'c' in perms
         request.access.has_permission.side_effect = lambda n, p: 'r' in perms
         request.is_logged_in = user is not None
-        request.request_login = MethodType(
-            _request_login,
-            request,
-            request.__class__)
+        request.request_login = six.create_bound_method(_request_login,
+                                                        request)
         pkgs = []
         if package is not None:
             pkgs.append(package)
@@ -246,6 +245,16 @@ class PackageReadTestBase(unittest.TestCase):
         self.assertEqual(ret, {'pkgs': {
             self.package.filename: self.package.get_url(request),
         }})
+        # Check the /json endpoint too
+        ret = package_versions_json(self.package, request)
+        self.assertEqual(ret['releases'], {
+            '1.1': [
+                {
+                    'filename': self.package.filename,
+                    'url': self.package.get_url(request),
+                },
+            ],
+        })
 
     def should_cache(self, request):
         """ When requested, the endpoint should serve the fallback packages """

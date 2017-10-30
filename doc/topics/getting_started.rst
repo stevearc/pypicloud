@@ -3,6 +3,9 @@
 Getting Started
 ===============
 
+There is a `docker container <https://github.com/stevearc/pypicloud-docker>`__
+if you're into that sort of thing.
+
 Installation
 ------------
 First create and activate a virtualenv to contain the installation:
@@ -24,18 +27,10 @@ the WSGI server because it's easy to set up.
 
     (mypypi)$ pip install pypicloud[server]
 
-AWS
----
-If you have not already, create an access key and secret by following the `AWS
-guide
-<http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSGettingStartedGuide/AWSCredentials.html>`_
-
-The default configuration should work, but if you get permission errors or
-403's, you will need to set :ref:`a policy on your bucket <s3_policy>`.
-
 Configuration
 -------------
-Generate a default server configuration
+Generate a server configuration file. Choose ``filesystem`` when it asks where
+you want to store your packages.
 
 .. code-block:: bash
 
@@ -49,14 +44,19 @@ Generate a default server configuration
 
 Running
 -------
-Now you can run the server using pserve
+You can run the server using pserve
 
 .. code-block:: bash
 
     (mypypi)$ pserve server.ini
 
-The server is now running on port 6543. You can view the web interface at
+The server is running on port 6543. You can view the web interface at
 http://localhost:6543/
+
+Packages will be stored in a directory named ``packages`` next to the
+``server.ini`` file. Pypicloud will use a SQLite database in the same location
+to cache the package index. This is the simplest configuration for pypicloud
+because it is entirely self-contained on a single server.
 
 Installing Packages
 -------------------
@@ -64,7 +64,7 @@ After you have the webserver started, you can install packages using::
 
     pip install -i http://localhost:6543/simple/ PACKAGE1 [PACKAGE2 ...]
 
-If you want to configure pip to always use PyPI Cloud, you can put your
+If you want to configure pip to always use pypicloud, you can put your
 preferences into the ``$HOME/.pip/pip.conf`` file::
 
     [global]
@@ -73,7 +73,9 @@ preferences into the ``$HOME/.pip/pip.conf`` file::
 Uploading Packages
 ------------------
 To upload packages, you will need to add your server as an index server inside
-your ``$HOME/.pypirc``::
+your ``$HOME/.pypirc``:
+
+.. code-block:: ini
 
     [distutils]
     index-servers = pypicloud
@@ -83,7 +85,7 @@ your ``$HOME/.pypirc``::
     username: <<username>>
     password: <<password>>
 
-Now to upload a package you should run::
+Then you can run::
 
     python setup.py sdist upload -r pypicloud
 
@@ -93,11 +95,12 @@ After packages have been uploaded, you can search for them via pip::
 
     pip search -i http://localhost:6543/pypi QUERY1 [QUERY2 ...]
 
-If you want to configure pip to use PyPI Cloud for search, you can update your
+If you want to configure pip to use pypicloud for search, you can update your
 preferences in the ``$HOME/.pip/pip.conf`` file::
 
     [search]
     index = http://localhost:6543/pypi
 
-Note that this will ONLY return results from the PyPi Cloud repository. The
-official PyPi repository will not be queried.
+Note that this will ONLY return results from the pypicloud repository. The
+official PyPi repository will not be queried (regardless of your :ref:`fallback
+<fallback>` setting)

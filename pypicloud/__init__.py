@@ -4,7 +4,7 @@ import sys
 
 import calendar
 import datetime
-
+import io
 import logging
 import traceback
 from pyramid.config import Configurator
@@ -17,17 +17,13 @@ from .route import Root
 from .util import BetterScrapingLocator
 
 
-__version__ = '0.5.6'
+__version__ = '1.0.0'
 LOG = logging.getLogger(__name__)
 
 
 def to_json(value):
     """ A json filter for jinja2 """
     return render('json', value)
-
-json_renderer = JSON()  # pylint: disable=C0103
-json_renderer.add_adapter(datetime.datetime, lambda obj, r:
-                          calendar.timegm(obj.utctimetuple()))
 
 
 def _app_url(request, *paths, **params):
@@ -63,6 +59,12 @@ def includeme(config):
     config.include('pypicloud.access')
     config.include('pypicloud.cache')
 
+    # If we're reloading templates, we should also pretty-print json
+    reload_templates = asbool(settings.get('pyramid.reload_templates'))
+    indent = 4 if reload_templates else None
+    json_renderer = JSON(indent=indent)
+    json_renderer.add_adapter(datetime.datetime, lambda obj, r:
+                              calendar.timegm(obj.utctimetuple()))
     config.add_renderer('json', json_renderer)
     # Jinja2 configuration
     settings['jinja2.filters'] = {
@@ -85,11 +87,6 @@ def includeme(config):
                                                 default_url)
 
     fallback_mode = settings.get('pypi.fallback', 'redirect')
-    # Compatibility with the deprecated pypi.use_fallback option
-    if 'pypi.fallback' not in settings and 'pypi.use_fallback' in settings:
-        LOG.warn("Using deprecated option 'pypi.use_fallback'")
-        use_fallback = asbool(settings['pypi.use_fallback'])
-        fallback_mode = 'redirect' if use_fallback else 'none'
     always_show_upstream = settings.get('pypi.always_show_upstream')
 
     # Using fallback=mirror is the same as fallback=cache and
@@ -98,10 +95,6 @@ def includeme(config):
         always_show_upstream = fallback_mode == 'mirror'
     else:
         always_show_upstream = asbool(always_show_upstream)
-    if fallback_mode == 'mirror':
-        LOG.warn("pypi.fallback = mirror is deprecated. You can now use "
-                 "pypi.fallback = cache and pypi.always_show_upstream = true")
-        fallback_mode = 'cache'
 
     modes = ('redirect', 'cache', 'none')
     if fallback_mode not in modes:
@@ -141,10 +134,14 @@ def hook_exceptions():
     """
 
     if hasattr(sys.stdout, "fileno"):  # when testing, sys.stdout is StringIO
-        # reopen stdout in non buffered mode
-        sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
-        # set the hook
-        sys.excepthook = traceback_formatter
+        try:
+            # reopen stdout in non buffered mode
+            sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
+        except io.UnsupportedOperation:
+            pass
+        else:
+            # set the hook
+            sys.excepthook = traceback_formatter
 
 
 def main(config, **settings):

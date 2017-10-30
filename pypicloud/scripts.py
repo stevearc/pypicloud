@@ -1,5 +1,6 @@
 """ Commandline scripts """
 import sys
+import six
 
 import argparse
 import getpass
@@ -18,7 +19,7 @@ from pypicloud.access import pwd_context
 
 def gen_password():
     """ Generate a salted password """
-    print _gen_password()
+    six.print_(_gen_password())
 
 
 def _gen_password():
@@ -29,15 +30,20 @@ def _gen_password():
         if password == verify:
             return pwd_context.encrypt(password)
         else:
-            print "Passwords do not match!"
+            six.print_("Passwords do not match!")
 
 NO_DEFAULT = object()
+
+
+def wrapped_input(msg):
+    """ Wraps input for tests """
+    return six.moves.input(msg)
 
 
 def prompt(msg, default=NO_DEFAULT, validate=None):
     """ Prompt user for input """
     while True:
-        response = raw_input(msg + ' ').strip()
+        response = wrapped_input(msg + ' ').strip()
         if not response:
             if default is NO_DEFAULT:
                 continue
@@ -50,13 +56,13 @@ def prompt_option(text, choices, default=NO_DEFAULT):
     """ Prompt the user to choose one of a list of options """
     while True:
         for i, msg in enumerate(choices):
-            print "[%d] %s" % (i + 1, msg)
+            six.print_("[%d] %s" % (i + 1, msg))
         response = prompt(text, default=default)
         try:
             idx = int(response) - 1
             return choices[idx]
         except (ValueError, IndexError):
-            print "Invalid choice\n"
+            six.print_("Invalid choice\n")
 
 
 def promptyn(msg, default=None):
@@ -74,6 +80,20 @@ def promptyn(msg, default=None):
             return False
         elif not confirm and default is not None:
             return default
+
+
+def bucket_validate(name):
+    """ Check for valid bucket name """
+    if name.startswith('.'):
+        six.print_("Bucket names cannot start with '.'")
+        return False
+    if name.endswith('.'):
+        six.print_("Bucket names cannot end with '.'")
+        return False
+    if '..' in name:
+        six.print_("Bucket names cannot contain '..'")
+        return False
+    return True
 
 
 def make_config(argv=None):
@@ -135,17 +155,10 @@ def make_config(argv=None):
         else:
             data['secret_key'] = prompt("AWS secret access key?")
 
-        def bucket_validate(name):
-            """ Check for valid bucket name """
-            if '.' in name:
-                print "Bucket names cannot contain '.'"
-                return False
-            return True
-
         data['s3_bucket'] = prompt("S3 bucket name?", validate=bucket_validate)
 
-    data['encrypt_key'] = b64encode(os.urandom(32))
-    data['validate_key'] = b64encode(os.urandom(32))
+    data['encrypt_key'] = b64encode(os.urandom(32)).decode('utf-8')
+    data['validate_key'] = b64encode(os.urandom(32)).decode('utf-8')
 
     data['admin'] = prompt("Admin username?")
     data['password'] = _gen_password()
@@ -160,7 +173,7 @@ def make_config(argv=None):
             data['venv'] = sys.prefix
         data['wsgi'] = 'uwsgi'
 
-    tmpl_str = resource_string('pypicloud', 'templates/config.ini.jinja2')
+    tmpl_str = resource_string('pypicloud', 'templates/config.ini.jinja2').decode('utf-8')
     template = Template(tmpl_str)
 
     config_file = template.render(**data)
@@ -171,7 +184,7 @@ def make_config(argv=None):
         with open(args.outfile, 'w') as ofile:
             ofile.write(config_file)
 
-        print "Config file written to '%s'" % args.outfile
+        six.print_("Config file written to '%s'" % args.outfile)
 
 
 def migrate_packages(argv=None):
@@ -207,7 +220,7 @@ def migrate_packages(argv=None):
     new_env = bootstrap(args.config_to)
     new_storage = new_env['request'].db.storage
     for package in all_packages:
-        print "Migrating %s" % package
+        six.print_("Migrating %s" % package)
         with old_storage.open(package) as data:
             # we need to recalculate the path for the new storage config
             package.data.pop('path', None)
@@ -232,7 +245,7 @@ def export_access(argv=None):
         with gzip.open(args.o, 'w') as ofile:
             json.dump(data, ofile)
     else:
-        print json.dumps(data, indent=2)
+        six.print_(json.dumps(data, indent=2))
 
 
 def import_access(argv=None):
@@ -258,7 +271,7 @@ def import_access(argv=None):
         with gzip.open(args.i, 'r') as ifile:
             data = json.load(ifile)
     else:
-        print "Reading data from stdin..."
+        six.print_("Reading data from stdin...")
         data = json.load(sys.stdin)
 
     env = bootstrap(args.config)
@@ -266,4 +279,4 @@ def import_access(argv=None):
     result = access.load(data)
     transaction.commit()
     if result is not None:
-        print result
+        six.print_(result)

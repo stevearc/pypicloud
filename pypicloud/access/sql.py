@@ -1,12 +1,10 @@
 """ Access backend for storing permissions in using SQLAlchemy """
-from sqlalchemy import (engine_from_config, Column, String, Text, Boolean, Table,
-                        ForeignKey)
+from sqlalchemy import (engine_from_config, Column, String, Text, Boolean,
+                        Table, ForeignKey)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, backref
 from sqlalchemy import orm
-# pylint: disable=F0401,E0611,W0403
-from zope.sqlalchemy import ZopeTransactionExtension
-# pylint: enable=F0401,E0611,W0403
+import zope.sqlalchemy
 
 from .base import IMutableAccessBackend
 
@@ -137,17 +135,14 @@ class SQLAccessBackend(IMutableAccessBackend):
         super(SQLAccessBackend, self).__init__(request, **kwargs)
         self.db = dbmaker()
 
-        def cleanup(_):
-            """ Close the session after the request """
-            self.db.close()
-        request.add_finished_callback(cleanup)
+        if request is not None:
+            zope.sqlalchemy.register(self.db, transaction_manager=request.tm)
 
     @classmethod
     def configure(cls, settings):
         kwargs = super(SQLAccessBackend, cls).configure(settings)
         engine = engine_from_config(settings, prefix='auth.db.')
-        kwargs['dbmaker'] = sessionmaker(
-            bind=engine, extension=ZopeTransactionExtension())
+        kwargs['dbmaker'] = sessionmaker(bind=engine)
         # Create SQL schema if not exists
         Base.metadata.create_all(bind=engine)
         return kwargs
@@ -188,33 +183,19 @@ class SQLAccessBackend(IMutableAccessBackend):
         user = self.db.query(User).filter_by(username=username).first()
         return user and user.admin
 
-    def group_permissions(self, package, group=None):
-        if group is None:
-            query = self.db.query(GroupPermission).filter_by(package=package)
-            perms = {}
-            for perm in query:
-                perms[perm.groupname] = perm.permissions
-            return perms
-        else:
-            perm = self.db.query(GroupPermission)\
-                .filter_by(package=package, groupname=group).first()
-            if perm:
-                return perm.permissions
-            return []
+    def group_permissions(self, package):
+        query = self.db.query(GroupPermission).filter_by(package=package)
+        perms = {}
+        for perm in query:
+            perms[perm.groupname] = perm.permissions
+        return perms
 
-    def user_permissions(self, package, username=None):
-        if username is None:
-            query = self.db.query(UserPermission).filter_by(package=package)
-            perms = {}
-            for perm in query:
-                perms[perm.username] = perm.permissions
-            return perms
-        else:
-            perm = self.db.query(UserPermission)\
-                .filter_by(package=package, username=username).first()
-            if perm:
-                return perm.permissions
-            return []
+    def user_permissions(self, package):
+        query = self.db.query(UserPermission).filter_by(package=package)
+        perms = {}
+        for perm in query:
+            perms[perm.username] = perm.permissions
+        return perms
 
     def user_package_permissions(self, username):
         query = self.db.query(UserPermission).filter_by(username=username)

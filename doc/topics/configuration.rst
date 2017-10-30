@@ -87,13 +87,6 @@ The HTTP Basic Auth realm (default 'pypi')
 
 Overide for the root server URL displayed in the banner of the homepage.
 
-``pypi.use_fallback`` (deprecated)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** bool, optional
-
-Replaced by ``pypi.fallback``. Setting to ``True`` has no effect. Setting to
-``False`` will set ``pypi.fallback = none``.
-
 Storage
 ^^^^^^^
 ``pypi.storage``

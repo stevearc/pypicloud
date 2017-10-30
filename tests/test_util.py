@@ -1,9 +1,7 @@
 """ Tests for pypicloud utilities """
 from pypicloud import util
-try:
-    import unittest2 as unittest  # pylint: disable=F0401
-except ImportError:
-    import unittest
+import unittest
+from mock import patch
 
 
 class TestParse(unittest.TestCase):
@@ -65,3 +63,101 @@ class TestNormalizeName(unittest.TestCase):
     def test_normalize_namespace_package(self):
         """ Namespace packages must be normalized according to PEP503 """
         self.assertEqual(util.normalize_name('repoze.lru'), 'repoze-lru')
+
+
+class TestTimedCache(unittest.TestCase):
+
+    """ Tests for the TimedCache class """
+
+    @patch('pypicloud.util.time')
+    def test_evict(self, time):
+        """ Cache evicts value after expiration """
+        cache = util.TimedCache(5)
+        time.time.return_value = 0
+        cache['a'] = 1
+        time.time.return_value = 3
+        self.assertEqual(cache['a'], 1)
+        time.time.return_value = 8
+        with self.assertRaises(KeyError):
+            cache['a']  # pylint: disable=W0104
+
+    @patch('pypicloud.util.time')
+    def test_evict_get(self, time):
+        """ Cache .get() evicts value after expiration """
+        cache = util.TimedCache(5)
+        time.time.return_value = 0
+        cache['a'] = 1
+        time.time.return_value = 8
+        self.assertEqual(cache.get('a', 5), 5)
+
+    def test_negative_cache_time(self):
+        """ cache_time cannot be negative """
+        with self.assertRaises(ValueError):
+            util.TimedCache(-4)
+
+    @patch('pypicloud.util.time')
+    def test_cache_time_zero(self, time):
+        """ Cache time of 0 never caches """
+        cache = util.TimedCache(0)
+        time.time.return_value = 0
+        cache['a'] = 1
+        self.assertTrue('a' not in cache)
+
+    def test_factory(self):
+        """ Factory function populates cache """
+        cache = util.TimedCache(None, lambda a: a)
+        self.assertEqual(cache['a'], 'a')
+
+    def test_factory_none(self):
+        """ When factory function returns None, no value """
+        cache = util.TimedCache(None, lambda a: None)
+        with self.assertRaises(KeyError):
+            cache['a']  # pylint: disable=W0104
+
+    def test_factory_get(self):
+        """ Factory function populates cache from .get() """
+        cache = util.TimedCache(None, lambda a: a)
+        self.assertEqual(cache.get('a'), 'a')
+
+    def test_factory_get_none(self):
+        """ Factory function populates cache from .get() """
+        cache = util.TimedCache(None, lambda a: None)
+        self.assertEqual(cache.get('a', 'f'), 'f')
+
+    def test_get(self):
+        """ .get() functions as per dict """
+        cache = util.TimedCache(None)
+        cache['a'] = 1
+        self.assertEqual(cache.get('a'), 1)
+        self.assertEqual(cache.get('b', 6), 6)
+
+    @patch('pypicloud.util.time')
+    def test_set_no_expire(self, time):
+        """ set_expire with None will never expire value """
+        cache = util.TimedCache(5)
+        cache.set_expire('a', 1, None)
+        time.time.return_value = 8
+        self.assertEqual(cache['a'], 1)
+
+    @patch('pypicloud.util.time')
+    def test_set_expire(self, time):
+        """ set_expire is calculated from now """
+        cache = util.TimedCache(5)
+        time.time.return_value = 0
+        cache.set_expire('a', 1, 30)
+        self.assertEqual(cache['a'], 1)
+        time.time.return_value = 29
+        self.assertEqual(cache['a'], 1)
+        time.time.return_value = 31
+        self.assertTrue('a' not in cache)
+
+    @patch('pypicloud.util.time')
+    def test_set_expire_clear(self, time):
+        """ set_expire with 0 will evict value """
+        cache = util.TimedCache(5)
+        time.time.return_value = 0
+        cache['a'] = 1
+        cache.set_expire('a', None, 0)
+        self.assertTrue('a' not in cache)
+        cache.set_expire('b', None, 0)
+        self.assertTrue('b' not in cache)
