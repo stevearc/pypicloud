@@ -67,7 +67,7 @@ startup. If blank, the classic US region will be used.
 
 .. _s3_credentials:
 
-``storage.aws_access_key_id``, ``storage.aws_secret_access_key``
+``storage.access_key``, ``storage.secret_key``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string, optional
 
