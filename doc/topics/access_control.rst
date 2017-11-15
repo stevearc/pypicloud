@@ -303,17 +303,17 @@ port, as an example: ``ldap://10.0.0.1:389``
 
 ``auth.ldap.service_dn``
 ~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** string
+**Argument:** string, optional
 
 The FQDN of the LDAP service account used. A service account is required to
-perform the initial bind with. It only requires read access to your LDAP.
+perform the initial bind with. It only requires read access to your LDAP. If not
+specified an anonymous bind will be used.
 
 ``auth.ldap.service_password``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string, optional
 
-The password for the LDAP service account. Default will use an empty string for
-an anonymous bind.
+The password for the LDAP service account.
 
 ``auth.ldap.service_username``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -433,3 +433,11 @@ entries for.
 
 The default behavior is to cache users forever (clearing the cache requires a
 server restart).
+
+``auth.ldap.ignore_cert``
+~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** bool, optional
+
+If true then the ldap option to not verify the certificate is used. This is not
+recommended but useful if the cert name does not match the fqdn. Default is false.
+
