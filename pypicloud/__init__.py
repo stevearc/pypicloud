@@ -137,7 +137,7 @@ def hook_exceptions():
         try:
             # reopen stdout in non buffered mode
             sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
-        except io.UnsupportedOperation:
+        except (io.UnsupportedOperation, ValueError):
             pass
         else:
             # set the hook
