@@ -17,7 +17,7 @@ from .route import Root
 from .util import BetterScrapingLocator
 
 
-__version__ = '1.0.0'
+__version__ = '1.0.1'
 LOG = logging.getLogger(__name__)
 
 
@@ -137,7 +137,7 @@ def hook_exceptions():
         try:
             # reopen stdout in non buffered mode
             sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
-        except io.UnsupportedOperation:
+        except (io.UnsupportedOperation, ValueError):
             pass
         else:
             # set the hook

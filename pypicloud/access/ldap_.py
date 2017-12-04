@@ -2,7 +2,7 @@
 import logging
 from collections import namedtuple
 from functools import wraps
-from pyramid.settings import aslist
+from pyramid.settings import aslist, asbool
 
 from .base import IAccessBackend
 from pypicloud.util import TimedCache
@@ -46,7 +46,7 @@ class LDAP(object):
 
     def __init__(self, admin_field, admin_value, base_dn, cache_time,
                  service_dn, service_password, service_username, url,
-                 user_search_filter, user_dn_format):
+                 user_search_filter, user_dn_format, ignore_cert):
         self._url = url
         self._service_dn = service_dn
         self._service_password = service_password
@@ -73,15 +73,29 @@ class LDAP(object):
                 User(service_username, service_dn, True),
                 None
             )
+        self._ignore_cert = ignore_cert
 
     def connect(self):
         """ Initializes the python-ldap module and does the initial bind """
+        if self._ignore_cert:
+            ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
+        LOG.debug("LDAP connecting to %s", self._url)
         self._server = ldap.initialize(self._url)
-        self._server.simple_bind_s(self._service_dn, self._service_password)
+        self._bind_to_service()
+
+    def _bind_to_service(self):
+        """ Bind to the service account or anonymous """
+        if self._service_dn:
+            # bind with the service_dn
+            self._server.simple_bind_s(self._service_dn, self._service_password)
+        else:
+            # force a connection without binding
+            self._server.whoami_s()
 
     @reconnect
     def _fetch_user(self, username):
         """ Fetch a user entry from the LDAP server """
+        LOG.debug("LDAP fetching user %s", username)
         search_attrs = []
         if self._admin_field is not None:
             search_attrs.append(self._admin_field)
@@ -125,6 +139,7 @@ class LDAP(object):
         """
         Attempts to bind as the user, then rebinds as service user again
         """
+        LOG.debug("LDAP verifying user %s", username)
         # Empty password may successfully complete an anonymous bind.
         # Explicitly disallow empty passwords.
         if password == "":
@@ -141,10 +156,7 @@ class LDAP(object):
         else:
             return True
         finally:
-            self._server.simple_bind_s(
-                self._service_dn,
-                self._service_password
-            )
+            self._bind_to_service()
 
 
 class LDAPAccessBackend(IAccessBackend):
@@ -163,12 +175,13 @@ class LDAPAccessBackend(IAccessBackend):
             admin_value=aslist(settings.get('auth.ldap.admin_value', [])),
             base_dn=settings.get('auth.ldap.base_dn'),
             cache_time=settings.get('auth.ldap.cache_time'),
-            service_dn=settings['auth.ldap.service_dn'],
+            service_dn=settings.get('auth.ldap.service_dn'),
             service_password=settings.get('auth.ldap.service_password', ''),
             service_username=settings.get('auth.ldap.service_username'),
             url=settings['auth.ldap.url'],
             user_dn_format=settings.get('auth.ldap.user_dn_format'),
             user_search_filter=settings.get('auth.ldap.user_search_filter'),
+            ignore_cert=asbool(settings.get('auth.ldap.ignore_cert'))
         )
         conn.connect()
         kwargs['conn'] = conn
@@ -189,6 +202,8 @@ class LDAPAccessBackend(IAccessBackend):
         return []  # pragma: no cover
 
     def is_admin(self, username):
+        if not username:
+            return False
         user = self.conn.get_user(username)
         return user is not None and user.is_admin
 
