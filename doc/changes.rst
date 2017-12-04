@@ -2,6 +2,11 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.0.1 - 2017/12/3
+-----------------
+* Support for LDAP anonymous bind (:pr:`142`)
+* Fix a crash in Python 3 (:issue:`141`)
+
 1.0.0 - 2017/10/29
 ------------------
 * Python3 support thanks to boto3
