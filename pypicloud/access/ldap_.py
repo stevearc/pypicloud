@@ -81,6 +81,10 @@ class LDAP(object):
             ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
         LOG.debug("LDAP connecting to %s", self._url)
         self._server = ldap.initialize(self._url)
+        self._bind_to_service()
+
+    def _bind_to_service(self):
+        """ Bind to the service account or anonymous """
         if self._service_dn:
             # bind with the service_dn
             self._server.simple_bind_s(self._service_dn, self._service_password)
@@ -152,15 +156,7 @@ class LDAP(object):
         else:
             return True
         finally:
-            if self._service_dn:
-                # bind with the service_dn
-                self._server.simple_bind_s(
-                    self._service_dn,
-                    self._service_password
-                )
-            else:
-                # force a connection without binding
-                self._server.whoami_s()
+            self._bind_to_service()
 
 
 class LDAPAccessBackend(IAccessBackend):
