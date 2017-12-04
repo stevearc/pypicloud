@@ -46,7 +46,7 @@ TEST_REQUIREMENTS = [
 if __name__ == "__main__":
     setup(
         name='pypicloud',
-        version='1.0.0',
+        version='1.0.1',
         description='Private PyPI backed by S3',
         long_description=README + '\n\n' + CHANGES,
         classifiers=[
