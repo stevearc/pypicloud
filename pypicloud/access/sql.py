@@ -149,14 +149,14 @@ class SQLAccessBackend(IMutableAccessBackend):
 
     def allow_register(self):
         ret = self.db.query(KeyVal).filter_by(key='allow_register').first()
-        return ret is None
+        return ret is not None and ret.value == 'true'
 
     def set_allow_register(self, allow):
         if allow:
-            self.db.query(KeyVal).filter_by(key='allow_register').delete()
-        else:
-            k = KeyVal('allow_register', 'false')
+            k = KeyVal('allow_register', 'true')
             self.db.merge(k)
+        else:
+            self.db.query(KeyVal).filter_by(key='allow_register').delete()
 
     def _get_password_hash(self, username):
         user = self.db.query(User).filter_by(username=username).first()
