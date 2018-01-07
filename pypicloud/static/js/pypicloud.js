@@ -49,6 +49,17 @@ angular.module('pypicloud', ['ui.bootstrap', 'ngRoute', 'angularFileUpload', 'ng
     };
   }]);
 }])
+.directive('ngSetFocus', ['$timeout', function($timeout) {
+  return function(scope, element, attrs) {
+    scope.$watch(attrs.ngSetFocus, function(newValue) {
+      if (newValue) {
+        $timeout(function() {
+          element[0].focus()
+        });
+      }
+    }, true);
+  }
+}])
 .run(['$rootScope','$location', '$routeParams', function($rootScope, $location, $routeParams) {
   $rootScope.$on('$routeChangeSuccess', function(scope, current, pre) {
     $rootScope.location = {

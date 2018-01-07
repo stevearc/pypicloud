@@ -472,8 +472,7 @@ class IMutableAccessBackend(IAccessBackend):
             This should be the plaintext password
 
         """
-        if self.allow_register():
-            self._register(username, pwd_context.encrypt(password))
+        self._register(username, pwd_context.encrypt(password))
 
     def _register(self, username, password):
         """
@@ -641,8 +640,6 @@ class IMutableAccessBackend(IAccessBackend):
         return data
 
     def load(self, data):
-        # Have to temporarily set this as True for the load operation
-        self.set_allow_register(True)
         pending_users = set(self.pending_users())
 
         def user_exists(username):

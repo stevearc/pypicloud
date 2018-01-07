@@ -113,6 +113,27 @@ angular.module('pypicloud')
     $http.post($scope.ADMIN + 'register', {allow: ALLOW_REGISTER});
   };
 
+  $scope.toggleShowCreateUser = function() {
+    $scope.showCreateUser = !$scope.showCreateUser;
+  };
+
+  $scope.createUser = function() {
+    var username = $scope.newUsername;
+    var password = $scope.newPassword;
+    if (_.contains(_.pluck($scope.users, 'username'), username)) {
+      return;
+    }
+    $scope.users.push({
+      'username': username,
+      'admin': false
+    });
+    $http.put($scope.ADMIN + 'user/' + username, {password: password})
+
+    $scope.showCreateUser = false;
+    $scope.newUsername = '';
+    $scope.newPassword = '';
+  };
+
   function deleteUser(user) {
     if (!confirm("Are you sure you want to delete " + user.username + "?")) {
       return;

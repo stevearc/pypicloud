@@ -42,6 +42,15 @@ class AdminEndpoints(object):
         username = self.request.named_subpaths['username']
         return self.request.access.user_data(username)
 
+    @view_config(name='user', subpath=('username/*'), request_method='PUT')
+    @argify
+    def create_user(self, password):
+        """ Create a new user """
+        username = self.request.named_subpaths['username']
+        self.request.access.register(username, password)
+        self.request.access.approve_user(username)
+        return self.request.response
+
     @view_config(name='user', subpath=('username/*'), request_method='DELETE')
     def delete_user(self):
         """ Delete a user """
