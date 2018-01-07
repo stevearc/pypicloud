@@ -134,7 +134,7 @@ class SQLCache(ICache):
     def reload_if_needed(self):
         super(SQLCache, self).reload_if_needed()
         if self.request is None:
-            transaction.commit()
+            self.db.commit()
             self.db.close()
 
     @classmethod
@@ -250,7 +250,10 @@ class SQLCache(ICache):
 
     def clear_all(self):
         # Release any transactions before we go reloading schema
-        transaction.abort()
+        if self.request is None:
+            self.db.rollback()
+        else:
+            transaction.abort()
         engine = self.dbmaker.kw['bind']
         drop_schema(engine)
         create_schema(engine)
