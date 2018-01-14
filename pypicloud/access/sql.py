@@ -99,7 +99,9 @@ class UserPermission(Permission):
 
     """ Permissions for a user on a package """
     __tablename__ = 'pypicloud_user_permissions'
-    username = Column(String(length=255), ForeignKey(User.username), primary_key=True)
+    username = Column(String(length=255),
+                      ForeignKey(User.username, ondelete='CASCADE'),
+                      primary_key=True)
     user = orm.relationship("User",
                             backref=backref('permissions',
                                             cascade='all, delete-orphan'))
@@ -113,7 +115,9 @@ class GroupPermission(Permission):
 
     """ Permissions for a group on a package """
     __tablename__ = 'pypicloud_group_permissions'
-    groupname = Column(String(length=255), ForeignKey(Group.name), primary_key=True)
+    groupname = Column(String(length=255),
+                       ForeignKey(Group.name, ondelete='CASCADE'),
+                       primary_key=True)
     group = orm.relationship("Group",
                              backref=backref('permissions',
                                              cascade='all, delete-orphan'))

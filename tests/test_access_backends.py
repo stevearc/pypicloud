@@ -842,9 +842,10 @@ class TestSQLiteBackend(unittest.TestCase):
     def test_delete_user(self):
         """ Can delete users """
         user = make_user('foo', 'bar', False)
+        p1 = UserPermission('pkg1', 'foo', True, False)
         group = Group('foobar')
         user.groups.add(group)
-        self.db.add_all([user, group])
+        self.db.add_all([user, group, p1])
         transaction.commit()
         self.access.delete_user('foo')
         transaction.commit()
@@ -911,6 +912,8 @@ class TestSQLiteBackend(unittest.TestCase):
         group = Group('foobar')
         user.groups.add(group)
         self.db.add_all([user, group])
+        transaction.commit()
+        self.access.edit_group_permission('pkg1', 'foobar', 'read', True)
         transaction.commit()
         self.access.delete_group('foobar')
         transaction.commit()
