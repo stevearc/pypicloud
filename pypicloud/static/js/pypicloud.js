@@ -251,6 +251,9 @@ angular
         .get($scope.API + "package/", { params: { verbose: true } })
         .success(function(data, status, headers, config) {
           $scope.packages = data.packages;
+        })
+        .error(function(data, status, headers, config) {
+          console.error("Fetching packages failed");
         });
 
       $scope.showPackage = function(pkg) {
@@ -352,6 +355,12 @@ angular
           $scope.packages = data.packages;
           $scope.filtered = data.packages;
           $scope.can_write = data.write;
+        })
+        .error(function(data, status, headers, config) {
+          console.error(
+            "Fetching package list failed for:",
+            $scope.package_name
+          );
         });
 
       $scope.deletePackage = function(pkg) {
@@ -368,6 +377,7 @@ angular
           })
           .error(function(data, status, headers, config) {
             pkg.deleting = false;
+            alert("Error deleting package");
           });
       };
 
@@ -492,6 +502,9 @@ angular
           .put(ROOT + "login", data)
           .success(function(data, status, headers, config) {
             window.location = ROOT;
+          })
+          .error(function(data, status, headers, config) {
+            alert("Error registering admin user");
           });
       };
     }

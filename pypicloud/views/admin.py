@@ -70,7 +70,7 @@ class AdminEndpoints(object):
                  request_method='POST')
     @argify
     def set_admin_status(self, admin):
-        """ Approve a pending user """
+        """ Set a user to be or not to be an admin """
         username = self.request.named_subpaths['username']
         self.request.access.set_user_admin(username, admin)
         return self.request.response

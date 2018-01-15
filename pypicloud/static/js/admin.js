@@ -62,10 +62,24 @@ function permissionConfig(
       var idx = permissions.indexOf(item);
       permissions.splice(idx, 1);
       allItems.push(item[itemName]);
-      $http({ method: "delete", url: editUrl(item[itemName], "read") });
+      $http({
+        method: "delete",
+        url: editUrl(item[itemName], "read")
+      }).error(function(data, status, headers, config) {
+        permissions.splice(idx, 0, item);
+        idx = allItems.indexOf(item[itemName]);
+        allItems.splice(idx, 1);
+        alert("Error removing permission");
+      });
     } else {
-      item.permissions.splice(1, 1);
-      $http({ method: "delete", url: editUrl(item[itemName], "write") });
+      var removed = item.permissions.splice(1, 1)[0];
+      $http({
+        method: "delete",
+        url: editUrl(item[itemName], "write")
+      }).error(function(data, status, headers, config) {
+        item.permissions.splice(1, 0, removed);
+        alert("Error removing permission");
+      });
     }
   };
 
@@ -77,12 +91,24 @@ function permissionConfig(
     };
     newItem[itemName] = name;
     permissions.push(newItem);
-    $http.put(editUrl(name, "read"));
+    $http
+      .put(editUrl(name, "read"))
+      .error(function(data, status, headers, config) {
+        allItems.splice(idx, 0, name);
+        idx = permissions.indexOf(newItem);
+        permissions.splice(idx, 1);
+        alert("Error adding permission");
+      });
   };
 
   var addPermission = function(item) {
     item.permissions.push("write");
-    $http.put(editUrl(item[itemName], "write"));
+    $http
+      .put(editUrl(item[itemName], "write"))
+      .error(function(data, status, headers, config) {
+        item.permissions.splice(1, 1);
+        alert("Error adding permission");
+      });
   };
 
   var columns = [
@@ -149,7 +175,13 @@ angular
       $scope.toggleAllowRegister = function() {
         ALLOW_REGISTER = !ALLOW_REGISTER;
         $rootScope.ALLOW_REGISTER = ALLOW_REGISTER;
-        $http.post($scope.ADMIN + "register", { allow: ALLOW_REGISTER });
+        $http
+          .post($scope.ADMIN + "register", { allow: ALLOW_REGISTER })
+          .error(function(data, status, headers, config) {
+            ALLOW_REGISTER = !ALLOW_REGISTER;
+            $rootScope.ALLOW_REGISTER = ALLOW_REGISTER;
+            alert("Error toggling registration");
+          });
       };
 
       $scope.toggleShowCreateUser = function() {
@@ -162,11 +194,21 @@ angular
         if (_.contains(_.pluck($scope.users, "username"), username)) {
           return;
         }
-        $scope.users.push({
+        var newUser = {
           username: username,
           admin: false
-        });
-        $http.put($scope.ADMIN + "user/" + username, { password: password });
+        };
+        $scope.users.push(newUser);
+        $http
+          .put($scope.ADMIN + "user/" + username, { password: password })
+          .error(function(data, status, headers, config) {
+            var idx = $scope.users.indexOf(newUser);
+            $scope.users.splice(idx, 1);
+            $scope.showCreateUser = true;
+            $scope.newUsername = username;
+            $scope.newPassword = password;
+            alert("Error creating user");
+          });
 
         $scope.showCreateUser = false;
         $scope.newUsername = "";
@@ -182,6 +224,9 @@ angular
         $http({
           method: "delete",
           url: $scope.ADMIN + "user/" + user.username
+        }).error(function(data, status, headers, config) {
+          $scope.users.splice(idx, 0, user);
+          alert("User delete failed");
         });
         var idx = $scope.users.indexOf(user);
         $scope.users.splice(idx, 1);
@@ -217,7 +262,13 @@ angular
         if (!confirm("Are you sure you want to delete group " + group + "?")) {
           return;
         }
-        $http({ method: "delete", url: $scope.ADMIN + "group/" + group });
+        $http({
+          method: "delete",
+          url: $scope.ADMIN + "group/" + group
+        }).error(function(data, status, headers, config) {
+          alert("Error deleting group");
+          $scope.groups.splice(idx, 0, group);
+        });
         var idx = $scope.groups.indexOf(group);
         $scope.groups.splice(idx, 1);
       }
@@ -229,7 +280,13 @@ angular
           return "That group already exists!";
         }
         $scope.groups.push(group);
-        $http.put($scope.ADMIN + "group/" + group);
+        $http
+          .put($scope.ADMIN + "group/" + group)
+          .error(function(data, status, headers, config) {
+            var idx = $scope.groups.indexOf(group);
+            $scope.groups.splice(idx, 1);
+            alert("Error adding group");
+          });
       }
       $http
         .get($scope.ADMIN + "group")
@@ -280,7 +337,14 @@ angular
       fetchPackages();
 
       $scope.approveUser = function(username) {
-        $http.post($scope.ADMIN + "user/" + username + "/approve");
+        $http
+          .post($scope.ADMIN + "user/" + username + "/approve")
+          .error(function(data, status, headers, config) {
+            $scope.pendingUsers.splice(idx, 0, username);
+            idx = $scope.users.indexOf(newUser);
+            $scope.users.splice(idx, 1);
+            alert("Error approving user");
+          });
         var idx = $scope.pendingUsers.indexOf(username);
         $scope.pendingUsers.splice(idx, 1);
         var newUser = {
@@ -291,7 +355,13 @@ angular
       };
 
       $scope.rejectUser = function(username) {
-        $http({ method: "delete", url: $scope.ADMIN + "user/" + username });
+        $http({
+          method: "delete",
+          url: $scope.ADMIN + "user/" + username
+        }).error(function(data, status, headers, config) {
+          $scope.pendingUsers.splice(idx, 0, username);
+          alert("Error rejecting user");
+        });
         var idx = $scope.pendingUsers.indexOf(username);
         $scope.pendingUsers.splice(idx, 1);
       };
@@ -314,6 +384,7 @@ angular
           })
           .error(function(data, status, headers, config) {
             $scope.building = false;
+            alert("Error while rebuilding cache");
           });
       };
     }
@@ -330,9 +401,14 @@ angular
 
       $scope.toggleAdmin = function() {
         $scope.user.admin = !$scope.user.admin;
-        $http.post($scope.ADMIN + "user/" + $scope.username + "/admin", {
-          admin: $scope.user.admin
-        });
+        $http
+          .post($scope.ADMIN + "user/" + $scope.username + "/admin", {
+            admin: $scope.user.admin
+          })
+          .error(function(data, status, headers, config) {
+            $scope.user.admin = !$scope.user.admin;
+            alert("Error toggling admin status");
+          });
       };
 
       $http
@@ -371,13 +447,28 @@ angular
                   var idx = $scope.groups.indexOf(group);
                   $scope.groups.splice(idx, 1);
                   $scope.user.groups.push(group);
-                  $http.put(editUrl(group));
+                  $http
+                    .put(editUrl(group))
+                    .error(function(data, status, headers, config) {
+                      $scope.groups.splice(idx, 0, group);
+                      idx = $scope.user.groups.indexOf(group);
+                      $scope.user.groups.splice(idx, 1);
+                      alert("Error adding user to group");
+                    });
                 },
                 deleteCallback: function(group) {
                   var idx = $scope.user.groups.indexOf(group);
                   $scope.user.groups.splice(idx, 1);
                   $scope.groups.push(group);
-                  $http({ method: "delete", url: editUrl(group) });
+                  $http({
+                    method: "delete",
+                    url: editUrl(group)
+                  }).error(function(data, status, headers, config) {
+                    $scope.user.groups.splice(idx, 0, group);
+                    idx = $scope.groups.indexOf(group);
+                    $scope.groups.splice(idx, 1);
+                    alert("Error removing user to group");
+                  });
                 }
               };
             });
@@ -454,13 +545,30 @@ angular
                 var idx = $scope.users.indexOf(user);
                 $scope.users.splice(idx, 1);
                 $scope.members.push(user);
-                $http.put(editUrl(user));
+                $http
+                  .put(editUrl(user))
+                  .error(function(data, status, headers, config) {
+                    $scope.users.splice(idx, 0, user);
+                    idx = $scope.members.indexOf(user);
+                    $scope.members.splice(idx, 1);
+                    alert("Error adding user to group");
+                  });
               },
               deleteCallback: function(user) {
                 var idx = $scope.members.indexOf(user);
                 $scope.members.splice(idx, 1);
                 $scope.users.push(user);
-                $http({ method: "delete", url: editUrl(user) });
+                $http({ method: "delete", url: editUrl(user) }).error(function(
+                  data,
+                  status,
+                  headers,
+                  config
+                ) {
+                  $scope.members.splice(idx, 0, user);
+                  idx = $scope.users.indexOf(user);
+                  $scope.users.splice(idx, 1);
+                  alert("Error removing user from group");
+                });
               }
             };
           });
