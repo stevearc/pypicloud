@@ -94,6 +94,7 @@ class DynamoCache(ICache):
         kwargs['graceful_reload'] = graceful_reload
 
         engine.register(DynamoPackage, PackageSummary)
+        LOG.info("Checking if DynamoDB tables exist")
         engine.create_schema()
         return kwargs
 
