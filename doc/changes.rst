@@ -2,6 +2,15 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.0.2 - 2018/1/25
+-----------------
+* Fix: Hang when rebuilding Postgres cache (:issue:`147`)
+* Fix: Some user deletes fail with Foreign Key errors (:issue:`150`)
+* Fix: Incorrect parsing of version for wheels (:issue:`154`)
+* Make request errors visible in the browser (:issue:`151`)
+* Add a Create User button to admin page (:issue:`149`)
+* SQL access backend defaults to disallowing anonymous users to register
+
 1.0.1 - 2017/12/3
 -----------------
 * Support for LDAP anonymous bind (:pr:`142`)
