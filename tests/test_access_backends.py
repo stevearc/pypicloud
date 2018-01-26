@@ -15,13 +15,16 @@ from sqlalchemy.exc import OperationalError
 
 from pypicloud.access import (IAccessBackend, IMutableAccessBackend,
                               ConfigAccessBackend, RemoteAccessBackend,
-                              includeme, pwd_context)
+                              includeme, get_pwd_context)
 from pypicloud.access.base import group_to_principal
 from pypicloud.access.ldap_ import LDAPAccessBackend
 from pypicloud.access.sql import (SQLAccessBackend, User, UserPermission,
                                   association_table, GroupPermission, Group,
                                   Base)
 from pypicloud.route import Root
+
+
+pwd_context = get_pwd_context(1000)  # pylint: disable=C0103
 
 
 class PartialEq(object):
@@ -43,7 +46,7 @@ class PartialEq(object):
 
 def make_user(name, password, pending=True):
     """ Convenience method for creating a User """
-    return User(name, pwd_context.encrypt(password), pending)
+    return User(name, pwd_context.hash(password), pending)
 
 
 class TestUtilities(unittest.TestCase):
@@ -151,7 +154,7 @@ class TestBaseBackend(BaseACLTest):
 
     def test_abstract_methods(self):
         """ Abstract methods raise NotImplementedError """
-        access = IMutableAccessBackend(None)
+        access = IMutableAccessBackend(None, pwd_context=get_pwd_context())
         with self.assertRaises(NotImplementedError):
             access.verify_user('a', 'b')
         with self.assertRaises(NotImplementedError):
@@ -314,7 +317,7 @@ class TestConfigBackend(BaseACLTest):
     def test_verify(self):
         """ Users can log in with correct password """
         settings = {
-            'user.u1': pwd_context.encrypt('foobar'),
+            'user.u1': pwd_context.hash('foobar'),
         }
         backend = self._backend(settings)
         valid = backend.verify_user('u1', 'foobar')
@@ -323,7 +326,7 @@ class TestConfigBackend(BaseACLTest):
     def test_no_verify(self):
         """ Verification fails with wrong password """
         settings = {
-            'user.u1': pwd_context.encrypt('foobar'),
+            'user.u1': pwd_context.hash('foobar'),
         }
         backend = self._backend(settings)
         valid = backend.verify_user('u1', 'foobarz')

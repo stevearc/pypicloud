@@ -2,7 +2,7 @@
 from mock import patch
 
 from pypicloud import scripts
-from pypicloud.access import pwd_context
+from pypicloud.access import get_pwd_context
 
 
 try:
@@ -18,6 +18,7 @@ class TestScripts(unittest.TestCase):
     @patch.object(scripts, 'getpass')
     def test_gen_password(self, getpass):
         """ Generate a password """
+        pwd_context = get_pwd_context()
         passwds = ['foo', 'foo', 'bar', 'baz']
         getpass.getpass.side_effect = passwds.pop
         ret = scripts._gen_password()
@@ -27,7 +28,7 @@ class TestScripts(unittest.TestCase):
     @patch.object(scripts, '_gen_password')
     def test_cli_gen_password(self, genpass):
         """ Commandline prints generated password """
-        scripts.gen_password()
+        scripts.gen_password([])
         self.assertTrue(genpass.called)
 
     @patch('pypicloud.scripts.wrapped_input', return_value='')

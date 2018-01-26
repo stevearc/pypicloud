@@ -18,7 +18,7 @@ REQUIREMENTS = [
     # need to lock this in to a specific version.
     'distlib==0.2.5',
     'paste',
-    'passlib',
+    'passlib>=1.7',
     'pycrypto',
     'pyramid',
     'pyramid_beaker',

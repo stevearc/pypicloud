@@ -3,7 +3,8 @@ from functools import partial
 from pyramid.path import DottedNameResolver
 
 from .config import ConfigAccessBackend
-from .base import IAccessBackend, IMutableAccessBackend, pwd_context
+from .base import (IAccessBackend, IMutableAccessBackend, get_pwd_context,
+                   DEFAULT_ROUNDS)
 from .remote import RemoteAccessBackend
 from .sql import SQLAccessBackend
 

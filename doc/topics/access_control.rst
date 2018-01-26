@@ -131,12 +131,27 @@ Configuration
 Set ``pypi.auth = sql`` OR ``pypi.auth =
 pypicloud.access.sql.SQLAccessBackend``
 
+The SQLite engine is constructed by calling `engine_from_config
+<http://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.engine_from_config>`_
+with the prefix ``auth.db.``, so you can pass in any valid parameters that way.
+
 ``auth.db.url``
 ~~~~~~~~~~~~~~~
 **Argument:** string
 
 The database url to use for storing user and group permissions. This may be the
 same database as ``db.url`` (if you are also using the SQL caching database).
+
+``auth.rounds``
+~~~~~~~~~~~~~~~
+**Argument:** int, optional
+
+The number of rounds to use when hashing passwords. See PassLib's docs on
+`choosing rounds values
+<http://passlib.readthedocs.io/en/stable/narr/hash-tutorial.html#choosing-the-right-rounds-value>`_.
+The default value will be secure, but possibly slow. If you find the hashing to
+take a long time, you can edit this value lower.
+
 
 Remote Server
 -------------
