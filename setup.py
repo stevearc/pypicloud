@@ -18,7 +18,7 @@ REQUIREMENTS = [
     # need to lock this in to a specific version.
     'distlib==0.2.5',
     'paste',
-    'passlib',
+    'passlib>=1.7',
     'pycrypto',
     'pyramid',
     'pyramid_beaker',
@@ -46,7 +46,7 @@ TEST_REQUIREMENTS = [
 if __name__ == "__main__":
     setup(
         name='pypicloud',
-        version='1.0.1',
+        version='1.0.2',
         description='Private PyPI backed by S3',
         long_description=README + '\n\n' + CHANGES,
         classifiers=[

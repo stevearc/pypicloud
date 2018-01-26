@@ -99,7 +99,9 @@ class UserPermission(Permission):
 
     """ Permissions for a user on a package """
     __tablename__ = 'pypicloud_user_permissions'
-    username = Column(String(length=255), ForeignKey(User.username), primary_key=True)
+    username = Column(String(length=255),
+                      ForeignKey(User.username, ondelete='CASCADE'),
+                      primary_key=True)
     user = orm.relationship("User",
                             backref=backref('permissions',
                                             cascade='all, delete-orphan'))
@@ -113,7 +115,9 @@ class GroupPermission(Permission):
 
     """ Permissions for a group on a package """
     __tablename__ = 'pypicloud_group_permissions'
-    groupname = Column(String(length=255), ForeignKey(Group.name), primary_key=True)
+    groupname = Column(String(length=255),
+                       ForeignKey(Group.name, ondelete='CASCADE'),
+                       primary_key=True)
     group = orm.relationship("Group",
                              backref=backref('permissions',
                                              cascade='all, delete-orphan'))
@@ -149,14 +153,14 @@ class SQLAccessBackend(IMutableAccessBackend):
 
     def allow_register(self):
         ret = self.db.query(KeyVal).filter_by(key='allow_register').first()
-        return ret is None
+        return ret is not None and ret.value == 'true'
 
     def set_allow_register(self, allow):
         if allow:
-            self.db.query(KeyVal).filter_by(key='allow_register').delete()
+            k = KeyVal('allow_register', 'true')
+            self.db.merge(k)
         else:
-            k = KeyVal('allow_register', 'false')
-            self.db.add(k)
+            self.db.query(KeyVal).filter_by(key='allow_register').delete()
 
     def _get_password_hash(self, username):
         user = self.db.query(User).filter_by(username=username).first()

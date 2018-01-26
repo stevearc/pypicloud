@@ -1,12 +1,12 @@
 <div class="row" style="margin-bottom: 20px">
-  <div class="col-xs-12 col-md-3">
+  <div class="col-xs-12 col-md-4">
     <div>
       <button ng-click="rebuildPackages()" class="btn btn-default" ng-disabled="building">
         <i class="fa fa-refresh" ng-class="building ? 'fa-spin' : ''"></i>
         Rebuild package list
       </button>
     </div>
-    <div style="margin-top: 10px">
+    <div style="margin: 10px 0">
       <a ng-href="{{ ADMIN }}acl.json.gz" class="btn btn-default">
         <i class="fa fa-download"></i>
         Download ACL
@@ -42,11 +42,33 @@
     </table>
   </div>
   <div class="col-xs-12 col-md-4" ng-show="ACCESS_MUTABLE">
-    <button ng-click="toggleAllowRegister()" class="btn btn-default pull-right" ng-class="ALLOW_REGISTER ? 'active' : ''">
-      <i class="fa fa-check-square-o" ng-show="ALLOW_REGISTER"></i>
-      <i class="fa fa-square-o" ng-hide="ALLOW_REGISTER"></i>
-      Registration {{ ALLOW_REGISTER ? 'allowed' : 'disabled' }}
-    </button>
+    <div>
+      <button ng-click="toggleAllowRegister()" class="btn btn-default" ng-class="ALLOW_REGISTER ? 'active' : ''">
+        <i class="fa fa-check-square-o" ng-show="ALLOW_REGISTER"></i>
+        <i class="fa fa-square-o" ng-hide="ALLOW_REGISTER"></i>
+        Registration {{ ALLOW_REGISTER ? 'allowed' : 'disabled' }}
+      </button>
+    </div>
+    <div style="margin: 10px 0">
+      <button ng-click="toggleShowCreateUser()" class="btn btn-default" collapse="showCreateUser">
+        Create user
+      </button>
+      <form class="form-horizontal" role="form" collapse="!showCreateUser" ng-submit="createUser()">
+        <div class="form-group" ng-class=" error ? 'has-error' : ''">
+          <div class="col-xs-12">
+            <input type="text" placeholder="Username" ng-model="newUsername" class="form-control" ng-set-focus="showCreateUser" />
+          </div>
+        </div>
+        <div class="form-group" ng-class=" error ? 'has-error' : ''">
+          <div class="col-xs-12">
+            <input type="password" placeholder="Password" ng-model="newPassword" class="form-control" />
+          </div>
+        </div>
+        <button type="submit" class="ng-hide">
+          Create
+        </button>
+      </form>
+    </div>
   </div>
 </div>
 

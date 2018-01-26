@@ -70,8 +70,7 @@ You will need to ``pip install pypicloud[dynamo]`` before running the server.
 ~~~~~~~~~~~~~~~~~~
 **Argument:** string
 
-The AWS region to use for the cache tables. You must specify either this or
-``db.host``.
+The AWS region to use for the cache tables.
 
 .. _dynamo_credentials:
 
@@ -94,10 +93,10 @@ their name. Useful to avoid name collisions.
 
 ``db.host``
 ~~~~~~~~~~~
-**Argument:** string
+**Argument:** string, optional
 
 The hostname to connect to. This is normally used to connect to a DynamoDB
-Local instance. You must specify either this or ``db.region``.
+Local instance.
 
 ``db.port``
 ~~~~~~~~~~~

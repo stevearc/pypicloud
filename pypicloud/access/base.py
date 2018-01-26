@@ -1,11 +1,25 @@
 """ The access backend object base class """
 import six
 from collections import defaultdict
-from passlib.apps import custom_app_context as pwd_context
+from passlib.apps import LazyCryptContext
+from passlib.utils import sys_bits
 from pyramid.security import (Authenticated, Everyone,
                               effective_principals, Allow, Deny,
                               ALL_PERMISSIONS)
 from pyramid.settings import aslist
+
+
+DEFAULT_ROUNDS = 535000
+
+
+def get_pwd_context(rounds=DEFAULT_ROUNDS):
+    """ Create a passlib context for hashing passwords """
+    return LazyCryptContext(
+        schemes=["sha512_crypt", "sha256_crypt"],
+        default="sha256_crypt" if sys_bits < 64 else "sha512_crypt",
+        sha512_crypt__default_rounds=rounds,
+        sha256_crypt__default_rounds=rounds,
+    )
 
 
 def group_to_principal(group):
@@ -37,21 +51,24 @@ class IAccessBackend(object):
     ]
 
     def __init__(self, request=None, default_read=None, default_write=None,
-                 cache_update=None):
+                 cache_update=None, pwd_context=None):
         self.request = request
         self.default_read = default_read
         self.default_write = default_write
         self.cache_update = cache_update
+        self.pwd_context = pwd_context
 
     @classmethod
     def configure(cls, settings):
         """ Configure the access backend with app settings """
+        rounds = int(settings.get('auth.rounds', DEFAULT_ROUNDS))
         return {
             'default_read': aslist(settings.get('pypi.default_read',
                                                 ['authenticated'])),
             'default_write': aslist(settings.get('pypi.default_write', [])),
             'cache_update': aslist(settings.get('pypi.cache_update',
                                                 ['authenticated'])),
+            'pwd_context': get_pwd_context(rounds),
         }
 
     def allowed_permissions(self, package):
@@ -228,7 +245,7 @@ class IAccessBackend(object):
             user_data = self.user_data(username)
             if user_data is None:
                 return False
-        return bool(stored_pw and pwd_context.verify(password, stored_pw))
+        return bool(stored_pw and self.pwd_context.verify(password, stored_pw))
 
     def _get_password_hash(self, username):
         """ Get the stored password hash for a user """
@@ -472,8 +489,7 @@ class IMutableAccessBackend(IAccessBackend):
             This should be the plaintext password
 
         """
-        if self.allow_register():
-            self._register(username, pwd_context.encrypt(password))
+        self._register(username, self.pwd_context.hash(password))
 
     def _register(self, username, password):
         """
@@ -523,7 +539,7 @@ class IMutableAccessBackend(IAccessBackend):
         password : str
 
         """
-        self._set_password_hash(username, pwd_context.encrypt(password))
+        self._set_password_hash(username, self.pwd_context.hash(password))
 
     def _set_password_hash(self, username, password_hash):
         """
@@ -641,8 +657,6 @@ class IMutableAccessBackend(IAccessBackend):
         return data
 
     def load(self, data):
-        # Have to temporarily set this as True for the load operation
-        self.set_allow_register(True)
         pending_users = set(self.pending_users())
 
         def user_exists(username):

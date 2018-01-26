@@ -8,6 +8,7 @@ import logging
 import six
 from distlib.locators import Locator, SimpleScrapingLocator
 from distlib.util import split_filename
+from distlib.wheel import Wheel
 from six.moves.urllib.parse import urlparse  # pylint: disable=F0401,E0611
 
 
@@ -21,6 +22,9 @@ def parse_filename(filename, name=None):
     version = None
     for ext in ALL_EXTENSIONS:
         if filename.endswith(ext):
+            if ext == '.whl':
+                wheel = Wheel(filename)
+                return wheel.name, wheel.version
             trimmed = filename[:-len(ext)]
             parsed = split_filename(trimmed, name)
             if parsed is None:

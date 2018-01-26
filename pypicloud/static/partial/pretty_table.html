@@ -17,11 +17,11 @@
     <div class="col-xs-12">
       <div ng-show="addItems !== null" style="margin-bottom: 10px">
         <input type="text" ng-model="newItem" typeahead="item for item in addItems | filter:$viewValue | limitTo:8"
-              typeahead-on-select="addItem(newItem)" class="form-control" ng-blur="toggleShowAdd()">
+              typeahead-on-select="addItem(newItem)" class="form-control" ng-blur="toggleShowAdd()" ng-set-focus="showAdd && addItems != null">
       </div>
       <div ng-show="addItems === null" class="form-group" ng-class="errorMsg ? 'has-error' : ''">
         <form ng-submit="addItem(newItem)">
-          <input type="text" ng-model="newItem" class="form-control" ng-blur="toggleShowAdd()">
+          <input type="text" ng-model="newItem" class="form-control" ng-blur="toggleShowAdd()" ng-set-focus="showAdd && addItems == null">
         </form>
       </div>
       <div ng-show="errorMsg">
