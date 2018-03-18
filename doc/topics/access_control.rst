@@ -142,6 +142,8 @@ with the prefix ``auth.db.``, so you can pass in any valid parameters that way.
 The database url to use for storing user and group permissions. This may be the
 same database as ``db.url`` (if you are also using the SQL caching database).
 
+.. _auth_rounds:
+
 ``auth.rounds``
 ~~~~~~~~~~~~~~~
 **Argument:** int, optional
