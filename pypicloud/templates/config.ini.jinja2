@@ -59,11 +59,11 @@ reload-mercy = 15
 worker-reload-mercy = 15
 max-requests = 1000
 enable-threads = true
-{%- if env == 'docker' %}
 http = 0.0.0.0:8080
-virtualenv = /env
+{%- if env == 'docker' %}
+uid = pypicloud
+gid = pypicloud
 {%- else %}
-socket = 127.0.0.1:3031
 {% if venv is defined -%}virtualenv = {{ venv }}{%- endif %}
 {%- endif %}
 {%- endif %}
