@@ -135,6 +135,7 @@ angular
       $rootScope.NEED_ADMIN = NEED_ADMIN;
       $rootScope.ACCESS_MUTABLE = ACCESS_MUTABLE;
       $rootScope.ALLOW_REGISTER = ALLOW_REGISTER;
+      $rootScope.ALLOW_REGISTER_TOKEN = ALLOW_REGISTER_TOKEN;
       $rootScope.CAN_UPDATE_CACHE = CAN_UPDATE_CACHE;
       $rootScope.FALLBACK_URL = FALLBACK_URL;
       $rootScope.DEFAULT_READ = DEFAULT_READ;
@@ -274,13 +275,23 @@ angular
     "$scope",
     "$http",
     "$window",
-    function($scope, $http, $window) {
+    "$location",
+    function($scope, $http, $window, $location) {
       $scope.error = false;
       $scope.loggingIn = false;
 
+      $scope.token = $location.search().token;
+      if ($scope.token) {
+        $scope.useToken = true;
+        $scope.startWithToken = true;
+      }
       if ($window.location.protocol != "https:" && SECURE_COOKIE) {
         $scope.secureCookieError = true;
       }
+
+      $scope.toggleTokenRegistration = function() {
+        $scope.useToken = !$scope.useToken;
+      };
 
       $scope.submit = function(username, password) {
         $scope.loggingIn = true;
@@ -293,7 +304,7 @@ angular
           .success(function(data, status, headers, config) {
             $scope.loggingIn = false;
             $scope.error = false;
-            window.location = data.next;
+            $window.location = data.next;
           })
           .error(function(data, status, headers, config) {
             $scope.loggingIn = false;
@@ -322,6 +333,33 @@ angular
                   : data.message;
             } else if (status === 403) {
               $scope.errorMsg = "Registration has been disabled";
+            } else {
+              $scope.errorMsg = "Error during registration: " + data.message;
+            }
+          });
+      };
+
+      $scope.tokenRegister = function(token, password) {
+        var data = {
+          token: token,
+          password: password
+        };
+        $scope.registering = true;
+        $http
+          .put(ROOT + "tokenRegister", data)
+          .success(function(data, status, headers, config) {
+            $scope.error = false;
+            $scope.registering = false;
+            $window.location = data.next;
+          })
+          .error(function(data, status, headers, config) {
+            $scope.error = true;
+            $scope.registering = false;
+            if (status === 400) {
+              $scope.errorMsg =
+                data.message == null
+                  ? "Error during registration"
+                  : data.message;
             } else {
               $scope.errorMsg = "Error during registration: " + data.message;
             }

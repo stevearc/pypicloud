@@ -13,8 +13,43 @@ a.ng-binding:hover {
 .upload {
   background-color: #f7f7f7;
   padding: 10px;
-  border-radius: 4px
+  border-radius: 4px;
 }
-[ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
+[ng\:cloak],
+[ng-cloak],
+[data-ng-cloak],
+[x-ng-cloak],
+.ng-cloak,
+.x-ng-cloak {
   display: none !important;
+}
+
+.py-login {
+  opacity: 1;
+  transition: opacity .3s ease, transform .3s ease;
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: auto;
+}
+.py-login.py-hide {
+  opacity: 0;
+  transform: translateY(-60px);
+  pointer-events: none;
+}
+
+.py-token-register {
+  opacity: 1;
+  transition: opacity .3s ease, transform .3s ease;
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: auto;
+}
+.py-token-register.py-hide {
+  opacity: 0;
+  transform: translateY(60px);
+  pointer-events: none;
 }

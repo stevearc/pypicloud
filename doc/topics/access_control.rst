@@ -9,6 +9,9 @@ user credentials and access rules.
 If you ever need to change your access backend, or you want to back up your
 current state, check out the :ref:`import/export <change_access>` functionality.
 
+If you want an in-depth look at your options for managing users, see the
+:ref:`user_management` section.
+
 Users and Groups
 ----------------
 The access control uses a combination of users and groups. A group is a list of
@@ -73,12 +76,26 @@ everyone  none              none               r (everyone)
 ========  ================  =================  =============
 
 
+.. _config_file:
+
 Configuration
 ^^^^^^^^^^^^^
 
 Set ``pypi.auth = config`` OR ``pypi.auth =
 pypicloud.access.ConfigAccessBackend`` OR leave it out completely since this is
 the default.
+
+.. _auth_rounds:
+
+``auth.rounds``
+~~~~~~~~~~~~~~~
+**Argument:** int, optional
+
+The number of rounds to use when hashing passwords. See PassLib's docs on
+`choosing rounds values
+<http://passlib.readthedocs.io/en/stable/narr/hash-tutorial.html#choosing-the-right-rounds-value>`_.
+The default value will be secure, but possibly slow. If you find the hashing to
+take a long time, you can edit this value lower.
 
 ``user.<username>``
 ~~~~~~~~~~~~~~~~~~~
@@ -142,18 +159,34 @@ with the prefix ``auth.db.``, so you can pass in any valid parameters that way.
 The database url to use for storing user and group permissions. This may be the
 same database as ``db.url`` (if you are also using the SQL caching database).
 
-.. _auth_rounds:
-
 ``auth.rounds``
 ~~~~~~~~~~~~~~~
 **Argument:** int, optional
 
-The number of rounds to use when hashing passwords. See PassLib's docs on
-`choosing rounds values
-<http://passlib.readthedocs.io/en/stable/narr/hash-tutorial.html#choosing-the-right-rounds-value>`_.
-The default value will be secure, but possibly slow. If you find the hashing to
-take a long time, you can edit this value lower.
+The number of rounds to use when hashing passwords. See :ref:`auth_rounds`
 
+``auth.signing_key``
+~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+Encryption key to use for the token signing HMAC. Here is a reasonable way to
+generate one:
+
+.. code-block:: bash
+
+    $ python -c 'import os, base64; print(base64.b64encode(os.urandom(32)))'
+
+For more about generating and using tokens, see :ref:`token_registration`.
+Changing this value will retroactively apply to tokens issued in the past.
+
+.. _auth.token_expire:
+
+``auth.token_expire``
+~~~~~~~~~~~~~~~~~~~~~
+**Argument:** number, optional
+
+How long (in seconds) the generated registration tokens will be valid for
+(default one week).
 
 Remote Server
 -------------
@@ -289,6 +322,8 @@ passed to the endpoint, return just a single user dict that also contains
 params: ``username``
 
 returns: ``list``
+
+.. _ldap_config:
 
 LDAP Authentication
 -------------------

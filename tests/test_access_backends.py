@@ -288,6 +288,27 @@ class TestBaseBackend(BaseACLTest):
         with self.assertRaises(TypeError):
             access.load({})
 
+    def test_hmac_validate(self):
+        """ hmac will validate """
+        access = IMutableAccessBackend(signing_key='abc')
+        user = 'foobar'
+        token = access.get_signup_token(user)
+        self.assertEqual(user, access.validate_signup_token(token))
+
+    def test_hmac_expire(self):
+        """ hmac will expire after a time """
+        access = IMutableAccessBackend(signing_key='abc', token_expiration=-10)
+        user = 'foobar'
+        token = access.get_signup_token(user)
+        self.assertIsNone(access.validate_signup_token(token))
+
+    def test_hmac_invalid(self):
+        """ hmac will be invalid if mutated """
+        access = IMutableAccessBackend(signing_key='abc')
+        user = 'foobar'
+        token = access.get_signup_token(user)
+        self.assertIsNone(access.validate_signup_token(token + 'a'))
+
 
 class TestConfigBackend(BaseACLTest):
 

@@ -1,7 +1,8 @@
 <div ng-controller="LoginCtrl" ng-cloak>
   <div class="row" ng-hide="registered">
     <div class="col-xs-12 col-md-offset-4 col-md-4">
-      <div class="row well">
+      <!-- Standard login and register -->
+      <div class="row well py-login" ng-class="useToken ? 'py-hide' : ''">
         <form class="form-horizontal" role="form" ng-submit="submit(username, password)">
           <div class="form-group" ng-class=" error ? 'has-error' : ''">
             <div class="col-xs-12">
@@ -13,26 +14,68 @@
               <input type="password" class="form-control" ng-model="password" placeholder="Password">
             </div>
           </div>
-          <div class="col-xs-12" ng-show="error">
-            <alert type="'danger'">{{ errorMsg }}</alert>
-          </div>
-          <div class="col-xs-12" ng-show="secureCookieError">
-            <alert type="'warning'">
-              You are using <code>session.secure = true</code>, but the url is
-              not <code>https</code>. You will be unable to log in. Please see <a
-              href="https://www.owasp.org/index.php/SecureFlag"
-              target="_blank">the OWASP page</a> for more information on the
-              <code>secure</code> flag for cookies.
-            </alert>
-          </div>
-          <div class="col-xs-12">
-            <button type="submit" class="btn btn-default pull-left" ng-disabled="loggingIn">
-              <i class="fa fa-refresh fa-spin" ng-show="loggingIn"></i>
-              Log in
-            </button>
-            <button type="button" ng-click="register(username, password)" class="btn btn-default pull-right" ng-show="ALLOW_REGISTER">Register</button>
+          <div class="form-group">
+            <div class="col-xs-12" ng-show="error">
+              <alert type="'danger'">{{ errorMsg }}</alert>
+            </div>
+            <div class="col-xs-12" ng-show="secureCookieError">
+              <alert type="'warning'">
+                You are using <code>session.secure = true</code>, but the url is
+                not <code>https</code>. You will be unable to log in. Please see <a
+                href="https://www.owasp.org/index.php/SecureFlag"
+                target="_blank">the OWASP page</a> for more information on the
+                <code>secure</code> flag for cookies.
+              </alert>
+            </div>
+            <div class="col-xs-12">
+              <button type="submit" class="btn btn-default pull-left" ng-disabled="loggingIn">
+                <i class="fa fa-refresh fa-spin" ng-show="loggingIn"></i>
+                Log in
+              </button>
+              <button type="button" ng-click="register(username, password)" class="btn btn-default pull-right" ng-show="ALLOW_REGISTER">Register</button>
+            </div>
           </div>
         </form>
+
+        <!-- Toggle for showing token registration -->
+        <div class="row text-center" ng-if="ALLOW_REGISTER_TOKEN">
+          <a href="#" ng-click="toggleTokenRegistration()">
+            Register with token
+          </a>
+        </div>
+      </div>
+
+      <div class="row well py-token-register" ng-class="useToken ? '' : 'py-hide'">
+        <form class="form-horizontal" role="form" ng-submit="tokenRegister(token, password)">
+          <div class="form-group" ng-class=" error ? 'has-error' : ''">
+            <div class="col-xs-12">
+              <input type="text" class="form-control" ng-model="token" placeholder="Token" ng-disabled="startWithToken">
+            </div>
+          </div>
+          <div class="form-group" ng-class=" error ? 'has-error' : ''">
+            <div class="col-xs-12">
+              <input type="password" class="form-control" ng-model="password" placeholder="Password">
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="col-xs-12" ng-show="error">
+              <alert type="'danger'">{{ errorMsg }}</alert>
+            </div>
+            <div class="col-xs-12">
+                <button type="button" ng-click="tokenRegister(token, password)" class="btn btn-default pull-right" ng-disabled="registering">
+                  <i class="fa fa-refresh fa-spin" ng-show="registering"></i>
+                  Register
+                </button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Toggle for showing token registration -->
+        <div class="row text-center">
+          <a href="#" ng-click="toggleTokenRegistration()">
+            Back
+          </a>
+        </div>
       </div>
     </div>
   </div>

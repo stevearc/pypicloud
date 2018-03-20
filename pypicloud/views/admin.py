@@ -166,6 +166,17 @@ class AdminEndpoints(object):
         self.request.access.set_allow_register(allow)
         return self.request.response
 
+    @view_config(name='token', subpath=('username/*'), request_method='GET')
+    def generate_token(self):
+        """ Create a signup token for a user """
+        username = self.request.named_subpaths['username']
+        token = self.request.access.get_signup_token(username)
+        token_url = self.request.app_url('login') + '#/?token=' + token
+        return {
+            'token': token,
+            'token_url': token_url,
+        }
+
     @view_config(name='acl.json.gz', request_method='GET')
     def download_access_control(self):
         """ Download the ACL data as a gzipped-json file """
