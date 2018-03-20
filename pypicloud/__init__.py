@@ -1,12 +1,8 @@
 """ S3-backed pypi server """
-import os
-import sys
-
 import calendar
 import datetime
 import io
 import logging
-import traceback
 from pyramid.config import Configurator
 from pyramid.renderers import JSON, render
 from pyramid.settings import asbool
@@ -122,32 +118,9 @@ def includeme(config):
                                header='Content-Type:text/xml')
 
 
-def traceback_formatter(excpt, value, tback):
-    """ Catches all exceptions and re-formats the traceback raised.
-    """
-
-    sys.stdout.write("".join(traceback.format_exception(excpt, value, tback)))
-
-
-def hook_exceptions():
-    """ Hooks into the sys module to set our formatter.
-    """
-
-    if hasattr(sys.stdout, "fileno"):  # when testing, sys.stdout is StringIO
-        try:
-            # reopen stdout in non buffered mode
-            sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
-        except (io.UnsupportedOperation, ValueError):
-            pass
-        else:
-            # set the hook
-            sys.excepthook = traceback_formatter
-
-
 def main(config, **settings):
     """ This function returns a Pyramid WSGI application.
     """
-    hook_exceptions()
     config = Configurator(settings=settings)
     config.include('pypicloud')
     config.scan('pypicloud.views')
