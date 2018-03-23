@@ -14,7 +14,7 @@ from hashlib import md5
 from pyramid.httpexceptions import HTTPFound
 from pyramid.settings import asbool, falsey
 from pyramid_duh.settings import asdict
-from six.moves.urllib.parse import quote  # pylint: disable=F0401,E0611
+from six.moves.urllib.parse import urlparse, quote  # pylint: disable=F0401,E0611
 from six.moves.urllib.request import urlopen  # pylint: disable=F0401,E0611
 from six import BytesIO
 
@@ -52,7 +52,7 @@ class S3Storage(IStorage):
 
     def __init__(self, request=None, bucket=None, expire_after=None,
                  bucket_prefix=None, prepend_hash=None, redirect_urls=None,
-                 sse=None, object_acl=None,
+                 sse=None, object_acl=None, region_name=None,
                  **kwargs):
         super(S3Storage, self).__init__(request, **kwargs)
         self.bucket = bucket
@@ -62,6 +62,7 @@ class S3Storage(IStorage):
         self.redirect_urls = redirect_urls
         self.sse = sse
         self.object_acl = object_acl
+        self.region_name = region_name
 
     @classmethod
     def configure(cls, settings):
@@ -144,6 +145,7 @@ class S3Storage(IStorage):
                              "the S3 bucket specified in 'storage.bucket' is "
                              "in 'storage.region_name'")
                 raise
+        kwargs['region_name'] = config_settings.get('region_name')
         kwargs['bucket'] = bucket
         return kwargs
 
@@ -175,7 +177,7 @@ class S3Storage(IStorage):
 
     def _generate_url(self, package):
         """ Generate a signed url to the S3 file """
-        return self.bucket.meta.client.generate_presigned_url(
+        url = self.bucket.meta.client.generate_presigned_url(
             'get_object',
             Params={
                 'Bucket': self.bucket.name,
@@ -183,6 +185,20 @@ class S3Storage(IStorage):
             },
             ExpiresIn=self.expire_after,
         )
+        # There is a special case if your bucket has a '.' in the name. The
+        # generated URL will return a 301 and the pip downloads will fail.
+        # If you provide a region_name, boto should correctly generate a url in
+        # the form of `s3.<region>.amazonaws.com`
+        # See https://github.com/stevearc/pypicloud/issues/145
+        if '.' in self.bucket.name:
+            pieces = urlparse(url)
+            if pieces.netloc == 's3.amazonaws.com' and self.region_name is None:
+                LOG.warning(
+                    "Your signed S3 urls may not work! "
+                    "Try adding the bucket region to the config with "
+                    "'storage.region_name = <region>' or using a bucket "
+                    "without any dots ('.') in the name.")
+        return url
 
     def get_url(self, package):
         if self.redirect_urls:
