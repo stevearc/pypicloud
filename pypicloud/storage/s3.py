@@ -16,6 +16,7 @@ from pyramid.settings import asbool, falsey
 from pyramid_duh.settings import asdict
 from six.moves.urllib.parse import quote  # pylint: disable=F0401,E0611
 from six.moves.urllib.request import urlopen  # pylint: disable=F0401,E0611
+from six import BytesIO
 
 from .base import IStorage
 from pypicloud.models import Package
@@ -221,7 +222,7 @@ class S3Storage(IStorage):
         url = self._generate_url(package)
         handle = urlopen(url)
         try:
-            yield handle
+            yield BytesIO(handle.read())
         finally:
             handle.close()
 
