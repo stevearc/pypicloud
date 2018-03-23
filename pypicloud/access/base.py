@@ -236,6 +236,19 @@ class IAccessBackend(object):
         """
         return False
 
+    def allow_register_token(self):
+        """
+        Check if the backend allows registration via tokens
+
+        This should only be overridden by mutable backends
+
+        Returns
+        -------
+        allow : bool
+
+        """
+        return False
+
     def verify_user(self, username, password):
         """
         Check the login credentials of a user
@@ -537,14 +550,6 @@ class IMutableAccessBackend(IAccessBackend):
         raise NotImplementedError
 
     def allow_register_token(self):
-        """
-        Check if the backend allows registration via tokens
-
-        Returns
-        -------
-        allow : bool
-
-        """
         return self.signing_key is not None
 
     def set_allow_register(self, allow):
