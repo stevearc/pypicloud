@@ -42,6 +42,7 @@
     </table>
   </div>
   <div class="col-xs-12 col-md-4" ng-show="ACCESS_MUTABLE">
+    <!-- Toggle registration button -->
     <div>
       <button ng-click="toggleAllowRegister()" class="btn btn-default" ng-class="ALLOW_REGISTER ? 'active' : ''">
         <i class="fa fa-check-square-o" ng-show="ALLOW_REGISTER"></i>
@@ -49,6 +50,7 @@
         Registration {{ ALLOW_REGISTER ? 'allowed' : 'disabled' }}
       </button>
     </div>
+    <!-- Create user button -->
     <div style="margin: 10px 0">
       <button ng-click="toggleShowCreateUser()" class="btn btn-default" collapse="showCreateUser">
         Create user
@@ -69,7 +71,30 @@
         </button>
       </form>
     </div>
+
+    <!-- Create registration token button -->
+    <div style="margin: 10px 0">
+      <button ng-click="toggleShowCreateToken()" class="btn btn-default" collapse="showCreateToken">
+        Get registration token
+      </button>
+      <form class="form-horizontal" role="form" collapse="!showCreateToken" ng-submit="createToken()">
+        <div class="form-group" ng-class=" error ? 'has-error' : ''">
+          <div class="col-xs-12">
+            <input type="text" placeholder="Username" ng-model="newUsername" class="form-control" ng-set-focus="showCreateToken" />
+          </div>
+        </div>
+        <button type="submit" class="ng-hide">
+          Create
+        </button>
+      </form>
+    </div>
   </div>
+</div>
+
+<div class="row text-center" ng-show="signupToken && !showCreateToken">
+  <pre ng-click="copyToken($event)">{{ signupToken }}</pre>
+  <pre ng-click="copyToken($event)">{{ signupUrl }}</pre>
+  <span ng-show="showCopied">copied!</span>
 </div>
 
 <div class="row">

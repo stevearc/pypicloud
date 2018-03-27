@@ -164,6 +164,8 @@ def make_config(argv=None):
             data['secret_key'] = prompt("AWS secret access key?")
 
         data['s3_bucket'] = prompt("S3 bucket name?", validate=bucket_validate)
+        if '.' in data['s3_bucket']:
+            data['bucket_region'] = prompt("S3 bucket region?")
 
     data['encrypt_key'] = b64encode(os.urandom(32)).decode('utf-8')
     data['validate_key'] = b64encode(os.urandom(32)).decode('utf-8')

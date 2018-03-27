@@ -56,6 +56,7 @@ role="navigation">
     var NEED_ADMIN = {{ request.access.need_admin() | tojson | safe }};
     var ACCESS_MUTABLE = {{ request.access.mutable | tojson | safe }};
     var ALLOW_REGISTER = {{ request.access.allow_register() | tojson | safe }};
+    var ALLOW_REGISTER_TOKEN = {{ request.access.allow_register_token() | tojson | safe }};
     var VERSION = {{ request.pypicloud_version | tojson | safe }};
     var CAN_UPDATE_CACHE = {{ request.access.can_update_cache() | tojson | safe }};
     var FALLBACK_URL = {{ request.registry.fallback_url | tojson | safe }};

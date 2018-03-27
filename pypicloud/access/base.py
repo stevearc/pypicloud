@@ -1,5 +1,10 @@
 """ The access backend object base class """
+from __future__ import unicode_literals
+
 import six
+import hmac
+import hashlib
+import time
 from collections import defaultdict
 from passlib.apps import LazyCryptContext
 from passlib.utils import sys_bits
@@ -39,6 +44,9 @@ def groups_to_principals(groups):
     return [group_to_principal(g) for g in groups]
 
 
+ONE_WEEK = 60 * 60 * 24 * 7
+
+
 class IAccessBackend(object):
 
     """ Base class for retrieving user and package permission data """
@@ -51,12 +59,15 @@ class IAccessBackend(object):
     ]
 
     def __init__(self, request=None, default_read=None, default_write=None,
-                 cache_update=None, pwd_context=None):
+                 cache_update=None, pwd_context=None,
+                 token_expiration=ONE_WEEK, signing_key=None):
         self.request = request
         self.default_read = default_read
         self.default_write = default_write
         self.cache_update = cache_update
         self.pwd_context = pwd_context
+        self.token_expiration = token_expiration
+        self.signing_key = signing_key
 
     @classmethod
     def configure(cls, settings):
@@ -69,6 +80,9 @@ class IAccessBackend(object):
             'cache_update': aslist(settings.get('pypi.cache_update',
                                                 ['authenticated'])),
             'pwd_context': get_pwd_context(rounds),
+            'token_expiration': int(settings.get('auth.token_expire',
+                                                 ONE_WEEK)),
+            'signing_key': settings.get('auth.signing_key'),
         }
 
     def allowed_permissions(self, package):
@@ -212,6 +226,19 @@ class IAccessBackend(object):
     def allow_register(self):
         """
         Check if the backend allows registration
+
+        This should only be overridden by mutable backends
+
+        Returns
+        -------
+        allow : bool
+
+        """
+        return False
+
+    def allow_register_token(self):
+        """
+        Check if the backend allows registration via tokens
 
         This should only be overridden by mutable backends
 
@@ -462,8 +489,68 @@ class IMutableAccessBackend(IAccessBackend):
                 return False
         return True
 
+    def get_signup_token(self, username):
+        """
+        Create a signup token
+
+        Parameters
+        ----------
+        username : str
+            The username to be created when this token is consumed
+
+        Returns
+        -------
+        token : str
+
+        """
+        msg, signature = self._hmac(username, time.time())
+        return msg + ':' + signature
+
+    def _hmac(self, username, timestamp):
+        """ HMAC a username/expiration combo """
+        if self.signing_key is None:
+            raise RuntimeError("auth.signing_key is not set!")
+        msg = '%s:%d' % (username, timestamp)
+        return msg, hmac.new(self.signing_key.encode('utf8'),
+                             msg.encode('utf8'),
+                             hashlib.sha256).hexdigest()
+
+    def validate_signup_token(self, token):
+        """
+        Validate a signup token
+
+        Parameters
+        ----------
+        token : str
+
+        Returns
+        -------
+        username : str or None
+            This will be None if the validation fails
+
+        """
+        if self.signing_key is None:
+            return None
+        pieces = token.split(':')
+        signature = pieces.pop()
+        username = pieces[0]
+        issued = int(pieces[1])
+        if issued + self.token_expiration < time.time():
+            return None
+        _, expected = self._hmac(username, issued)
+        if hasattr(hmac, 'compare_digest'):
+            if not hmac.compare_digest(signature, expected):
+                return None
+        else:
+            if signature != expected:
+                return None
+        return username
+
     def allow_register(self):
         raise NotImplementedError
+
+    def allow_register_token(self):
+        return self.signing_key is not None
 
     def set_allow_register(self, allow):
         """

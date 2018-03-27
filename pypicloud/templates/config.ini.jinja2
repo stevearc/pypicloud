@@ -25,6 +25,9 @@ storage.dir = %(here)s/packages
 storage.aws_access_key_id = {{ access_key }}
 storage.aws_secret_access_key = {{ secret_key }}
 storage.bucket = {{ s3_bucket }}
+{% if bucket_region -%}
+storage.region_name = {{ bucket_region }}
+{%- endif %}
 {%- endif %}
 
 db.url = sqlite:///%(here)s/db.sqlite
@@ -59,11 +62,11 @@ reload-mercy = 15
 worker-reload-mercy = 15
 max-requests = 1000
 enable-threads = true
-{%- if env == 'docker' %}
 http = 0.0.0.0:8080
-virtualenv = /env
+{%- if env == 'docker' %}
+uid = pypicloud
+gid = pypicloud
 {%- else %}
-socket = 127.0.0.1:3031
 {% if venv is defined -%}virtualenv = {{ venv }}{%- endif %}
 {%- endif %}
 {%- endif %}

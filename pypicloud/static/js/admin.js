@@ -165,7 +165,8 @@ angular
     "$scope",
     "$http",
     "$location",
-    function($rootScope, $scope, $http, $location) {
+    "$timeout",
+    function($rootScope, $scope, $http, $location, $timeout) {
       $scope.users = null;
       $scope.pendingUsers = null;
       $scope.groups = null;
@@ -213,6 +214,43 @@ angular
         $scope.showCreateUser = false;
         $scope.newUsername = "";
         $scope.newPassword = "";
+      };
+
+      $scope.toggleShowCreateToken = function() {
+        $scope.showCreateToken = !$scope.showCreateToken;
+      };
+
+      $scope.createToken = function() {
+        var username = $scope.newUsername;
+        if (_.contains(_.pluck($scope.users, "username"), username)) {
+          return;
+        }
+        $http
+          .get($scope.ADMIN + "token/" + username)
+          .error(function(data, status, headers, config) {
+            alert("Error creating token: " + data.message);
+          })
+          .success(function(data, status, headers, config) {
+            $scope.showCreateToken = false;
+            $scope.newUsername = "";
+            $scope.signupToken = data.token;
+            $scope.signupUrl = data.token_url;
+          });
+      };
+
+      $scope.copyToken = function(e) {
+        var selection = document.getSelection();
+        var range = document.createRange();
+        range.selectNodeContents(e.currentTarget);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        if (document.execCommand) {
+          document.execCommand("copy");
+          $scope.showCopied = true;
+          $timeout(function() {
+            $scope.showCopied = false;
+          }, 3000);
+        }
       };
 
       function deleteUser(user) {

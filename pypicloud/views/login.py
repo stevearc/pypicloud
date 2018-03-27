@@ -74,6 +74,24 @@ def handle_register_request(request, username, password):
     return request.response
 
 
+@view_config(context=Root, name='tokenRegister', request_method='PUT', subpath=(),
+             renderer='json', permission=NO_PERMISSION_REQUIRED)
+@argify
+def do_token_register(request, token, password):
+    """ Consume a signed token and create a new user """
+    username = request.access.validate_signup_token(token)
+    if username is None:
+        raise ValueError("Invalid token")
+    if request.access.user_data(username) is not None:
+        raise ValueError("User %s already exists" % username)
+    request.access.register(username, password)
+    request.access.approve_user(username)
+    request.response.headers.extend(remember(request, username))
+    return {
+        'next': request.app_url(),
+    }
+
+
 @view_config(context=Root, name='login', request_method='PUT', subpath=(),
              renderer='json', permission=NO_PERMISSION_REQUIRED)
 @argify

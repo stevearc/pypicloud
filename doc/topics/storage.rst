@@ -61,9 +61,13 @@ The name of the S3 bucket to store packages in.
 ~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string, semi-optional
 
-This is required if your bucket is in a new region, such as ``eu-central-1``.
-If your bucket does not yet exist, it will be created in this region on
-startup. If blank, the classic US region will be used.
+The AWS region your bucket is in. If your bucket does not yet exist, it will be
+created in this region on startup. If blank, the classic US region will be used.
+
+.. warning::
+
+  If your bucket name has a ``.`` character in it, or if it is in a newer region
+  (such as ``eu-central-1``), you *must* specify the ``storage.region_name``!
 
 .. _s3_credentials:
 

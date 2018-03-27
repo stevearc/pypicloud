@@ -135,7 +135,7 @@ Encryption key to use for the AES cipher. Here is a reasonable way to generate o
 
 .. code-block:: bash
 
-    $ python -c 'import os, base64; print base64.b64encode(os.urandom(32))'
+    $ python -c 'import os, base64; print(base64.b64encode(os.urandom(32)))'
 
 ``session.validate_key``
 ~~~~~~~~~~~~~~~~~~~~~~~~

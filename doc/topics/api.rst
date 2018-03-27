@@ -266,6 +266,23 @@ Get a list of all users that are registered and need confirmation from an admin
         "Wat"
     ]
 
+``GET`` ``/admin/token/<username>/``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Get a registration token for a username
+
+**Example**::
+
+    curl myserver.com/admin/token/LordFoobar/
+
+**Sample Response**:
+
+.. code-block:: javascript
+
+    {
+        "token": "LordFoobar:1522226377:2c3ad57edc6b73f3b9d16a48893ba4f7da7531a6abcf046c8d9c228ab50e4614",
+        "token_url": "http://myserver.com/login#/?token=LordFoobar:1522226377:2c3ad57edc6b73f3b9d16a48893ba4f7da7531a6abcf046c8d9c228ab50e4614"
+    }
+
 ``GET`` ``/admin/user/``
 ^^^^^^^^^^^^^^^^^^^^^^^^
 Get a list of all users and their admin status
@@ -340,6 +357,19 @@ Delete a user
 **Example**::
 
     curl -X DELETE myserver.com/admin/user/chump/
+
+``PUT`` ``/admin/user/<username>/``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Create a new user with a given password
+
+**Parameters**:
+
+* ``password`` (string) - The password for the new user
+
+**Example**::
+
+    curl -X PUT -d 'password=abc123' myserver.com/admin/user/LordFoobar/
+
 
 ``POST`` ``/admin/user/<username>/approve/``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
