@@ -2,6 +2,13 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.0.3 - 2018/3/26
+-----------------
+* Fix: uWSGI hangs in python 3 (:issue:`153`)
+* Fix: Crash when using ``ppc-migrate`` to migrate from S3 to S3
+* Add warnings and documentation for edge case where S3 bucket has a dot in it (:issue:`145`)
+* Admin can create signup tokens (:issue:`156`)
+
 1.0.2 - 2018/1/26
 -----------------
 * Fix: Hang when rebuilding Postgres cache (:issue:`147`)
