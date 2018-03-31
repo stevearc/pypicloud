@@ -137,10 +137,17 @@ class SQLAccessBackend(IMutableAccessBackend):
 
     def __init__(self, request=None, dbmaker=None, **kwargs):
         super(SQLAccessBackend, self).__init__(request, **kwargs)
-        self.db = dbmaker()
+        self._db = None
+        self._dbmaker = dbmaker
 
-        if request is not None:
-            zope.sqlalchemy.register(self.db, transaction_manager=request.tm)
+    @property
+    def db(self):
+        """ Lazy-create the DB session """
+        if self._db is None:
+            self._db = self._dbmaker()
+            if self.request is not None:
+                zope.sqlalchemy.register(self._db, transaction_manager=self.request.tm)
+        return self._db
 
     @classmethod
     def configure(cls, settings):
