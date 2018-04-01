@@ -47,16 +47,17 @@ def format_exception(context, request):
         If pyramid.debug = true, also return the stacktrace to the client
 
     """
-    LOG.exception(context.message)
+    message = context.message if hasattr(context, 'message') else str(context)
+    LOG.exception(message)
     if not request.path.startswith('/api/') and \
             not request.path.startswith('/admin/'):
         if isinstance(context, HTTPException):
             return context
         else:
-            return HTTPServerError(context.message)
+            return HTTPServerError(message)
     error = {
         'error': getattr(context, 'error', 'unknown'),
-        'message': context.message,
+        'message': message,
     }
     if asbool(request.registry.settings.get('pyramid.debug', False)):
         error['stacktrace'] = traceback.format_exc()

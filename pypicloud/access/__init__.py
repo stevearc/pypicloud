@@ -27,3 +27,4 @@ def includeme(config):
     kwargs = access_backend.configure(settings)
     config.add_request_method(partial(access_backend, **kwargs), name='access',
                               reify=True)
+    config.add_postfork_hook(partial(access_backend.postfork, **kwargs))

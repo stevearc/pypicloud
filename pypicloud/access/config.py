@@ -50,7 +50,7 @@ class ConfigAccessBackend(IAccessBackend):
 
     def groups(self, username=None):
         if username is None:
-            return self.group_map.keys()
+            return list(self.group_map.keys())
         else:
             return self.user_groups[username]
 

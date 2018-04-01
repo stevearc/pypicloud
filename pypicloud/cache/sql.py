@@ -1,7 +1,6 @@
 """ Store package data in a SQL database """
 import json
 import logging
-import transaction
 import zope.sqlalchemy
 from datetime import datetime
 from pyramid.settings import asbool
@@ -148,6 +147,12 @@ class SQLCache(ICache):
         kwargs['graceful_reload'] = graceful_reload
         return kwargs
 
+    @classmethod
+    def postfork(cls, **kwargs):
+        # Have to dispose of connections after uWSGI forks,
+        # otherwise they'll get corrupted.
+        kwargs['dbmaker'].kw['bind'].dispose()
+
     def fetch(self, filename):
         return self.db.query(SQLPackage).filter_by(filename=filename).first()
 
@@ -253,7 +258,7 @@ class SQLCache(ICache):
         if self.request is None:
             self.db.rollback()
         else:
-            transaction.abort()
+            self.request.tm.abort()
         engine = self.dbmaker.kw['bind']
         drop_schema(engine)
         create_schema(engine)
