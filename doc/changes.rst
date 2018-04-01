@@ -2,6 +2,11 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.0.4 - 2018/4/1
+----------------
+* Fix: Fix SQL connection issues with uWSGI (:issue:`160`)
+* Miscellaneous python 3 fixes
+
 1.0.3 - 2018/3/26
 -----------------
 * Fix: uWSGI hangs in python 3 (:issue:`153`)
