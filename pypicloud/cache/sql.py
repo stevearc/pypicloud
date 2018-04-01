@@ -147,6 +147,12 @@ class SQLCache(ICache):
         kwargs['graceful_reload'] = graceful_reload
         return kwargs
 
+    @classmethod
+    def postfork(cls, **kwargs):
+        # Have to dispose of connections after uWSGI forks,
+        # otherwise they'll get corrupted.
+        kwargs['dbmaker'].kw['bind'].dispose()
+
     def fetch(self, filename):
         return self.db.query(SQLPackage).filter_by(filename=filename).first()
 

@@ -158,6 +158,12 @@ class SQLAccessBackend(IMutableAccessBackend):
         Base.metadata.create_all(bind=engine)
         return kwargs
 
+    @classmethod
+    def postfork(cls, **kwargs):
+        # Have to dispose of connections after uWSGI forks,
+        # otherwise they'll get corrupted.
+        kwargs['dbmaker'].kw['bind'].dispose()
+
     def allow_register(self):
         ret = self.db.query(KeyVal).filter_by(key='allow_register').first()
         return ret is not None and ret.value == 'true'

@@ -29,4 +29,5 @@ def includeme(config):
     cache.reload_if_needed()
     config.add_request_method(partial(cache_impl, **kwargs), name='db',
                               reify=True)
+    config.add_postfork_hook(partial(cache_impl.postfork, **kwargs))
     return cache_impl

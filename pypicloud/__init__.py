@@ -37,6 +37,11 @@ def _locator(request):
     return BetterScrapingLocator(request.registry.fallback_url)
 
 
+def _add_postfork_hook(config, hook):
+    """ Add a postfork hook """
+    config.registry.postfork_hooks.append(hook)
+
+
 def includeme(config):
     """ Set up and configure the pypicloud app """
     config.set_root_factory(Root)
@@ -51,6 +56,21 @@ def includeme(config):
     config.include('pyramid_duh')
     config.include('pyramid_duh.auth')
     config.include('pyramid_rpc.xmlrpc')
+
+    # Sometimes we need to run things after uWSGI forks.
+    config.registry.postfork_hooks = []
+    config.add_directive('add_postfork_hook', _add_postfork_hook)
+    try:
+        from uwsgidecorators import postfork
+    except ImportError:
+        pass
+    else:
+        @postfork
+        def run_postfork_hooks():
+            """ Run hooks after uWSGI forks """
+            for fn in config.registry.postfork_hooks:
+                fn()
+
     config.include('pypicloud.auth')
     config.include('pypicloud.access')
     config.include('pypicloud.cache')

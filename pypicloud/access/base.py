@@ -85,6 +85,11 @@ class IAccessBackend(object):
             'signing_key': settings.get('auth.signing_key'),
         }
 
+    @classmethod
+    def postfork(cls, **kwargs):
+        """ This method will be called after uWSGI forks """
+        pass
+
     def allowed_permissions(self, package):
         """
         Get all allowed permissions for all principals on a package
