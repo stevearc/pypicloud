@@ -1,8 +1,4 @@
-""" Backend that defers to another server for access control """
-import boto3
-from botocore.exceptions import ClientError
-import json
-from json import JSONDecodeError
+""" Backend that uses a remote json file as remote database """
 
 from .base import IMutableAccessBackend
 
@@ -96,8 +92,6 @@ class IMutableJsonAccessBackend(IMutableAccessBackend):
         return self.db['users'][username]
 
     def _set_password_hash(self, username, password_hash):
-        if not 'users' in self.db:
-            self.db['users'] = {}
         self.db['users'][username] = password_hash
         self.db.save()
 

@@ -2,7 +2,10 @@
 import boto3
 from botocore.exceptions import ClientError
 import json
-from json import JSONDecodeError
+try:
+    from json.decoder import JSONDecodeError
+except ImportError:
+    JSONDecodeError = ValueError
 
 from .base_json import IMutableJsonAccessBackend, IMutableJsonAccessDB
 
