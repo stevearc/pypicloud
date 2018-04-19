@@ -156,6 +156,17 @@ class TestS3Storage(unittest.TestCase):
                 }, 'Permission': 'READ'
             }])
 
+    def test_storage_class(self):
+        """ Can specify a storage class for S3 objects """
+        settings = dict(self.settings)
+        settings['storage.storage_class'] = 'STANDARD_IA'
+        kwargs = S3Storage.configure(settings)
+        storage = S3Storage(MagicMock(), **kwargs)
+        package = make_package()
+        storage.upload(package, BytesIO())
+        storage_class = list(self.bucket.objects.all())[0].Object().storage_class
+        self.assertItemsEqual(storage_class, 'STANDARD_IA')
+
 
 class TestCloudFrontS3Storage(unittest.TestCase):
 
