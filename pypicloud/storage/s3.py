@@ -52,7 +52,7 @@ class S3Storage(IStorage):
 
     def __init__(self, request=None, bucket=None, expire_after=None,
                  bucket_prefix=None, prepend_hash=None, redirect_urls=None,
-                 sse=None, object_acl=None, region_name=None,
+                 sse=None, object_acl=None, storage_class=None, region_name=None,
                  **kwargs):
         super(S3Storage, self).__init__(request, **kwargs)
         self.bucket = bucket
@@ -62,6 +62,7 @@ class S3Storage(IStorage):
         self.redirect_urls = redirect_urls
         self.sse = sse
         self.object_acl = object_acl
+        self.storage_class = storage_class
         self.region_name = region_name
 
     @classmethod
@@ -78,6 +79,7 @@ class S3Storage(IStorage):
                      "https://boto3.readthedocs.io/en/latest/reference/services/s3.html#S3.Object.put "
                      "for more details", sse)
         kwargs['object_acl'] = settings.get('storage.object_acl', None)
+        kwargs['storage_class'] = storage_class = settings.get('storage.storage_class')
         kwargs['redirect_urls'] = asbool(settings.get('storage.redirect_urls',
                                                       False))
 
@@ -216,6 +218,8 @@ class S3Storage(IStorage):
             kwargs['ServerSideEncryption'] = self.sse
         if self.object_acl:
             kwargs['ACL'] = self.object_acl
+        if self.storage_class is not None:
+            kwargs['StorageClass'] = self.storage_class
         metadata = {
             'name': package.name,
             'version': package.version,
