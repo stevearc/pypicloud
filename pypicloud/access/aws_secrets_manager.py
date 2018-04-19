@@ -11,6 +11,10 @@ from .base_json import IMutableJsonAccessBackend, IMutableJsonAccessDB
 
 
 class AWSSecretsManagerDB(IMutableJsonAccessDB):
+    """
+    This class implements IMutableJsonAccessDB class for the AWS Secrets
+    Manager backend.
+    """
     def __init__(self, region, secret_id, credentials, *args, **kwargs):
         super(AWSSecretsManagerDB, self).__init__(*args, **kwargs)
         self.region = region
@@ -21,6 +25,7 @@ class AWSSecretsManagerDB(IMutableJsonAccessDB):
 
     @property
     def _client(self):
+        """Cached instance of the boto3 client"""
         if not self.__client:
             session = boto3.session.Session(**self.credentials)
             self.__client = session.client(

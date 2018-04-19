@@ -47,6 +47,9 @@ Secret should look like this on AWS:
 
 
 class IMutableJsonAccessDB(dict):
+    """
+    This class represents the remote database.
+    """
     def _fetch(self):
         """ Hit a server endpoint and return the json response as a dict"""
         raise NotImplementedError
@@ -68,12 +71,20 @@ class IMutableJsonAccessBackend(IMutableAccessBackend):
 
     @property
     def db(self):
+        """
+        Get the remote json, if forst call, or simply return it if already
+        downloaded.
+        """
         if not hasattr(self, '_db'):
             self._db = self._get_db()
             self._add_missing_sections()
         return self._db
 
     def _add_missing_sections(self):
+        """
+        Make sure the root nodes of the json are present so the rest of the
+        code may assume it's there when using it.
+        """
         if 'users' not in self._db:
             self.db['users'] = {}
         if 'admins' not in self._db:
@@ -86,6 +97,10 @@ class IMutableJsonAccessBackend(IMutableAccessBackend):
             self.db['pending_users'] = {}
 
     def _get_db(self):
+        """
+        Actually fetch the remote json. This method should return an instance
+        of a child class of IMutableJsonAccessDB.
+        """
         raise NotImplementedError
 
     def _get_password_hash(self, username):
@@ -152,6 +167,9 @@ class IMutableJsonAccessBackend(IMutableAccessBackend):
         return packages
 
     def _build_user(self, username, add_groups=False):
+        """
+        Build a user as expected by the user_data method.
+        """
         admins = self.db['admins']
         is_pending = username in self.db['pending_users']
         if username not in self.db['users'] or is_pending:
@@ -216,6 +234,10 @@ class IMutableJsonAccessBackend(IMutableAccessBackend):
         self.db.save()
 
     def _init_package(self, package):
+        """
+        Make sure the root requested package and it's child nodes exists in
+        the database.
+        """
         if package not in self.db['packages']:
             self.db['packages'][package] = {}
         if 'groups' not in self.db['packages'][package]:
