@@ -2,49 +2,60 @@
 import boto3
 from botocore.exceptions import ClientError
 import json
+from json import JSONDecodeError
 
-from .base import IAccessBackend
-
-"""
-Secret should look like this on AWS:
-
-{
-  "users": {
-    "user1": "password1",
-    "user2": "password2",
-    "user3": "password3",
-    "user4": "password4",
-    "user5": "password5",
-  },
-  "groups": {
-    "admins": [
-      "user1",
-      "user2"
-    ],
-    "group1": [
-      "user3"
-    ]
-  },
-  "packages": {
-      "mypackage": {
-          "groups": {
-              "group1": ["read', "write"],
-              "group2": ["read"],
-              "group3": [],
-          },
-          "users": {
-              "user1": ["read", "write"],
-              "user2": ["read"],
-              "user3": [],
-              "user5": ["read"],
-          }
-      }
-  }
-}
-"""
+from .base_json import IMutableJsonAccessBackend, IMutableJsonAccessDB
 
 
-class AWSSecretsManagerAccessBackend(IAccessBackend):
+class AWSSecretsManagerDB(IMutableJsonAccessDB):
+    def __init__(self, region, secret_id, credentials, *args, **kwargs):
+        super(AWSSecretsManagerDB, self).__init__(*args, **kwargs)
+        self.region = region
+        self.secret_id = secret_id
+        self.credentials = credentials
+        self.__client = None
+        self.update(self._fetch())
+
+    @property
+    def _client(self):
+        if not self.__client:
+            session = boto3.session.Session(**self.credentials)
+            self.__client = session.client(
+                service_name='secretsmanager',
+                region_name=self.region,
+                endpoint_url="https://secretsmanager.{}.amazonaws.com".format(
+                    self.region
+                )
+            )
+        return self.__client
+
+    def _fetch(self):
+        """ Hit a server endpoint and return the json response """
+        try:
+            return json.loads(self._client.get_secret_value(
+                SecretId=self.secret_id
+            )['SecretString'])
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'ResourceNotFoundException':
+                raise Exception(
+                    "The requested secret " + self.secret_id +
+                    " was not found")
+            elif e.response['Error']['Code'] == 'InvalidRequestException':
+                raise Exception("The request was invalid due to:", e)
+            elif e.response['Error']['Code'] == 'InvalidParameterException':
+                raise Exception("The request had invalid params:", e)
+            raise
+        except JSONDecodeError as e:
+            raise Exception('Invalid json detected: {}'.format(e))
+
+    def save(self):
+        self._client.update_secret(
+            SecretId=self.secret_id,
+            SecretString=json.dumps(self)
+        )
+
+
+class AWSSecretsManagerAccessBackend(IMutableJsonAccessBackend):
 
     """
     This backend allows you to store all user and package permissions in
@@ -52,10 +63,9 @@ class AWSSecretsManagerAccessBackend(IAccessBackend):
 
     """
 
-    def __init__(self, request=None, settings=None, region=None,
-                 secret_id=None, credentials=None, **kwargs):
+    def __init__(self, request=None, region=None, secret_id=None,
+                 credentials=None, **kwargs):
         super(AWSSecretsManagerAccessBackend, self).__init__(request, **kwargs)
-        self._settings = settings
         self.region = region
         self.secret_id = secret_id
         self.credentials = {}
@@ -64,7 +74,6 @@ class AWSSecretsManagerAccessBackend(IAccessBackend):
     @classmethod
     def configure(cls, settings):
         kwargs = super(AWSSecretsManagerAccessBackend, cls).configure(settings)
-        kwargs['settings'] = settings
         kwargs['region'] = settings['auth.region']
         kwargs['secret_id'] = settings['auth.secret_id']
         credentials = {}
@@ -80,102 +89,7 @@ class AWSSecretsManagerAccessBackend(IAccessBackend):
         kwargs['credentials'] = credentials
         return kwargs
 
-    def _fetch_credentials(self):
-        """ Hit a server endpoint and return the json response """
-        session = boto3.session.Session(**self.credentials)
-        client = session.client(
-            service_name='secretsmanager',
-            region_name=self.region,
-            endpoint_url="https://secretsmanager.{}.amazonaws.com".format(
-                self.region
-            )
+    def _get_db(self):
+        return AWSSecretsManagerDB(
+            self.region, self.secret_id, self.credentials
         )
-
-        try:
-            return json.loads(client.get_secret_value(
-                SecretId=self.secret_id
-            )['SecretString'])
-        except ClientError as e:
-            if e.response['Error']['Code'] == 'ResourceNotFoundException':
-                raise Exception(
-                    "The requested secret " + self.secret_id +
-                    " was not found")
-            elif e.response['Error']['Code'] == 'InvalidRequestException':
-                raise Exception("The request was invalid due to:", e)
-            elif e.response['Error']['Code'] == 'InvalidParameterException':
-                raise Exception("The request had invalid params:", e)
-
-    def verify_user(self, username, password):
-        credentials = self._fetch_credentials()
-        try:
-            return credentials.get('users', {})[username] == password
-        except KeyError:
-            return False
-
-    def _get_password_hash(self, username):
-        # We don't have to do anything here because we overrode 'verify_user'
-        pass
-
-    def groups(self, username=None):
-        credentials = self._fetch_credentials()
-        if not username:
-            return list(credentials.get('groups', {}).keys())
-        groups = []
-        for group_name, users in credentials.get('groups', {}).items():
-            if username in users:
-                groups.append(group_name)
-        return groups
-
-    def group_members(self, group):
-        credentials = self._fetch_credentials()
-        return list(credentials.get('groups', {}).get(group, []))
-
-    def is_admin(self, username):
-        credentials = self._fetch_credentials()
-        admins = credentials.get('groups', {}).get('admins', [])
-        return username in admins
-
-    def group_permissions(self, package):
-        credentials = self._fetch_credentials()
-        packages = credentials.get('packages', {})
-        package = packages.get('package', {})
-        return package.get('groups', {})
-
-    def user_permissions(self, package):
-        credentials = self._fetch_credentials()
-        packages = credentials.get('packages', {})
-        package = packages.get('package', {})
-        return package.get('users', {})
-
-    def user_package_permissions(self, username):
-        credentials = self._fetch_credentials()
-        packages = []
-        for package in credentials.get('packages', {}):
-            users = package.get('users', {})
-            if username in users:
-                packages.append(username)
-        return packages
-
-    def group_package_permissions(self, group):
-        credentials = self._fetch_credentials()
-        packages = []
-        for package in credentials.get('packages', {}):
-            groups = package.get('groups', {})
-            if group in groups:
-                packages.append(group)
-        return packages
-
-    def user_data(self, username=None):
-        credentials = self._fetch_credentials()
-        admins = credentials.get('groups', {}).get('admins', [])
-        users = []
-        for user in credentials.get('users', {}):
-            if username and user != username:
-                continue
-            users.append({
-                'username': user,
-                'admin': user in admins
-            })
-            if username and user == username:
-                break
-        return users
