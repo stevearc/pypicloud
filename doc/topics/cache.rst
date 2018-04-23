@@ -64,7 +64,11 @@ DynamoDB
 --------
 Set ``pypi.db = dynamo`` OR ``pypi.db = pypicloud.cache.dynamo.DynamoCache``
 
-You will need to ``pip install pypicloud[dynamo]`` before running the server.
+.. note::
+
+  Make sure to ``pip install pypicloud[dynamo]`` before running the server to
+  install the necessary DynamoDB libraries. Also, be sure you have set the
+  correct :ref:`dynamodb_policy`.
 
 ``db.region_name``
 ~~~~~~~~~~~~~~~~~~
