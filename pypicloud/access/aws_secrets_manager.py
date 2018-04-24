@@ -1,66 +1,16 @@
 """ Backend that defers to another server for access control """
 import boto3
-from botocore.exceptions import ClientError
 import json
+from botocore.exceptions import ClientError
+
+from .base_json import IMutableJsonAccessBackend
+from pypicloud.util import get_settings
+
+
 try:
     from json.decoder import JSONDecodeError
 except ImportError:
     JSONDecodeError = ValueError
-
-from .base_json import IMutableJsonAccessBackend, IMutableJsonAccessDB
-
-
-class AWSSecretsManagerDB(IMutableJsonAccessDB):
-    """
-    This class implements IMutableJsonAccessDB class for the AWS Secrets
-    Manager backend.
-    """
-    def __init__(self, region, secret_id, credentials, *args, **kwargs):
-        super(AWSSecretsManagerDB, self).__init__(*args, **kwargs)
-        self.region = region
-        self.secret_id = secret_id
-        self.credentials = credentials
-        self.__client = None
-        self.update(self._fetch())
-
-    @property
-    def _client(self):
-        """Cached instance of the boto3 client"""
-        if not self.__client:
-            session = boto3.session.Session(**self.credentials)
-            self.__client = session.client(
-                service_name='secretsmanager',
-                region_name=self.region,
-                endpoint_url="https://secretsmanager.{}.amazonaws.com".format(
-                    self.region
-                )
-            )
-        return self.__client
-
-    def _fetch(self):
-        """ Hit a server endpoint and return the json response """
-        try:
-            return json.loads(self._client.get_secret_value(
-                SecretId=self.secret_id
-            )['SecretString'])
-        except ClientError as e:
-            if e.response['Error']['Code'] == 'ResourceNotFoundException':
-                raise Exception(
-                    "The requested secret " + self.secret_id +
-                    " was not found")
-            elif e.response['Error']['Code'] == 'InvalidRequestException':
-                raise Exception("The request was invalid due to:", e)
-            elif e.response['Error']['Code'] == 'InvalidParameterException':
-                raise Exception("The request had invalid params:", e)
-            raise
-        except JSONDecodeError as e:
-            raise Exception('Invalid json detected: {}'.format(e))
-
-    def save(self):
-        self._client.update_secret(
-            SecretId=self.secret_id,
-            SecretString=json.dumps(self)
-        )
 
 
 class AWSSecretsManagerAccessBackend(IMutableJsonAccessBackend):
@@ -71,33 +21,78 @@ class AWSSecretsManagerAccessBackend(IMutableJsonAccessBackend):
 
     """
 
-    def __init__(self, request=None, region=None, secret_id=None,
-                 credentials=None, **kwargs):
+    def __init__(self, request=None, secret_id=None, kms_key_id=None,
+                 client=None, **kwargs):
         super(AWSSecretsManagerAccessBackend, self).__init__(request, **kwargs)
-        self.region = region
         self.secret_id = secret_id
-        self.credentials = {}
-        self.credentials.update(credentials or {})
+        self.kms_key_id = kms_key_id
+        self.client = client
+        self.dirty = False
 
     @classmethod
     def configure(cls, settings):
         kwargs = super(AWSSecretsManagerAccessBackend, cls).configure(settings)
-        kwargs['region'] = settings['auth.region']
         kwargs['secret_id'] = settings['auth.secret_id']
-        credentials = {}
+        kwargs['kms_key_id'] = settings.get('auth.kms_key_id')
 
-        if settings.get('auth.access_key'):
-            credentials['aws_access_key_id'] = settings['auth.access_key']
-        if settings.get('auth.secret_key'):
-            credentials['aws_secret_access_key'] = settings['auth.secret_key']
-        if settings.get('auth.session_token'):
-            credentials['aws_session_token'] = settings['auth.session_token']
-        if settings.get('auth.profile_name'):
-            credentials['profile_name'] = settings['auth.profile_name']
-        kwargs['credentials'] = credentials
+        kwargs['client'] = boto3.client(
+            'secretsmanager',
+            **get_settings(
+                settings,
+                'auth.',
+                region_name=str,
+                aws_access_key_id=str,
+                aws_secret_access_key=str,
+                aws_session_token=str,
+                profile_name=str,
+            )
+        )
+
         return kwargs
 
     def _get_db(self):
-        return AWSSecretsManagerDB(
-            self.region, self.secret_id, self.credentials
-        )
+        """ Hit a server endpoint and return the json response """
+        try:
+            response = self.client.get_secret_value(
+                SecretId=self.secret_id
+            )
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'ResourceNotFoundException':
+                return {}
+            elif e.response['Error']['Code'] == 'InvalidRequestException':
+                raise Exception("The request was invalid due to:", e)
+            elif e.response['Error']['Code'] == 'InvalidParameterException':
+                raise Exception("The request had invalid params:", e)
+            raise
+
+        try:
+            return json.loads(response['SecretString'])
+        except JSONDecodeError as e:
+            raise Exception('Invalid json detected: {}'.format(e))
+
+    def _save(self):
+        if not self.dirty:
+            self.dirty = True
+            self.request.tm.get().addAfterCommitHook(self._do_save)
+
+    def _do_save(self, succeeded):
+        """ Save the auth data to the backend """
+        if not succeeded:
+            return
+        kwargs = {
+            'SecretString': json.dumps(self._db),
+        }
+        if self.kms_key_id is not None:
+            kwargs['KmsKeyId'] = self.kms_key_id
+        try:
+            self.client.update_secret(
+                SecretId=self.secret_id,
+                **kwargs
+            )
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'ResourceNotFoundException':
+                self.client.create_secret(
+                    Name=self.secret_id,
+                    **kwargs
+                )
+            raise
