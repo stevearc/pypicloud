@@ -226,6 +226,8 @@ class IMutableJsonAccessBackend(IJsonAccessBackend, IMutableAccessBackend):
         self.db['packages'][package].setdefault('users', {})
 
     def edit_group_permission(self, package_name, group, perm, add):
+        if perm != 'read' and perm != 'write':
+            raise ValueError("Unrecognized permission '%s'" % perm)
         self._init_package(package_name)
         package = self.db['packages'][package_name]
         if group not in package['groups']:
@@ -242,6 +244,8 @@ class IMutableJsonAccessBackend(IJsonAccessBackend, IMutableAccessBackend):
         self._save()
 
     def edit_user_permission(self, package_name, username, perm, add):
+        if perm != 'read' and perm != 'write':
+            raise ValueError("Unrecognized permission '%s'" % perm)
         self._init_package(package_name)
         package = self.db['packages'][package_name]
         if username not in package['users']:
@@ -252,7 +256,10 @@ class IMutableJsonAccessBackend(IJsonAccessBackend, IMutableAccessBackend):
                 user_perms.append(perm)
             package['users'][username] = user_perms
         else:
-            package['users'][username].remove(perm)
+            try:
+                package['users'][username].remove(perm)
+            except ValueError:
+                pass
             user_perms = package['users'][username]
             if user_perms == []:
                 package['users'].pop(username)
