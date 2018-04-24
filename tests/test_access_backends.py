@@ -416,6 +416,20 @@ class TestConfigBackend(BaseACLTest):
             {'package': 'pkg2', 'permissions': ['read', 'write']},
         ])
 
+    def test_long_user_package_perms(self):
+        """ Can encode user package permissions in verbose form """
+        settings = {
+            'package.pkg1.user.u1': 'read ',
+            'package.pkg2.user.u1': 'read write',
+            'unrelated.field': '',
+        }
+        backend = self._backend(settings)
+        packages = backend.user_package_permissions('u1')
+        self.assertItemsEqual(packages, [
+            {'package': 'pkg1', 'permissions': ['read']},
+            {'package': 'pkg2', 'permissions': ['read', 'write']},
+        ])
+
     def test_group_package_perms(self):
         """ Fetch all packages a group has permissions on """
         settings = {
