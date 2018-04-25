@@ -5,7 +5,7 @@ from collections import defaultdict
 from datetime import datetime
 from dynamo3 import DynamoDBConnection
 from pkg_resources import parse_version
-from pyramid.settings import asbool
+from pyramid.settings import asbool, aslist
 
 from .base import ICache
 from pypicloud.models import Package
@@ -75,6 +75,13 @@ class DynamoCache(ICache):
         secure = asbool(settings.get('db.secure', False))
         namespace = settings.get('db.namespace', ())
         graceful_reload = asbool(settings.get('db.graceful_reload', False))
+
+        tablenames = aslist(settings.get('db.tablenames', []))
+        if tablenames:
+            if len(tablenames) != 2:
+                raise ValueError("db.tablenames must be a 2-element list")
+            DynamoPackage.meta_.name = tablenames[0]
+            PackageSummary.meta_.name = tablenames[1]
 
         if host is not None:
             connection = DynamoDBConnection.connect(region,
