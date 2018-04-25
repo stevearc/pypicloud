@@ -135,7 +135,7 @@ class S3Storage(IStorage):
             raise ValueError("You must specify the 'storage.bucket'")
         bucket = s3conn.Bucket(bucket_name)
         try:
-            bucket.load()
+            head = s3conn.meta.client.head_bucket(Bucket=bucket_name)
         except ClientError as e:
             if e.response['Error']['Code'] == '404':
                 LOG.info("Creating S3 bucket %s", bucket_name)
@@ -143,9 +143,9 @@ class S3Storage(IStorage):
                 bucket.wait_until_exists()
             else:
                 if e.response['Error']['Code'] == '301':
-                    LOG.warn("Bucket found in different region. Check that "
-                             "the S3 bucket specified in 'storage.bucket' is "
-                             "in 'storage.region_name'")
+                    LOG.error("Bucket found in different region. Check that "
+                              "the S3 bucket specified in 'storage.bucket' is "
+                              "in 'storage.region_name'")
                 raise
         kwargs['region_name'] = config_settings.get('region_name')
         kwargs['bucket'] = bucket
