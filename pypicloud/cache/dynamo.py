@@ -5,7 +5,7 @@ from collections import defaultdict
 from datetime import datetime
 from dynamo3 import DynamoDBConnection
 from pkg_resources import parse_version
-from pyramid.settings import asbool
+from pyramid.settings import asbool, aslist
 
 from .base import ICache
 from pypicloud.models import Package
@@ -75,6 +75,13 @@ class DynamoCache(ICache):
         secure = asbool(settings.get('db.secure', False))
         namespace = settings.get('db.namespace', ())
         graceful_reload = asbool(settings.get('db.graceful_reload', False))
+
+        tablenames = aslist(settings.get('db.tablenames', []))
+        if tablenames:
+            if len(tablenames) != 2:
+                raise ValueError("db.tablenames must be a 2-element list")
+            DynamoPackage.meta_.name = tablenames[0]
+            PackageSummary.meta_.name = tablenames[1]
 
         if host is not None:
             connection = DynamoDBConnection.connect(region,
@@ -155,9 +162,9 @@ class DynamoCache(ICache):
         summary = PackageSummary(package)
         self.engine.save([package, summary], overwrite=True)
 
-    def reload_from_storage(self):
+    def reload_from_storage(self, clear=True):
         if not self.graceful_reload:
-            return super(DynamoCache, self).reload_from_storage()
+            return super(DynamoCache, self).reload_from_storage(clear)
         LOG.info("Rebuilding cache from storage")
         # Log start time
         start = datetime.utcnow().replace(tzinfo=UTC)

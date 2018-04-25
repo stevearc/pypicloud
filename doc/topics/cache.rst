@@ -64,7 +64,11 @@ DynamoDB
 --------
 Set ``pypi.db = dynamo`` OR ``pypi.db = pypicloud.cache.dynamo.DynamoCache``
 
-You will need to ``pip install pypicloud[dynamo]`` before running the server.
+.. note::
+
+  Make sure to ``pip install pypicloud[dynamo]`` before running the server to
+  install the necessary DynamoDB libraries. Also, be sure you have set the
+  correct :ref:`dynamodb_policy`.
 
 ``db.region_name``
 ~~~~~~~~~~~~~~~~~~
@@ -90,6 +94,14 @@ source
 
 If specified, all of the created Dynamo tables will have this as a prefix in
 their name. Useful to avoid name collisions.
+
+``db.tablenames``
+~~~~~~~~~~~~~~~~~
+**Argument:** list<string>, optional
+
+If specified, these will be the names of the two DynamoDB tables. Must be a
+2-element whitespace-delimited list. Note that these names will still be
+prefixed by the ``db.namespace``. (default ``DynamoPackage PackageSummary``)
 
 ``db.host``
 ~~~~~~~~~~~

@@ -183,7 +183,7 @@ class AdminEndpoints(object):
         data = self.request.access.dump()
         compressed = six.BytesIO()
         zipfile = gzip.GzipFile(mode='wb', fileobj=compressed)
-        json.dump(data, zipfile, separators=(',', ':'))
+        zipfile.write(json.dumps(data, separators=(',', ':')).encode('utf8'))
         zipfile.close()
         compressed.seek(0)
 

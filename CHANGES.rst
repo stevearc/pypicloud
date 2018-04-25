@@ -2,6 +2,14 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.0.5 - 2018/4/24
+-----------------
+* Fix: Download ACL button throws error in Python 3 (:issue:`166`)
+* New access backend: AWS Secrets Manager (:pr:`164`)
+* Add ``storage.storage_class`` option for S3 storage (:pr:`170`)
+* Add ``db.tablenames`` option for DynamoDB cache (:issue:`167`)
+* Reduce startup race conditions on empty caches when running multiple servers (:issue:`167`)
+
 1.0.4 - 2018/4/1
 ----------------
 * Fix: Fix SQL connection issues with uWSGI (:issue:`160`)

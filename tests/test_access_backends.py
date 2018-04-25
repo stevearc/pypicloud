@@ -3,6 +3,7 @@
 from __future__ import unicode_literals
 
 import six
+import json
 import transaction
 import unittest
 import zope.sqlalchemy
@@ -21,6 +22,7 @@ from pypicloud.access.ldap_ import LDAPAccessBackend
 from pypicloud.access.sql import (SQLAccessBackend, User, UserPermission,
                                   association_table, GroupPermission, Group,
                                   Base)
+from pypicloud.access import aws_secrets_manager
 from pypicloud.route import Root
 
 
@@ -405,6 +407,20 @@ class TestConfigBackend(BaseACLTest):
         settings = {
             'package.pkg1.user.u1': 'r',
             'package.pkg2.user.u1': 'rw',
+            'unrelated.field': '',
+        }
+        backend = self._backend(settings)
+        packages = backend.user_package_permissions('u1')
+        self.assertItemsEqual(packages, [
+            {'package': 'pkg1', 'permissions': ['read']},
+            {'package': 'pkg2', 'permissions': ['read', 'write']},
+        ])
+
+    def test_long_user_package_perms(self):
+        """ Can encode user package permissions in verbose form """
+        settings = {
+            'package.pkg1.user.u1': 'read ',
+            'package.pkg2.user.u1': 'read write',
             'unrelated.field': '',
         }
         backend = self._backend(settings)
@@ -1321,3 +1337,287 @@ class TestLDAPBackend(BaseACLTest):
                 'auth.ldap.base_dn': None,
                 'auth.ldap.user_search_filter': None,
             })
+
+
+class TestAWSSecretsManagerBackend(unittest.TestCase):
+    """ Tests for the AWS Secrets Manager access backend """
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestAWSSecretsManagerBackend, cls).setUpClass()
+        cls.settings = {
+            'auth.secret_id': 'sekrit',
+        }
+        patch.object(aws_secrets_manager, 'boto3').start()
+        cls.kwargs = aws_secrets_manager.AWSSecretsManagerAccessBackend.configure(cls.settings)
+
+    @classmethod
+    def tearDownClass(cls):
+        super(TestAWSSecretsManagerBackend, cls).tearDownClass()
+        patch.stopall()
+
+    def setUp(self):
+        super(TestAWSSecretsManagerBackend, self).setUp()
+        transaction.begin()
+        request = MagicMock()
+        request.tm = transaction.manager
+        self.access = aws_secrets_manager.AWSSecretsManagerAccessBackend(request, **self.kwargs)
+        self.client = self.kwargs['client']
+        self.client.get_secret_value.side_effect = \
+            lambda *_, **__: {'SecretString': json.dumps(self._data)}
+        self._data = {
+            'users': {
+                # password is 'asdf'
+                'admin': '$6$rounds=1000$Q5rf4IcKLTpMw.dN$xl/4AxlYZkSx9w78BWXBA1BwbexhvN5EN800Rh47HllK1zEamYNpjIYC4rHDImKYJEBvp72qoD0wkYYCR7Cvy.',
+                'user': '$6$rounds=1000$Q5rf4IcKLTpMw.dN$xl/4AxlYZkSx9w78BWXBA1BwbexhvN5EN800Rh47HllK1zEamYNpjIYC4rHDImKYJEBvp72qoD0wkYYCR7Cvy.',
+            },
+            'groups': {
+                'group1': ['admin'],
+                'group2': ['admin', 'user'],
+            },
+            'packages': {
+                'pkg1': {
+                    'users': {
+                        'admin': ['read', 'write'],
+                        'user': ['read'],
+                    },
+                    'groups': {
+                        'group2': ['read'],
+                    },
+                },
+                'pkg2': {
+                    'users': {
+                        'admin': ['read'],
+                    },
+                    'groups': {
+                        'group1': ['read', 'write'],
+                    },
+                },
+            },
+            'admins': ['admin'],
+        }
+
+    def test_verify(self):
+        """ Verify login credentials against database """
+        valid = self.access.verify_user('user', 'asdf')
+        self.assertTrue(valid)
+
+        valid = self.access.verify_user('not_a_user', 'asdf')
+        self.assertFalse(valid)
+
+        valid = self.access.verify_user('user', 'barrrr')
+        self.assertFalse(valid)
+
+    def test_verify_pending(self):
+        """ Pending users fail to verify """
+        self._data['pending_users'] = {
+            'user2': self._data['users']['user'],
+        }
+        valid = self.access.verify_user('user2', 'asdf')
+        self.assertFalse(valid)
+
+    def test_admin(self):
+        """ Retrieve admin status from database """
+        is_admin = self.access.is_admin('admin')
+        self.assertTrue(is_admin)
+
+    def test_user_groups(self):
+        """ Retrieve a user's groups from database """
+        groups = self.access.groups('user')
+        self.assertItemsEqual(groups, ['group2'])
+
+    def test_groups(self):
+        """ Retrieve all groups from database """
+        groups = self.access.groups()
+        self.assertItemsEqual(groups, ['group1', 'group2'])
+
+    def test_group_members(self):
+        """ Fetch all members of a group """
+        users = self.access.group_members('group2')
+        self.assertItemsEqual(users, ['admin', 'user'])
+
+    def test_all_user_permissions(self):
+        """ Retrieve all user permissions on package from database """
+        perms = self.access.user_permissions('pkg1')
+        self.assertEqual(perms, {
+            'user': ['read'],
+            'admin': ['read', 'write'],
+        })
+
+    def test_all_group_permissions(self):
+        """ Retrieve all group permissions from database """
+        perms = self.access.group_permissions('pkg1')
+        self.assertEqual(perms, {
+            'group2': ['read'],
+        })
+
+    def test_user_package_perms(self):
+        """ Fetch all packages a user has permissions on """
+        perms = self.access.user_package_permissions('user')
+        self.assertEqual(perms, [
+            {'package': 'pkg1', 'permissions': ['read']},
+        ])
+
+    def test_group_package_perms(self):
+        """ Fetch all packages a group has permissions on """
+        perms = self.access.group_package_permissions('group1')
+        self.assertEqual(perms, [
+            {'package': 'pkg2', 'permissions': ['read', 'write']},
+        ])
+
+    def test_user_data(self):
+        """ Retrieve all users """
+        users = self.access.user_data()
+        self.assertItemsEqual(users, [
+            {'username': 'admin', 'admin': True},
+            {'username': 'user', 'admin': False},
+        ])
+
+    def test_single_user_data(self):
+        """ Retrieve a single user's data """
+        user = self.access.user_data('user')
+        self.assertEqual(user, {
+            'username': 'user',
+            'admin': False,
+            'groups': ['group2'],
+        })
+
+    def test_no_need_admin(self):
+        """ If admin exists, don't need an admin """
+        self.assertFalse(self.access.need_admin())
+
+    def test_need_admin(self):
+        """ If admin doesn't exist, need an admin """
+        del self._data['admins']
+        self.assertTrue(self.access.need_admin())
+
+    # Tests for mutable backend methods
+
+    def test_register(self):
+        """ Register a new user """
+        self.access.register('foo', 'bar')
+        self.assertTrue('foo' in self.access._db['pending_users'])
+        self.assertTrue(
+            pwd_context.verify(
+                'bar', self.access._db['pending_users']['foo']))
+
+    def test_pending(self):
+        """ Registering a user puts them in pending list """
+        self.access.register('foo', 'bar')
+        users = self.access.pending_users()
+        self.assertEqual(users, ['foo'])
+
+    def test_save_on_commit(self):
+        """ Only save the data on transaction commit """
+        self.access.register('foo', 'bar')
+        self.client.update_secret.assert_not_called()
+        transaction.commit()
+        self.client.update_secret.assert_called_once()
+
+    def test_pending_not_in_users(self):
+        """ Pending users are not listed in all_users """
+        del self._data['users']
+        self.access.register('foo', 'bar')
+        users = self.access.user_data()
+        self.assertEqual(users, [])
+
+    def test_approve(self):
+        """ Approving user marks them as not pending """
+        self.access.register('foo', 'bar')
+        self.access.approve_user('foo')
+        self.assertFalse('foo' in self.access._db['pending_users'])
+        self.assertTrue('foo' in self.access._db['users'])
+
+    def test_edit_password(self):
+        """ Users can edit their passwords """
+        self.access.edit_user_password('user', 'baz')
+        self.assertTrue(self.access.verify_user('user', 'baz'))
+
+    def test_delete_user(self):
+        """ Can delete users """
+        self.access.delete_user('user')
+        self.assertIsNone(self.access.user_data('user'))
+        self.assertEqual(self.access.groups('user'), [])
+
+    def test_make_admin(self):
+        """ Can make a user an admin """
+        self.access.set_user_admin('user', True)
+        is_admin = self.access.is_admin('user')
+        self.assertTrue(is_admin)
+
+    def test_remove_admin(self):
+        """ Can demote an admin to normal user """
+        self.access.set_user_admin('admin', False)
+        is_admin = self.access.is_admin('admin')
+        self.assertFalse(is_admin)
+
+    def test_add_user_to_group(self):
+        """ Can add a user to a group """
+        self.access.edit_user_group('user', 'group1', True)
+        self.assertItemsEqual(self.access.groups('user'), ['group1', 'group2'])
+
+    def test_remove_user_from_group(self):
+        """ Can remove a user from a group """
+        self.access.edit_user_group('user', 'group2', False)
+        self.assertItemsEqual(self.access.groups('user'), [])
+
+    def test_create_group(self):
+        """ Can create a group """
+        self.access.create_group('group3')
+        self.assertItemsEqual(self.access.groups(), ['group1', 'group2', 'group3'])
+
+    def test_delete_group(self):
+        """ Can delete groups """
+        self.access.delete_group('group1')
+        self.assertItemsEqual(self.access.groups(), ['group2'])
+
+    def test_grant_user_read_permission(self):
+        """ Can give users read permissions on a package """
+        del self._data['packages']['pkg2']['users']
+        self.access.edit_user_permission('pkg2', 'user', 'read', True)
+        self.assertEqual(self.access.user_permissions('pkg2'), {'user': ['read']})
+
+    def test_grant_user_write_permission(self):
+        """ Can give users write permissions on a package """
+        del self._data['packages']['pkg2']['users']
+        self.access.edit_user_permission('pkg2', 'user', 'write', True)
+        self.assertEqual(self.access.user_permissions('pkg2'), {'user': ['write']})
+
+    def test_grant_user_bad_permission(self):
+        """ Attempting to grant a bad permission raises ValueError """
+        with self.assertRaises(ValueError):
+            self.access.edit_user_permission('pkg1', 'user', 'wiggle', True)
+
+    def test_revoke_user_permission(self):
+        """ Can revoke user permissions on a package """
+        self.access.edit_user_permission('pkg2', 'admin', 'read', False)
+        self.assertEqual(self.access.user_permissions('pkg2'), {})
+
+    def test_grant_group_read_permission(self):
+        """ Can give groups read permissions on a package """
+        del self._data['packages']['pkg2']['groups']
+        self.access.edit_group_permission('pkg2', 'group2', 'read', True)
+        self.assertEqual(self.access.group_permissions('pkg2'), {'group2': ['read']})
+
+    def test_grant_group_write_permission(self):
+        """ Can give groups write permissions on a package """
+        del self._data['packages']['pkg2']['groups']
+        self.access.edit_group_permission('pkg2', 'group2', 'write', True)
+        self.assertEqual(self.access.group_permissions('pkg2'), {'group2': ['write']})
+
+    def test_grant_group_bad_permission(self):
+        """ Attempting to grant a bad permission raises ValueError """
+        with self.assertRaises(ValueError):
+            self.access.edit_group_permission('pkg1', 'group1', 'wiggle', True)
+
+    def test_revoke_group_permission(self):
+        """ Can revoke group permissions on a package """
+        self.access.edit_group_permission('pkg2', 'group1', 'write', False)
+        self.assertEqual(self.access.group_permissions('pkg2'), {'group1': ['read']})
+
+    def test_enable_registration(self):
+        """ Can set the 'enable registration' flag """
+        self.access.set_allow_register(True)
+        self.assertTrue(self.access.allow_register())
+        self.access.set_allow_register(False)
+        self.assertFalse(self.access.allow_register())

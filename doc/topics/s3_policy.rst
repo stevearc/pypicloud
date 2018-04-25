@@ -15,4 +15,26 @@ apply to *objects* (applies to ``arn:aws:s3:::bucket/*``).
 
 You should use the `AWS Policy Generator
 <http://awspolicygen.s3.amazonaws.com/policygen.html>`_ to create the json
-policy for your bucket.
+policy for your bucket. The following may also work:
+
+::
+
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": "s3:ListBucket",
+                "Resource": "arn:aws:s3:::<package-bucket-name>"
+            },
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "s3:PutObject",
+                    "s3:GetObject",
+                    "s3:DeleteObject"
+                ],
+                "Resource": "arn:aws:s3:::<package-bucket-name>/*"
+            }
+        ]
+    }

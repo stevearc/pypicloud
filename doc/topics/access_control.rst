@@ -493,3 +493,99 @@ server restart).
 If true then the ldap option to not verify the certificate is used. This is not
 recommended but useful if the cert name does not match the fqdn. Default is false.
 
+AWS Secrets Manager
+-------------------
+This stores all the user data in a single JSON blob using AWS Secrets Manager.
+
+After you set up a new server using this backend, you will need to use the web
+interface to create the initial admin user.
+
+Configuration
+^^^^^^^^^^^^^
+Set ``pypi.auth = aws_secrets_manager`` OR ``pypi.auth =
+pypicloud.access.aws_secrets_manager.AWSSecretsManagerAccessBackend``
+
+The JSON format should look like this:
+
+.. code-block:: javascript
+
+    {
+        "users": {
+            "user1": "hashed_password1",
+            "user2": "hashed_password2",
+            "user3": "hashed_password3",
+            "user4": "hashed_password4",
+            "user5": "hashed_password5",
+        },
+        "groups": {
+            "admins": [
+            "user1",
+            "user2"
+            ],
+            "group1": [
+            "user3"
+            ]
+        },
+        "admins": [
+            "user1"
+        ]
+        "packages": {
+            "mypackage": {
+                "groups": {
+                    "group1": ["read', "write"],
+                    "group2": ["read"],
+                    "group3": [],
+                },
+                "users": {
+                    "user1": ["read", "write"],
+                    "user2": ["read"],
+                    "user3": [],
+                    "user5": ["read"],
+                }
+            }
+        }
+    }
+
+If the secret is not already created, it will be when you make edits using the
+web interface.
+
+``auth.region_name``
+~~~~~~~~~~~~~~~~~~~~
+**Argument:** string
+
+The AWS region you're storing your secrets in
+
+``auth.secret_id``
+~~~~~~~~~~~~~~~~~~
+**Argument:** string
+
+The unique ID of the secret
+
+``storage.aws_access_key_id``, ``storage.aws_secret_access_key``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+Your AWS access key id and secret access key. If they are not specified then
+pypicloud will attempt to get the values from the environment variables
+``AWS_ACCESS_KEY_ID`` and ``AWS_SECRET_ACCESS_KEY`` or any other `credentials
+source
+<http://boto3.readthedocs.io/en/latest/guide/configuration.html#configuring-credentials>`__.
+
+``auth.aws_session_token``
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+The session key for your AWS account. This is only needed when you are using
+temporary credentials. See more: `<http://boto3.readthedocs.io/en/latest/guide/configuration.html#configuration-file>`__
+
+``auth.profile_name``
+~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+The credentials profile to use when reading credentials from the `shared credentials file <http://boto3.readthedocs.io/en/latest/guide/configuration.html#shared-credentials-file>`__
+
+``auth.kms_key_id``
+~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+The ARN or alias of the AWS KMS customer master key (CMK) to be used to encrypt the secret. See more: `<https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_CreateSecret.html>`__
