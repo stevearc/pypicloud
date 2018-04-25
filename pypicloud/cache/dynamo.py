@@ -155,9 +155,9 @@ class DynamoCache(ICache):
         summary = PackageSummary(package)
         self.engine.save([package, summary], overwrite=True)
 
-    def reload_from_storage(self):
+    def reload_from_storage(self, clear=True):
         if not self.graceful_reload:
-            return super(DynamoCache, self).reload_from_storage()
+            return super(DynamoCache, self).reload_from_storage(clear)
         LOG.info("Rebuilding cache from storage")
         # Log start time
         start = datetime.utcnow().replace(tzinfo=UTC)

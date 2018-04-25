@@ -195,9 +195,10 @@ class RedisCache(ICache):
             pipe.hgetall(filename_key)
         return [self._load(data) for data in pipe.execute() if data]
 
-    def reload_from_storage(self):
+    def reload_from_storage(self, clear=True):
         if not self.graceful_reload:
-            self.clear_all()
+            if clear:
+                self.clear_all()
             packages = self.storage.list(self.package_class)
             pipe = self.db.pipeline()
             for pkg in packages:

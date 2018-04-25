@@ -33,7 +33,7 @@ class ICache(object):
         """
         if not self.distinct():
             LOG.info("Cache is empty. Rebuilding from storage backend...")
-            self.reload_from_storage()
+            self.reload_from_storage(False)
             LOG.info("Cache repopulated")
 
     @classmethod
@@ -69,9 +69,10 @@ class ICache(object):
         """ Pass through to storage """
         return self.storage.download_response(package)
 
-    def reload_from_storage(self):
+    def reload_from_storage(self, clear=True):
         """ Make sure local database is populated with packages """
-        self.clear_all()
+        if clear:
+            self.clear_all()
         packages = self.storage.list(self.package_class)
         for pkg in packages:
             self.save(pkg)

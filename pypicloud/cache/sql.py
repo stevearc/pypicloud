@@ -266,9 +266,9 @@ class SQLCache(ICache):
     def save(self, package):
         self.db.merge(package)
 
-    def reload_from_storage(self):
+    def reload_from_storage(self, clear=True):
         if not self.graceful_reload:
-            return super(SQLCache, self).reload_from_storage()
+            return super(SQLCache, self).reload_from_storage(clear)
 
         LOG.info("Rebuilding cache from storage")
         # Log start time
