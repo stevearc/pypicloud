@@ -561,8 +561,8 @@ The AWS region you're storing your secrets in
 
 The unique ID of the secret
 
-``storage.aws_access_key_id``, ``storage.aws_secret_access_key``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+``auth.aws_access_key_id``, ``auth.aws_secret_access_key``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string, optional
 
 Your AWS access key id and secret access key. If they are not specified then
