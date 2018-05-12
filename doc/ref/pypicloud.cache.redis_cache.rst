@@ -1,5 +1,5 @@
-pypicloud.cache.redis_cache module
-==================================
+pypicloud.cache.redis\_cache module
+===================================
 
 .. automodule:: pypicloud.cache.redis_cache
     :members:

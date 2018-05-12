@@ -53,7 +53,7 @@ class S3Storage(IStorage):
     def __init__(self, request=None, bucket=None, expire_after=None,
                  bucket_prefix=None, prepend_hash=None, redirect_urls=None,
                  sse=None, object_acl=None, storage_class=None, region_name=None,
-                 **kwargs):
+                 public_url=False, **kwargs):
         super(S3Storage, self).__init__(request, **kwargs)
         self.bucket = bucket
         self.expire_after = expire_after
@@ -64,6 +64,7 @@ class S3Storage(IStorage):
         self.object_acl = object_acl
         self.storage_class = storage_class
         self.region_name = region_name
+        self.public_url = public_url
 
     @classmethod
     def configure(cls, settings):
@@ -148,6 +149,7 @@ class S3Storage(IStorage):
                               "in 'storage.region_name'")
                 raise
         kwargs['region_name'] = config_settings.get('region_name')
+        kwargs['public_url'] = asbool(settings.get('storage.public_url'))
         kwargs['bucket'] = bucket
         return kwargs
 
@@ -179,6 +181,16 @@ class S3Storage(IStorage):
 
     def _generate_url(self, package):
         """ Generate a signed url to the S3 file """
+        if self.public_url:
+            if self.region_name:
+                return "https://s3.{0}.amazonaws.com/{1}/{2}" \
+                    .format(self.region_name, self.bucket.name,
+                            self.get_path(package))
+            else:
+                if '.' in self.bucket.name:
+                    self._log_region_warning()
+                return "https://{0}.s3.amazonaws.com/{1}" \
+                    .format(self.bucket.name, self.get_path(package))
         url = self.bucket.meta.client.generate_presigned_url(
             'get_object',
             Params={
@@ -195,12 +207,16 @@ class S3Storage(IStorage):
         if '.' in self.bucket.name:
             pieces = urlparse(url)
             if pieces.netloc == 's3.amazonaws.com' and self.region_name is None:
-                LOG.warning(
-                    "Your signed S3 urls may not work! "
-                    "Try adding the bucket region to the config with "
-                    "'storage.region_name = <region>' or using a bucket "
-                    "without any dots ('.') in the name.")
+                self._log_region_warning()
         return url
+
+    def _log_region_warning(self):
+        """ Spit out a warning about including region_name """
+        LOG.warning(
+            "Your signed S3 urls may not work! "
+            "Try adding the bucket region to the config with "
+            "'storage.region_name = <region>' or using a bucket "
+            "without any dots ('.') in the name.")
 
     def get_url(self, package):
         if self.redirect_urls:
