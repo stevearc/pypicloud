@@ -38,6 +38,12 @@ class DynamoPackage(Package, Model):
     summary = Field()
     data = Field(data_type=dict)
 
+    def __init__(self, *args, **kwargs):
+        super(DynamoPackage, self).__init__(*args, **kwargs)
+        # DynamoDB doesn't play nice with empty strings.
+        if not self.summary:
+            self.summary = None
+
 
 class PackageSummary(Model):
 
