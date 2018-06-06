@@ -4,10 +4,15 @@ from binascii import hexlify
 
 import boto3
 import logging
-import rsa
 from botocore.config import Config
 from botocore.signers import CloudFrontSigner
 from botocore.exceptions import ClientError
+
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from hashlib import md5
@@ -266,13 +271,12 @@ class S3Storage(IStorage):
 class CloudFrontS3Storage(S3Storage):
 
     """ Storage backend that uses S3 and CloudFront """
-    def __init__(self, request=None, domain=None, private_key=None,
+    def __init__(self, request=None, domain=None, crypto_pk=None,
                  key_id=None, **kwargs):
         super(CloudFrontS3Storage, self).__init__(request, **kwargs)
         self.domain = domain
-        self.private_key = private_key
+        self.crypto_pk = crypto_pk
         self.key_id = key_id
-        self.private_key = private_key
 
         self.cf_signer = None
         if key_id is not None:
@@ -291,16 +295,15 @@ class CloudFrontS3Storage(S3Storage):
             if key_file:
                 with open(key_file, 'r') as ifile:
                     private_key = ifile.read()
-        kwargs['private_key'] = private_key
+        crypto_pk = serialization.load_pem_private_key(
+            private_key, password=None, backend=default_backend())
+        kwargs['crypto_pk'] = crypto_pk
 
         return kwargs
 
     def _rsa_signer(self, message):
         """ Generate a RSA signature for a message """
-        return rsa.sign(
-            message,
-            rsa.PrivateKey.load_pkcs1(self.private_key.encode('utf8')),
-            'SHA-1')  # CloudFront requires SHA-1 hash
+        return self.crypto_pk.sign(message, padding.PKCS1v15(), hashes.SHA1())
 
     def _generate_url(self, package):
         """ Get the fully-qualified CloudFront path for a package """
