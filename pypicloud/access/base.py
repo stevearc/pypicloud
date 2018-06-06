@@ -544,6 +544,10 @@ class IMutableAccessBackend(IAccessBackend):
             return None
         _, expected = self._hmac(username, issued)
         if hasattr(hmac, 'compare_digest'):
+            if isinstance(signature, six.text_type):
+                signature = signature.encode('utf-8')
+            if isinstance(expected, six.text_type):
+                expected = expected.encode('utf-8')
             if not hmac.compare_digest(signature, expected):
                 return None
         else:
