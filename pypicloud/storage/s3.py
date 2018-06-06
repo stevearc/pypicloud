@@ -295,6 +295,8 @@ class CloudFrontS3Storage(S3Storage):
             if key_file:
                 with open(key_file, 'r') as ifile:
                     private_key = ifile.read()
+        else:
+            private_key = private_key.encode('utf-8')
         crypto_pk = serialization.load_pem_private_key(
             private_key, password=None, backend=default_backend())
         kwargs['crypto_pk'] = crypto_pk
