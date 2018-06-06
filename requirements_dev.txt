@@ -8,7 +8,7 @@ mysqlclient
 nose
 numpydoc
 pep8
-psycopg2
+psycopg2-binary
 pylint==1.7.1
 redis
 requests
