@@ -845,3 +845,13 @@ class TestDynamoCache(unittest.TestCase):
             for index in desc.global_indexes:
                 self.assertEqual(index.throughput.read, 7)
                 self.assertEqual(index.throughput.write, 7)
+
+    def test_upload_no_summary(self):
+        """ upload() saves package even when there is no summary """
+        pkg = make_package(factory=DynamoPackage)
+        self.db.upload(pkg.filename, None, pkg.name, pkg.version, summary='')
+        count = self.engine.scan(DynamoPackage).count()
+        self.assertEqual(count, 1)
+        saved_pkg = self.engine.scan(DynamoPackage).first()
+        self.assertEqual(saved_pkg, pkg)
+        self.storage.upload.assert_called_with(pkg, None)

@@ -14,19 +14,19 @@ CHANGES = re.sub(r':ref:`(.*?) <.*>`', r'\1', CHANGES)
 
 REQUIREMENTS = [
     'boto3>=1.7.0',
+    # beaker needs this
+    'cryptography',
     # We're doing enough subclassing and monkey patching to where we really do
     # need to lock this in to a specific version.
     'distlib==0.2.5',
     'paste',
     'passlib>=1.7',
-    'pycrypto',
     'pyramid',
     'pyramid_beaker',
     'pyramid_duh>=0.1.1',
     'pyramid_jinja2',
     'pyramid_rpc',
     'pyramid_tm',
-    'rsa',
     'six',
     'transaction',
     'zope.sqlalchemy',
@@ -46,7 +46,7 @@ TEST_REQUIREMENTS = [
 if __name__ == "__main__":
     setup(
         name='pypicloud',
-        version='1.0.5',
+        version='1.0.6',
         description='Private PyPI backed by S3',
         long_description=README + '\n\n' + CHANGES,
         classifiers=[

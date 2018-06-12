@@ -1,5 +1,5 @@
-pypicloud.access.ldap_ module
-=============================
+pypicloud.access.ldap\_ module
+==============================
 
 .. automodule:: pypicloud.access.ldap_
     :members:

@@ -4,10 +4,15 @@ from binascii import hexlify
 
 import boto3
 import logging
-import rsa
 from botocore.config import Config
 from botocore.signers import CloudFrontSigner
 from botocore.exceptions import ClientError
+
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from hashlib import md5
@@ -53,7 +58,7 @@ class S3Storage(IStorage):
     def __init__(self, request=None, bucket=None, expire_after=None,
                  bucket_prefix=None, prepend_hash=None, redirect_urls=None,
                  sse=None, object_acl=None, storage_class=None, region_name=None,
-                 **kwargs):
+                 public_url=False, **kwargs):
         super(S3Storage, self).__init__(request, **kwargs)
         self.bucket = bucket
         self.expire_after = expire_after
@@ -64,6 +69,7 @@ class S3Storage(IStorage):
         self.object_acl = object_acl
         self.storage_class = storage_class
         self.region_name = region_name
+        self.public_url = public_url
 
     @classmethod
     def configure(cls, settings):
@@ -148,6 +154,7 @@ class S3Storage(IStorage):
                               "in 'storage.region_name'")
                 raise
         kwargs['region_name'] = config_settings.get('region_name')
+        kwargs['public_url'] = asbool(settings.get('storage.public_url'))
         kwargs['bucket'] = bucket
         return kwargs
 
@@ -179,6 +186,16 @@ class S3Storage(IStorage):
 
     def _generate_url(self, package):
         """ Generate a signed url to the S3 file """
+        if self.public_url:
+            if self.region_name:
+                return "https://s3.{0}.amazonaws.com/{1}/{2}" \
+                    .format(self.region_name, self.bucket.name,
+                            self.get_path(package))
+            else:
+                if '.' in self.bucket.name:
+                    self._log_region_warning()
+                return "https://{0}.s3.amazonaws.com/{1}" \
+                    .format(self.bucket.name, self.get_path(package))
         url = self.bucket.meta.client.generate_presigned_url(
             'get_object',
             Params={
@@ -195,12 +212,16 @@ class S3Storage(IStorage):
         if '.' in self.bucket.name:
             pieces = urlparse(url)
             if pieces.netloc == 's3.amazonaws.com' and self.region_name is None:
-                LOG.warning(
-                    "Your signed S3 urls may not work! "
-                    "Try adding the bucket region to the config with "
-                    "'storage.region_name = <region>' or using a bucket "
-                    "without any dots ('.') in the name.")
+                self._log_region_warning()
         return url
+
+    def _log_region_warning(self):
+        """ Spit out a warning about including region_name """
+        LOG.warning(
+            "Your signed S3 urls may not work! "
+            "Try adding the bucket region to the config with "
+            "'storage.region_name = <region>' or using a bucket "
+            "without any dots ('.') in the name.")
 
     def get_url(self, package):
         if self.redirect_urls:
@@ -250,13 +271,12 @@ class S3Storage(IStorage):
 class CloudFrontS3Storage(S3Storage):
 
     """ Storage backend that uses S3 and CloudFront """
-    def __init__(self, request=None, domain=None, private_key=None,
+    def __init__(self, request=None, domain=None, crypto_pk=None,
                  key_id=None, **kwargs):
         super(CloudFrontS3Storage, self).__init__(request, **kwargs)
         self.domain = domain
-        self.private_key = private_key
+        self.crypto_pk = crypto_pk
         self.key_id = key_id
-        self.private_key = private_key
 
         self.cf_signer = None
         if key_id is not None:
@@ -275,16 +295,17 @@ class CloudFrontS3Storage(S3Storage):
             if key_file:
                 with open(key_file, 'r') as ifile:
                     private_key = ifile.read()
-        kwargs['private_key'] = private_key
+        else:
+            private_key = private_key.encode('utf-8')
+        crypto_pk = serialization.load_pem_private_key(
+            private_key, password=None, backend=default_backend())
+        kwargs['crypto_pk'] = crypto_pk
 
         return kwargs
 
     def _rsa_signer(self, message):
         """ Generate a RSA signature for a message """
-        return rsa.sign(
-            message,
-            rsa.PrivateKey.load_pkcs1(self.private_key.encode('utf8')),
-            'SHA-1')  # CloudFront requires SHA-1 hash
+        return self.crypto_pk.sign(message, padding.PKCS1v15(), hashes.SHA1())
 
     def _generate_url(self, package):
         """ Get the fully-qualified CloudFront path for a package """

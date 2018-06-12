@@ -132,6 +132,17 @@ Sets uploaded object's "canned" ACL. See the `AWS documentation
 Default is "private", i.e. only the account owner will get full access.
 May be useful, if the bucket and pypicloud are hosted in different AWS accounts.
 
+``storage.public_url``
+~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** bool, optional
+
+If ``true``, use public urls (in the form
+``https://us-east-1.s3.amazonaws.com/<bucket>/<path>``) instead of signed urls. If
+you configured your bucket to be public and are okay with anyone being able to
+read your packages, this will give you a speed boost (no expensive hashing
+operations) and should provide better HTTP caching behavior for the packages.
+Default is ``false``.
+
 CloudFront
 ----------
 This option will store your packages in S3 but use CloudFront to deliver the packages.

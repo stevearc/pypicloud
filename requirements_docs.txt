@@ -1,7 +1,7 @@
 flywheel>=0.2.0
 mysqlclient
 numpydoc
-psycopg2
+psycopg2-binary
 redis
 requests
 sphinx

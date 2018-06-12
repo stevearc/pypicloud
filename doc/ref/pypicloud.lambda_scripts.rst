@@ -1,5 +1,5 @@
-pypicloud.lambda_scripts module
-===============================
+pypicloud.lambda\_scripts module
+================================
 
 .. automodule:: pypicloud.lambda_scripts
     :members:

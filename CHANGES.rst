@@ -2,6 +2,14 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.0.6 - 2018/6/11
+-----------------
+* Fix: Support ``auth.profile_name`` passing in a boto profile name (:pr:`172`)
+* Fix: Uploading package with empty description using twine crashes DynamoDB backend (:issue:`174`)
+* Fix: Config file generation for use with docker container (using %(here)s was not working)
+* Use cryptography package instead of horrifyingly old and deprecated pycrypto (:issue:`179`)
+* Add ``storage.public_url`` to S3 backend (:issue:`173`)
+
 1.0.5 - 2018/4/24
 -----------------
 * Fix: Download ACL button throws error in Python 3 (:issue:`166`)

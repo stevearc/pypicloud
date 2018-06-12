@@ -34,19 +34,16 @@ class AWSSecretsManagerAccessBackend(IMutableJsonAccessBackend):
         kwargs = super(AWSSecretsManagerAccessBackend, cls).configure(settings)
         kwargs['secret_id'] = settings['auth.secret_id']
         kwargs['kms_key_id'] = settings.get('auth.kms_key_id')
-
-        kwargs['client'] = boto3.client(
-            'secretsmanager',
-            **get_settings(
-                settings,
-                'auth.',
-                region_name=str,
-                aws_access_key_id=str,
-                aws_secret_access_key=str,
-                aws_session_token=str,
-                profile_name=str,
-            )
-        )
+        session = boto3.session.Session(**get_settings(
+            settings,
+            'auth.',
+            region_name=str,
+            aws_access_key_id=str,
+            aws_secret_access_key=str,
+            aws_session_token=str,
+            profile_name=str,
+        ))
+        kwargs['client'] = session.client('secretsmanager')
 
         return kwargs
 

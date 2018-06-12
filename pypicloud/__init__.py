@@ -13,7 +13,7 @@ from .route import Root
 from .util import BetterScrapingLocator
 
 
-__version__ = '1.0.5'
+__version__ = '1.0.6'
 LOG = logging.getLogger(__name__)
 
 
@@ -95,6 +95,7 @@ def includeme(config):
                                                         False))
     settings.setdefault('session.type', 'cookie')
     settings.setdefault('session.httponly', 'true')
+    settings.setdefault('session.crypto_type', 'cryptography')
     config.set_session_factory(session_factory_from_settings(settings))
 
     # PYPICLOUD SETTINGS

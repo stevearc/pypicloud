@@ -20,7 +20,7 @@ pypi.default_write =
 
 pypi.storage = {{ storage }}
 {% if storage == 'file' -%}
-storage.dir = %(here)s/packages
+storage.dir = {{ workdir }}/packages
 {%- else -%}
 storage.aws_access_key_id = {{ access_key }}
 storage.aws_secret_access_key = {{ secret_key }}
@@ -30,7 +30,7 @@ storage.region_name = {{ bucket_region }}
 {%- endif %}
 {%- endif %}
 
-db.url = sqlite:///%(here)s/db.sqlite
+db.url = sqlite:///{{ workdir }}/db.sqlite
 
 auth.admins =
   {{ admin }}

@@ -143,6 +143,7 @@ def make_config(argv=None):
 
     data = {
         'env': env,
+        'workdir': '/var/lib/pypicloud' if env == 'docker' else r'%(here)s'
     }
     data['reload_templates'] = env == 'dev'
 
