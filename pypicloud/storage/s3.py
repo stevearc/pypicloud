@@ -267,6 +267,14 @@ class S3Storage(IStorage):
         finally:
             handle.close()
 
+    def check_health(self):
+        try:
+            self.bucket.meta.client.head_bucket(Bucket=self.bucket.name)
+        except ClientError as e:
+            return False, str(e)
+        else:
+            return True, ''
+
 
 class CloudFrontS3Storage(S3Storage):
 

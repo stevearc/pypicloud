@@ -33,6 +33,9 @@ def health_endpoint(request):
     ok, ret['cache'] = request.db.check_health()
     if not ok:
         request.response.status = 500
+    ok, ret['storage'] = request.db.storage.check_health()
+    if not ok:
+        request.response.status = 500
 
     return ret
 

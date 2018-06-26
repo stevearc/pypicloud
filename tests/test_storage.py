@@ -12,6 +12,7 @@ from six.moves.urllib.parse import urlparse, parse_qs  # pylint: disable=F0401,E
 import boto3
 import os
 import re
+from botocore.exceptions import ClientError
 from pypicloud.models import Package
 from pypicloud.storage import S3Storage, CloudFrontS3Storage, FileStorage
 from . import make_package
@@ -167,6 +168,22 @@ class TestS3Storage(unittest.TestCase):
         storage_class = list(self.bucket.objects.all())[0].Object().storage_class
         self.assertItemsEqual(storage_class, 'STANDARD_IA')
 
+    def test_check_health_success(self):
+        """ check_health returns True for good connection """
+        ok, msg = self.storage.check_health()
+        self.assertTrue(ok)
+
+    def test_check_health_fail(self):
+        """ check_health returns False for bad connection """
+        dbmock = self.storage.bucket.meta.client = MagicMock()
+
+        def throw(*_, **__):
+            """ Throw an exception """
+            raise ClientError({"Error": {}}, "OP")
+        dbmock.head_bucket.side_effect = throw
+        ok, msg = self.storage.check_health()
+        self.assertFalse(ok)
+
 
 class TestCloudFrontS3Storage(unittest.TestCase):
 
@@ -300,3 +317,8 @@ class TestFileStorage(unittest.TestCase):
             self.assertTrue(os.path.exists(tempdir))
         finally:
             os.rmdir(tempdir)
+
+    def test_check_health(self):
+        """ Base check_health returns True """
+        ok, msg = self.storage.check_health()
+        self.assertTrue(ok)
