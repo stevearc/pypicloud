@@ -23,10 +23,18 @@ def get_index(request):
     }
 
 
-@view_config(route_name='health', renderer='string')
+@view_config(route_name='health', renderer='json')
 def health_endpoint(request):
     """ Simple health endpoint """
-    return 'OK'
+    ret = {}
+    ok, ret['access'] = request.access.check_health()
+    if not ok:
+        request.response.status = 500
+    ok, ret['cache'] = request.db.check_health()
+    if not ok:
+        request.response.status = 500
+
+    return ret
 
 
 @view_config(context=Exception, renderer='json')

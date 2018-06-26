@@ -9,8 +9,8 @@ from dynamo3 import Throughput
 from flywheel.fields.types import UTC
 from mock import MagicMock, patch, ANY
 from pyramid.testing import DummyRequest
-from redis import ConnectionError
-from sqlalchemy.exc import OperationalError
+from redis import ConnectionError, RedisError
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from . import DummyCache, DummyStorage, make_package
 from pypicloud.cache import ICache, SQLCache, RedisCache
@@ -134,6 +134,12 @@ class TestBaseCache(unittest.TestCase):
             cache.clear_all()
         with self.assertRaises(NotImplementedError):
             cache.save(make_package())
+
+    def test_check_health(self):
+        """ Base check_health returns True """
+        cache = DummyCache()
+        ok, msg = cache.check_health()
+        self.assertTrue(ok)
 
 
 class TestSQLiteCache(unittest.TestCase):
@@ -349,6 +355,22 @@ class TestSQLiteCache(unittest.TestCase):
         self.db.reload_if_needed()
         count = self.sql.query(SQLPackage).count()
         self.assertEqual(count, 1)
+
+    def test_check_health_success(self):
+        """ check_health returns True for good connection """
+        ok, msg = self.db.check_health()
+        self.assertTrue(ok)
+
+    def test_check_health_fail(self):
+        """ check_health returns False for bad connection """
+        dbmock = self.db.db = MagicMock()
+
+        def throw(*_, **__):
+            """ Throw an exception """
+            raise SQLAlchemyError("DB exception")
+        dbmock.query.side_effect = throw
+        ok, msg = self.db.check_health()
+        self.assertFalse(ok)
 
 
 class TestMySQLCache(TestSQLiteCache):
@@ -624,6 +646,22 @@ class TestRedisCache(unittest.TestCase):
             p2.last_modified.utctimetuple(),
         )
 
+    def test_check_health_success(self):
+        """ check_health returns True for good connection """
+        ok, msg = self.db.check_health()
+        self.assertTrue(ok)
+
+    def test_check_health_fail(self):
+        """ check_health returns False for bad connection """
+        dbmock = self.db.db = MagicMock()
+
+        def throw(*_, **__):
+            """ Throw an exception """
+            raise RedisError("DB exception")
+        dbmock.echo.side_effect = throw
+        ok, msg = self.db.check_health()
+        self.assertFalse(ok)
+
 
 class TestDynamoCache(unittest.TestCase):
 
@@ -855,3 +893,19 @@ class TestDynamoCache(unittest.TestCase):
         saved_pkg = self.engine.scan(DynamoPackage).first()
         self.assertEqual(saved_pkg, pkg)
         self.storage.upload.assert_called_with(pkg, None)
+
+    def test_check_health_success(self):
+        """ check_health returns True for good connection """
+        ok, msg = self.db.check_health()
+        self.assertTrue(ok)
+
+    def test_check_health_fail(self):
+        """ check_health returns False for bad connection """
+        dbmock = self.db.engine = MagicMock()
+
+        def throw(*_, **__):
+            """ Throw an exception """
+            raise Exception("DB exception")
+        dbmock.scan.side_effect = throw
+        ok, msg = self.db.check_health()
+        self.assertFalse(ok)

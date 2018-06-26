@@ -420,6 +420,19 @@ class IAccessBackend(object):
         """
         raise NotImplementedError
 
+    def check_health(self):
+        """
+        Check the health of the access backend
+
+        Returns
+        -------
+        (healthy, status) : (bool, str)
+            Tuple that describes the health status and provides an optional
+            status message
+
+        """
+        return (True, '')
+
     def dump(self):
         """
         Dump all of the access control data to a universal format

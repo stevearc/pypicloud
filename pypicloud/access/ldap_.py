@@ -93,6 +93,11 @@ class LDAP(object):
             self._server.whoami_s()
 
     @reconnect
+    def test_connection(self):
+        """ Binds to service. Will throw if bad connection """
+        self._bind_to_service()
+
+    @reconnect
     def _fetch_user(self, username):
         """ Fetch a user entry from the LDAP server """
         LOG.debug("LDAP fetching user %s", username)
@@ -163,6 +168,7 @@ class LDAPAccessBackend(IAccessBackend):
     """
     This backend allows you to authenticate against a remote LDAP server.
     """
+
     def __init__(self, request=None, conn=None, **kwargs):
         super(LDAPAccessBackend, self).__init__(request, **kwargs)
         self.conn = conn
@@ -228,3 +234,11 @@ class LDAPAccessBackend(IAccessBackend):
                 "admin": self.is_admin(username),
                 "groups": self.groups(username),
             }
+
+    def check_health(self):
+        try:
+            self.conn.test_connection()
+        except ldap.LDAPError as e:
+            return (False, str(e))
+        else:
+            return (True, '')
