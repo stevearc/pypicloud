@@ -80,6 +80,7 @@ class LDAP(object):
         if self._ignore_cert:
             ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
         LOG.debug("LDAP connecting to %s", self._url)
+        ldap.set_option(ldap.OPT_REFERRALS, ldap.OPT_OFF)
         self._server = ldap.initialize(self._url)
         self._bind_to_service()
 
@@ -118,8 +119,8 @@ class LDAP(object):
             LOG.debug("LDAP user %r not found", username)
             return None
         if len(results) > 1:
-            raise ValueError("More than one user found for %r: %r" %
-                             (username, [r[0] for r in results]))
+            LOG.warning("More than one user found for %r: %r" %
+                        (username, [r[0] for r in results]))
         dn, attributes = results[0]
 
         is_admin = False
