@@ -46,7 +46,8 @@ class LDAP(object):
 
     def __init__(self, admin_field, admin_value, base_dn, cache_time,
                  service_dn, service_password, service_username, url,
-                 user_search_filter, user_dn_format, ignore_cert):
+                 user_search_filter, user_dn_format, ignore_cert,
+                 ignore_referrals, ignore_multiple_results):
         self._url = url
         self._service_dn = service_dn
         self._service_password = service_password
@@ -74,13 +75,16 @@ class LDAP(object):
                 None
             )
         self._ignore_cert = ignore_cert
+        self._ignore_referrals = ignore_referrals
+        self._ignore_multiple_results = ignore_multiple_results
 
     def connect(self):
         """ Initializes the python-ldap module and does the initial bind """
         if self._ignore_cert:
             ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
+        if self._ignore_referrals:
+            ldap.set_option(ldap.OPT_REFERRALS, ldap.OPT_OFF)
         LOG.debug("LDAP connecting to %s", self._url)
-        ldap.set_option(ldap.OPT_REFERRALS, ldap.OPT_OFF)
         self._server = ldap.initialize(self._url)
         self._bind_to_service()
 
@@ -119,8 +123,11 @@ class LDAP(object):
             LOG.debug("LDAP user %r not found", username)
             return None
         if len(results) > 1:
-            LOG.warning("More than one user found for %r: %r" %
-                        (username, [r[0] for r in results]))
+            err_msg = "More than one user found for %r: %r" % (username, [r[0] for r in results])
+            if self._ignore_multiple_results:
+                LOG.warning(err_msg)
+            else:
+                raise ValueError(err_msg)
         dn, attributes = results[0]
 
         is_admin = False
@@ -182,7 +189,9 @@ class LDAPAccessBackend(IAccessBackend):
             url=settings['auth.ldap.url'],
             user_dn_format=settings.get('auth.ldap.user_dn_format'),
             user_search_filter=settings.get('auth.ldap.user_search_filter'),
-            ignore_cert=asbool(settings.get('auth.ldap.ignore_cert'))
+            ignore_cert=asbool(settings.get('auth.ldap.ignore_cert')),
+            ignore_referrals=asbool(settings.get('auth.ldap.ignore_referrals', False)),
+            ignore_multiple_results=asbool(settings.get('auth.ldap.ignore_multiple_results', False))
         )
         conn.connect()
         kwargs['conn'] = conn
