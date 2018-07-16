@@ -293,7 +293,7 @@ class CloudFrontS3Storage(S3Storage):
         if private_key is None:
             key_file = settings.get('storage.cloud_front_key_file')
             if key_file:
-                with open(key_file, 'r') as ifile:
+                with open(key_file, 'rb') as ifile:
                     private_key = ifile.read()
         else:
             private_key = private_key.encode('utf-8')
