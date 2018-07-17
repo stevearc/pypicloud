@@ -99,7 +99,7 @@ def includeme(config):
     config.set_session_factory(session_factory_from_settings(settings))
 
     # PYPICLOUD SETTINGS
-    default_url = 'https://pypi.python.org/pypi'
+    default_url = 'https://pypi.python.org/simple'
     config.registry.fallback_url = settings.get('pypi.fallback_url',
                                                 default_url)
 
