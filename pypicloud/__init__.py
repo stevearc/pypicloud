@@ -1,13 +1,12 @@
 """ S3-backed pypi server """
 import calendar
 import datetime
-import io
 import logging
 from pyramid.config import Configurator
 from pyramid.renderers import JSON, render
 from pyramid.settings import asbool
 from pyramid_beaker import session_factory_from_settings
-from six.moves.urllib.parse import urlencode  # pylint: disable=F0401,E0611
+from six.moves.urllib.parse import urlencode, urlparse  # pylint: disable=F0401,E0611
 
 from .route import Root
 from .util import BetterScrapingLocator
@@ -99,9 +98,13 @@ def includeme(config):
     config.set_session_factory(session_factory_from_settings(settings))
 
     # PYPICLOUD SETTINGS
+    # NOTE: for /json to work correctly pypi.fallback_url should be simply
+    #       https://pypi.python.org/ so we can redirect from either /simple/
+    #       or /pypi/
     default_url = 'https://pypi.python.org/simple'
     config.registry.fallback_url = settings.get('pypi.fallback_url',
                                                 default_url)
+    config.registry.fallback_url_parts = urlparse(config.registry.fallback_url)
 
     fallback_mode = settings.get('pypi.fallback', 'redirect')
     always_show_upstream = settings.get('pypi.always_show_upstream')
