@@ -159,9 +159,13 @@ def _redirect(context, request):
     """ Return a 302 to the fallback url for this package """
     base_url = request.registry.fallback_url.rstrip('/')
     path = request.path.lstrip('/')
-    # skip first entry as base_url will have this
-    path = path[path.index('/') + 1:]
-    redirect_url = "%s/%s" % (base_url, path)
+    if request.registry.fallback_url_parts.path in {'', '/'}:
+        redirect_url = "%s/%s" % (base_url, path)
+    else:
+        # skip first entry as base_url will have this
+        path = path[path.index('/') + 1:]
+        redirect_url = "%s/%s" % (base_url, path)
+
     return HTTPFound(location=redirect_url)
 
 
