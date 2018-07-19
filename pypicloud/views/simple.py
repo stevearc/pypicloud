@@ -159,7 +159,7 @@ def _redirect(context, request):
     """ Return a 302 to the fallback url for this package """
     if request.registry.fallback_base_url:
         path = request.path.lstrip('/')
-        redirect_url = "%s/%s/" % (
+        redirect_url = "%s/%s" % (
             request.registry.fallback_base_url.rstrip('/'), path)
     else:
         redirect_url = "%s/%s/" % (
