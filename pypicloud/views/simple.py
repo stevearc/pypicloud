@@ -157,14 +157,13 @@ def _pkg_response(pkgs):
 
 def _redirect(context, request):
     """ Return a 302 to the fallback url for this package """
-    base_url = request.registry.fallback_url.rstrip('/')
-    path = request.path.lstrip('/')
-    if request.registry.fallback_url_parts.path in {'', '/'}:
-        redirect_url = "%s/%s" % (base_url, path)
+    if request.registry.fallback_base_url:
+        path = request.path.lstrip('/')
+        redirect_url = "%s/%s/" % (
+            request.registry.fallback_base_url.rstrip('/'), path)
     else:
-        # skip first entry as base_url will have this
-        path = path[path.index('/') + 1:]
-        redirect_url = "%s/%s" % (base_url, path)
+        redirect_url = "%s/%s/" % (
+            request.registry.fallback_url.rstrip('/'), context.name)
 
     return HTTPFound(location=redirect_url)
 
