@@ -183,6 +183,7 @@ class PackageReadTestBase(unittest.TestCase):
     fallback = None
     always_show_upstream = None
     fallback_url = 'http://pypi.python.org/pypi/'
+    fallback_base_url = 'http://pypi.python.org/'
 
     @classmethod
     def setUpClass(cls):
@@ -199,13 +200,15 @@ class PackageReadTestBase(unittest.TestCase):
     def tearDown(self):
         patch.stopall()
 
-    def get_request(self, package=None, perms='', user=None):
+    def get_request(self, package=None, perms='', user=None,
+                    use_base_url=False, path=None):
         """ Construct a fake request """
         request = MagicMock()
         request.registry.fallback = self.fallback
         request.registry.always_show_upstream = self.always_show_upstream
         request.registry.fallback_url = self.fallback_url
-        request.registry.fallback_base_url = None
+        request.registry.fallback_base_url = \
+            self.fallback_base_url if use_base_url else None
         request.userid = user
         request.access.can_update_cache = lambda: 'c' in perms
         request.access.has_permission.side_effect = lambda n, p: 'r' in perms
@@ -215,6 +218,10 @@ class PackageReadTestBase(unittest.TestCase):
         pkgs = []
         if package is not None:
             pkgs.append(package)
+
+        if path is not None:
+            request.path = path
+
         request.db.all.return_value = pkgs
         return request
 
@@ -239,6 +246,13 @@ class PackageReadTestBase(unittest.TestCase):
         self.assertEqual(ret.status_code, 302)
         self.assertEqual(ret.location,
                          self.fallback_url + self.package.name + '/')
+
+    def should_base_json_redirect(self, request):
+        """ When requested, the endpoint should redirect to the fallback """
+        ret = package_versions_json(self.package, request)
+        self.assertEqual(ret.status_code, 302)
+        self.assertEqual(ret.location,
+                         self.fallback_base_url.rstrip('/') + request.path)
 
     def should_serve(self, request):
         """ When requested, the endpoint should serve the packages """
@@ -281,6 +295,11 @@ class TestRedirect(PackageReadTestBase):
     def test_no_package_no_read_no_user(self):
         """ No package, no read perms, no user """
         self.should_redirect(self.get_request())
+
+    def test_no_package_no_read_no_user_base_url(self):
+        """ No package, no read perms, no user """
+        self.should_base_json_redirect(
+            self.get_request(use_base_url=True, path='/pypi/package/json'))
 
     def test_no_package_no_read_user(self):
         """ No package, no read perms, user """
