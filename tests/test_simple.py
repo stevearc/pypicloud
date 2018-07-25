@@ -205,6 +205,7 @@ class PackageReadTestBase(unittest.TestCase):
         request.registry.fallback = self.fallback
         request.registry.always_show_upstream = self.always_show_upstream
         request.registry.fallback_url = self.fallback_url
+        request.registry.fallback_base_url = None
         request.userid = user
         request.access.can_update_cache = lambda: 'c' in perms
         request.access.has_permission.side_effect = lambda n, p: 'r' in perms
