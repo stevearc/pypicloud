@@ -73,6 +73,7 @@ def simple(request):
 
 
 def _package_versions(context, request):
+    """ Render the links for all versions of a package """
     fallback = request.registry.fallback
     if fallback == 'redirect':
         if request.registry.always_show_upstream:
