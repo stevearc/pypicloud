@@ -31,9 +31,17 @@ def _app_url(request, *paths, **params):
     return request.application_url + path
 
 
+def _fallback_simple(request):
+    """ /simple endpoint of the fallback url """
+    if request.registry.fallback_url is not None:
+        return request.registry.fallback_url
+    else:
+        return '/'.join([request.registry.fallback_base_url, 'simple'])
+
+
 def _locator(request):
     """ Get the scraping locator to find packages from the fallback site """
-    return BetterScrapingLocator(request.registry.fallback_url)
+    return BetterScrapingLocator(request.fallback_simple)
 
 
 def _add_postfork_hook(config, hook):
@@ -98,11 +106,21 @@ def includeme(config):
     config.set_session_factory(session_factory_from_settings(settings))
 
     # PYPICLOUD SETTINGS
-    default_url = 'https://pypi.python.org/simple'
-    config.registry.fallback_url = settings.get('pypi.fallback_url',
-                                                default_url)
-
-    config.registry.fallback_base_url = settings.get('pypi.fallback_base_url')
+    if 'pypi.fallback_base_url' in settings:
+        config.registry.fallback_base_url = settings['pypi.fallback_base_url'].rstrip(
+            '/')
+        config.registry.fallback_url = None
+    elif 'pypi.fallback_url' in settings:
+        LOG.warn("pypi.fallback_url is deprecated and support will be "
+                 "removed in a future version. "
+                 "Please use pypi.fallback_base_url.")
+        config.registry.fallback_url = settings['pypi.fallback_url']
+        config.registry.fallback_base_url = None
+    else:
+        config.registry.fallback_base_url = 'https://pypi.python.org'
+        config.registry.fallback_url = None
+    config.add_request_method(
+        _fallback_simple, name='fallback_simple', reify=True)
 
     fallback_mode = settings.get('pypi.fallback', 'redirect')
     always_show_upstream = settings.get('pypi.always_show_upstream')
