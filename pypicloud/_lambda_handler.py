@@ -12,7 +12,7 @@ from datetime import datetime
 def handle_s3_event(event, context):
     """ Handle S3 object notification """
     from pypicloud.cache import get_cache_impl
-    from pypicloud.storage.s3.S3Storage import package_from_object
+    from pypicloud.storage.s3 import S3Storage
     from pypicloud.util import parse_filename
 
     settings = json.loads(os.environ['PYPICLOUD_SETTINGS'])
@@ -33,7 +33,7 @@ def handle_s3_event(event, context):
         if event_name.startswith('ObjectCreated'):
             print("S3 object %r created" % key)
             obj = s3.Object(bucket, key)
-            package = package_from_object(obj, cache.package_class)
+            package = S3Storage.package_from_object(obj, cache.package_class)
             existing_pkg = cache.fetch(package.filename)
             if existing_pkg is None:
                 print("Saving package %s" % package)
