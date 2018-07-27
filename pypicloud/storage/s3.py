@@ -95,7 +95,6 @@ class S3Storage(ObjectStoreStorage):
                 raise
         return bucket
 
-
     @classmethod
     def package_from_object(cls, obj, factory):
         """ Create a package from a S3 object """

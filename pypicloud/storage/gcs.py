@@ -56,9 +56,7 @@ class GoogleCloudStorage(ObjectStoreStorage):
             raise NotImplementedError
 
         blob = self.get_gcs_blob(package)
-        return blob.generate_signed_url(
-                expiration=self.expire_after,
-                )
+        return blob.generate_signed_url(expiration=self.expire_after)
 
     def get_gcs_blob(self, package):
         return self.bucket.blob(self.get_path(package))
