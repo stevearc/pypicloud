@@ -12,7 +12,7 @@ from datetime import datetime
 def handle_s3_event(event, context):
     """ Handle S3 object notification """
     from pypicloud.cache import get_cache_impl
-    from pypicloud.storage.s3 import package_from_object
+    from pypicloud.storage.s3.S3Storage import package_from_object
     from pypicloud.util import parse_filename
 
     settings = json.loads(os.environ['PYPICLOUD_SETTINGS'])

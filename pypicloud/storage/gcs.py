@@ -25,14 +25,14 @@ class GoogleCloudStorage(ObjectStoreStorage):
         if not bucket.exists():
             LOG.info("Creating GCS bucket %s", bucket_name)
 
-            bucket.location = self.region_name
+            bucket.location = settings.get('storage.region_name')
 
             bucket.create()
 
         return bucket
 
     @classmethod
-    def package_from_object(blob, factory):
+    def package_from_object(cls, blob, factory):
         """ Create a package from a GCS object """
         filename = posixpath.basename(blob.name)
         name = blob.metadata.get('name')
@@ -59,9 +59,11 @@ class GoogleCloudStorage(ObjectStoreStorage):
         return blob.generate_signed_url(expiration=self.expire_after)
 
     def get_gcs_blob(self, package):
+        """ Get a GCS blob object for the specified package """
         return self.bucket.blob(self.get_path(package))
 
     def upload(self, package, datastream):
+        """ Upload the package to GCS """
         metadata = {
             'name': package.name,
             'version': package.version,
@@ -81,5 +83,6 @@ class GoogleCloudStorage(ObjectStoreStorage):
             blob.update_storage_class(self.storage_class)
 
     def delete(self, package):
+        """ Delete the package """
         blob = self.get_gcs_blob(package)
         blob.delete()

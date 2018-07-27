@@ -43,13 +43,22 @@ class ObjectStoreStorage(IStorage):
 
     @classmethod
     def get_bucket(cls, bucket_name, settings):
+        """ Subclasses must implement a method for generating a Bucket class
+            instance in the backend's SDK
+        """
         raise NotImplementedError
 
     def _generate_url(self, package):
+        """ Subclasses must implement a method for generating signed URLs to
+            the package in the object store
+        """
         raise NotImplementedError
 
     @classmethod
     def package_from_object(cls, obj, factory):
+        """ Subclasses must implement a method for constructing a Package
+            instance from the backend's storage object format
+        """
         raise NotImplementedError
 
     @classmethod
@@ -97,7 +106,7 @@ class ObjectStoreStorage(IStorage):
 
     def get_url(self, package):
         if self.redirect_urls:
-            return super(S3Storage, self).get_url(package)
+            return super(ObjectStoreStorage, self).get_url(package)
         else:
             return self._generate_url(package)
 
