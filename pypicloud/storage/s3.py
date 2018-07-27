@@ -53,22 +53,6 @@ class S3Storage(ObjectStoreStorage):
     """ Storage backend that uses S3 """
     test = False
 
-    def __init__(self, request=None, bucket=None, expire_after=None,
-                 bucket_prefix=None, prepend_hash=None, redirect_urls=None,
-                 sse=None, object_acl=None, storage_class=None, region_name=None,
-                 public_url=False, **kwargs):
-        super(S3Storage, self).__init__(request, **kwargs)
-        self.bucket = bucket
-        self.expire_after = expire_after
-        self.bucket_prefix = bucket_prefix
-        self.prepend_hash = prepend_hash
-        self.redirect_urls = redirect_urls
-        self.sse = sse
-        self.object_acl = object_acl
-        self.storage_class = storage_class
-        self.region_name = region_name
-        self.public_url = public_url
-
     @classmethod
     def get_bucket(cls, bucket_name, settings):
         config_settings = get_settings(
