@@ -72,23 +72,7 @@ class S3Storage(IStorage):
         self.public_url = public_url
 
     @classmethod
-    def configure(cls, settings):
-        kwargs = super(S3Storage, cls).configure(settings)
-        kwargs['expire_after'] = int(settings.get('storage.expire_after',
-                                                  60 * 60 * 24))
-        kwargs['bucket_prefix'] = settings.get('storage.prefix', '')
-        kwargs['prepend_hash'] = asbool(settings.get('storage.prepend_hash',
-                                                     True))
-        kwargs['sse'] = sse = settings.get('storage.server_side_encryption')
-        if sse not in [None, 'AES256', 'aws:kms']:
-            LOG.warn("Unrecognized value %r for 'storage.sse'. See "
-                     "https://boto3.readthedocs.io/en/latest/reference/services/s3.html#S3.Object.put "
-                     "for more details", sse)
-        kwargs['object_acl'] = settings.get('storage.object_acl', None)
-        kwargs['storage_class'] = storage_class = settings.get('storage.storage_class')
-        kwargs['redirect_urls'] = asbool(settings.get('storage.redirect_urls',
-                                                      False))
-
+    def get_bucket(cls, bucket_name, settings):
         config_settings = get_settings(
             settings,
             'storage.',
@@ -136,9 +120,6 @@ class S3Storage(IStorage):
             )
         )
 
-        bucket_name = settings.get('storage.bucket')
-        if bucket_name is None:
-            raise ValueError("You must specify the 'storage.bucket'")
         bucket = s3conn.Bucket(bucket_name)
         try:
             head = s3conn.meta.client.head_bucket(Bucket=bucket_name)
@@ -153,27 +134,7 @@ class S3Storage(IStorage):
                               "the S3 bucket specified in 'storage.bucket' is "
                               "in 'storage.region_name'")
                 raise
-        kwargs['region_name'] = config_settings.get('region_name')
-        kwargs['public_url'] = asbool(settings.get('storage.public_url'))
-        kwargs['bucket'] = bucket
-        return kwargs
-
-    def calculate_path(self, package):
-        """ Calculates the path of a package """
-        path = package.name + '/' + package.filename
-        if self.prepend_hash:
-            m = md5()
-            m.update(package.filename.encode('utf-8'))
-            prefix = hexlify(m.digest()).decode('utf-8')[:4]
-            path = prefix + '/' + path
-        return path
-
-    def get_path(self, package):
-        """ Get the fully-qualified bucket path for a package """
-        if 'path' not in package.data:
-            filename = self.calculate_path(package)
-            package.data['path'] = self.bucket_prefix + filename
-        return package.data['path']
+        return bucket
 
     def list(self, factory=Package):
         keys = self.bucket.objects.filter(Prefix=self.bucket_prefix)
