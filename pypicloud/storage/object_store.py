@@ -41,20 +41,16 @@ class ObjectStoreStorage(IStorage):
         self.region_name = region_name
         self.public_url = public_url
 
-
     @classmethod
     def get_bucket(cls, bucket_name, settings):
         raise NotImplementedError
 
-
     def _generate_url(self, package):
         raise NotImplementedError
-
 
     @classmethod
     def package_from_object(cls, obj, factory):
         raise NotImplementedError
-
 
     @classmethod
     def configure(cls, settings):
@@ -98,7 +94,6 @@ class ObjectStoreStorage(IStorage):
             filename = self.calculate_path(package)
             package.data['path'] = self.bucket_prefix + filename
         return package.data['path']
-
 
     def get_url(self, package):
         if self.redirect_urls:

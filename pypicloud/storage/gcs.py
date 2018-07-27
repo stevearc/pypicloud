@@ -31,7 +31,6 @@ class GoogleCloudStorage(ObjectStoreStorage):
 
         return bucket
 
-
     @classmethod
     def package_from_object(blob, factory):
         """ Create a package from a GCS object """
@@ -42,7 +41,6 @@ class GoogleCloudStorage(ObjectStoreStorage):
 
         return factory(name, version, filename, blob.updated, summary,
                        path=blob.name)
-
 
     def list(self, factory=Package):
         blobs = self.bucket.list_blobs(prefix=self.bucket_prefix)
@@ -79,7 +77,7 @@ class GoogleCloudStorage(ObjectStoreStorage):
 
         blob.upload_from_file(
             datastream,
-            predefined_acl = self.object_acl)
+            predefined_acl=self.object_acl)
 
         if self.storage_class is not None:
             blob.update_storage_class(self.storage_class)
