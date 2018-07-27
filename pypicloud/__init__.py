@@ -1,7 +1,6 @@
 """ S3-backed pypi server """
 import calendar
 import datetime
-import io
 import logging
 from pyramid.config import Configurator
 from pyramid.renderers import JSON, render
@@ -102,6 +101,8 @@ def includeme(config):
     default_url = 'https://pypi.python.org/simple'
     config.registry.fallback_url = settings.get('pypi.fallback_url',
                                                 default_url)
+
+    config.registry.fallback_base_url = settings.get('pypi.fallback_base_url')
 
     fallback_mode = settings.get('pypi.fallback', 'redirect')
     always_show_upstream = settings.get('pypi.always_show_upstream')

@@ -46,6 +46,14 @@ shown with the versions found at the ``fallback_url``.
 The index server to handle the behavior defined in ``pypi.fallback`` (default
 https://pypi.python.org/simple)
 
+``pypi.fallback_base_url``
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+This takes precendence over ``pypi.fallback`` by causing redirects to go to:
+``pypi.fallback_base_url``/endpoint.  In order to redirect to pypi.python.org
+correctly set this to https://pypi.python.org
+
 ``pypi.default_read``
 ~~~~~~~~~~~~~~~~~~~~~
 **Argument:** list, optional

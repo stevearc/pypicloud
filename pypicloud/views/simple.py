@@ -72,10 +72,7 @@ def simple(request):
     return {'pkgs': names}
 
 
-@view_config(context=SimplePackageResource, request_method='GET', subpath=(),
-             renderer='package.jinja2')
-@addslash
-def package_versions(context, request):
+def _package_versions(context, request):
     """ Render the links for all versions of a package """
     fallback = request.registry.fallback
     if fallback == 'redirect':
@@ -92,12 +89,19 @@ def package_versions(context, request):
         return _simple_serve(context, request)
 
 
+@view_config(context=SimplePackageResource, request_method='GET', subpath=(),
+             renderer='package.jinja2')
+@addslash
+def package_versions(context, request):
+    """ Render the links for all versions of a package """
+    return _package_versions(context, request)
+
+
 @view_config(context=SimplePackageResource, name='json', request_method='GET',
              subpath=(), renderer='json')
-@addslash
 def package_versions_json(context, request):
     """ Render the package versions in JSON format """
-    pkgs = package_versions(context, request)
+    pkgs = _package_versions(context, request)
     if not isinstance(pkgs, dict):
         return pkgs
     response = {
@@ -154,8 +158,14 @@ def _pkg_response(pkgs):
 
 def _redirect(context, request):
     """ Return a 302 to the fallback url for this package """
-    redirect_url = "%s/%s/" % (
-        request.registry.fallback_url.rstrip('/'), context.name)
+    if request.registry.fallback_base_url:
+        path = request.path.lstrip('/')
+        redirect_url = "%s/%s" % (
+            request.registry.fallback_base_url.rstrip('/'), path)
+    else:
+        redirect_url = "%s/%s/" % (
+            request.registry.fallback_url.rstrip('/'), context.name)
+
     return HTTPFound(location=redirect_url)
 
 
