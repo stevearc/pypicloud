@@ -6,6 +6,7 @@ import logging
 
 from hashlib import md5
 from pyramid.settings import asbool
+from pyramid.httpexceptions import HTTPFound
 
 from .base import IStorage
 from pypicloud.util import get_settings

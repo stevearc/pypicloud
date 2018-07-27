@@ -14,7 +14,6 @@ from cryptography.hazmat.primitives import hashes
 
 from contextlib import contextmanager
 from datetime import datetime, timedelta
-from pyramid.httpexceptions import HTTPFound
 from pyramid.settings import asbool, falsey
 from pyramid_duh.settings import asdict
 from six.moves.urllib.parse import urlparse, quote  # pylint: disable=F0401,E0611
