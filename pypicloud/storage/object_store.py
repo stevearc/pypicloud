@@ -25,7 +25,7 @@ class ObjectStoreStorage(IStorage):
                  bucket_prefix=None, prepend_hash=None, redirect_urls=None,
                  sse=None, object_acl=None, storage_class=None, region_name=None,
                  public_url=False, **kwargs):
-        super(S3Storage, self).__init__(request, **kwargs)
+        super(ObjectStoreStorage, self).__init__(request, **kwargs)
         self.bucket = bucket
         self.expire_after = expire_after
         self.bucket_prefix = bucket_prefix
@@ -45,7 +45,7 @@ class ObjectStoreStorage(IStorage):
 
     @classmethod
     def configure(cls, settings):
-        kwargs = super(S3Storage, cls).configure(settings)
+        kwargs = super(ObjectStoreStorage, cls).configure(settings)
         kwargs['expire_after'] = int(settings.get('storage.expire_after',
                                                   60 * 60 * 24))
         kwargs['bucket_prefix'] = settings.get('storage.prefix', '')
@@ -65,7 +65,7 @@ class ObjectStoreStorage(IStorage):
             raise ValueError("You must specify the 'storage.bucket'")
         kwargs['bucket'] = cls.get_bucket(bucket_name, settings)
 
-        kwargs['region_name'] = config_settings.get('region_name')
+        kwargs['region_name'] = settings.get('storage.region_name')
         kwargs['public_url'] = asbool(settings.get('storage.public_url'))
         return kwargs
 

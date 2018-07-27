@@ -24,6 +24,7 @@ from six.moves.urllib.request import urlopen  # pylint: disable=F0401,E0611
 from six import BytesIO
 
 from .base import IStorage
+from .object_store import ObjectStoreStorage
 from pypicloud.models import Package
 from pypicloud.util import parse_filename, get_settings
 
@@ -50,7 +51,7 @@ def package_from_object(obj, factory):
                    path=obj.key)
 
 
-class S3Storage(IStorage):
+class S3Storage(ObjectStoreStorage):
 
     """ Storage backend that uses S3 """
     test = False
