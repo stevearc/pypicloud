@@ -25,7 +25,7 @@ class IResourceFactory(object):
     __name__ = ''
     __parent__ = None
 
-    def __factory__(self, x):
+    def __factory__(self, name):
         return None
 
     def __init__(self, request):
