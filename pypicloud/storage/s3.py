@@ -167,15 +167,6 @@ class S3Storage(ObjectStoreStorage):
             "'storage.region_name = <region>' or using a bucket "
             "without any dots ('.') in the name.")
 
-    def get_url(self, package):
-        if self.redirect_urls:
-            return super(S3Storage, self).get_url(package)
-        else:
-            return self._generate_url(package)
-
-    def download_response(self, package):
-        return HTTPFound(location=self._generate_url(package))
-
     def upload(self, package, datastream):
         key = self.bucket.Object(self.get_path(package))
         kwargs = {}

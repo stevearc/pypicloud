@@ -43,6 +43,15 @@ class ObjectStoreStorage(IStorage):
         raise NotImplementedError
 
 
+    def _generate_url(self, package):
+        raise NotImplementedError
+
+
+    @classmethod
+    def package_from_object(cls, obj, factory):
+        raise NotImplementedError
+
+
     @classmethod
     def configure(cls, settings):
         kwargs = super(ObjectStoreStorage, cls).configure(settings)
@@ -85,3 +94,13 @@ class ObjectStoreStorage(IStorage):
             filename = self.calculate_path(package)
             package.data['path'] = self.bucket_prefix + filename
         return package.data['path']
+
+
+    def get_url(self, package):
+        if self.redirect_urls:
+            return super(S3Storage, self).get_url(package)
+        else:
+            return self._generate_url(package)
+
+    def download_response(self, package):
+        return HTTPFound(location=self._generate_url(package))
