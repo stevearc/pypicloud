@@ -12,13 +12,10 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 
-from contextlib import contextmanager
 from datetime import datetime, timedelta
 from pyramid.settings import asbool, falsey
 from pyramid_duh.settings import asdict
 from six.moves.urllib.parse import urlparse, quote  # pylint: disable=F0401,E0611
-from six.moves.urllib.request import urlopen  # pylint: disable=F0401,E0611
-from six import BytesIO
 
 from .object_store import ObjectStoreStorage
 from pypicloud.models import Package
@@ -191,15 +188,6 @@ class S3Storage(ObjectStoreStorage):
                 }
             ]
         })
-
-    @contextmanager
-    def open(self, package):
-        url = self._generate_url(package)
-        handle = urlopen(url)
-        try:
-            yield BytesIO(handle.read())
-        finally:
-            handle.close()
 
 
 class CloudFrontS3Storage(S3Storage):

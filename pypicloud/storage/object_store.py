@@ -4,9 +4,12 @@ from binascii import hexlify
 
 import logging
 
+from contextlib import contextmanager
 from hashlib import md5
 from pyramid.settings import asbool
 from pyramid.httpexceptions import HTTPFound
+from six.moves.urllib.request import urlopen  # pylint: disable=F0401,E0611
+from six import BytesIO
 
 from .base import IStorage
 from pypicloud.util import get_settings
@@ -105,3 +108,12 @@ class ObjectStoreStorage(IStorage):
 
     def download_response(self, package):
         return HTTPFound(location=self._generate_url(package))
+
+    @contextmanager
+    def open(self, package):
+        url = self._generate_url(package)
+        handle = urlopen(url)
+        try:
+            yield BytesIO(handle.read())
+        finally:
+            handle.close()
