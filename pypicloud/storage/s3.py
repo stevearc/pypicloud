@@ -29,25 +29,6 @@ from pypicloud.util import parse_filename, get_settings
 LOG = logging.getLogger(__name__)
 
 
-def package_from_object(obj, factory):
-    """ Create a package from a S3 object """
-    filename = posixpath.basename(obj.key)
-    name = obj.metadata.get('name')
-    version = obj.metadata.get('version')
-    summary = obj.metadata.get('summary')
-    # We used to not store metadata. This is for backwards
-    # compatibility
-    if name is None or version is None:
-        try:
-            name, version = parse_filename(filename)
-        except ValueError:
-            LOG.warning("S3 file %s has no package name", obj.key)
-            return None
-
-    return factory(name, version, filename, obj.last_modified, summary,
-                   path=obj.key)
-
-
 class S3Storage(ObjectStoreStorage):
 
     """ Storage backend that uses S3 """
@@ -118,12 +99,32 @@ class S3Storage(ObjectStoreStorage):
                 raise
         return bucket
 
+
+    @classmethod
+    def package_from_object(cls, obj, factory):
+        """ Create a package from a S3 object """
+        filename = posixpath.basename(obj.key)
+        name = obj.metadata.get('name')
+        version = obj.metadata.get('version')
+        summary = obj.metadata.get('summary')
+        # We used to not store metadata. This is for backwards
+        # compatibility
+        if name is None or version is None:
+            try:
+                name, version = parse_filename(filename)
+            except ValueError:
+                LOG.warning("S3 file %s has no package name", obj.key)
+                return None
+
+        return factory(name, version, filename, obj.last_modified, summary,
+                       path=obj.key)
+
     def list(self, factory=Package):
         keys = self.bucket.objects.filter(Prefix=self.bucket_prefix)
         for summary in keys:
             # ObjectSummary has no metadata, so we have to fetch it.
             obj = summary.Object()
-            pkg = package_from_object(obj, factory)
+            pkg = self.package_from_object(obj, factory)
             if pkg is not None:
                 yield pkg
 
