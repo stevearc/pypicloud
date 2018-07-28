@@ -25,9 +25,7 @@ class GoogleCloudStorage(ObjectStoreStorage):
 
         if not bucket.exists():
             LOG.info("Creating GCS bucket %s", bucket_name)
-
             bucket.location = settings.get('storage.region_name')
-
             bucket.create()
 
         return bucket
@@ -56,11 +54,11 @@ class GoogleCloudStorage(ObjectStoreStorage):
             # TODO
             raise NotImplementedError
 
-        blob = self.get_gcs_blob(package)
+        blob = self._get_gcs_blob(package)
         return blob.generate_signed_url(
                 expiration=timedelta(seconds=self.expire_after))
 
-    def get_gcs_blob(self, package):
+    def _get_gcs_blob(self, package):
         """ Get a GCS blob object for the specified package """
         return self.bucket.blob(self.get_path(package))
 
@@ -73,7 +71,7 @@ class GoogleCloudStorage(ObjectStoreStorage):
         if package.summary:
             metadata['summary'] = package.summary
 
-        blob = self.get_gcs_blob(package)
+        blob = self._get_gcs_blob(package)
 
         blob.metadata = metadata
 
@@ -86,5 +84,5 @@ class GoogleCloudStorage(ObjectStoreStorage):
 
     def delete(self, package):
         """ Delete the package """
-        blob = self.get_gcs_blob(package)
+        blob = self._get_gcs_blob(package)
         blob.delete()
