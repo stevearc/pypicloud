@@ -1,5 +1,6 @@
 """ Store packages in GCS """
 import posixpath
+from datetime import timedelta
 
 import logging
 from google.cloud import storage
@@ -56,7 +57,8 @@ class GoogleCloudStorage(ObjectStoreStorage):
             raise NotImplementedError
 
         blob = self.get_gcs_blob(package)
-        return blob.generate_signed_url(expiration=self.expire_after)
+        return blob.generate_signed_url(
+                expiration=timedelta(seconds=self.expire_after))
 
     def get_gcs_blob(self, package):
         """ Get a GCS blob object for the specified package """
