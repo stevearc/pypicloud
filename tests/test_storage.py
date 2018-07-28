@@ -309,13 +309,28 @@ class MockGCSBlob(object):
         self.metadata = {}
         self.updated = None
         self._content = None
-        self._bucket = bucket
+        self.bucket = bucket
+        self.generate_signed_url = MagicMock(wraps=self._generate_signed_url)
+        self.upload_from_file = MagicMock(wraps=self._upload_from_file)
+        self.delete = MagicMock(wraps=self._delete)
 
     def upload_from_string(self, s):
         self.updated = datetime.datetime.utcnow()
         self._content = s
-        self._bucket._upload_blob(self)
+        self.bucket._upload_blob(self)
 
+    def _upload_from_file(self, fp, predefined_acl):
+        self.upload_from_string(fp.read())
+
+    def _delete(self):
+        self.bucket._delete_blob(self.name)
+
+    def _generate_signed_url(self, expiration):
+        return 'https://storage.googleapis.com/{bucket_name}/{blob_name}?Expires={expires}&GoogleAccessId=my-service-account%40my-project.iam.gserviceaccount.com&Signature=MySignature'.format(
+                bucket_name = self.bucket.name,
+                blob_name = self.name,
+                expires=int(time.time() + expiration.total_seconds()),
+                )
 
 class MockGCSBucket(object):
     def __init__(self, name, client):
@@ -330,6 +345,9 @@ class MockGCSBucket(object):
 
     def _upload_blob(self, blob):
         self._blobs[blob.name] = blob
+
+    def _delete_blob(self, blob_name):
+        self._blobs.pop(blob_name)
 
     def _blob(self, blob_name):
         return MockGCSBlob(blob_name, self)
@@ -398,3 +416,41 @@ class TestGoogleCloudStorage(unittest.TestCase):
 
         self.gcs.bucket.assert_called_with('mybucket')
         self.bucket.list_blobs.assert_called_with(prefix=None)
+
+    def test_get_url(self):
+        """ Mock gcs and test package url generation """
+        package = make_package()
+        response = self.storage.download_response(package)
+
+        parts = urlparse(response.location)
+        self.assertEqual(parts.scheme, 'https')
+        self.assertEqual(parts.hostname, 'storage.googleapis.com')
+        self.assertEqual(parts.path, '/mybucket/' + self.storage.get_path(package))
+        query = parse_qs(parts.query)
+        self.assertItemsEqual(query.keys(), ['Expires', 'Signature',
+                                             'GoogleAccessId'])
+        self.assertTrue(int(query['Expires'][0]) > time.time())
+
+    def test_delete(self):
+        """ delete() should remove package from storage """
+        package = make_package()
+        self.storage.upload(package, BytesIO())
+        self.storage.delete(package)
+        keys = [ blob.name for blob in self.bucket.list_blobs() ]
+        self.assertEqual(len(keys), 0)
+
+
+    def test_upload(self):
+        """ Uploading package sets metadata and sends to S3 """
+        package = make_package()
+        datastr = b'foobar'
+        data = BytesIO(datastr)
+        self.storage.upload(package, data)
+
+        blob = self.bucket.list_blobs()[0]
+        blob.upload_from_file.assert_called_with(data, predefined_acl=None)
+
+        self.assertEqual(blob._content, datastr)
+        self.assertEqual(blob.metadata['name'], package.name)
+        self.assertEqual(blob.metadata['version'], package.version)
+        self.assertEqual(blob.metadata['summary'], package.summary)
