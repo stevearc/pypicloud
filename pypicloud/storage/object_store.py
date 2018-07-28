@@ -27,7 +27,7 @@ class ObjectStoreStorage(IStorage):
 
     def __init__(self, request=None, bucket=None, expire_after=None,
                  bucket_prefix=None, prepend_hash=None, redirect_urls=None,
-                 sse=None, object_acl=None, storage_class=None, region_name=None,
+                 object_acl=None, storage_class=None, region_name=None,
                  public_url=False, **kwargs):
         super(ObjectStoreStorage, self).__init__(request, **kwargs)
         self.bucket = bucket
@@ -35,7 +35,6 @@ class ObjectStoreStorage(IStorage):
         self.bucket_prefix = bucket_prefix
         self.prepend_hash = prepend_hash
         self.redirect_urls = redirect_urls
-        self.sse = sse
         self.object_acl = object_acl
         self.storage_class = storage_class
         self.region_name = region_name
@@ -62,6 +61,14 @@ class ObjectStoreStorage(IStorage):
         raise NotImplementedError
 
     @classmethod
+    def _subclass_specific_config(cls, settings):
+        """ Method to allow subclasses to extract configuration parameters
+            specific to them and not covered in the common configuration
+            in this class.
+        """
+        return {}
+
+    @classmethod
     def configure(cls, settings):
         kwargs = super(ObjectStoreStorage, cls).configure(settings)
         kwargs['expire_after'] = int(settings.get('storage.expire_after',
@@ -69,11 +76,6 @@ class ObjectStoreStorage(IStorage):
         kwargs['bucket_prefix'] = settings.get('storage.prefix', '')
         kwargs['prepend_hash'] = asbool(settings.get('storage.prepend_hash',
                                                      True))
-        kwargs['sse'] = sse = settings.get('storage.server_side_encryption')
-        if sse not in [None, 'AES256', 'aws:kms']:
-            LOG.warn("Unrecognized value %r for 'storage.sse'. See "
-                     "https://boto3.readthedocs.io/en/latest/reference/services/s3.html#S3.Object.put "
-                     "for more details", sse)
         kwargs['object_acl'] = settings.get('storage.object_acl', None)
         kwargs['storage_class'] = storage_class = settings.get('storage.storage_class')
         kwargs['redirect_urls'] = asbool(settings.get('storage.redirect_urls',
@@ -85,6 +87,8 @@ class ObjectStoreStorage(IStorage):
 
         kwargs['region_name'] = settings.get('storage.region_name')
         kwargs['public_url'] = asbool(settings.get('storage.public_url'))
+
+        kwargs.update(cls._subclass_specific_config(settings))
         return kwargs
 
     def calculate_path(self, package):

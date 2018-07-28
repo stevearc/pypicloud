@@ -30,6 +30,21 @@ class S3Storage(ObjectStoreStorage):
     """ Storage backend that uses S3 """
     test = False
 
+    def __init__(self, sse, **kwargs):
+        super(S3Storage, self).__init__(**kwargs)
+
+        self.sse = sse
+
+    @classmethod
+    def _subclass_specific_config(cls, settings, common_config):
+        sse = settings.get('storage.server_side_encryption')
+        if sse not in [None, 'AES256', 'aws:kms']:
+            LOG.warn("Unrecognized value %r for 'storage.sse'. See "
+                     "https://boto3.readthedocs.io/en/latest/reference/services/s3.html#S3.Object.put "
+                     "for more details", sse)
+
+        return { 'sse': sse }
+
     @classmethod
     def get_bucket(cls, bucket_name, settings):
         config_settings = get_settings(
