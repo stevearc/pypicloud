@@ -148,7 +148,7 @@ def make_config(argv=None):
     data['reload_templates'] = env == 'dev'
 
     storage = prompt_option("Where do you want to store your packages?",
-                            ['s3', 'filesystem'])
+                            ['s3', 'gcs', 'filesystem'])
     if storage == 'filesystem':
         storage = 'file'
 
@@ -167,6 +167,9 @@ def make_config(argv=None):
         data['s3_bucket'] = prompt("S3 bucket name?", validate=bucket_validate)
         if '.' in data['s3_bucket']:
             data['bucket_region'] = prompt("S3 bucket region?")
+
+    if storage == 'gcs':
+        data['gcs_bucket'] = prompt("GCS bucket name?", validate=bucket_validate)
 
     data['encrypt_key'] = b64encode(os.urandom(32)).decode('utf-8')
     data['validate_key'] = b64encode(os.urandom(32)).decode('utf-8')
