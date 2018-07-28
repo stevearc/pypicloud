@@ -337,9 +337,13 @@ class MockGCSBucket(object):
         self.name = name
         self.client = client
 
+        self._created = False
+        self.location = None
+
         self.blob = MagicMock(wraps=self._blob)
         self.list_blobs = MagicMock(wraps=self._list_blobs)
         self.exists = MagicMock(wraps=self._exists)
+        self.create = MagicMock(wraps=self._create)
 
         self._blobs = {}
 
@@ -357,7 +361,10 @@ class MockGCSBucket(object):
                 if prefix is None or item.name.startswith(prefix) ]
 
     def _exists(self):
-        return self.name in self.client._buckets
+        return self._created
+
+    def _create(self):
+        self._created = True
 
 class MockGCSClient(object):
     def __init__(self):
@@ -388,6 +395,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
             'storage.bucket': 'mybucket',
         }
         self.bucket = self.gcs.bucket('mybucket')
+        self.bucket._created = True
         patch.object(GoogleCloudStorage, 'test', True).start()
         kwargs = GoogleCloudStorage.configure(self.settings)
         self.storage = GoogleCloudStorage(MagicMock(), **kwargs)
@@ -416,6 +424,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
 
         self.gcs.bucket.assert_called_with('mybucket')
         self.bucket.list_blobs.assert_called_with(prefix=None)
+        assert self.bucket.create.call_count == 0
 
     def test_get_url(self):
         """ Mock gcs and test package url generation """
@@ -439,7 +448,6 @@ class TestGoogleCloudStorage(unittest.TestCase):
         keys = [ blob.name for blob in self.bucket.list_blobs() ]
         self.assertEqual(len(keys), 0)
 
-
     def test_upload(self):
         """ Uploading package sets metadata and sends to S3 """
         package = make_package()
@@ -454,3 +462,31 @@ class TestGoogleCloudStorage(unittest.TestCase):
         self.assertEqual(blob.metadata['name'], package.name)
         self.assertEqual(blob.metadata['version'], package.version)
         self.assertEqual(blob.metadata['summary'], package.summary)
+
+        assert self.bucket.create.call_count == 0
+
+    def test_upload_prepend_hash(self):
+        """ If prepend_hash = True, attach a hash to the file path """
+        self.storage.prepend_hash = True
+        package = make_package()
+        data = BytesIO()
+        self.storage.upload(package, data)
+
+        blob = self.bucket.list_blobs()[0]
+
+        pattern = r'^[0-9a-f]{4}/%s/%s$' % (re.escape(package.name),
+                                            re.escape(package.filename))
+        match = re.match(pattern, blob.name)
+        self.assertIsNotNone(match)
+
+    def test_create_bucket(self):
+        """ If GCS bucket doesn't exist, create it """
+        settings = {
+            'storage.bucket': 'new_bucket',
+            'storage.region_name': 'us-east-1',
+        }
+        storage = GoogleCloudStorage.configure(settings)
+
+        self.gcs.bucket.assert_called_with('new_bucket')
+        bucket = self.gcs.bucket('new_bucket')
+        bucket.create.assert_called_once_with()
