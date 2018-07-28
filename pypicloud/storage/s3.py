@@ -30,8 +30,8 @@ class S3Storage(ObjectStoreStorage):
     """ Storage backend that uses S3 """
     test = False
 
-    def __init__(self, sse, **kwargs):
-        super(S3Storage, self).__init__(**kwargs)
+    def __init__(self, request=None, sse=None, **kwargs):
+        super(S3Storage, self).__init__(request, **kwargs)
 
         self.sse = sse
 

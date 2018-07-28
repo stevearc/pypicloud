@@ -61,7 +61,7 @@ class ObjectStoreStorage(IStorage):
         raise NotImplementedError
 
     @classmethod
-    def _subclass_specific_config(cls, settings):
+    def _subclass_specific_config(cls, settings, common_config):
         """ Method to allow subclasses to extract configuration parameters
             specific to them and not covered in the common configuration
             in this class.
@@ -88,7 +88,7 @@ class ObjectStoreStorage(IStorage):
         kwargs['region_name'] = settings.get('storage.region_name')
         kwargs['public_url'] = asbool(settings.get('storage.public_url'))
 
-        kwargs.update(cls._subclass_specific_config(settings))
+        kwargs.update(cls._subclass_specific_config(settings, kwargs))
         return kwargs
 
     def calculate_path(self, package):
