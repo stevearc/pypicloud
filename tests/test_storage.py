@@ -1,6 +1,7 @@
 """ Tests for package storage backends """
 import json
 import time
+import datetime
 from six import BytesIO
 
 import shutil
@@ -13,7 +14,7 @@ import boto3
 import os
 import re
 from pypicloud.models import Package
-from pypicloud.storage import S3Storage, CloudFrontS3Storage, FileStorage
+from pypicloud.storage import S3Storage, CloudFrontS3Storage, FileStorage, GoogleCloudStorage
 from . import make_package
 
 try:
@@ -300,3 +301,97 @@ class TestFileStorage(unittest.TestCase):
             self.assertTrue(os.path.exists(tempdir))
         finally:
             os.rmdir(tempdir)
+
+
+class MockGCSBlob(object):
+    def __init__(self, name, bucket):
+        self.name = name
+        self.metadata = {}
+        self.updated = None
+        self._content = None
+        self._bucket = bucket
+
+    def upload_from_string(self, s):
+        self.updated = datetime.datetime.utcnow()
+        self._content = s
+        self._bucket._upload_blob(self)
+
+
+class MockGCSBucket(object):
+    def __init__(self, name, client):
+        self.name = name
+        self.client = client
+
+        self.blob = MagicMock(wraps=self._blob)
+        self.list_blobs = MagicMock(wraps=self._list_blobs)
+        self.exists = MagicMock(wraps=self._exists)
+
+        self._blobs = {}
+
+    def _upload_blob(self, blob):
+        self._blobs[blob.name] = blob
+
+    def _blob(self, blob_name):
+        return MockGCSBlob(blob_name, self)
+
+    def _list_blobs(self, prefix=None):
+        return [ item for item in self._blobs.values()
+                if prefix is None or item.name.startswith(prefix) ]
+
+    def _exists(self):
+        return self.name in self.client._buckets
+
+class MockGCSClient(object):
+    def __init__(self):
+        self.bucket = MagicMock(wraps=self._bucket)
+
+        self._buckets = {}
+
+    def __call__(self):
+        return self
+
+    def _bucket(self, bucket_name):
+        if bucket_name not in self._buckets:
+            self._buckets[bucket_name] = MockGCSBucket(bucket_name, self)
+
+        return self._buckets[bucket_name]
+
+class TestGoogleCloudStorage(unittest.TestCase):
+
+    """ Tests for storing packages in GoogleCloud """
+
+    def setUp(self):
+        super(TestGoogleCloudStorage, self).setUp()
+        self.gcs = MockGCSClient()
+        patch(
+                'google.cloud.storage.Client',
+                self.gcs).start()
+        self.settings = {
+            'storage.bucket': 'mybucket',
+        }
+        self.bucket = self.gcs.bucket('mybucket')
+        patch.object(GoogleCloudStorage, 'test', True).start()
+        kwargs = GoogleCloudStorage.configure(self.settings)
+        self.storage = GoogleCloudStorage(MagicMock(), **kwargs)
+
+    def tearDown(self):
+        super(TestGoogleCloudStorage, self).tearDown()
+        patch.stopall()
+
+    def test_list(self):
+        """ Can construct a package from a GoogleCloudStorage Blob """
+        name, version, filename, summary = 'mypkg', '1.2', 'pkg.tar.gz', 'text'
+
+        blob = self.bucket.blob(name + '/' + filename)
+        blob.metadata = {
+            'name': name,
+            'version': version,
+            'summary': summary,
+            }
+        blob.upload_from_string('foobar')
+
+        package = list(self.storage.list(Package))[0]
+        self.assertEquals(package.name, name)
+        self.assertEquals(package.version, version)
+        self.assertEquals(package.filename, filename)
+        self.assertEquals(package.summary, summary)
