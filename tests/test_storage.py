@@ -330,13 +330,14 @@ class MockGCSBlob(object):
 
     def _generate_signed_url(self, expiration):
         return 'https://storage.googleapis.com/{bucket_name}/{blob_name}?Expires={expires}&GoogleAccessId=my-service-account%40my-project.iam.gserviceaccount.com&Signature=MySignature'.format(
-                bucket_name = self.bucket.name,
-                blob_name = self.name,
-                expires=int(time.time() + expiration.total_seconds()),
-                )
+            bucket_name=self.bucket.name,
+            blob_name=self.name,
+            expires=int(time.time() + expiration.total_seconds()),
+        )
 
     def _update_storage_class(self, storage_class):
         pass
+
 
 class MockGCSBucket(object):
     def __init__(self, name, client):
@@ -363,14 +364,15 @@ class MockGCSBucket(object):
         return MockGCSBlob(blob_name, self)
 
     def _list_blobs(self, prefix=None):
-        return [ item for item in self._blobs.values()
-                if prefix is None or item.name.startswith(prefix) ]
+        return [item for item in self._blobs.values()
+                if prefix is None or item.name.startswith(prefix)]
 
     def _exists(self):
         return self._created
 
     def _create(self):
         self._created = True
+
 
 class MockGCSClient(object):
     def __init__(self):
@@ -387,6 +389,7 @@ class MockGCSClient(object):
 
         return self._buckets[bucket_name]
 
+
 class TestGoogleCloudStorage(unittest.TestCase):
 
     """ Tests for storing packages in GoogleCloud """
@@ -394,9 +397,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
     def setUp(self):
         super(TestGoogleCloudStorage, self).setUp()
         self.gcs = MockGCSClient()
-        patch(
-                'google.cloud.storage.Client',
-                self.gcs).start()
+        patch('google.cloud.storage.Client', self.gcs).start()
         self.settings = {
             'storage.bucket': 'mybucket',
         }
@@ -419,7 +420,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
             'name': name,
             'version': version,
             'summary': summary,
-            }
+        }
         blob.upload_from_string('foobar')
 
         package = list(self.storage.list(Package))[0]
@@ -451,7 +452,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
         package = make_package()
         self.storage.upload(package, BytesIO())
         self.storage.delete(package)
-        keys = [ blob.name for blob in self.bucket.list_blobs() ]
+        keys = [blob.name for blob in self.bucket.list_blobs()]
         self.assertEqual(len(keys), 0)
 
     def test_upload(self):

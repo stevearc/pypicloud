@@ -43,7 +43,7 @@ class S3Storage(ObjectStoreStorage):
                      "https://boto3.readthedocs.io/en/latest/reference/services/s3.html#S3.Object.put "
                      "for more details", sse)
 
-        return { 'sse': sse }
+        return {'sse': sse}
 
     @classmethod
     def get_bucket(cls, bucket_name, settings):

@@ -56,7 +56,7 @@ class GoogleCloudStorage(ObjectStoreStorage):
 
         blob = self._get_gcs_blob(package)
         return blob.generate_signed_url(
-                expiration=timedelta(seconds=self.expire_after))
+            expiration=timedelta(seconds=self.expire_after))
 
     def _get_gcs_blob(self, package):
         """ Get a GCS blob object for the specified package """
