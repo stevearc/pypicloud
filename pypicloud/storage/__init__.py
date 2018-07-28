@@ -4,7 +4,13 @@ from functools import partial
 from .base import IStorage
 from .files import FileStorage
 from .s3 import S3Storage, CloudFrontS3Storage
-from .gcs import GoogleCloudStorage
+
+GCS_IS_AVAILABLE = False
+try:
+    from .gcs import GoogleCloudStorage
+    GCS_IS_AVAILABLE = True
+except ImportError:
+    pass
 
 from pyramid.path import DottedNameResolver
 
@@ -18,6 +24,12 @@ def get_storage_impl(settings):
     elif storage == 'cloudfront':
         storage = 'pypicloud.storage.CloudFrontS3Storage'
     elif storage == 'gcs':
+        if not GCS_IS_AVAILABLE:
+            raise ValueError("gcs backend selected but GCS is not available. "
+                    "Please install the google-cloud-storage library by "
+                    "including the `gcs` extra in your pip-install step. "
+                    "For example: `pip install pypicloud[gcs]`")
+
         storage = 'pypicloud.storage.GoogleCloudStorage'
     elif storage == 'file':
         storage = 'pypicloud.storage.FileStorage'
