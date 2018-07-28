@@ -395,3 +395,6 @@ class TestGoogleCloudStorage(unittest.TestCase):
         self.assertEquals(package.version, version)
         self.assertEquals(package.filename, filename)
         self.assertEquals(package.summary, summary)
+
+        self.gcs.bucket.assert_called_with('mybucket')
+        self.bucket.list_blobs.assert_called_with(prefix=None)

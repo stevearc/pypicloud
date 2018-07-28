@@ -42,7 +42,7 @@ class GoogleCloudStorage(ObjectStoreStorage):
                        path=blob.name)
 
     def list(self, factory=Package):
-        blobs = self.bucket.list_blobs(prefix=self.bucket_prefix)
+        blobs = self.bucket.list_blobs(prefix=self.bucket_prefix or None)
         for blob in blobs:
             pkg = self.package_from_object(blob, factory)
             if pkg is not None:
