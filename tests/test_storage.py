@@ -309,10 +309,12 @@ class MockGCSBlob(object):
         self.metadata = {}
         self.updated = None
         self._content = None
+        self._acl = None
         self.bucket = bucket
         self.generate_signed_url = MagicMock(wraps=self._generate_signed_url)
         self.upload_from_file = MagicMock(wraps=self._upload_from_file)
         self.delete = MagicMock(wraps=self._delete)
+        self.update_storage_class = MagicMock(wraps=self._update_storage_class)
 
     def upload_from_string(self, s):
         self.updated = datetime.datetime.utcnow()
@@ -320,6 +322,7 @@ class MockGCSBlob(object):
         self.bucket._upload_blob(self)
 
     def _upload_from_file(self, fp, predefined_acl):
+        self._acl = predefined_acl
         self.upload_from_string(fp.read())
 
     def _delete(self):
@@ -331,6 +334,9 @@ class MockGCSBlob(object):
                 blob_name = self.name,
                 expires=int(time.time() + expiration.total_seconds()),
                 )
+
+    def _update_storage_class(self, storage_class):
+        pass
 
 class MockGCSBucket(object):
     def __init__(self, name, client):
@@ -424,7 +430,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
 
         self.gcs.bucket.assert_called_with('mybucket')
         self.bucket.list_blobs.assert_called_with(prefix=None)
-        assert self.bucket.create.call_count == 0
+        self.assertEqual(self.bucket.create.call_count, 0)
 
     def test_get_url(self):
         """ Mock gcs and test package url generation """
@@ -463,7 +469,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
         self.assertEqual(blob.metadata['version'], package.version)
         self.assertEqual(blob.metadata['summary'], package.summary)
 
-        assert self.bucket.create.call_count == 0
+        self.assertEqual(self.bucket.create.call_count, 0)
 
     def test_upload_prepend_hash(self):
         """ If prepend_hash = True, attach a hash to the file path """
@@ -490,3 +496,29 @@ class TestGoogleCloudStorage(unittest.TestCase):
         self.gcs.bucket.assert_called_with('new_bucket')
         bucket = self.gcs.bucket('new_bucket')
         bucket.create.assert_called_once_with()
+
+    def test_object_acl(self):
+        """ Can specify an object ACL for GCS objects.  Just test to make
+            sure that the configured ACL is forwarded to the API client
+        """
+        settings = dict(self.settings)
+        settings['storage.object_acl'] = 'authenticated-read'
+        kwargs = GoogleCloudStorage.configure(settings)
+        storage = GoogleCloudStorage(MagicMock(), **kwargs)
+        package = make_package()
+        storage.upload(package, BytesIO())
+
+        blob = self.bucket.list_blobs()[0]
+        self.assertEqual(blob._acl, 'authenticated-read')
+
+    def test_storage_class(self):
+        """ Can specify a storage class for GCS objects """
+        settings = dict(self.settings)
+        settings['storage.storage_class'] = 'COLDLINE'
+        kwargs = GoogleCloudStorage.configure(settings)
+        storage = GoogleCloudStorage(MagicMock(), **kwargs)
+        package = make_package()
+        storage.upload(package, BytesIO())
+
+        blob = self.bucket.list_blobs()[0]
+        blob.update_storage_class.assert_called_with('COLDLINE')
