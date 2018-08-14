@@ -5,7 +5,7 @@ mockldap
 moto
 mysqlclient
 nose
-pep8
+pycodestyle
 psycopg2-binary
 pyldap
 pylint==1.7.1

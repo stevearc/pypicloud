@@ -35,7 +35,8 @@ def all_packages(request, verbose=False):
     i = 0
     while i < len(packages):
         package = packages[i]
-        name = package if isinstance(package, six.string_types) else package['name']
+        name = package if isinstance(
+            package, six.string_types) else package['name']
         if not request.access.has_permission(name, 'read'):
             del packages[i]
             continue
@@ -91,7 +92,7 @@ def download_package(context, request):
         if dist is None:
             return HTTPNotFound()
         LOG.info("Caching %s from %s", context.filename,
-                 request.registry.fallback_url)
+                 request.fallback_simple)
         package, data = fetch_dist(request, dist.name, source_url)
         disp = CONTENT_DISPOSITION.tuples(filename=package.filename)
         request.response.headers.update(disp)
@@ -151,7 +152,7 @@ def change_password(request, old_password, new_password):
 @argify(wheel=bool, prerelease=bool)
 def fetch_requirements(request, requirements, wheel=True, prerelease=False):
     """
-    Fetch packages from the fallback_url
+    Fetch packages from the fallback_base_url
 
     Parameters
     ----------
@@ -175,7 +176,8 @@ def fetch_requirements(request, requirements, wheel=True, prerelease=False):
         dist = request.locator.locate(line, prerelease, wheel)
         if dist is not None:
             try:
-                packages.append(fetch_dist(request, dist.name, dist.source_url)[0])
+                packages.append(fetch_dist(
+                    request, dist.name, dist.source_url)[0])
             except ValueError:
                 pass
     return {

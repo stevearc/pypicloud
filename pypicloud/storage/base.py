@@ -91,3 +91,16 @@ class IStorage(object):
 
         """
         raise NotImplementedError
+
+    def check_health(self):
+        """
+        Check the health of the storage backend
+
+        Returns
+        -------
+        (healthy, status) : (bool, str)
+            Tuple that describes the health status and provides an optional
+            status message
+
+        """
+        return (True, '')

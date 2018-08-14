@@ -3,6 +3,7 @@ from sqlalchemy import (engine_from_config, Column, String, Text, Boolean,
                         Table, ForeignKey)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, backref
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import orm
 import zope.sqlalchemy
 
@@ -335,3 +336,11 @@ class SQLAccessBackend(IMutableAccessBackend):
             raise ValueError("Unrecognized permission '%s'" % perm)
         if not record.read and not record.write:
             self.db.delete(record)
+
+    def check_health(self):
+        try:
+            self.db.query(KeyVal).first()
+        except SQLAlchemyError as e:
+            return (False, str(e))
+        else:
+            return (True, '')

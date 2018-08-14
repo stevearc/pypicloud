@@ -1,6 +1,5 @@
-#!/bin/bash -e
-declare -r CONF=".pep8.ini"
-declare -r ARGS=(ignore select max-line-length)
+#!/bin/bash
+set -e
 declare -r HELP="usage: $0 [all]
 
 Run autopep8 on all staged and unstaged *.py files in the git index
@@ -10,34 +9,24 @@ in the repository, regardless of staging.
 "
 
 
-# Parse a value out of the CONF file and return it with a '--' in front
-get_arg() {
-    set +e
-    local _value=$(grep $1 $CONF)
-    set -e
-    if [ "$_value" ]; then
-        echo "--$_value"
-    fi
-}
-
 main() {
-    local _autopep="autopep8 -j 0 -i"
-    for _arg in ${ARGS[@]}; do
-        _autopep="$_autopep $(get_arg $_arg)"
-    done
+    local _autopep="autopep8 -j 0 -i -v"
     if [ "$1" == "-h" ]; then
         echo "$HELP"
     elif [ "$1" == "all" ]; then
-        local _package=$(basename $(readlink -f .))
-        find $_package -name '*.py' | xargs $_autopep
+        $_autopep -r pypicloud tests
     else
         local _diff=$(git diff --name-only --diff-filter=ACMRT | grep '.py$')
-        if [ "$_diff" ]; then
-            echo "$_diff" | xargs $_autopep
+        if [ -n "$_diff" ]; then
+            for file in $_diff; do
+                $_autopep "$file"
+            done
         fi
         local _diff_cached=$(git diff --cached --name-only --diff-filter=ACMRT | grep '.py$')
-        if [ "$_diff_cached" ]; then
-            echo "$_diff_cached" | xargs $_autopep
+        if [ -n "$_diff_cached" ]; then
+            for file in $_diff_cached; do
+                $_autopep "$file"
+            done
         fi
     fi
 }

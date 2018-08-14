@@ -7,7 +7,7 @@ moto
 mysqlclient
 nose
 numpydoc
-pep8
+pycodestyle
 psycopg2-binary
 pylint==1.7.1
 redis

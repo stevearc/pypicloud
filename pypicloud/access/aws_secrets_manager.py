@@ -93,3 +93,11 @@ class AWSSecretsManagerAccessBackend(IMutableJsonAccessBackend):
                     **kwargs
                 )
             raise
+
+    def check_health(self):
+        try:
+            self._get_db()
+        except Exception as e:
+            return (False, str(e))
+        else:
+            return (True, '')

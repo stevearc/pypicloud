@@ -24,7 +24,9 @@ class IResourceFactory(object):
     """ Resource that generates child resources from a factory """
     __name__ = ''
     __parent__ = None
-    __factory__ = lambda x: None
+
+    def __factory__(self, name):
+        return None
 
     def __init__(self, request):
         self.request = request

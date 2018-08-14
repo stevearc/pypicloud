@@ -493,6 +493,21 @@ server restart).
 If true then the ldap option to not verify the certificate is used. This is not
 recommended but useful if the cert name does not match the fqdn. Default is false.
 
+``auth.ldap.ignore_referrals``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** bool, optional
+
+If true then the ldap option to not follow referrals is used. This is not
+recommended but useful if the referred servers does not work. Default is false.
+
+``auth.ldap.ignore_multiple_results``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** bool, optional
+
+If true then the a warning is issued if multiple users are found. This is not
+recommended but useful if there are more than user matching a given search criteria.
+Default is false.
+
 AWS Secrets Manager
 -------------------
 This stores all the user data in a single JSON blob using AWS Secrets Manager.

@@ -238,3 +238,11 @@ class DynamoCache(ICache):
             removed.add(package.name)
         for name in removed:
             self._maybe_delete_summary(name)
+
+    def check_health(self):
+        try:
+            self.engine.scan(PackageSummary).first()
+        except Exception as e:
+            return (False, str(e))
+        else:
+            return (True, '')
