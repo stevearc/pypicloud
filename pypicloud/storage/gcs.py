@@ -17,6 +17,19 @@ class GoogleCloudStorage(ObjectStoreStorage):
     """ Storage backend that uses GCS """
     test = False
 
+    def __init__(self, request, **kwargs):
+        super(GoogleCloudStorage, self).__init__(request=request, **kwargs)
+
+        if self.public_url:
+            # TODO
+            raise NotImplementedError(
+                'GoogleCloudStorage backend does not yet support public URLs')
+
+        if self.sse:
+            raise NotImplementedError(
+                'GoogleCloudStorage backend does not yet support customized '
+                'server-side encryption')
+
     @classmethod
     def get_bucket(cls, bucket_name, settings):
         client = storage.Client()
@@ -50,10 +63,6 @@ class GoogleCloudStorage(ObjectStoreStorage):
 
     def _generate_url(self, package):
         """ Generate a signed url to the GCS file """
-        if self.public_url:
-            # TODO
-            raise NotImplementedError
-
         blob = self._get_gcs_blob(package)
         return blob.generate_signed_url(
             expiration=timedelta(seconds=self.expire_after))

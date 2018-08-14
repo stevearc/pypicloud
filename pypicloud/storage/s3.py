@@ -30,11 +30,6 @@ class S3Storage(ObjectStoreStorage):
     """ Storage backend that uses S3 """
     test = False
 
-    def __init__(self, request=None, sse=None, **kwargs):
-        super(S3Storage, self).__init__(request, **kwargs)
-
-        self.sse = sse
-
     @classmethod
     def _subclass_specific_config(cls, settings, common_config):
         sse = settings.get('storage.server_side_encryption')

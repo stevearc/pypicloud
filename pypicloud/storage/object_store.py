@@ -27,7 +27,7 @@ class ObjectStoreStorage(IStorage):
 
     def __init__(self, request=None, bucket=None, expire_after=None,
                  bucket_prefix=None, prepend_hash=None, redirect_urls=None,
-                 object_acl=None, storage_class=None, region_name=None,
+                 sse=None, object_acl=None, storage_class=None, region_name=None,
                  public_url=False, **kwargs):
         super(ObjectStoreStorage, self).__init__(request, **kwargs)
         self.bucket = bucket
@@ -35,6 +35,7 @@ class ObjectStoreStorage(IStorage):
         self.bucket_prefix = bucket_prefix
         self.prepend_hash = prepend_hash
         self.redirect_urls = redirect_urls
+        self.sse = sse
         self.object_acl = object_acl
         self.storage_class = storage_class
         self.region_name = region_name
