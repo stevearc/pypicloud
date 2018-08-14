@@ -17,7 +17,7 @@ class GoogleCloudStorage(ObjectStoreStorage):
     """ Storage backend that uses GCS """
     test = False
 
-    def __init__(self, request, **kwargs):
+    def __init__(self, request=None, **kwargs):
         super(GoogleCloudStorage, self).__init__(request=request, **kwargs)
 
         if self.public_url:
