@@ -21,7 +21,6 @@ class GoogleCloudStorage(ObjectStoreStorage):
         super(GoogleCloudStorage, self).__init__(request=request, **kwargs)
 
         if self.public_url:
-            # TODO
             raise NotImplementedError(
                 'GoogleCloudStorage backend does not yet support public URLs')
 
