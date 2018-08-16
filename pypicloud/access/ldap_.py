@@ -138,8 +138,8 @@ class LDAP(object):
         is_admin = False
         if self._admin_field is not None:
             if self._admin_field in attributes:
-                is_admin = any((val in attributes[self._admin_field]
-                                for val in self._admin_value))
+                is_admin = any((val in self._admin_value 
+                                for val in attributes[self._admin_field]))
 
         return User(username, dn, is_admin)
 
