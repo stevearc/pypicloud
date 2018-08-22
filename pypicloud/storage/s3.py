@@ -206,6 +206,7 @@ class S3Storage(ObjectStoreStorage):
         else:
             return True, ''
 
+
 class CloudFrontS3Storage(S3Storage):
 
     """ Storage backend that uses S3 and CloudFront """
