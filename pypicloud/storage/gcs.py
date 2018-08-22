@@ -67,14 +67,11 @@ class GoogleCloudStorage(ObjectStoreStorage):
             LOG.info('Using GCP project id `%s`', client_settings['project_id'])
             client_args['project'] = client_settings['project_id']
 
-        if client_settings['service_account_json_filename']:
-            LOG.info('Creating GCS client from service account JSON file %s',
-                     client_settings['service_account_json_filename'])
-            return storage.Client.from_service_account_json(
-                client_settings['service_account_json_filename'],
-                **client_args)
+        service_account_json_filename = \
+                client_settings.get('service_account_json_filename') or \
+                os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
 
-        if not os.getenv('GOOGLE_APPLICATION_CREDENTIALS'):
+        if not service_account_json_filename:
             raise Exception(
                     "Neither the config setting "
                     "storage.service_account_json_filename, nor the "
@@ -82,13 +79,17 @@ class GoogleCloudStorage(ObjectStoreStorage):
                     "found.  Pypicloud requires one of these in order to "
                     "properly authenticate against the GCS API.")
 
-        try:
-            return storage.Client(**client_args)
-        except EnvironmentError as e:
-            raise Exception(
-                "Error instantiating GCS client `{}`: perhaps you "
-                "need to specify the storage.gcp_project_id setting?".format(
-                    str(e)))
+        if not os.path.isfile(service_account_json_filename):
+            raise Exception("Service account JSON file not found at provided "
+                            "path {}".format(
+                                service_account_json_filename))
+
+        LOG.info('Creating GCS client from service account JSON file %s',
+                 service_account_json_filename)
+
+        return storage.Client.from_service_account_json(
+            service_account_json_filename,
+            **client_args)
 
     @classmethod
     def get_bucket(cls, bucket_name, settings):
