@@ -324,6 +324,7 @@ class TestFileStorage(unittest.TestCase):
         ok, msg = self.storage.check_health()
         self.assertTrue(ok)
 
+
 class MockGCSBlob(object):
     """ Mock object representing the google.cloud.storage.Blob class """
     def __init__(self, name, bucket):
