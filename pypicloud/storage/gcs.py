@@ -44,7 +44,7 @@ class GoogleCloudStorage(ObjectStoreStorage):
             'storage.gcp_service_account_json_filename')
 
         if service_account_json_filename and not \
-                os.path.isfile(service_account_json_filename):
+                os.path.isfile(service_account_json_filename) and not cls.test:
             raise Exception(
                 'Service account json file not found at path {}'.format(
                     service_account_json_filename))
@@ -68,18 +68,18 @@ class GoogleCloudStorage(ObjectStoreStorage):
             client_args['project'] = client_settings['project_id']
 
         service_account_json_filename = \
-                client_settings.get('service_account_json_filename') or \
-                os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+            client_settings.get('service_account_json_filename') or \
+            os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
 
         if not service_account_json_filename:
             raise Exception(
-                    "Neither the config setting "
-                    "storage.service_account_json_filename, nor the "
-                    "environment variable GOOGLE_APPLICATION_CREDENTIALS, was "
-                    "found.  Pypicloud requires one of these in order to "
-                    "properly authenticate against the GCS API.")
+                "Neither the config setting "
+                "storage.service_account_json_filename, nor the "
+                "environment variable GOOGLE_APPLICATION_CREDENTIALS, was "
+                "found.  Pypicloud requires one of these in order to "
+                "properly authenticate against the GCS API.")
 
-        if not os.path.isfile(service_account_json_filename):
+        if not os.path.isfile(service_account_json_filename) and not cls.test:
             raise Exception("Service account JSON file not found at provided "
                             "path {}".format(
                                 service_account_json_filename))

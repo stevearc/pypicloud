@@ -406,6 +406,9 @@ class MockGCSClient(object):
 
         self._buckets = {}
 
+    def from_service_account_json(self, *args, **kwargs):
+        return self
+
     def __call__(self):
         """ Provide a call() method so that we can easily patch an instance
             of this class in place of the constructor of the mocked class
@@ -430,6 +433,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
         patch('google.cloud.storage.Client', self.gcs).start()
         self.settings = {
             'storage.bucket': 'mybucket',
+            'storage.gcp_service_account_json_filename': 'my-filename.json',
         }
         self.bucket = self.gcs.bucket('mybucket')
         self.bucket._created = True
@@ -521,6 +525,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
         settings = {
             'storage.bucket': 'new_bucket',
             'storage.region_name': 'us-east-1',
+            'storage.gcp_service_account_json_filename': 'my-filename.json',
         }
         storage = GoogleCloudStorage.configure(settings)
 
