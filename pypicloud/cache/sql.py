@@ -6,6 +6,7 @@ from datetime import datetime
 from pyramid.settings import asbool
 from sqlalchemy import (engine_from_config, distinct, and_, or_, Column,
                         DateTime, String)
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.mutable import Mutable
 from sqlalchemy.orm import sessionmaker
@@ -66,6 +67,7 @@ class MutableDict(Mutable, dict):
 
         dict.__delitem__(self, key)
         self.changed()
+
 
 MutableDict.associate_with(JSONEncodedDict)
 
@@ -307,3 +309,11 @@ class SQLCache(ICache):
                 self.db.query(SQLPackage) \
                     .filter(SQLPackage.filename == pkg.filename) \
                     .delete(synchronize_session=False)
+
+    def check_health(self):
+        try:
+            self.db.query(SQLPackage).first()
+        except SQLAlchemyError as e:
+            return (False, str(e))
+        else:
+            return (True, '')

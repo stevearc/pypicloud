@@ -14,9 +14,9 @@ PyPICloud
 This option defines what the behavior is when a requested package is not found
 in the database. (default 'redirect')
 
-``redirect`` - Return a 302 to the package at the ``fallback_url``.
+``redirect`` - Return a 302 to the package at the ``fallback_base_url``.
 
-``cache`` - Download the package from ``fallback_url``, store it in the
+``cache`` - Download the package from ``fallback_base_url``, store it in the
 backend, and serve it. User must have ``cache_update`` permissions.
 
 ``none`` - Return a 404
@@ -37,14 +37,22 @@ Default ``False``.
 This adjusts the fallback behavior when one or more versions of the requested
 package are stored in pypicloud. If ``False``, pypicloud will only show the
 client the versions that are stored. If ``True``, the local versions will be
-shown with the versions found at the ``fallback_url``.
+shown with the versions found at the ``fallback_base_url``.
 
 ``pypi.fallback_url``
 ~~~~~~~~~~~~~~~~~~~~~
-**Argument:** string, optional
+| **DEPRECATED** see ``pypi.fallback_base_url``
+| **Argument:** string, optional
 
 The index server to handle the behavior defined in ``pypi.fallback`` (default
 https://pypi.python.org/simple)
+
+``pypi.fallback_base_url``
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+This takes precendence over ``pypi.fallback`` by causing redirects to go to:
+``pypi.fallback_base_url/<simple|pypi>``. (default https://pypi.python.org)
 
 ``pypi.default_read``
 ~~~~~~~~~~~~~~~~~~~~~
@@ -66,7 +74,7 @@ group permissions (default no groups, only admin users)
 
 Only used when ``pypi.fallback = cache``. This is
 the list of groups that are allowed to trigger the operation that fetches
-packages from ``fallback_url``.  (default ['authenticated'])
+packages from ``fallback_base_url``.  (default ['authenticated'])
 
 ``pypi.allow_overwrite``
 ~~~~~~~~~~~~~~~~~~~~~~~~

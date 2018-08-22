@@ -295,3 +295,12 @@ class RedisCache(ICache):
                 if count == 0:
                     self._delete_summary(name, pipe)
             pipe.execute()
+
+    def check_health(self):
+        from redis import RedisError
+        try:
+            self.db.echo('ok')
+        except RedisError as e:
+            return (False, str(e))
+        else:
+            return (True, '')

@@ -140,14 +140,14 @@ class TestApi(MockServerTest):
         db = self.request.db = MagicMock()
         locator = self.request.locator = MagicMock()
         self.request.registry.fallback = 'cache'
-        self.request.registry.fallback_url = 'http://pypi.com'
+        self.request.fallback_simple = 'https://pypi.python.org/simple'
         self.request.access.can_update_cache.return_value = True
         db.fetch.return_value = None
         fetch_dist.return_value = (MagicMock(), MagicMock())
         context = MagicMock()
         context.filename = 'package.tar.gz'
         dist = MagicMock()
-        url = 'http://pypi.com/simple/%s' % context.filename
+        url = 'https://pypi.python.org/simple/%s' % context.filename
         locator.get_project.return_value = {
             '0.1': dist,
             'urls': {

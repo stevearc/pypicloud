@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 
 import six
 import json
+import ldap
 import transaction
 import unittest
 import zope.sqlalchemy
@@ -12,7 +13,7 @@ from mockldap import MockLdap
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.security import Everyone, Authenticated
 from pyramid.testing import DummyRequest
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from pypicloud.access import (IAccessBackend, IMutableAccessBackend,
                               ConfigAccessBackend, RemoteAccessBackend,
@@ -310,6 +311,11 @@ class TestBaseBackend(BaseACLTest):
         user = 'foobar'
         token = access.get_signup_token(user)
         self.assertIsNone(access.validate_signup_token(token + 'a'))
+
+    def test_check_health(self):
+        """ Base check_health returns True """
+        ok, msg = self.backend.check_health()
+        self.assertTrue(ok)
 
 
 class TestConfigBackend(BaseACLTest):
@@ -1184,6 +1190,22 @@ class TestSQLiteBackend(unittest.TestCase):
         self.assertEqual(user.username, username)
         self.assertTrue(pwd_context.verify(passw, user.password))
 
+    def test_check_health_success(self):
+        """ check_health returns True for good connection """
+        ok, msg = self.access.check_health()
+        self.assertTrue(ok)
+
+    def test_check_health_fail(self):
+        """ check_health returns False for bad connection """
+        dbmock = self.access._db = MagicMock()
+
+        def throw(*_, **__):
+            """ Throw an exception """
+            raise SQLAlchemyError("DB exception")
+        dbmock.query.side_effect = throw
+        ok, msg = self.access.check_health()
+        self.assertFalse(ok)
+
 
 class TestMySQLBackend(TestSQLiteBackend):
     """ Test the SQLAlchemy access backend on a MySQL DB """
@@ -1337,6 +1359,21 @@ class TestLDAPBackend(BaseACLTest):
                 'auth.ldap.base_dn': None,
                 'auth.ldap.user_search_filter': None,
             })
+
+    def test_check_health_success(self):
+        """ check_health returns True for good connection """
+        ok, msg = self.backend.check_health()
+        self.assertTrue(ok)
+
+    def test_check_health_fail(self):
+        """ check_health returns False for bad connection """
+        def throw(*_, **__):
+            """ Throw an exception """
+            raise ldap.LDAPError("LDAP exception")
+        self.backend.conn = MagicMock()
+        self.backend.conn.test_connection.side_effect = throw
+        ok, msg = self.backend.check_health()
+        self.assertFalse(ok)
 
 
 class TestAWSSecretsManagerBackend(unittest.TestCase):
@@ -1621,3 +1658,17 @@ class TestAWSSecretsManagerBackend(unittest.TestCase):
         self.assertTrue(self.access.allow_register())
         self.access.set_allow_register(False)
         self.assertFalse(self.access.allow_register())
+
+    def test_check_health_success(self):
+        """ check_health returns True for good connection """
+        ok, msg = self.access.check_health()
+        self.assertTrue(ok)
+
+    def test_check_health_fail(self):
+        """ check_health returns False for bad connection """
+        def throw(*_, **__):
+            """ Throw an exception """
+            raise Exception("secrets exception")
+        self.client.get_secret_value.side_effect = throw
+        ok, msg = self.access.check_health()
+        self.assertFalse(ok)

@@ -169,7 +169,7 @@ Delete a package version from the server
 
 ``POST`` ``/api/fetch``
 ^^^^^^^^^^^^^^^^^^^^^^^
-Fetch packages from the ``fallback_url`` and cache them. This is only used if
+Fetch packages from the ``fallback_base_url`` and cache them. This is only used if
 ``pypi.fallback = cache``.
 
 **Parameters:**
