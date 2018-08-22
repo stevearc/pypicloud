@@ -407,6 +407,9 @@ class MockGCSClient(object):
         self._buckets = {}
 
     def from_service_account_json(self, *args, **kwargs):
+        """ Mock the from_service_account_json method from the cloud storage
+            client class, used by the GoogleCloudStorage backend.
+        """
         return self
 
     def __call__(self):
@@ -558,3 +561,14 @@ class TestGoogleCloudStorage(unittest.TestCase):
 
         blob = self.bucket.list_blobs()[0]
         blob.update_storage_class.assert_called_with('COLDLINE')
+
+    def test_fail_on_missing_auth(self):
+        """ Raise an exception when loading settings for GoogleCloudStorage
+            and no authentication information is found
+        """
+        settings = {
+            'storage.bucket': 'new_bucket',
+            'storage.region_name': 'us-east-1',
+        }
+        with self.assertRaises(Exception):
+            GoogleCloudStorage.configure(settings)
