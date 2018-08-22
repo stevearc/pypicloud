@@ -57,6 +57,9 @@ class GoogleCloudStorage(ObjectStoreStorage):
 
     @classmethod
     def _get_storage_client(cls, settings):
+        """ Helper method for constructing a properly-configured GCS client
+            object from the provided settings.
+        """
         client_settings = cls._subclass_specific_config(settings, {})
 
         client_args = {}
@@ -70,6 +73,14 @@ class GoogleCloudStorage(ObjectStoreStorage):
             return storage.Client.from_service_account_json(
                 client_settings['service_account_json_filename'],
                 **client_args)
+
+        if not os.getenv('GOOGLE_APPLICATION_CREDENTIALS'):
+            raise Exception(
+                    "Neither the config setting "
+                    "storage.service_account_json_filename, nor the "
+                    "environment variable GOOGLE_APPLICATION_CREDENTIALS, was "
+                    "found.  Pypicloud requires one of these in order to "
+                    "properly authenticate against the GCS API.")
 
         try:
             return storage.Client(**client_args)
