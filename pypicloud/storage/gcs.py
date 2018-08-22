@@ -1,9 +1,11 @@
 """ Store packages in GCS """
 import posixpath
+import os
 from datetime import timedelta
 
 import logging
 from google.cloud import storage
+from google.oauth2.service_account import Credentials
 
 from .object_store import ObjectStoreStorage
 from pypicloud.models import Package
@@ -17,8 +19,11 @@ class GoogleCloudStorage(ObjectStoreStorage):
     """ Storage backend that uses GCS """
     test = False
 
-    def __init__(self, request=None, **kwargs):
+    def __init__(self, request=None, service_account_json_filename=None,
+                 project_id=None, **kwargs):
         super(GoogleCloudStorage, self).__init__(request=request, **kwargs)
+
+        self.service_account_json_filename = service_account_json_filename
 
         if self.public_url:
             raise NotImplementedError(
@@ -30,14 +35,59 @@ class GoogleCloudStorage(ObjectStoreStorage):
                 'server-side encryption')
 
     @classmethod
+    def _subclass_specific_config(cls, settings, common_config):
+        """ Extract GCP-specific config settings: specifically, the path to
+            the service account key file, and the project id.  Both are
+            optional.
+        """
+        service_account_json_filename = settings.get(
+            'storage.gcp_service_account_json_filename')
+
+        if service_account_json_filename and not \
+                os.path.isfile(service_account_json_filename):
+            raise Exception(
+                'Service account json file not found at path {}'.format(
+                    service_account_json_filename))
+
+        return {'service_account_json_filename': service_account_json_filename,
+                'project_id': settings.get('storage.gcp_project_id')
+                }
+
+    @classmethod
+    def _get_storage_client(cls, settings):
+        client_settings = cls._subclass_specific_config(settings, {})
+
+        client_args = {}
+        if client_settings['project_id']:
+            LOG.info('Using GCP project id `%s`', client_settings['project_id'])
+            client_args['project'] = client_settings['project_id']
+
+        if client_settings['service_account_json_filename']:
+            LOG.info('Creating GCS client from service account JSON file %s',
+                     client_settings['service_account_json_filename'])
+            return storage.Client.from_service_account_json(
+                client_settings['service_account_json_filename'],
+                **client_args)
+
+        try:
+            return storage.Client(**client_args)
+        except EnvironmentError as e:
+            raise Exception(
+                "Error instantiating GCS client `{}`: perhaps you "
+                "need to specify the storage.gcp_project_id setting?".format(
+                    str(e)))
+
+    @classmethod
     def get_bucket(cls, bucket_name, settings):
-        client = storage.Client()
+        client = cls._get_storage_client(settings)
 
         bucket = client.bucket(bucket_name)
 
         if not bucket.exists():
-            LOG.info("Creating GCS bucket %s", bucket_name)
             bucket.location = settings.get('storage.region_name')
+            LOG.info("Creating GCS bucket %s in location %s",
+                     bucket_name,
+                     bucket.location)
             bucket.create()
 
         return bucket
