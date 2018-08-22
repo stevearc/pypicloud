@@ -49,9 +49,11 @@ class GoogleCloudStorage(ObjectStoreStorage):
                 'Service account json file not found at path {}'.format(
                     service_account_json_filename))
 
-        return {'service_account_json_filename': service_account_json_filename,
-                'project_id': settings.get('storage.gcp_project_id')
-                }
+        result = {}
+        result['service_account_json_filename'] = service_account_json_filename
+        result['project_id'] = settings.get('storage.gcp_project_id')
+
+        return result
 
     @classmethod
     def _get_storage_client(cls, settings):
