@@ -97,5 +97,6 @@ if __name__ == "__main__":
             'server': ['waitress'],
             'dynamo': ['flywheel >= 0.2.0'],
             'redis': ['redis'],
+            'gcs': ['google-cloud-storage>=1.10.0']
         },
     )
