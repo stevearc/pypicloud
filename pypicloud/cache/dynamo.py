@@ -14,11 +14,13 @@ from pypicloud.models import Package
 try:
     from flywheel import Engine, Model, Field, GlobalIndex, __version__
     from flywheel.fields.types import UTC
-    if parse_version(__version__) < parse_version('0.2.0'):  # pragma: no cover
+
+    if parse_version(__version__) < parse_version("0.2.0"):  # pragma: no cover
         raise ValueError("Pypicloud requires flywheel>=0.2.0")
 except ImportError:  # pragma: no cover
-    raise ImportError("You must 'pip install flywheel' before using "
-                      "DynamoDB as the cache database")
+    raise ImportError(
+        "You must 'pip install flywheel' before using " "DynamoDB as the cache database"
+    )
 
 LOG = logging.getLogger(__name__)
 
@@ -26,11 +28,8 @@ LOG = logging.getLogger(__name__)
 class DynamoPackage(Package, Model):
 
     """ Python package stored in DynamoDB """
-    __metadata__ = {
-        'global_indexes': [
-            GlobalIndex('name-index', 'name'),
-        ],
-    }
+
+    __metadata__ = {"global_indexes": [GlobalIndex("name-index", "name")]}
     filename = Field(hash_key=True)
     name = Field()
     version = Field()
@@ -48,6 +47,7 @@ class DynamoPackage(Package, Model):
 class PackageSummary(Model):
 
     """ Aggregate data about packages """
+
     name = Field(hash_key=True)
     summary = Field()
     last_modified = Field(data_type=datetime)
@@ -61,10 +61,10 @@ class PackageSummary(Model):
 class DynamoCache(ICache):
 
     """ Caching database that uses DynamoDB """
+
     package_class = DynamoPackage
 
-    def __init__(self, request=None, engine=None, graceful_reload=False,
-                 **kwargs):
+    def __init__(self, request=None, engine=None, graceful_reload=False, **kwargs):
         super(DynamoCache, self).__init__(request, **kwargs)
         self.engine = engine
         self.graceful_reload = graceful_reload
@@ -73,16 +73,16 @@ class DynamoCache(ICache):
     def configure(cls, settings):
         kwargs = super(DynamoCache, cls).configure(settings)
 
-        access_key = settings.get('db.aws_access_key_id')
-        secret_key = settings.get('db.aws_secret_access_key')
-        region = settings.get('db.region_name')
-        host = settings.get('db.host')
-        port = int(settings.get('db.port', 8000))
-        secure = asbool(settings.get('db.secure', False))
-        namespace = settings.get('db.namespace', ())
-        graceful_reload = asbool(settings.get('db.graceful_reload', False))
+        access_key = settings.get("db.aws_access_key_id")
+        secret_key = settings.get("db.aws_secret_access_key")
+        region = settings.get("db.region_name")
+        host = settings.get("db.host")
+        port = int(settings.get("db.port", 8000))
+        secure = asbool(settings.get("db.secure", False))
+        namespace = settings.get("db.namespace", ())
+        graceful_reload = asbool(settings.get("db.graceful_reload", False))
 
-        tablenames = aslist(settings.get('db.tablenames', []))
+        tablenames = aslist(settings.get("db.tablenames", []))
         if tablenames:
             if len(tablenames) != 2:
                 raise ValueError("db.tablenames must be a 2-element list")
@@ -90,21 +90,22 @@ class DynamoCache(ICache):
             PackageSummary.meta_.name = tablenames[1]
 
         if host is not None:
-            connection = DynamoDBConnection.connect(region,
-                                                    host=host,
-                                                    port=port,
-                                                    is_secure=secure,
-                                                    access_key=access_key,
-                                                    secret_key=secret_key)
+            connection = DynamoDBConnection.connect(
+                region,
+                host=host,
+                port=port,
+                is_secure=secure,
+                access_key=access_key,
+                secret_key=secret_key,
+            )
         elif region is not None:
-            connection = DynamoDBConnection.connect(region,
-                                                    access_key=access_key,
-                                                    secret_key=secret_key)
+            connection = DynamoDBConnection.connect(
+                region, access_key=access_key, secret_key=secret_key
+            )
         else:
             raise ValueError("Must specify either db.region_name or db.host!")
-        kwargs['engine'] = engine = Engine(namespace=namespace,
-                                           dynamo=connection)
-        kwargs['graceful_reload'] = graceful_reload
+        kwargs["engine"] = engine = Engine(namespace=namespace, dynamo=connection)
+        kwargs["graceful_reload"] = graceful_reload
 
         engine.register(DynamoPackage, PackageSummary)
         LOG.info("Checking if DynamoDB tables exist")
@@ -115,8 +116,7 @@ class DynamoCache(ICache):
         return self.engine.get(DynamoPackage, filename=filename)
 
     def all(self, name):
-        return sorted(self.engine.query(DynamoPackage).filter(name=name),
-                      reverse=True)
+        return sorted(self.engine.query(DynamoPackage).filter(name=name), reverse=True)
 
     def distinct(self):
         names = set()
@@ -125,8 +125,7 @@ class DynamoCache(ICache):
         return sorted(names)
 
     def summary(self):
-        summaries = sorted(self.engine.scan(PackageSummary),
-                           key=lambda s: s.name)
+        summaries = sorted(self.engine.scan(PackageSummary), key=lambda s: s.name)
         return [s.__json__() for s in summaries]
 
     def clear(self, package):
@@ -135,10 +134,12 @@ class DynamoCache(ICache):
 
     def _maybe_delete_summary(self, package_name):
         """ Check for any package with the name. Delete summary if 0 """
-        remaining = self.engine(DynamoPackage) \
-            .filter(DynamoPackage.name == package_name) \
-            .scan_limit(1) \
+        remaining = (
+            self.engine(DynamoPackage)
+            .filter(DynamoPackage.name == package_name)
+            .scan_limit(1)
             .count()
+        )
         if remaining == 0:
             LOG.info("Removing package summary %s", package_name)
             self.engine.delete_key(PackageSummary, name=package_name)
@@ -152,13 +153,13 @@ class DynamoCache(ICache):
             desc = self.engine.dynamo.describe_table(tablename)
             tablename = model.meta_.ddb_tablename()
             throughput[tablename] = {
-                'read': desc.throughput.read,
-                'write': desc.throughput.write,
+                "read": desc.throughput.read,
+                "write": desc.throughput.write,
             }
             for index in desc.global_indexes:
                 throughput[tablename][index.name] = {
-                    'read': index.throughput.read,
-                    'write': index.throughput.write,
+                    "read": index.throughput.read,
+                    "write": index.throughput.write,
                 }
 
         self.engine.delete_schema()
@@ -198,8 +199,11 @@ class DynamoCache(ICache):
         # Delete extra packages from cache (s1 - s2)
         extra2 = s1 - s2
         if extra2:
-            LOG.info("Removing %d packages from cache that were concurrently "
-                     "deleted during rebuild", len(extra2))
+            LOG.info(
+                "Removing %d packages from cache that were concurrently "
+                "deleted during rebuild",
+                len(extra2),
+            )
             self.engine.delete(extra2)
             # Remove these concurrently-deleted files from the list of packages
             # that were missing from the cache. Don't want to use those to
@@ -245,4 +249,4 @@ class DynamoCache(ICache):
         except Exception as e:
             return (False, str(e))
         else:
-            return (True, '')
+            return (True, "")

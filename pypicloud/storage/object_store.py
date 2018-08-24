@@ -23,12 +23,24 @@ class ObjectStoreStorage(IStorage):
     """ Storage backend base class containing code that is common between
         supported object stores (S3 / GCS)
     """
+
     test = False
 
-    def __init__(self, request=None, bucket=None, expire_after=None,
-                 bucket_prefix=None, prepend_hash=None, redirect_urls=None,
-                 sse=None, object_acl=None, storage_class=None, region_name=None,
-                 public_url=False, **kwargs):
+    def __init__(
+        self,
+        request=None,
+        bucket=None,
+        expire_after=None,
+        bucket_prefix=None,
+        prepend_hash=None,
+        redirect_urls=None,
+        sse=None,
+        object_acl=None,
+        storage_class=None,
+        region_name=None,
+        public_url=False,
+        **kwargs
+    ):
         super(ObjectStoreStorage, self).__init__(request, **kwargs)
         self.bucket = bucket
         self.expire_after = expire_after
@@ -72,42 +84,39 @@ class ObjectStoreStorage(IStorage):
     @classmethod
     def configure(cls, settings):
         kwargs = super(ObjectStoreStorage, cls).configure(settings)
-        kwargs['expire_after'] = int(settings.get('storage.expire_after',
-                                                  60 * 60 * 24))
-        kwargs['bucket_prefix'] = settings.get('storage.prefix', '')
-        kwargs['prepend_hash'] = asbool(settings.get('storage.prepend_hash',
-                                                     True))
-        kwargs['object_acl'] = settings.get('storage.object_acl', None)
-        kwargs['storage_class'] = storage_class = settings.get('storage.storage_class')
-        kwargs['redirect_urls'] = asbool(settings.get('storage.redirect_urls',
-                                                      False))
-        bucket_name = settings.get('storage.bucket')
+        kwargs["expire_after"] = int(settings.get("storage.expire_after", 60 * 60 * 24))
+        kwargs["bucket_prefix"] = settings.get("storage.prefix", "")
+        kwargs["prepend_hash"] = asbool(settings.get("storage.prepend_hash", True))
+        kwargs["object_acl"] = settings.get("storage.object_acl", None)
+        kwargs["storage_class"] = storage_class = settings.get("storage.storage_class")
+        kwargs["redirect_urls"] = asbool(settings.get("storage.redirect_urls", False))
+        bucket_name = settings.get("storage.bucket")
         if bucket_name is None:
             raise ValueError("You must specify the 'storage.bucket'")
-        kwargs['bucket'] = cls.get_bucket(bucket_name, settings)
+        kwargs["bucket"] = cls.get_bucket(bucket_name, settings)
 
-        kwargs['region_name'] = settings.get('storage.region_name')
-        kwargs['public_url'] = asbool(settings.get('storage.public_url'))
+        kwargs["region_name"] = settings.get("storage.region_name")
+        kwargs["public_url"] = asbool(settings.get("storage.public_url"))
 
         kwargs.update(cls._subclass_specific_config(settings, kwargs))
         return kwargs
 
     def calculate_path(self, package):
         """ Calculates the path of a package """
-        path = package.name + '/' + package.filename
+        path = package.name + "/" + package.filename
         if self.prepend_hash:
             m = md5()
-            m.update(package.filename.encode('utf-8'))
-            prefix = hexlify(m.digest()).decode('utf-8')[:4]
-            path = prefix + '/' + path
+            m.update(package.filename.encode("utf-8"))
+            prefix = hexlify(m.digest()).decode("utf-8")[:4]
+            path = prefix + "/" + path
         return path
 
     def get_path(self, package):
         """ Get the fully-qualified bucket path for a package """
-        if 'path' not in package.data:
+        if "path" not in package.data:
             filename = self.calculate_path(package)
-            package.data['path'] = self.bucket_prefix + filename
-        return package.data['path']
+            package.data["path"] = self.bucket_prefix + filename
+        return package.data["path"]
 
     def get_url(self, package):
         if self.redirect_urls:

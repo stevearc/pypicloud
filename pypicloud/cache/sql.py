@@ -4,8 +4,7 @@ import logging
 import zope.sqlalchemy
 from datetime import datetime
 from pyramid.settings import asbool
-from sqlalchemy import (engine_from_config, distinct, and_, or_, Column,
-                        DateTime, String)
+from sqlalchemy import engine_from_config, distinct, and_, or_, Column, DateTime, String
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.mutable import Mutable
@@ -75,7 +74,8 @@ MutableDict.associate_with(JSONEncodedDict)
 class SQLPackage(Package, Base):
 
     """ Python package stored in SQLAlchemy """
-    __tablename__ = 'packages'
+
+    __tablename__ = "packages"
     filename = Column(String(255, convert_unicode=True), primary_key=True)
     name = Column(String(255, convert_unicode=True), index=True, nullable=False)
     version = Column(String(1000, convert_unicode=True), nullable=False)
@@ -121,6 +121,7 @@ def drop_schema(engine):
 class SQLCache(ICache):
 
     """ Caching database that uses SQLAlchemy """
+
     package_class = SQLPackage
 
     def __init__(self, request=None, dbmaker=None, graceful_reload=False, **kwargs):
@@ -141,19 +142,19 @@ class SQLCache(ICache):
     @classmethod
     def configure(cls, settings):
         kwargs = super(SQLCache, cls).configure(settings)
-        graceful_reload = asbool(settings.pop('db.graceful_reload', False))
-        engine = engine_from_config(settings, prefix='db.')
+        graceful_reload = asbool(settings.pop("db.graceful_reload", False))
+        engine = engine_from_config(settings, prefix="db.")
         # Create SQL schema if not exists
         create_schema(engine)
-        kwargs['dbmaker'] = sessionmaker(bind=engine)
-        kwargs['graceful_reload'] = graceful_reload
+        kwargs["dbmaker"] = sessionmaker(bind=engine)
+        kwargs["graceful_reload"] = graceful_reload
         return kwargs
 
     @classmethod
     def postfork(cls, **kwargs):
         # Have to dispose of connections after uWSGI forks,
         # otherwise they'll get corrupted.
-        kwargs['dbmaker'].kw['bind'].dispose()
+        kwargs["dbmaker"].kw["bind"].dispose()
 
     def fetch(self, filename):
         return self.db.query(SQLPackage).filter_by(filename=filename).first()
@@ -164,8 +165,7 @@ class SQLCache(ICache):
         return pkgs
 
     def distinct(self):
-        names = self.db.query(distinct(SQLPackage.name))\
-            .order_by(SQLPackage.name).all()
+        names = self.db.query(distinct(SQLPackage.name)).order_by(SQLPackage.name).all()
         return [n[0] for n in names]
 
     def search(self, criteria, query_type):
@@ -200,12 +200,12 @@ class SQLCache(ICache):
 
             for query in queries:
                 # Generate condition and add to list
-                condition = field.like('%' + query + '%')
+                condition = field.like("%" + query + "%")
                 column_conditions.append(condition)
 
             # Check if conditions for this column were generated
             if column_conditions:
-                if query_type == 'and':
+                if query_type == "and":
                     operator = and_
                 else:
                     operator = or_
@@ -218,24 +218,25 @@ class SQLCache(ICache):
         # Extract only the most recent version for each package
         latest_map = {}
         for package in results.all():
-            if package.name not in latest_map or \
-               package > latest_map[package.name]:
+            if package.name not in latest_map or package > latest_map[package.name]:
                 latest_map[package.name] = package
 
         return latest_map.values()
 
     def summary(self):
-        subquery = self.db.query(
-            SQLPackage.name,
-            func.max(SQLPackage.last_modified).label('last_modified'),
-        ).group_by(SQLPackage.name).subquery()
+        subquery = (
+            self.db.query(
+                SQLPackage.name,
+                func.max(SQLPackage.last_modified).label("last_modified"),
+            )
+            .group_by(SQLPackage.name)
+            .subquery()
+        )
         rows = self.db.query(
-            SQLPackage.name,
-            SQLPackage.last_modified,
-            SQLPackage.summary,
+            SQLPackage.name, SQLPackage.last_modified, SQLPackage.summary
         ).filter(
-            (SQLPackage.name == subquery.c.name) &
-            (SQLPackage.last_modified == subquery.c.last_modified)
+            (SQLPackage.name == subquery.c.name)
+            & (SQLPackage.last_modified == subquery.c.last_modified)
         )
 
         # Dedupe because two packages may share the same last_modified
@@ -245,11 +246,9 @@ class SQLCache(ICache):
             if row[0] in seen_packages:
                 continue
             seen_packages.add(row[0])
-            packages.append({
-                'name': row[0],
-                'last_modified': row[1],
-                'summary': row[2],
-            })
+            packages.append(
+                {"name": row[0], "last_modified": row[1], "summary": row[2]}
+            )
         return packages
 
     def clear(self, package):
@@ -261,7 +260,7 @@ class SQLCache(ICache):
             self.db.rollback()
         else:
             self.request.tm.abort()
-        engine = self.dbmaker.kw['bind']
+        engine = self.dbmaker.kw["bind"]
         drop_schema(engine)
         create_schema(engine)
 
@@ -292,9 +291,9 @@ class SQLCache(ICache):
         if extra1:
             LOG.info("Removing %d extra packages from cache", len(extra1))
             for pkg in extra1:
-                self.db.query(SQLPackage) \
-                    .filter(SQLPackage.filename == pkg.filename) \
-                    .delete(synchronize_session=False)
+                self.db.query(SQLPackage).filter(
+                    SQLPackage.filename == pkg.filename
+                ).delete(synchronize_session=False)
 
         # If any packages were concurrently deleted during the cache rebuild,
         # we can detect them by polling storage again and looking for any
@@ -303,12 +302,15 @@ class SQLCache(ICache):
         # Delete extra packages from cache (s1 - s2)
         extra2 = s1 - s2
         if extra2:
-            LOG.info("Removing %d packages from cache that were concurrently "
-                     "deleted during rebuild", len(extra2))
+            LOG.info(
+                "Removing %d packages from cache that were concurrently "
+                "deleted during rebuild",
+                len(extra2),
+            )
             for pkg in extra2:
-                self.db.query(SQLPackage) \
-                    .filter(SQLPackage.filename == pkg.filename) \
-                    .delete(synchronize_session=False)
+                self.db.query(SQLPackage).filter(
+                    SQLPackage.filename == pkg.filename
+                ).delete(synchronize_session=False)
 
     def check_health(self):
         try:
@@ -316,4 +318,4 @@ class SQLCache(ICache):
         except SQLAlchemyError as e:
             return (False, str(e))
         else:
-            return (True, '')
+            return (True, "")

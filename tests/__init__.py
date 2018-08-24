@@ -18,13 +18,20 @@ if six.PY3:
     unittest.TestCase.assertItemsEqual = unittest.TestCase.assertCountEqual
 
 
-def make_package(name='mypkg', version='1.1', filename=None,
-                 last_modified=None, summary='summary',
-                 factory=Package, **kwargs):
+def make_package(
+    name="mypkg",
+    version="1.1",
+    filename=None,
+    last_modified=None,
+    summary="summary",
+    factory=Package,
+    **kwargs
+):
     """ Convenience method for constructing a package """
-    filename = filename or '%s-%s.tar.gz' % (name, version)
-    return factory(name, version, filename, last_modified or datetime.utcnow(),
-                   summary, **kwargs)
+    filename = filename or "%s-%s.tar.gz" % (name, version)
+    return factory(
+        name, version, filename, last_modified or datetime.utcnow(), summary, **kwargs
+    )
 
 
 class DummyStorage(IStorage):
@@ -58,7 +65,7 @@ class DummyCache(ICache):
     """ In-memory implementation of ICache """
 
     def __init__(self, request=None, **kwargs):
-        kwargs.setdefault('storage', DummyStorage)
+        kwargs.setdefault("storage", DummyStorage)
         super(DummyCache, self).__init__(request, **kwargs)
         self.packages = defaultdict(dict)
 
@@ -97,7 +104,7 @@ class MockServerTest(unittest.TestCase):
         self.request.userid = None
         self.request.__class__.is_logged_in = property(_is_logged_in)
         self.db = self.request.db = DummyCache(self.request)
-        self.request.path_url = '/path/'
+        self.request.path_url = "/path/"
         self.request.forbid = MagicMock()
         self.params = {}
         self.request.param = lambda x, y=None: self.params.get(x, y)
