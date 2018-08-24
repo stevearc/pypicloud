@@ -32,16 +32,37 @@ REQUIREMENTS = [
     'zope.sqlalchemy',
 ]
 
-TEST_REQUIREMENTS = [
-    'flywheel',
+EXTRAS = {
+    'ldap': ['pyldap'],
+    'dynamo': ['flywheel >= 0.2.0'],
+    'redis': ['redis'],
+    'gcs': ['google-cloud-storage>=1.10.0'],
+}
+
+EXTRAS['all_plugins'] = sum(EXTRAS.values(), [])
+
+EXTRAS['test'] = EXTRAS['all_plugins'] + [
     'mock',
     'mockldap',
     'moto',
+    'mysqlclient',
     'nose',
-    'redis',
+    'psycopg2-binary',
     'requests',
     'webtest',
 ]
+
+EXTRAS['server'] = ['waitress']
+EXTRAS['lint'] = [
+    'pycodestyle',
+    'pylint==1.7.1',
+]
+EXTRAS['doc'] = [
+    'numpydoc',
+    'sphinx',
+    'sphinx_rtd_theme',
+]
+
 
 if __name__ == "__main__":
     setup(
@@ -90,13 +111,7 @@ if __name__ == "__main__":
             ],
         },
         install_requires=REQUIREMENTS,
-        tests_require=REQUIREMENTS + TEST_REQUIREMENTS,
+        tests_require=REQUIREMENTS + EXTRAS['test'],
         test_suite='tests',
-        extras_require={
-            'ldap': ['pyldap'],
-            'server': ['waitress'],
-            'dynamo': ['flywheel >= 0.2.0'],
-            'redis': ['redis'],
-            'gcs': ['google-cloud-storage>=1.10.0']
-        },
+        extras_require=EXTRAS,
     )
