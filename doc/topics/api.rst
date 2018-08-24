@@ -57,7 +57,7 @@ limited because pypicloud doesn't store as much package metadata.
 
 **Example**::
 
-    curl myserver.com/simple/flywheel/json/
+    curl myserver.com/pypi/flywheel/json/
 
 ``/api/``
 ---------
