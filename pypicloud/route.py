@@ -34,7 +34,7 @@ class IResourceFactory(object):
         self.request = request
 
     def __getitem__(self, name):
-        child = self.__factory__(name)
+        child = self.__factory__(name)  # pylint: disable=E1128
         child.__name__ = name
         child.__parent__ = self
         return child
