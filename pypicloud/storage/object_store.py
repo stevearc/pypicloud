@@ -1,5 +1,4 @@
 """ Store packages in S3 """
-import posixpath
 from binascii import hexlify
 
 import logging
@@ -12,7 +11,6 @@ from six.moves.urllib.request import urlopen  # pylint: disable=F0401,E0611
 from six import BytesIO
 
 from .base import IStorage
-from pypicloud.util import get_settings
 
 
 LOG = logging.getLogger(__name__)

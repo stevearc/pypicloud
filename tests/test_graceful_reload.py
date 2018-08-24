@@ -4,7 +4,6 @@ import unittest
 from datetime import datetime, timedelta
 from mock import MagicMock
 from pyramid.testing import DummyRequest
-from redis import ConnectionError
 from sqlalchemy.exc import OperationalError
 
 from . import make_package

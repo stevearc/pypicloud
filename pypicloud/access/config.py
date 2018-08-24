@@ -1,9 +1,7 @@
 """ Backend that reads access control rules from config file """
 import logging
 import six
-from collections import defaultdict
-from pyramid.security import Everyone, Authenticated
-from pyramid.settings import aslist, asbool
+from pyramid.settings import aslist
 
 from .base_json import IJsonAccessBackend
 

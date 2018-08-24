@@ -1,5 +1,5 @@
 """ Render views for logging in and out of the web interface """
-from pyramid.httpexceptions import HTTPForbidden, HTTPFound, HTTPBadRequest
+from pyramid.httpexceptions import HTTPForbidden, HTTPFound
 from pyramid.security import NO_PERMISSION_REQUIRED, remember, forget
 from pyramid.view import view_config
 from pyramid_duh import argify

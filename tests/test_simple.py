@@ -36,7 +36,7 @@ class TestSimple(MockServerTest):
         content.filename = "foo-1.2.tar.gz"
         pkg = upload(self.request, content, name, version)
 
-        self.assertEquals(pkg, self.request.db.packages[content.filename])
+        self.assertEqual(pkg, self.request.db.packages[content.filename])
 
     def test_upload_bad_action(self):
         """ Upload endpoint only respects 'file_upload' action """

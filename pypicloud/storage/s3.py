@@ -35,7 +35,7 @@ class S3Storage(ObjectStoreStorage):
     def _subclass_specific_config(cls, settings, common_config):
         sse = settings.get("storage.server_side_encryption")
         if sse not in [None, "AES256", "aws:kms"]:
-            LOG.warn(
+            LOG.warning(
                 "Unrecognized value %r for 'storage.sse'. See "
                 "https://boto3.readthedocs.io/en/latest/reference/services/s3.html#S3.Object.put "
                 "for more details",

@@ -49,10 +49,12 @@ class IJsonAccessBackend(IAccessBackend):
         }
     """
 
+    _db = None
+
     @property
     def db(self):
         """ Fetch JSON and cache it for future calls """
-        if not hasattr(self, "_db"):
+        if self._db is None:
             self._db = self._get_db()
             for key in ["users", "groups", "packages", "pending_users"]:
                 self._db.setdefault(key, {})

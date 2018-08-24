@@ -71,7 +71,8 @@ def package_versions(context, request):
 def fetch_dist(request, package_name, package_url):
     """ Fetch a Distribution and upload it to the storage backend """
     filename = posixpath.basename(package_url)
-    with closing(urlopen(package_url)) as url:
+    url = urlopen(package_url)
+    with closing(url):
         data = url.read()
     # TODO: digest validation
     return request.db.upload(filename, six.BytesIO(data), package_name), data

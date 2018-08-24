@@ -9,7 +9,7 @@ from dynamo3 import Throughput
 from flywheel.fields.types import UTC
 from mock import MagicMock, patch, ANY
 from pyramid.testing import DummyRequest
-from redis import ConnectionError, RedisError
+from redis import RedisError
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from . import DummyCache, DummyStorage, make_package
@@ -27,8 +27,8 @@ class TestBaseCache(unittest.TestCase):
         """ Two packages with same name & version should be equal """
         p1 = make_package(filename="wibbly")
         p2 = make_package(filename="wobbly")
-        self.assertEquals(hash(p1), hash(p2))
-        self.assertEquals(p1, p2)
+        self.assertEqual(hash(p1), hash(p2))
+        self.assertEqual(p1, p2)
 
     def test_upload_overwrite(self):
         """ Uploading a preexisting packages overwrites current package """

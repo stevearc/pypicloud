@@ -62,10 +62,10 @@ class TestS3Storage(unittest.TestCase):
             Body="foobar",
         )
         package = list(self.storage.list(Package))[0]
-        self.assertEquals(package.name, name)
-        self.assertEquals(package.version, version)
-        self.assertEquals(package.filename, filename)
-        self.assertEquals(package.summary, summary)
+        self.assertEqual(package.name, name)
+        self.assertEqual(package.version, version)
+        self.assertEqual(package.filename, filename)
+        self.assertEqual(package.summary, summary)
 
     def test_list_no_metadata(self):
         """ Test that list works on old keys with no metadata """
@@ -74,10 +74,10 @@ class TestS3Storage(unittest.TestCase):
         key = self.bucket.Object(name + "/" + filename)
         key.put(Body="foobar")
         package = list(self.storage.list(Package))[0]
-        self.assertEquals(package.name, name)
-        self.assertEquals(package.version, version)
-        self.assertEquals(package.filename, filename)
-        self.assertEquals(package.summary, None)
+        self.assertEqual(package.name, name)
+        self.assertEqual(package.version, version)
+        self.assertEqual(package.filename, filename)
+        self.assertEqual(package.summary, None)
 
     def test_get_url(self):
         """ Mock s3 and test package url generation """
@@ -292,10 +292,10 @@ class TestFileStorage(unittest.TestCase):
             mfile.write(json.dumps({"summary": package.summary}))
 
         pkg = list(self.storage.list(Package))[0]
-        self.assertEquals(pkg.name, package.name)
-        self.assertEquals(pkg.version, package.version)
-        self.assertEquals(pkg.filename, package.filename)
-        self.assertEquals(pkg.summary, package.summary)
+        self.assertEqual(pkg.name, package.name)
+        self.assertEqual(pkg.version, package.version)
+        self.assertEqual(pkg.filename, package.filename)
+        self.assertEqual(pkg.summary, package.summary)
 
     def test_delete(self):
         """ delete() should remove package from storage """
@@ -488,10 +488,10 @@ class TestGoogleCloudStorage(unittest.TestCase):
         blob.upload_from_string("foobar")
 
         package = list(self.storage.list(Package))[0]
-        self.assertEquals(package.name, name)
-        self.assertEquals(package.version, version)
-        self.assertEquals(package.filename, filename)
-        self.assertEquals(package.summary, summary)
+        self.assertEqual(package.name, name)
+        self.assertEqual(package.version, version)
+        self.assertEqual(package.filename, filename)
+        self.assertEqual(package.summary, summary)
 
         self.gcs.bucket.assert_called_with("mybucket")
         self.bucket.list_blobs.assert_called_with(prefix=None)

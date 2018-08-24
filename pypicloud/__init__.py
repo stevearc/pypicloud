@@ -113,7 +113,7 @@ def includeme(config):
         )
         config.registry.fallback_url = None
     elif "pypi.fallback_url" in settings:
-        LOG.warn(
+        LOG.warning(
             "pypi.fallback_url is deprecated and support will be "
             "removed in a future version. "
             "Please use pypi.fallback_base_url."

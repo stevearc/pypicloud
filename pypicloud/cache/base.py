@@ -2,7 +2,6 @@
 from datetime import datetime
 
 import logging
-from pkg_resources import parse_version
 from pyramid.settings import asbool
 
 import posixpath

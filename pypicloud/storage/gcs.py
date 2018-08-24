@@ -5,7 +5,6 @@ from datetime import timedelta
 
 import logging
 from google.cloud import storage
-from google.oauth2.service_account import Credentials
 
 from .object_store import ObjectStoreStorage
 from pypicloud.models import Package
