@@ -63,7 +63,7 @@ class LDAP(object):
                 raise ValueError("Must provide user_dn_format or both base_dn "
                                  "and user_search_filter")
         self._admin_field = admin_field
-        self._admin_value = admin_value
+        self._admin_value = set(admin_value)
         self._server = None
         if cache_time is not None:
             cache_time = int(cache_time)
@@ -138,8 +138,7 @@ class LDAP(object):
         is_admin = False
         if self._admin_field is not None:
             if self._admin_field in attributes:
-                is_admin = any((val in attributes[self._admin_field]
-                                for val in self._admin_value))
+                is_admin = self._admin_value.intersection(attributes[self._admin_field])
 
         return User(username, dn, is_admin)
 
