@@ -150,9 +150,16 @@ class LDAP(object):
         is_admin = False
         if self._admin_field is not None:
             if self._admin_field in attributes:
-                is_admin = self._admin_value.intersection([x.decode("utf-8") for x in attributes[self._admin_field]])
+                is_admin = self._admin_value.intersection([self._decode_attribute(x) for x in attributes[self._admin_field]])
 
         return User(username, dn, is_admin)
+
+    def _decode_attribute(self, attribute):
+        if attribute and hasattr(attribute, "decode"):
+            decoded = attribute.decode("utf-8")
+            return decoded
+        else:
+            return attribute
 
     def get_user(self, username):
         """ Get the User object or None """
