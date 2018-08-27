@@ -2,7 +2,6 @@
 from datetime import datetime
 
 import logging
-from pkg_resources import parse_version
 from pyramid.settings import asbool
 
 import posixpath
@@ -40,9 +39,8 @@ class ICache(object):
     def configure(cls, settings):
         """ Configure the cache method with app settings """
         return {
-            'storage': get_storage_impl(settings),
-            'allow_overwrite': asbool(settings.get('pypi.allow_overwrite',
-                                                   False)),
+            "storage": get_storage_impl(settings),
+            "allow_overwrite": asbool(settings.get("pypi.allow_overwrite", False)),
         }
 
     @classmethod
@@ -198,8 +196,8 @@ class ICache(object):
             Type of query to perform. By default, pip sends "or".
 
         """
-        name_queries = criteria.get('name', [])
-        summary_queries = criteria.get('summary', [])
+        name_queries = criteria.get("name", [])
+        summary_queries = criteria.get("summary", [])
         packages = []
 
         # Create matchers for the queries
@@ -215,8 +213,7 @@ class ICache(object):
                 if latest is None or package > latest:
                     if match_name(package.name):
                         latest = package
-                    elif (package.summary is not None and
-                          match_summary(package.summary)):
+                    elif package.summary is not None and match_summary(package.summary):
                         latest = package
             if latest is not None:
                 packages.append(latest)
@@ -237,16 +234,15 @@ class ICache(object):
         packages = []
         for name in self.distinct():
             pkg = {
-                'name': name,
-                'summary': '',
-                'last_modified': datetime.fromtimestamp(0),
+                "name": name,
+                "summary": "",
+                "last_modified": datetime.fromtimestamp(0),
             }
             max_pkg = None
             for package in self.all(name):
-                pkg['last_modified'] = max(pkg['last_modified'],
-                                           package.last_modified)
+                pkg["last_modified"] = max(pkg["last_modified"], package.last_modified)
                 max_pkg = package if max_pkg is None else max(max_pkg, package)
-            pkg['summary'] = max_pkg.summary
+            pkg["summary"] = max_pkg.summary
             packages.append(pkg)
 
         return packages
@@ -288,4 +284,4 @@ class ICache(object):
             status message
 
         """
-        return (True, '')
+        return (True, "")

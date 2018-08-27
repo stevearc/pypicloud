@@ -4,6 +4,7 @@ import binascii
 
 # pylint: disable=E0611,W0403
 from paste.httpheaders import AUTHORIZATION, WWW_AUTHENTICATE
+
 # pylint: enable=E0611,W0403
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.httpexceptions import HTTPForbidden, HTTPUnauthorized
@@ -16,19 +17,19 @@ def get_basicauth_credentials(request):
     """ Get the user/password from HTTP basic auth """
     authorization = AUTHORIZATION(request.environ)
     try:
-        authmeth, auth = authorization.split(' ', 1)
+        authmeth, auth = authorization.split(" ", 1)
     except ValueError:  # not enough values to unpack
         return None
-    if authmeth.lower() == 'basic':
+    if authmeth.lower() == "basic":
         try:
-            auth = b64decode(auth.strip()).decode('utf8')
+            auth = b64decode(auth.strip()).decode("utf8")
         except (TypeError, binascii.Error):  # can't decode
             return None
         try:
-            login, password = auth.split(':', 1)
+            login, password = auth.split(":", 1)
         except ValueError:  # not enough values to unpack
             return None
-        return {'login': login, 'password': password}
+        return {"login": login, "password": password}
 
     return None
 
@@ -54,9 +55,8 @@ class BasicAuthenticationPolicy(object):
         credentials = get_basicauth_credentials(request)
         if credentials is None:
             return None
-        userid = credentials['login']
-        if request.access.verify_user(credentials['login'],
-                                      credentials['password']):
+        userid = credentials["login"]
+        if request.access.verify_user(credentials["login"], credentials["password"]):
             return userid
         return None
 
@@ -90,7 +90,7 @@ class SessionAuthPolicy(object):
         used related to the user (the user should not have been deleted);
         if a record associated with the current id does not exist in a
         persistent store, it should return ``None``."""
-        return request.session.get('user', None)
+        return request.session.get("user", None)
 
     def unauthenticated_userid(self, request):
         """ Return the *unauthenticated* userid.  This method performs the
@@ -117,7 +117,7 @@ class SessionAuthPolicy(object):
         remember(principal)
 
         """
-        request.session['user'] = principal
+        request.session["user"] = principal
         return []
 
     def forget(self, request):
@@ -135,8 +135,7 @@ def _is_logged_in(request):
 def _request_login(request):
     """ Return a 401 to force pip to upload its HTTP basic auth credentials """
     response = HTTPUnauthorized()
-    realm = WWW_AUTHENTICATE.tuples('Basic realm="%s"' %
-                                    request.registry.realm)
+    realm = WWW_AUTHENTICATE.tuples('Basic realm="%s"' % request.registry.realm)
     response.headers.update(realm)
     return response
 
@@ -160,12 +159,11 @@ def includeme(config):
     config.set_authentication_policy(config.registry.authentication_policy)
     config.add_authentication_policy(SessionAuthPolicy())
     config.add_authentication_policy(BasicAuthenticationPolicy())
-    config.add_request_method(authenticated_userid, name='userid',
-                              reify=True)
-    config.add_request_method(_forbid, name='forbid')
-    config.add_request_method(_request_login, name='request_login')
-    config.add_request_method(_is_logged_in, name='is_logged_in', reify=True)
+    config.add_request_method(authenticated_userid, name="userid", reify=True)
+    config.add_request_method(_forbid, name="forbid")
+    config.add_request_method(_request_login, name="request_login")
+    config.add_request_method(_is_logged_in, name="is_logged_in", reify=True)
 
     settings = config.get_settings()
-    realm = settings.get('pypi.realm', 'pypi')
+    realm = settings.get("pypi.realm", "pypi")
     config.registry.realm = realm

@@ -1,6 +1,5 @@
 """ Store packages in S3 """
 import posixpath
-from binascii import hexlify
 
 import boto3
 import logging
@@ -13,17 +12,12 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 
-from contextlib import contextmanager
 from datetime import datetime, timedelta
-from hashlib import md5
-from pyramid.httpexceptions import HTTPFound
 from pyramid.settings import asbool, falsey
 from pyramid_duh.settings import asdict
 from six.moves.urllib.parse import urlparse, quote  # pylint: disable=F0401,E0611
-from six.moves.urllib.request import urlopen  # pylint: disable=F0401,E0611
-from six import BytesIO
 
-from .base import IStorage
+from .object_store import ObjectStoreStorage
 from pypicloud.models import Package
 from pypicloud.util import parse_filename, get_settings
 
@@ -31,67 +25,30 @@ from pypicloud.util import parse_filename, get_settings
 LOG = logging.getLogger(__name__)
 
 
-def package_from_object(obj, factory):
-    """ Create a package from a S3 object """
-    filename = posixpath.basename(obj.key)
-    name = obj.metadata.get('name')
-    version = obj.metadata.get('version')
-    summary = obj.metadata.get('summary')
-    # We used to not store metadata. This is for backwards
-    # compatibility
-    if name is None or version is None:
-        try:
-            name, version = parse_filename(filename)
-        except ValueError:
-            LOG.warning("S3 file %s has no package name", obj.key)
-            return None
-
-    return factory(name, version, filename, obj.last_modified, summary,
-                   path=obj.key)
-
-
-class S3Storage(IStorage):
+class S3Storage(ObjectStoreStorage):
 
     """ Storage backend that uses S3 """
+
     test = False
 
-    def __init__(self, request=None, bucket=None, expire_after=None,
-                 bucket_prefix=None, prepend_hash=None, redirect_urls=None,
-                 sse=None, object_acl=None, storage_class=None, region_name=None,
-                 public_url=False, **kwargs):
-        super(S3Storage, self).__init__(request, **kwargs)
-        self.bucket = bucket
-        self.expire_after = expire_after
-        self.bucket_prefix = bucket_prefix
-        self.prepend_hash = prepend_hash
-        self.redirect_urls = redirect_urls
-        self.sse = sse
-        self.object_acl = object_acl
-        self.storage_class = storage_class
-        self.region_name = region_name
-        self.public_url = public_url
+    @classmethod
+    def _subclass_specific_config(cls, settings, common_config):
+        sse = settings.get("storage.server_side_encryption")
+        if sse not in [None, "AES256", "aws:kms"]:
+            LOG.warning(
+                "Unrecognized value %r for 'storage.sse'. See "
+                "https://boto3.readthedocs.io/en/latest/reference/services/s3.html#S3.Object.put "
+                "for more details",
+                sse,
+            )
+
+        return {"sse": sse}
 
     @classmethod
-    def configure(cls, settings):
-        kwargs = super(S3Storage, cls).configure(settings)
-        kwargs['expire_after'] = int(settings.get('storage.expire_after',
-                                                  60 * 60 * 24))
-        kwargs['bucket_prefix'] = settings.get('storage.prefix', '')
-        kwargs['prepend_hash'] = asbool(settings.get('storage.prepend_hash',
-                                                     True))
-        kwargs['sse'] = sse = settings.get('storage.server_side_encryption')
-        if sse not in [None, 'AES256', 'aws:kms']:
-            LOG.warn("Unrecognized value %r for 'storage.sse'. See "
-                     "https://boto3.readthedocs.io/en/latest/reference/services/s3.html#S3.Object.put "
-                     "for more details", sse)
-        kwargs['object_acl'] = settings.get('storage.object_acl', None)
-        kwargs['storage_class'] = storage_class = settings.get('storage.storage_class')
-        kwargs['redirect_urls'] = asbool(settings.get('storage.redirect_urls',
-                                                      False))
-
+    def get_bucket(cls, bucket_name, settings):
         config_settings = get_settings(
             settings,
-            'storage.',
+            "storage.",
             region_name=str,
             signature_version=str,
             user_agent=str,
@@ -102,9 +59,9 @@ class S3Storage(IStorage):
             max_pool_connections=int,
             proxies=asdict,
         )
-        config_settings['s3'] = get_settings(
+        config_settings["s3"] = get_settings(
             settings,
-            'storage.',
+            "storage.",
             use_accelerate_endpoint=asbool,
             payload_signing_enabled=asbool,
             addressing_style=str,
@@ -120,11 +77,11 @@ class S3Storage(IStorage):
                 return str(val)
 
         s3conn = boto3.resource(
-            's3',
+            "s3",
             config=config,
             **get_settings(
                 settings,
-                'storage.',
+                "storage.",
                 region_name=str,
                 api_version=str,
                 use_ssl=asbool,
@@ -136,51 +93,50 @@ class S3Storage(IStorage):
             )
         )
 
-        bucket_name = settings.get('storage.bucket')
-        if bucket_name is None:
-            raise ValueError("You must specify the 'storage.bucket'")
         bucket = s3conn.Bucket(bucket_name)
         try:
             head = s3conn.meta.client.head_bucket(Bucket=bucket_name)
         except ClientError as e:
-            if e.response['Error']['Code'] == '404':
+            if e.response["Error"]["Code"] == "404":
                 LOG.info("Creating S3 bucket %s", bucket_name)
                 bucket.create()
                 bucket.wait_until_exists()
             else:
-                if e.response['Error']['Code'] == '301':
-                    LOG.error("Bucket found in different region. Check that "
-                              "the S3 bucket specified in 'storage.bucket' is "
-                              "in 'storage.region_name'")
+                if e.response["Error"]["Code"] == "301":
+                    LOG.error(
+                        "Bucket found in different region. Check that "
+                        "the S3 bucket specified in 'storage.bucket' is "
+                        "in 'storage.region_name'"
+                    )
                 raise
-        kwargs['region_name'] = config_settings.get('region_name')
-        kwargs['public_url'] = asbool(settings.get('storage.public_url'))
-        kwargs['bucket'] = bucket
-        return kwargs
+        return bucket
 
-    def calculate_path(self, package):
-        """ Calculates the path of a package """
-        path = package.name + '/' + package.filename
-        if self.prepend_hash:
-            m = md5()
-            m.update(package.filename.encode('utf-8'))
-            prefix = hexlify(m.digest()).decode('utf-8')[:4]
-            path = prefix + '/' + path
-        return path
+    @classmethod
+    def package_from_object(cls, obj, factory):
+        """ Create a package from a S3 object """
+        filename = posixpath.basename(obj.key)
+        name = obj.metadata.get("name")
+        version = obj.metadata.get("version")
+        summary = obj.metadata.get("summary")
+        # We used to not store metadata. This is for backwards
+        # compatibility
+        if name is None or version is None:
+            try:
+                name, version = parse_filename(filename)
+            except ValueError:
+                LOG.warning("S3 file %s has no package name", obj.key)
+                return None
 
-    def get_path(self, package):
-        """ Get the fully-qualified bucket path for a package """
-        if 'path' not in package.data:
-            filename = self.calculate_path(package)
-            package.data['path'] = self.bucket_prefix + filename
-        return package.data['path']
+        return factory(
+            name, version, filename, obj.last_modified, summary, path=obj.key
+        )
 
     def list(self, factory=Package):
         keys = self.bucket.objects.filter(Prefix=self.bucket_prefix)
         for summary in keys:
             # ObjectSummary has no metadata, so we have to fetch it.
             obj = summary.Object()
-            pkg = package_from_object(obj, factory)
+            pkg = self.package_from_object(obj, factory)
             if pkg is not None:
                 yield pkg
 
@@ -188,20 +144,18 @@ class S3Storage(IStorage):
         """ Generate a signed url to the S3 file """
         if self.public_url:
             if self.region_name:
-                return "https://s3.{0}.amazonaws.com/{1}/{2}" \
-                    .format(self.region_name, self.bucket.name,
-                            self.get_path(package))
+                return "https://s3.{0}.amazonaws.com/{1}/{2}".format(
+                    self.region_name, self.bucket.name, self.get_path(package)
+                )
             else:
-                if '.' in self.bucket.name:
+                if "." in self.bucket.name:
                     self._log_region_warning()
-                return "https://{0}.s3.amazonaws.com/{1}" \
-                    .format(self.bucket.name, self.get_path(package))
+                return "https://{0}.s3.amazonaws.com/{1}".format(
+                    self.bucket.name, self.get_path(package)
+                )
         url = self.bucket.meta.client.generate_presigned_url(
-            'get_object',
-            Params={
-                'Bucket': self.bucket.name,
-                'Key': self.get_path(package),
-            },
+            "get_object",
+            Params={"Bucket": self.bucket.name, "Key": self.get_path(package)},
             ExpiresIn=self.expire_after,
         )
         # There is a special case if your bucket has a '.' in the name. The
@@ -209,9 +163,9 @@ class S3Storage(IStorage):
         # If you provide a region_name, boto should correctly generate a url in
         # the form of `s3.<region>.amazonaws.com`
         # See https://github.com/stevearc/pypicloud/issues/145
-        if '.' in self.bucket.name:
+        if "." in self.bucket.name:
             pieces = urlparse(url)
-            if pieces.netloc == 's3.amazonaws.com' and self.region_name is None:
+            if pieces.netloc == "s3.amazonaws.com" and self.region_name is None:
                 self._log_region_warning()
         return url
 
@@ -221,51 +175,27 @@ class S3Storage(IStorage):
             "Your signed S3 urls may not work! "
             "Try adding the bucket region to the config with "
             "'storage.region_name = <region>' or using a bucket "
-            "without any dots ('.') in the name.")
-
-    def get_url(self, package):
-        if self.redirect_urls:
-            return super(S3Storage, self).get_url(package)
-        else:
-            return self._generate_url(package)
-
-    def download_response(self, package):
-        return HTTPFound(location=self._generate_url(package))
+            "without any dots ('.') in the name."
+        )
 
     def upload(self, package, datastream):
         key = self.bucket.Object(self.get_path(package))
         kwargs = {}
         if self.sse is not None:
-            kwargs['ServerSideEncryption'] = self.sse
+            kwargs["ServerSideEncryption"] = self.sse
         if self.object_acl:
-            kwargs['ACL'] = self.object_acl
+            kwargs["ACL"] = self.object_acl
         if self.storage_class is not None:
-            kwargs['StorageClass'] = self.storage_class
-        metadata = {
-            'name': package.name,
-            'version': package.version,
-        }
+            kwargs["StorageClass"] = self.storage_class
+        metadata = {"name": package.name, "version": package.version}
         if package.summary:
-            metadata['summary'] = package.summary
+            metadata["summary"] = package.summary
         key.put(Metadata=metadata, Body=datastream, **kwargs)
 
     def delete(self, package):
-        self.bucket.delete_objects(Delete={
-            'Objects': [
-                {
-                    'Key': self.get_path(package),
-                }
-            ]
-        })
-
-    @contextmanager
-    def open(self, package):
-        url = self._generate_url(package)
-        handle = urlopen(url)
-        try:
-            yield BytesIO(handle.read())
-        finally:
-            handle.close()
+        self.bucket.delete_objects(
+            Delete={"Objects": [{"Key": self.get_path(package)}]}
+        )
 
     def check_health(self):
         try:
@@ -273,15 +203,16 @@ class S3Storage(IStorage):
         except ClientError as e:
             return False, str(e)
         else:
-            return True, ''
+            return True, ""
 
 
 class CloudFrontS3Storage(S3Storage):
 
     """ Storage backend that uses S3 and CloudFront """
 
-    def __init__(self, request=None, domain=None, crypto_pk=None,
-                 key_id=None, **kwargs):
+    def __init__(
+        self, request=None, domain=None, crypto_pk=None, key_id=None, **kwargs
+    ):
         super(CloudFrontS3Storage, self).__init__(request, **kwargs)
         self.domain = domain
         self.crypto_pk = crypto_pk
@@ -291,24 +222,25 @@ class CloudFrontS3Storage(S3Storage):
         if key_id is not None:
             self.cf_signer = CloudFrontSigner(self.key_id, self._rsa_signer)
 
-        self.client = boto3.client('cloudfront')
+        self.client = boto3.client("cloudfront")
 
     @classmethod
     def configure(cls, settings):
         kwargs = super(CloudFrontS3Storage, cls).configure(settings)
-        kwargs['domain'] = settings['storage.cloud_front_domain']
-        kwargs['key_id'] = settings.get('storage.cloud_front_key_id')
-        private_key = settings.get('storage.cloud_front_key_string')
+        kwargs["domain"] = settings["storage.cloud_front_domain"]
+        kwargs["key_id"] = settings.get("storage.cloud_front_key_id")
+        private_key = settings.get("storage.cloud_front_key_string")
         if private_key is None:
-            key_file = settings.get('storage.cloud_front_key_file')
+            key_file = settings.get("storage.cloud_front_key_file")
             if key_file:
-                with open(key_file, 'rb') as ifile:
+                with open(key_file, "rb") as ifile:
                     private_key = ifile.read()
         else:
-            private_key = private_key.encode('utf-8')
+            private_key = private_key.encode("utf-8")
         crypto_pk = serialization.load_pem_private_key(
-            private_key, password=None, backend=default_backend())
-        kwargs['crypto_pk'] = crypto_pk
+            private_key, password=None, backend=default_backend()
+        )
+        kwargs["crypto_pk"] = crypto_pk
 
         return kwargs
 
@@ -319,7 +251,7 @@ class CloudFrontS3Storage(S3Storage):
     def _generate_url(self, package):
         """ Get the fully-qualified CloudFront path for a package """
         path = self.get_path(package)
-        url = self.domain + '/' + quote(path)
+        url = self.domain + "/" + quote(path)
 
         # No key id, no signer, so we don't have to sign the URL
         if self.cf_signer is None:
@@ -327,5 +259,4 @@ class CloudFrontS3Storage(S3Storage):
 
         # To sign with a canned policy:
         expires = datetime.utcnow() + timedelta(seconds=self.expire_after)
-        return self.cf_signer.generate_presigned_url(
-            url, date_less_than=expires)
+        return self.cf_signer.generate_presigned_url(url, date_less_than=expires)

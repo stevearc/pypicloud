@@ -33,8 +33,9 @@ class Package(object):
 
     """
 
-    def __init__(self, name, version, filename, last_modified=None,
-                 summary=None, **kwargs):
+    def __init__(
+        self, name, version, filename, last_modified=None, summary=None, **kwargs
+    ):
         self.name = normalize_name(name)
         self.version = version
         self._parsed_version = None
@@ -54,14 +55,14 @@ class Package(object):
     def parsed_version(self):
         """ Parse and cache the version using pkg_resources """
         # Use getattr because __init__ isn't called by some ORMs.
-        if getattr(self, '_parsed_version', None) is None:
+        if getattr(self, "_parsed_version", None) is None:
             self._parsed_version = pkg_resources.parse_version(self.version)
         return self._parsed_version
 
     @property
     def is_prerelease(self):
         """ Returns True if the version is a prerelease version """
-        return re.match(r'^\d+(\.\d+)*$', self.version) is None
+        return re.match(r"^\d+(\.\d+)*$", self.version) is None
 
     def __hash__(self):
         return hash(self.name) + hash(self.version)
@@ -70,29 +71,28 @@ class Package(object):
         return self.name == other.name and self.version == other.version
 
     def __lt__(self, other):
-        return ((self.name, self.parsed_version) <
-                (other.name, other.parsed_version))
+        return (self.name, self.parsed_version) < (other.name, other.parsed_version)
 
     def __repr__(self):
         return self.__str__()
 
     def __str__(self):
-        return u'Package(%s)' % (self.filename)
+        return u"Package(%s)" % (self.filename)
 
     def __json__(self, request):
         return {
-            'name': self.name,
-            'filename': self.filename,
-            'last_modified': self.last_modified,
-            'version': self.version,
-            'url': self.get_url(request),
-            'summary': self.summary,
+            "name": self.name,
+            "filename": self.filename,
+            "last_modified": self.last_modified,
+            "version": self.version,
+            "url": self.get_url(request),
+            "summary": self.summary,
         }
 
     def search_summary(self):
         """ Data to return from a pip search """
         return {
-            'name': self.name,
-            'summary': self.summary or '',  # May be None
-            'version': self.version,
+            "name": self.name,
+            "summary": self.summary or "",  # May be None
+            "version": self.version,
         }

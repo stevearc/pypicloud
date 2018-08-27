@@ -1,9 +1,7 @@
 """ Backend that reads access control rules from config file """
 import logging
 import six
-from collections import defaultdict
-from pyramid.security import Everyone, Authenticated
-from pyramid.settings import aslist, asbool
+from pyramid.settings import aslist
 
 from .base_json import IJsonAccessBackend
 
@@ -26,34 +24,34 @@ class ConfigAccessBackend(IJsonAccessBackend):
 
         users = {}
         for key, value in six.iteritems(settings):
-            if not key.startswith('user.'):
+            if not key.startswith("user."):
                 continue
-            users[key[len('user.'):]] = value
-        data['users'] = users
+            users[key[len("user.") :]] = value
+        data["users"] = users
 
-        data['admins'] = aslist(settings.get('auth.admins', []))
+        data["admins"] = aslist(settings.get("auth.admins", []))
 
         groups = {}
         for key, value in six.iteritems(settings):
-            if not key.startswith('group.'):
+            if not key.startswith("group."):
                 continue
-            groups[key[len('group.'):]] = aslist(value)
-        data['groups'] = groups
+            groups[key[len("group.") :]] = aslist(value)
+        data["groups"] = groups
 
         packages = {}
         for key, value in six.iteritems(settings):
-            pieces = key.split('.')
-            if len(pieces) != 4 or pieces[0] != 'package':
+            pieces = key.split(".")
+            if len(pieces) != 4 or pieces[0] != "package":
                 continue
             _, package, mode, entity = pieces
-            pkg_perms = packages.setdefault(package, {'users': {}, 'groups': {}})
-            if mode == 'user':
-                pkg_perms['users'][entity] = cls._perms_from_short(value)
-            elif mode == 'group':
-                pkg_perms['groups'][entity] = cls._perms_from_short(value)
-        data['packages'] = packages
+            pkg_perms = packages.setdefault(package, {"users": {}, "groups": {}})
+            if mode == "user":
+                pkg_perms["users"][entity] = cls._perms_from_short(value)
+            elif mode == "group":
+                pkg_perms["groups"][entity] = cls._perms_from_short(value)
+        data["packages"] = packages
 
-        kwargs['data'] = data
+        kwargs["data"] = data
         return kwargs
 
     def _get_db(self):
@@ -62,53 +60,57 @@ class ConfigAccessBackend(IJsonAccessBackend):
     @staticmethod
     def _perms_from_short(value):
         """ Convert a 'r' or 'rw' specification to a list of permissions """
-        value = value or ''
+        value = value or ""
         if len(value) > 2:
             return aslist(value)
         perms = []
-        if 'r' in value:
-            perms.append('read')
-        if 'w' in value:
-            perms.append('write')
+        if "r" in value:
+            perms.append("read")
+        if "w" in value:
+            perms.append("write")
         return perms
 
     def load(self, data):
         lines = []
         admins = []
-        for user in data['users']:
-            lines.append('user.{username} = {password}'.format(**user))
-            if user.get('admin'):
-                admins.append(user['username'])
+        for user in data["users"]:
+            lines.append("user.{username} = {password}".format(**user))
+            if user.get("admin"):
+                admins.append(user["username"])
 
         if admins:
-            lines.append('auth.admins =')
+            lines.append("auth.admins =")
             for admin in admins:
-                lines.append('    {0}'.format(admin))
+                lines.append("    {0}".format(admin))
 
-        for group, members in six.iteritems(data['groups']):
-            lines.append('group.{0} ='.format(group))
+        for group, members in six.iteritems(data["groups"]):
+            lines.append("group.{0} =".format(group))
             for member in members:
-                lines.append('    {0}'.format(member))
+                lines.append("    {0}".format(member))
 
         def encode_permissions(perms):
             """ Encode a permissions list as the r/rw specification """
-            ret = ''
-            if 'read' in perms:
-                ret += 'r'
-            if 'write' in perms:
-                ret += 'w'
+            ret = ""
+            if "read" in perms:
+                ret += "r"
+            if "write" in perms:
+                ret += "w"
             return ret
 
-        for package, groups in six.iteritems(data['packages']['groups']):
+        for package, groups in six.iteritems(data["packages"]["groups"]):
             for group, permissions in six.iteritems(groups):
-                lines.append('package.{0}.group.{1} = {2}'
-                             .format(package, group,
-                                     encode_permissions(permissions)))
+                lines.append(
+                    "package.{0}.group.{1} = {2}".format(
+                        package, group, encode_permissions(permissions)
+                    )
+                )
 
-        for package, users in six.iteritems(data['packages']['users']):
+        for package, users in six.iteritems(data["packages"]["users"]):
             for user, permissions in six.iteritems(users):
-                lines.append('package.{0}.user.{1} = {2}'
-                             .format(package, user,
-                                     encode_permissions(permissions)))
+                lines.append(
+                    "package.{0}.user.{1} = {2}".format(
+                        package, user, encode_permissions(permissions)
+                    )
+                )
 
-        return '\n'.join(lines)
+        return "\n".join(lines)

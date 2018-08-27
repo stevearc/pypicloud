@@ -22,8 +22,12 @@ def gen_password(argv=None):
     if argv is None:
         argv = sys.argv[1:]
     parser = argparse.ArgumentParser(gen_password.__doc__)
-    parser.add_argument('-r', help="Number of rounds (default %(default)s)",
-                        type=int, default=DEFAULT_ROUNDS)
+    parser.add_argument(
+        "-r",
+        help="Number of rounds (default %(default)s)",
+        type=int,
+        default=DEFAULT_ROUNDS,
+    )
     args = parser.parse_args(argv)
     six.print_(_gen_password(args.r))
 
@@ -51,7 +55,7 @@ def wrapped_input(msg):
 def prompt(msg, default=NO_DEFAULT, validate=None):
     """ Prompt user for input """
     while True:
-        response = wrapped_input(msg + ' ').strip()
+        response = wrapped_input(msg + " ").strip()
         if not response:
             if default is NO_DEFAULT:
                 continue
@@ -81,10 +85,10 @@ def promptyn(msg, default=None):
             no = "n"
         else:
             no = "N"
-        confirm = prompt("%s [%s/%s]" % (msg, yes, no), '').lower()
-        if confirm in ('y', 'yes'):
+        confirm = prompt("%s [%s/%s]" % (msg, yes, no), "").lower()
+        if confirm in ("y", "yes"):
             return True
-        elif confirm in ('n', 'no'):
+        elif confirm in ("n", "no"):
             return False
         elif not confirm and default is not None:
             return default
@@ -92,13 +96,13 @@ def promptyn(msg, default=None):
 
 def bucket_validate(name):
     """ Check for valid bucket name """
-    if name.startswith('.'):
+    if name.startswith("."):
         six.print_("Bucket names cannot start with '.'")
         return False
-    if name.endswith('.'):
+    if name.endswith("."):
         six.print_("Bucket names cannot end with '.'")
         return False
-    if '..' in name:
+    if ".." in name:
         six.print_("Bucket names cannot contain '..'")
         return False
     return True
@@ -110,17 +114,20 @@ def make_config(argv=None):
         argv = sys.argv[1:]
     parser = argparse.ArgumentParser(description=make_config.__doc__)
     group = parser.add_mutually_exclusive_group()
-    group.add_argument('-d', action='store_true',
-                       help="Create config file for development")
-    group.add_argument('-t', action='store_true',
-                       help="Create config file for testing")
-    group.add_argument('-p', action='store_true',
-                       help="Create config file for production")
-    group.add_argument('-r', action='store_true',
-                       help="Create config file for docker image")
+    group.add_argument(
+        "-d", action="store_true", help="Create config file for development"
+    )
+    group.add_argument("-t", action="store_true", help="Create config file for testing")
+    group.add_argument(
+        "-p", action="store_true", help="Create config file for production"
+    )
+    group.add_argument(
+        "-r", action="store_true", help="Create config file for docker image"
+    )
 
-    parser.add_argument('outfile', nargs='?',
-                        help="Name of output file (default stdout)")
+    parser.add_argument(
+        "outfile", nargs="?", help="Name of output file (default stdout)"
+    )
 
     args = parser.parse_args(argv)
 
@@ -130,61 +137,66 @@ def make_config(argv=None):
             return
 
     if args.d:
-        env = 'dev'
+        env = "dev"
     elif args.t:
-        env = 'test'
+        env = "test"
     elif args.p:
-        env = 'prod'
+        env = "prod"
     elif args.r:
-        env = 'docker'
+        env = "docker"
     else:
-        env = prompt_option("What is this config file for?",
-                            ['dev', 'test', 'prod'])
+        env = prompt_option("What is this config file for?", ["dev", "test", "prod"])
 
     data = {
-        'env': env,
-        'workdir': '/var/lib/pypicloud' if env == 'docker' else r'%(here)s'
+        "env": env,
+        "workdir": "/var/lib/pypicloud" if env == "docker" else r"%(here)s",
     }
-    data['reload_templates'] = env == 'dev'
+    data["reload_templates"] = env == "dev"
 
-    storage = prompt_option("Where do you want to store your packages?",
-                            ['s3', 'filesystem'])
-    if storage == 'filesystem':
-        storage = 'file'
+    storage = prompt_option(
+        "Where do you want to store your packages?", ["s3", "gcs", "filesystem"]
+    )
+    if storage == "filesystem":
+        storage = "file"
 
-    data['storage'] = storage
+    data["storage"] = storage
 
-    if storage == 's3':
-        if 'AWS_ACCESS_KEY_ID' in os.environ:
-            data['access_key'] = os.environ['AWS_ACCESS_KEY_ID']
+    if storage == "s3":
+        if "AWS_ACCESS_KEY_ID" in os.environ:
+            data["access_key"] = os.environ["AWS_ACCESS_KEY_ID"]
         else:
-            data['access_key'] = prompt("AWS access key id?")
-        if 'AWS_SECRET_ACCESS_KEY' in os.environ:
-            data['secret_key'] = os.environ['AWS_SECRET_ACCESS_KEY']
+            data["access_key"] = prompt("AWS access key id?")
+        if "AWS_SECRET_ACCESS_KEY" in os.environ:
+            data["secret_key"] = os.environ["AWS_SECRET_ACCESS_KEY"]
         else:
-            data['secret_key'] = prompt("AWS secret access key?")
+            data["secret_key"] = prompt("AWS secret access key?")
 
-        data['s3_bucket'] = prompt("S3 bucket name?", validate=bucket_validate)
-        if '.' in data['s3_bucket']:
-            data['bucket_region'] = prompt("S3 bucket region?")
+        data["s3_bucket"] = prompt("S3 bucket name?", validate=bucket_validate)
+        if "." in data["s3_bucket"]:
+            data["bucket_region"] = prompt("S3 bucket region?")
 
-    data['encrypt_key'] = b64encode(os.urandom(32)).decode('utf-8')
-    data['validate_key'] = b64encode(os.urandom(32)).decode('utf-8')
+    if storage == "gcs":
+        data["gcs_bucket"] = prompt("GCS bucket name?", validate=bucket_validate)
 
-    data['admin'] = prompt("Admin username?")
-    data['password'] = _gen_password()
+    data["encrypt_key"] = b64encode(os.urandom(32)).decode("utf-8")
+    data["validate_key"] = b64encode(os.urandom(32)).decode("utf-8")
 
-    data['session_secure'] = env == 'prod'
-    data['env'] = env
+    data["admin"] = prompt("Admin username?")
+    data["password"] = _gen_password()
 
-    if env == 'dev' or env == 'test':
-        data['wsgi'] = 'waitress'
+    data["session_secure"] = env == "prod"
+    data["env"] = env
+
+    if env == "dev" or env == "test":
+        data["wsgi"] = "waitress"
     else:
-        if hasattr(sys, 'real_prefix'):
-            data['venv'] = sys.prefix
-        data['wsgi'] = 'uwsgi'
+        if hasattr(sys, "real_prefix"):
+            data["venv"] = sys.prefix
+        data["wsgi"] = "uwsgi"
 
-    tmpl_str = resource_string('pypicloud', 'templates/config.ini.jinja2').decode('utf-8')
+    tmpl_str = resource_string("pypicloud", "templates/config.ini.jinja2").decode(
+        "utf-8"
+    )
     template = Template(tmpl_str)
 
     config_file = template.render(**data)
@@ -192,7 +204,7 @@ def make_config(argv=None):
         sys.stdout.write(config_file)
         sys.stdout.write(os.linesep)
     else:
-        with open(args.outfile, 'w') as ofile:
+        with open(args.outfile, "w") as ofile:
             ofile.write(config_file)
 
         six.print_("Config file written to '%s'" % args.outfile)
@@ -213,28 +225,27 @@ def migrate_packages(argv=None):
         argv = sys.argv[1:]
     parser = argparse.ArgumentParser(
         description=migrate_packages.__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('config_from',
-                        help="Name of config file to migrate from")
-    parser.add_argument('config_to',
-                        help="Name of config file to migrate to")
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("config_from", help="Name of config file to migrate from")
+    parser.add_argument("config_to", help="Name of config file to migrate to")
 
     args = parser.parse_args(argv)
     logging.basicConfig()
 
     old_env = bootstrap(args.config_from)
 
-    old_storage = old_env['request'].db.storage
+    old_storage = old_env["request"].db.storage
 
     all_packages = old_storage.list()
 
     new_env = bootstrap(args.config_to)
-    new_storage = new_env['request'].db.storage
+    new_storage = new_env["request"].db.storage
     for package in all_packages:
         six.print_("Migrating %s" % package)
         with old_storage.open(package) as data:
             # we need to recalculate the path for the new storage config
-            package.data.pop('path', None)
+            package.data.pop("path", None)
             new_storage.upload(package, data)
 
 
@@ -243,17 +254,17 @@ def export_access(argv=None):
     if argv is None:
         argv = sys.argv[1:]
     parser = argparse.ArgumentParser(description=export_access.__doc__)
-    parser.add_argument('config', help="Name of config file")
-    parser.add_argument('-o', help="Name of output file")
+    parser.add_argument("config", help="Name of config file")
+    parser.add_argument("-o", help="Name of output file")
 
     args = parser.parse_args(argv)
     logging.basicConfig()
 
     env = bootstrap(args.config)
-    access = env['request'].access
+    access = env["request"].access
     data = access.dump()
     if args.o:
-        with gzip.open(args.o, 'w') as ofile:
+        with gzip.open(args.o, "w") as ofile:
             json.dump(data, ofile)
     else:
         six.print_(json.dumps(data, indent=2))
@@ -271,22 +282,23 @@ def import_access(argv=None):
         argv = sys.argv[1:]
     parser = argparse.ArgumentParser(
         description=import_access.__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('config', help="Name of config file")
-    parser.add_argument('-i', help="Name of input file")
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("config", help="Name of config file")
+    parser.add_argument("-i", help="Name of input file")
 
     args = parser.parse_args(argv)
     logging.basicConfig()
 
     if args.i:
-        with gzip.open(args.i, 'r') as ifile:
+        with gzip.open(args.i, "r") as ifile:
             data = json.load(ifile)
     else:
         six.print_("Reading data from stdin...")
         data = json.load(sys.stdin)
 
     env = bootstrap(args.config)
-    access = env['request'].access
+    access = env["request"].access
     result = access.load(data)
     transaction.commit()
     if result is not None:

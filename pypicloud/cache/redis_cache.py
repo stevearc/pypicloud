@@ -23,16 +23,17 @@ LOG = logging.getLogger(__name__)
 def summary_from_package(package):
     """ Create a summary dict from a package """
     return {
-        'name': package.name,
-        'summary': package.summary or '',
-        'last_modified': package.last_modified,
+        "name": package.name,
+        "summary": package.summary or "",
+        "last_modified": package.last_modified,
     }
 
 
 class RedisCache(ICache):
 
     """ Caching database that uses redis """
-    redis_prefix = 'pypicloud:'
+
+    redis_prefix = "pypicloud:"
 
     def __init__(self, request=None, db=None, graceful_reload=False, **kwargs):
         super(RedisCache, self).__init__(request, **kwargs)
@@ -45,12 +46,12 @@ class RedisCache(ICache):
         try:
             from redis import StrictRedis
         except ImportError:  # pragma: no cover
-            raise ImportError("You must 'pip install redis' before using "
-                              "redis as the database")
-        kwargs['graceful_reload'] = asbool(settings.get('db.graceful_reload',
-                                                        False))
-        db_url = settings.get('db.url')
-        kwargs['db'] = StrictRedis.from_url(db_url, decode_responses=True)
+            raise ImportError(
+                "You must 'pip install redis' before using " "redis as the database"
+            )
+        kwargs["graceful_reload"] = asbool(settings.get("db.graceful_reload", False))
+        db_url = settings.get("db.url")
+        kwargs["db"] = StrictRedis.from_url(db_url, decode_responses=True)
         return kwargs
 
     def redis_key(self, key):
@@ -60,7 +61,7 @@ class RedisCache(ICache):
     @property
     def redis_set(self):
         """ Get the key to the redis set of package names """
-        return self.redis_prefix + 'set'
+        return self.redis_prefix + "set"
 
     def redis_filename_set(self, name):
         """ Get the key to a redis set of filenames for a package """
@@ -78,17 +79,17 @@ class RedisCache(ICache):
 
     def _load(self, data):
         """ Load a Package class from redis data """
-        name = data.pop('name')
-        version = data.pop('version')
-        filename = data.pop('filename')
-        last_modified = datetime.utcfromtimestamp(
-            float(data.pop('last_modified')))
-        summary = data.pop('summary')
-        if summary == '':
+        name = data.pop("name")
+        version = data.pop("version")
+        filename = data.pop("filename")
+        last_modified = datetime.utcfromtimestamp(float(data.pop("last_modified")))
+        summary = data.pop("summary")
+        if summary == "":
             summary = None
         kwargs = dict(((k, json.loads(v)) for k, v in six.iteritems(data)))
-        return self.package_class(name, version, filename, last_modified,
-                                  summary, **kwargs)
+        return self.package_class(
+            name, version, filename, last_modified, summary, **kwargs
+        )
 
     def all(self, name):
         filenames = self.db.smembers(self.redis_filename_set(name))
@@ -112,10 +113,10 @@ class RedisCache(ICache):
             pipe.hgetall(self.redis_summary_key(name))
         summaries = [s for s in pipe.execute() if s]
         for summary in summaries:
-            if summary.get('summary', '') == '':
-                summary['summary'] = None
-            summary['last_modified'] = datetime.utcfromtimestamp(
-                float(summary['last_modified'])
+            if summary.get("summary", "") == "":
+                summary["summary"] = None
+            summary["last_modified"] = datetime.utcfromtimestamp(
+                float(summary["last_modified"])
             )
         return summaries
 
@@ -148,7 +149,7 @@ class RedisCache(ICache):
             pipe.execute()
 
     def clear_all(self):
-        keys = self.db.keys(self.redis_prefix + '*')
+        keys = self.db.keys(self.redis_prefix + "*")
         if keys:
             self.db.delete(*keys)
 
@@ -158,14 +159,13 @@ class RedisCache(ICache):
             pipe = self.db.pipeline()
             should_execute = True
         dt = package.last_modified
-        last_modified = (calendar.timegm(dt.utctimetuple()) +
-                         dt.microsecond / 1000000.0)
+        last_modified = calendar.timegm(dt.utctimetuple()) + dt.microsecond / 1000000.0
         data = {
-            'name': package.name,
-            'version': package.version,
-            'filename': package.filename,
-            'last_modified': last_modified,
-            'summary': package.summary or '',
+            "name": package.name,
+            "version": package.version,
+            "filename": package.filename,
+            "last_modified": last_modified,
+            "summary": package.summary or "",
         }
         for key, value in six.iteritems(package.data):
             data[key] = json.dumps(value)
@@ -179,19 +179,21 @@ class RedisCache(ICache):
 
     def _save_summary(self, summary, pipe):
         """ Save a summary dict to redis """
-        dt = summary['last_modified']
-        last_modified = (calendar.timegm(dt.utctimetuple()) +
-                         dt.microsecond / 1000000.0)
-        pipe.hmset(self.redis_summary_key(summary['name']), {
-            'name': summary['name'],
-            'summary': summary['summary'],
-            'last_modified': last_modified,
-        })
+        dt = summary["last_modified"]
+        last_modified = calendar.timegm(dt.utctimetuple()) + dt.microsecond / 1000000.0
+        pipe.hmset(
+            self.redis_summary_key(summary["name"]),
+            {
+                "name": summary["name"],
+                "summary": summary["summary"],
+                "last_modified": last_modified,
+            },
+        )
 
     def _load_all_packages(self):
         """ Load all packages that are in redis """
         pipe = self.db.pipeline()
-        for filename_key in self.db.keys(self.redis_key('*')):
+        for filename_key in self.db.keys(self.redis_key("*")):
             pipe.hgetall(filename_key)
         return [self._load(data) for data in pipe.execute() if data]
 
@@ -241,8 +243,11 @@ class RedisCache(ICache):
         # Delete extra packages from cache (s1 - s2)
         extra2 = s1 - s2
         if extra2:
-            LOG.info("Removing %d packages from cache that were concurrently "
-                     "deleted during rebuild", len(extra2))
+            LOG.info(
+                "Removing %d packages from cache that were concurrently "
+                "deleted during rebuild",
+                len(extra2),
+            )
             pipe = self.db.pipeline()
             for package in extra2:
                 self._delete_package(package, pipe)
@@ -261,7 +266,7 @@ class RedisCache(ICache):
         summaries = self._load_summaries(packages_by_name.keys())
         summaries_by_name = {}
         for summary in summaries:
-            summaries_by_name[summary['name']] = summary
+            summaries_by_name[summary["name"]] = summary
         for name, packages in six.iteritems(packages_by_name):
             if name in summaries_by_name:
                 summary = summaries_by_name[name]
@@ -269,9 +274,9 @@ class RedisCache(ICache):
                 summary = summary_from_package(packages[0])
                 summaries.append(summary)
             for package in packages:
-                if package.last_modified > summary['last_modified']:
-                    summary['last_modified'] = package.last_modified
-                    summary['summary'] = package.summary
+                if package.last_modified > summary["last_modified"]:
+                    summary["last_modified"] = package.last_modified
+                    summary["summary"] = package.summary
         if summaries:
             LOG.info("Updating %d package summaries", len(summaries))
             pipe = self.db.pipeline()
@@ -298,9 +303,10 @@ class RedisCache(ICache):
 
     def check_health(self):
         from redis import RedisError
+
         try:
-            self.db.echo('ok')
+            self.db.echo("ok")
         except RedisError as e:
             return (False, str(e))
         else:
-            return (True, '')
+            return (True, "")

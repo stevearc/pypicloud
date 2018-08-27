@@ -1,5 +1,5 @@
 """ Render views for logging in and out of the web interface """
-from pyramid.httpexceptions import HTTPForbidden, HTTPFound, HTTPBadRequest
+from pyramid.httpexceptions import HTTPForbidden, HTTPFound
 from pyramid.security import NO_PERMISSION_REQUIRED, remember, forget
 from pyramid.view import view_config
 from pyramid_duh import argify
@@ -7,9 +7,14 @@ from pyramid_duh import argify
 from pypicloud.route import Root
 
 
-@view_config(context=Root, name='login', request_method='GET',
-             permission=NO_PERMISSION_REQUIRED, subpath=(),
-             renderer='login.jinja2')
+@view_config(
+    context=Root,
+    name="login",
+    request_method="GET",
+    permission=NO_PERMISSION_REQUIRED,
+    subpath=(),
+    renderer="login.jinja2",
+)
 def get_login_page(request):
     """ Catch login and redirect to login wall """
     if request.userid is not None:
@@ -18,23 +23,28 @@ def get_login_page(request):
     return {}
 
 
-@view_config(context=HTTPForbidden, permission=NO_PERMISSION_REQUIRED,
-             renderer='login.jinja2')
+@view_config(
+    context=HTTPForbidden, permission=NO_PERMISSION_REQUIRED, renderer="login.jinja2"
+)
 def do_forbidden(request):
     """ Intercept 403's and return 401's when necessary """
     return request.forbid()
 
 
-@view_config(context=Root, name='login', request_method='POST', subpath=(),
-             renderer='json', permission=NO_PERMISSION_REQUIRED)
+@view_config(
+    context=Root,
+    name="login",
+    request_method="POST",
+    subpath=(),
+    renderer="json",
+    permission=NO_PERMISSION_REQUIRED,
+)
 @argify
 def do_login(request, username, password):
     """ Check credentials and log in """
     if request.access.verify_user(username, password):
         request.response.headers.extend(remember(request, username))
-        return {
-            'next': request.app_url(),
-        }
+        return {"next": request.app_url()}
     else:
         return HTTPForbidden()
 
@@ -67,15 +77,18 @@ def handle_register_request(request, username, password):
             request.response.headers.extend(remember(request, username))
     except ValueError as e:
         request.response.status_code = 400
-        return {
-            'code': 400,
-            'message': e.args[0],
-        }
+        return {"code": 400, "message": e.args[0]}
     return request.response
 
 
-@view_config(context=Root, name='tokenRegister', request_method='PUT', subpath=(),
-             renderer='json', permission=NO_PERMISSION_REQUIRED)
+@view_config(
+    context=Root,
+    name="tokenRegister",
+    request_method="PUT",
+    subpath=(),
+    renderer="json",
+    permission=NO_PERMISSION_REQUIRED,
+)
 @argify
 def do_token_register(request, token, password):
     """ Consume a signed token and create a new user """
@@ -87,20 +100,24 @@ def do_token_register(request, token, password):
     request.access.register(username, password)
     request.access.approve_user(username)
     request.response.headers.extend(remember(request, username))
-    return {
-        'next': request.app_url(),
-    }
+    return {"next": request.app_url()}
 
 
-@view_config(context=Root, name='login', request_method='PUT', subpath=(),
-             renderer='json', permission=NO_PERMISSION_REQUIRED)
+@view_config(
+    context=Root,
+    name="login",
+    request_method="PUT",
+    subpath=(),
+    renderer="json",
+    permission=NO_PERMISSION_REQUIRED,
+)
 @argify
 def register(request, username, password):
     """ Check credentials and log in """
     return handle_register_request(request, username, password)
 
 
-@view_config(context=Root, name='logout', subpath=())
+@view_config(context=Root, name="logout", subpath=())
 def logout(request):
     """ Delete the user session """
     request.response.headers.extend(forget(request))

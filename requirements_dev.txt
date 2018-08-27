@@ -1,20 +1,4 @@
-autopep8
+-e .[test,lint,server,doc]
 bumpversion
-flywheel>=0.2.0
-mock==1.0.1
-mockldap
-moto
-mysqlclient
-nose
-numpydoc
-pycodestyle
-psycopg2-binary
-pylint==1.7.1
-redis
-requests
-sphinx
-sphinx_rtd_theme
 tox
-waitress
-webtest
 wheel

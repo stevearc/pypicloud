@@ -1,6 +1,13 @@
 """ Access backend for storing permissions in using SQLAlchemy """
-from sqlalchemy import (engine_from_config, Column, String, Text, Boolean,
-                        Table, ForeignKey)
+from sqlalchemy import (
+    engine_from_config,
+    Column,
+    String,
+    Text,
+    Boolean,
+    Table,
+    ForeignKey,
+)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, backref
 from sqlalchemy.exc import SQLAlchemyError
@@ -14,13 +21,20 @@ from .base import IMutableAccessBackend
 Base = declarative_base()
 
 association_table = Table(
-    'pypicloud_user_groups', Base.metadata,
-    Column('username', String(length=255),
-           ForeignKey('pypicloud_users.username', ondelete='CASCADE'),
-           primary_key=True),
-    Column('group', String(length=255),
-           ForeignKey('pypicloud_groups.name', ondelete='CASCADE'),
-           primary_key=True)
+    "pypicloud_user_groups",
+    Base.metadata,
+    Column(
+        "username",
+        String(length=255),
+        ForeignKey("pypicloud_users.username", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "group",
+        String(length=255),
+        ForeignKey("pypicloud_groups.name", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )
 # pylint: enable=C0103
 
@@ -28,7 +42,8 @@ association_table = Table(
 class KeyVal(Base):
 
     """ Simple model for storing key-value pairs """
-    __tablename__ = 'pypicloud_keyvals'
+
+    __tablename__ = "pypicloud_keyvals"
     key = Column(String(length=255), primary_key=True)
     value = Column(Text())
 
@@ -40,14 +55,19 @@ class KeyVal(Base):
 class User(Base):
 
     """ User record """
-    __tablename__ = 'pypicloud_users'
+
+    __tablename__ = "pypicloud_users"
     username = Column(String(length=255), primary_key=True)
-    password = Column('password', Text(), nullable=False)
+    password = Column("password", Text(), nullable=False)
     admin = Column(Boolean(), nullable=False)
     pending = Column(Boolean(), nullable=False)
-    groups = orm.relationship('Group', secondary=association_table,
-                              cascade='all', collection_class=set,
-                              backref=backref('users', collection_class=set))
+    groups = orm.relationship(
+        "Group",
+        secondary=association_table,
+        cascade="all",
+        collection_class=set,
+        backref=backref("users", collection_class=set),
+    )
 
     def __init__(self, username, password, pending=True):
         self.username = username
@@ -61,7 +81,8 @@ class User(Base):
 class Group(Base):
 
     """ Group record """
-    __tablename__ = 'pypicloud_groups'
+
+    __tablename__ = "pypicloud_groups"
     name = Column(String(length=255), primary_key=True)
 
     def __init__(self, name):
@@ -73,6 +94,7 @@ class Group(Base):
 class Permission(Base):
 
     """ Base class for user and group permissions """
+
     __abstract__ = True
     package = Column(String(length=255), primary_key=True)
     read = Column(Boolean())
@@ -88,10 +110,11 @@ class Permission(Base):
         """ Construct permissions list """
         perms = []
         if self.read:
-            perms.append('read')
+            perms.append("read")
         if self.write:
-            perms.append('write')
+            perms.append("write")
         return perms
+
 
 # pylint: disable=E1002
 
@@ -99,13 +122,16 @@ class Permission(Base):
 class UserPermission(Permission):
 
     """ Permissions for a user on a package """
-    __tablename__ = 'pypicloud_user_permissions'
-    username = Column(String(length=255),
-                      ForeignKey(User.username, ondelete='CASCADE'),
-                      primary_key=True)
-    user = orm.relationship("User",
-                            backref=backref('permissions',
-                                            cascade='all, delete-orphan'))
+
+    __tablename__ = "pypicloud_user_permissions"
+    username = Column(
+        String(length=255),
+        ForeignKey(User.username, ondelete="CASCADE"),
+        primary_key=True,
+    )
+    user = orm.relationship(
+        "User", backref=backref("permissions", cascade="all, delete-orphan")
+    )
 
     def __init__(self, package, username, read=False, write=False):
         super(UserPermission, self).__init__(package, read, write)
@@ -115,13 +141,14 @@ class UserPermission(Permission):
 class GroupPermission(Permission):
 
     """ Permissions for a group on a package """
-    __tablename__ = 'pypicloud_group_permissions'
-    groupname = Column(String(length=255),
-                       ForeignKey(Group.name, ondelete='CASCADE'),
-                       primary_key=True)
-    group = orm.relationship("Group",
-                             backref=backref('permissions',
-                                             cascade='all, delete-orphan'))
+
+    __tablename__ = "pypicloud_group_permissions"
+    groupname = Column(
+        String(length=255), ForeignKey(Group.name, ondelete="CASCADE"), primary_key=True
+    )
+    group = orm.relationship(
+        "Group", backref=backref("permissions", cascade="all, delete-orphan")
+    )
 
     def __init__(self, package, groupname, read=False, write=False):
         super(GroupPermission, self).__init__(package, read, write)
@@ -153,8 +180,8 @@ class SQLAccessBackend(IMutableAccessBackend):
     @classmethod
     def configure(cls, settings):
         kwargs = super(SQLAccessBackend, cls).configure(settings)
-        engine = engine_from_config(settings, prefix='auth.db.')
-        kwargs['dbmaker'] = sessionmaker(bind=engine)
+        engine = engine_from_config(settings, prefix="auth.db.")
+        kwargs["dbmaker"] = sessionmaker(bind=engine)
         # Create SQL schema if not exists
         Base.metadata.create_all(bind=engine)
         return kwargs
@@ -163,18 +190,18 @@ class SQLAccessBackend(IMutableAccessBackend):
     def postfork(cls, **kwargs):
         # Have to dispose of connections after uWSGI forks,
         # otherwise they'll get corrupted.
-        kwargs['dbmaker'].kw['bind'].dispose()
+        kwargs["dbmaker"].kw["bind"].dispose()
 
     def allow_register(self):
-        ret = self.db.query(KeyVal).filter_by(key='allow_register').first()
-        return ret is not None and ret.value == 'true'
+        ret = self.db.query(KeyVal).filter_by(key="allow_register").first()
+        return ret is not None and ret.value == "true"
 
     def set_allow_register(self, allow):
         if allow:
-            k = KeyVal('allow_register', 'true')
+            k = KeyVal("allow_register", "true")
             self.db.merge(k)
         else:
-            self.db.query(KeyVal).filter_by(key='allow_register').delete()
+            self.db.query(KeyVal).filter_by(key="allow_register").delete()
 
     def _get_password_hash(self, username):
         user = self.db.query(User).filter_by(username=username).first()
@@ -219,20 +246,14 @@ class SQLAccessBackend(IMutableAccessBackend):
         query = self.db.query(UserPermission).filter_by(username=username)
         packages = []
         for perm in query:
-            packages.append({
-                'package': perm.package,
-                'permissions': perm.permissions,
-            })
+            packages.append({"package": perm.package, "permissions": perm.permissions})
         return packages
 
     def group_package_permissions(self, group):
         query = self.db.query(GroupPermission).filter_by(groupname=group)
         packages = []
         for perm in query:
-            packages.append({
-                'package': perm.package,
-                'permissions': perm.permissions,
-            })
+            packages.append({"package": perm.package, "permissions": perm.permissions})
         return packages
 
     def user_data(self, username=None):
@@ -240,19 +261,17 @@ class SQLAccessBackend(IMutableAccessBackend):
             query = self.db.query(User).filter_by(pending=False)
             users = []
             for user in query:
-                users.append({
-                    'username': user.username,
-                    'admin': user.admin,
-                })
+                users.append({"username": user.username, "admin": user.admin})
             return users
         else:
-            user = self.db.query(User).filter_by(username=username,
-                                                 pending=False).first()
+            user = (
+                self.db.query(User).filter_by(username=username, pending=False).first()
+            )
             if user is not None:
                 return {
-                    'username': user.username,
-                    'admin': user.admin,
-                    'groups': [g.name for g in user.groups],
+                    "username": user.username,
+                    "admin": user.admin,
+                    "groups": [g.name for g in user.groups],
                 }
 
     def need_admin(self):
@@ -304,16 +323,19 @@ class SQLAccessBackend(IMutableAccessBackend):
         self.db.execute(association_table.delete(clause))
 
     def edit_user_permission(self, package, username, perm, add):
-        record = self.db.query(UserPermission)\
-            .filter_by(package=package, username=username).first()
+        record = (
+            self.db.query(UserPermission)
+            .filter_by(package=package, username=username)
+            .first()
+        )
         if record is None:
             if not add:
                 return
             record = UserPermission(package, username)
             self.db.add(record)
-        if perm == 'read':
+        if perm == "read":
             record.read = add
-        elif perm == 'write':
+        elif perm == "write":
             record.write = add
         else:
             raise ValueError("Unrecognized permission '%s'" % perm)
@@ -321,16 +343,19 @@ class SQLAccessBackend(IMutableAccessBackend):
             self.db.delete(record)
 
     def edit_group_permission(self, package, group, perm, add):
-        record = self.db.query(GroupPermission)\
-            .filter_by(package=package, groupname=group).first()
+        record = (
+            self.db.query(GroupPermission)
+            .filter_by(package=package, groupname=group)
+            .first()
+        )
         if record is None:
             if not add:
                 return
             record = GroupPermission(package, group)
             self.db.add(record)
-        if perm == 'read':
+        if perm == "read":
             record.read = add
-        elif perm == 'write':
+        elif perm == "write":
             record.write = add
         else:
             raise ValueError("Unrecognized permission '%s'" % perm)
@@ -343,4 +368,4 @@ class SQLAccessBackend(IMutableAccessBackend):
         except SQLAlchemyError as e:
             return (False, str(e))
         else:
-            return (True, '')
+            return (True, "")

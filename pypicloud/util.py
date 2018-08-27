@@ -22,10 +22,10 @@ def parse_filename(filename, name=None):
     version = None
     for ext in ALL_EXTENSIONS:
         if filename.endswith(ext):
-            if ext == '.whl':
+            if ext == ".whl":
                 wheel = Wheel(filename)
                 return wheel.name, wheel.version
-            trimmed = filename[:-len(ext)]
+            trimmed = filename[: -len(ext)]
             parsed = split_filename(trimmed, name)
             if parsed is None:
                 break
@@ -49,10 +49,11 @@ def normalize_name(name):
 class BetterScrapingLocator(SimpleScrapingLocator):
 
     """ Layer on top of SimpleScrapingLocator that allows preferring wheels """
+
     prefer_wheel = True
 
     def __init__(self, *args, **kw):
-        kw['scheme'] = 'legacy'
+        kw["scheme"] = "legacy"
         super(BetterScrapingLocator, self).__init__(*args, **kw)
 
     def locate(self, requirement, prereleases=False, wheel=True):
@@ -63,9 +64,9 @@ class BetterScrapingLocator(SimpleScrapingLocator):
         t = urlparse(url)
         filename = posixpath.basename(t.path)
         return (
-            t.scheme == 'https',
-            not (self.prefer_wheel ^ filename.endswith('.whl')),
-            'pypi.python.org' in t.netloc,
+            t.scheme == "https",
+            not (self.prefer_wheel ^ filename.endswith(".whl")),
+            "pypi.python.org" in t.netloc,
             filename,
         )
 
@@ -100,7 +101,7 @@ def create_matcher(queries, query_type):
 
     """
     queries = [query.lower() for query in queries]
-    if query_type == 'or':
+    if query_type == "or":
         return lambda x: any((q in x.lower() for q in queries))
     else:
         return lambda x: all((q in x.lower() for q in queries))

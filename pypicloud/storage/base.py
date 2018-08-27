@@ -32,8 +32,7 @@ class IStorage(object):
             Link to the location of this package file
 
         """
-        return self.request.app_url('api', 'package', package.name,
-                                    package.filename)
+        return self.request.app_url("api", "package", package.name, package.filename)
 
     def download_response(self, package):
         """
@@ -103,4 +102,4 @@ class IStorage(object):
             status message
 
         """
-        return (True, '')
+        return (True, "")

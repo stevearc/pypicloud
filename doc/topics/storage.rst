@@ -182,3 +182,113 @@ set to the full path of the CloudFront private key file.
 
 The same as ``cloud_front_key_file``, but contains the raw private key instead
 of a path to a file.
+
+Google Cloud Storage
+--
+This option will store your packages in GCS.
+
+Set ``pypi.storage = gcs`` OR ``pypi.s3 = pypicloud.storage.GoogleCloudStorage``
+
+.. note::
+
+  The gcs client libraries are not installed by default.  To use this backend,
+  you should install pypicloud with ``pip install pypicloud[gcs]``.
+
+This backend supports most of the same configuration settings as the S3 backend,
+and is configured in the same manner as that backend (via config settings of the
+form ``storage.<key> = <value>``).
+
+Settings supported by the S3 backend that are not currently supported by the
+GCS backend are ``server_side_encryption`` and ``public_url``.
+
+This backend requires a service account JSON key file in order to authenticate
+against the GCS API, even when the server is running in Google Cloud Platform (
+for example, on Google Compute Engine).  The JSON key filename is passed to
+pypicloud via one of two mechanisms:
+
+1. By setting the ``GOOGLE_APPLICATION_CREDENTIALS`` environment variable. For example::
+
+   GOOGLE_APPLICATION_CREDENTIALS=/path/to/my/keyfile.json pserve pypicloud.ini
+
+2. Via the config setting ``storage.gcp_service_account_json_filename``, documented below.
+
+For more information on setting up a service account, see the `GCS documentation <https://cloud.google.com/storage/docs/authentication#service_accounts>`.
+
+
+``storage.bucket``
+~~~~~~~~~~~~~~~~~~
+**Argument:** string
+
+The name of the GCS bucket to store packages in.
+
+``storage.region_name``
+~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, semi-optional
+
+The GCS region your bucket is in. If your bucket does not yet exist, it will be
+created in this region on startup. If blank, a default US multi-regional bucket
+will be created.
+
+``storage.gcp_service_account_json_filename``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, semi-optional
+
+Path to a local file containing a GCP service account JSON key.  This argument
+is required unless the path is provided via the ``GOOGLE_APPLICATION_CREDENTIALS``
+environment variable.
+
+``storage.gcp_project_id``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+ID of the GCP project that contains your storage bucket.  This is only used when
+creating the bucket, and if you would like the bucket to be created in a project
+other than the project to which your GCP service account belongs.
+
+``storage.prefix``
+~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+If present, all packages will be prefixed with this value when stored in GCS.
+Use this to store your packages in a subdirectory, such as "packages/"
+
+``storage.prepend_hash``
+~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** bool, optional
+
+Prepend a 4-letter hash to all GCS keys (default True). This may help GCS load
+balance when traffic scales, although this is not as well-documented for GCS
+as for S3.
+
+``storage.expire_after``
+~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** int, optional
+
+How long (in seconds) the generated GCS urls are valid for (default 86400 (1
+day)). In practice, there is no real reason why these generated urls need to
+expire at all. GCS does it for security, but expiring links isn't part of the
+python package security model. So in theory you can bump this number up.
+
+``storage.redirect_urls``
+~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** bool, optional
+
+The short story: set this to ``true`` if you only use pip and don't have to
+support easy_install. It will dramatically speed up your server.
+
+The long story: :ref:`redirect_detail`
+
+``storage.object_acl``
+~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+Sets uploaded object's "predefined" ACL. See the `GCS documentation
+<https://cloud.google.com/storage/docs/access-control/lists#predefined-acl>`_.
+Default is "private", i.e. only the account owner will get full access.
+May be useful, if the bucket and pypicloud are hosted in different GCS accounts.
+
+``storage.storage_class``
+~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+Sets uploaded object's storage class.  See the `GCS documentation <https://cloud.google.com/storage/docs/per-object-storage-class>`_. Defaults to the default storage class of the bucket, if the bucket is preexisting, or "regional" otherwise.

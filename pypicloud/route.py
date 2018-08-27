@@ -5,7 +5,8 @@ import functools
 class IStaticResource(object):
 
     """ Simple resource base class for static-mapping of paths """
-    __name__ = ''
+
+    __name__ = ""
     __parent__ = None
     subobjects = {}
 
@@ -22,7 +23,8 @@ class IStaticResource(object):
 class IResourceFactory(object):
 
     """ Resource that generates child resources from a factory """
-    __name__ = ''
+
+    __name__ = ""
     __parent__ = None
 
     def __factory__(self, name):
@@ -32,7 +34,7 @@ class IResourceFactory(object):
         self.request = request
 
     def __getitem__(self, name):
-        child = self.__factory__(name)
+        child = self.__factory__(name)  # pylint: disable=E1128
         child.__name__ = name
         child.__parent__ = self
         return child
@@ -82,7 +84,8 @@ class APIPackageResource(IResourceFactory):
         super(APIPackageResource, self).__init__(request)
         self.name = name
         self.__factory__ = functools.partial(
-            APIPackageFileResource, self.request, self.name)
+            APIPackageFileResource, self.request, self.name
+        )
         self.__acl__ = request.access.get_acl(self.name)
 
 
@@ -102,9 +105,8 @@ class APIPackageFileResource(object):
 class APIResource(IStaticResource):
 
     """ Resource for api calls """
-    subobjects = {
-        'package': APIPackagingResource,
-    }
+
+    subobjects = {"package": APIPackagingResource}
 
 
 class AdminResource(IStaticResource):
@@ -120,12 +122,13 @@ class PackagesResource(IStaticResource):
 class Root(IStaticResource):
 
     """ Root context for PyPI Cloud """
+
     subobjects = {
-        'api': APIResource,
-        'admin': AdminResource,
-        'simple': SimpleResource,
-        'pypi': SimpleResource,
-        'packages': PackagesResource,
+        "api": APIResource,
+        "admin": AdminResource,
+        "simple": SimpleResource,
+        "pypi": SimpleResource,
+        "packages": PackagesResource,
     }
 
     def __init__(self, request):

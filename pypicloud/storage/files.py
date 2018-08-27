@@ -16,26 +16,27 @@ class FileStorage(IStorage):
     """ Stores package files on the filesystem """
 
     def __init__(self, request=None, **kwargs):
-        self.directory = kwargs.pop('directory')
+        self.directory = kwargs.pop("directory")
         super(FileStorage, self).__init__(request, **kwargs)
 
     @classmethod
     def configure(cls, settings):
         kwargs = super(FileStorage, cls).configure(settings)
-        directory = os.path.abspath(settings['storage.dir']).rstrip('/')
+        directory = os.path.abspath(settings["storage.dir"]).rstrip("/")
         if not os.path.exists(directory):
             os.makedirs(directory)
-        kwargs['directory'] = directory
+        kwargs["directory"] = directory
         return kwargs
 
     def get_path(self, package):
         """ Get the fully-qualified file path for a package """
-        return os.path.join(self.directory, package.name, package.version,
-                            package.filename)
+        return os.path.join(
+            self.directory, package.name, package.version, package.filename
+        )
 
     def path_to_meta_path(self, path):
         """ Construct the filename for a metadata file """
-        return path + '.meta'
+        return path + ".meta"
 
     def get_metadata_path(self, package):
         """ Get the fully-qualified file path for a package metadata file """
@@ -44,31 +45,31 @@ class FileStorage(IStorage):
     def list(self, factory=Package):
         for root, _, files in os.walk(self.directory):
             for filename in files:
-                if filename.endswith('.meta'):
+                if filename.endswith(".meta"):
                     # We don't want to yield for this file
                     continue
 
-                shortpath = root[len(self.directory):].strip('/')
-                name, version = shortpath.split('/')
+                shortpath = root[len(self.directory) :].strip("/")
+                name, version = shortpath.split("/")
                 fullpath = os.path.join(root, filename)
-                last_modified = datetime.fromtimestamp(os.path.getmtime(
-                    fullpath))
+                last_modified = datetime.fromtimestamp(os.path.getmtime(fullpath))
                 metadata = {}
                 metafile = self.path_to_meta_path(fullpath)
                 if os.path.exists(metafile):
-                    with open(metafile, 'r') as mfile:
+                    with open(metafile, "r") as mfile:
                         try:
                             metadata = json.load(mfile)
                         except ValueError:
                             # If JSON fails to decode, don't sweat it.
                             pass
-                yield factory(name, version, filename, last_modified,
-                              **metadata)
+                yield factory(name, version, filename, last_modified, **metadata)
 
     def download_response(self, package):
-        return FileResponse(self.get_path(package),
-                            request=self.request,
-                            content_type='application/octet-stream')
+        return FileResponse(
+            self.get_path(package),
+            request=self.request,
+            content_type="application/octet-stream",
+        )
 
     def upload(self, package, datastream):
         destfile = self.get_path(package)
@@ -76,21 +77,21 @@ class FileStorage(IStorage):
         destdir = os.path.dirname(destfile)
         if not os.path.exists(destdir):
             os.makedirs(destdir)
-        uid = hexlify(os.urandom(4)).decode('utf-8')
+        uid = hexlify(os.urandom(4)).decode("utf-8")
 
         # Store metadata as JSON. This could be expanded in the future
         # to store additional metadata about a package (i.e. author)
-        tempfile = os.path.join(destdir, '.metadata.' + uid)
-        metadata = {'summary': package.summary}
-        with open(tempfile, 'w') as mfile:
+        tempfile = os.path.join(destdir, ".metadata." + uid)
+        metadata = {"summary": package.summary}
+        with open(tempfile, "w") as mfile:
             json.dump(metadata, mfile)
 
         os.rename(tempfile, dest_meta_file)
 
         # Write to a temporary file
-        tempfile = os.path.join(destdir, '.' + package.filename + '.' + uid)
-        with open(tempfile, 'wb') as ofile:
-            for chunk in iter(lambda: datastream.read(16 * 1024), b''):
+        tempfile = os.path.join(destdir, "." + package.filename + "." + uid)
+        with open(tempfile, "wb") as ofile:
+            for chunk in iter(lambda: datastream.read(16 * 1024), b""):
                 ofile.write(chunk)
 
         os.rename(tempfile, destfile)
@@ -117,4 +118,4 @@ class FileStorage(IStorage):
 
     def open(self, package):
         filename = self.get_path(package)
-        return closing(open(filename, 'r'))
+        return closing(open(filename, "r"))

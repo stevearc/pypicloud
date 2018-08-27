@@ -24,6 +24,7 @@ def reconnect(func):
     """
     If the LDAP connection dies underneath us, recreate it
     """
+
     @wraps(func)
     def _reconnect(self, *args, **kwargs):
         """
@@ -38,16 +39,28 @@ def reconnect(func):
     return _reconnect
 
 
-User = namedtuple('User', ['username', 'dn', 'is_admin'])
+User = namedtuple("User", ["username", "dn", "is_admin"])
 
 
 class LDAP(object):
     """ Handles interactions with the remote LDAP server """
 
-    def __init__(self, admin_field, admin_value, base_dn, cache_time,
-                 service_dn, service_password, service_username, url,
-                 user_search_filter, user_dn_format, ignore_cert,
-                 ignore_referrals, ignore_multiple_results):
+    def __init__(
+        self,
+        admin_field,
+        admin_value,
+        base_dn,
+        cache_time,
+        service_dn,
+        service_password,
+        service_username,
+        url,
+        user_search_filter,
+        user_dn_format,
+        ignore_cert,
+        ignore_referrals,
+        ignore_multiple_results,
+    ):
         self._url = url
         self._service_dn = service_dn
         self._service_password = service_password
@@ -56,23 +69,24 @@ class LDAP(object):
         self._user_dn_format = user_dn_format
         if user_dn_format is not None:
             if base_dn is not None or user_search_filter is not None:
-                raise ValueError("Cannot use user_dn_format with base_dn "
-                                 "and user_search_filter")
+                raise ValueError(
+                    "Cannot use user_dn_format with base_dn " "and user_search_filter"
+                )
         else:
             if base_dn is None or user_search_filter is None:
-                raise ValueError("Must provide user_dn_format or both base_dn "
-                                 "and user_search_filter")
+                raise ValueError(
+                    "Must provide user_dn_format or both base_dn "
+                    "and user_search_filter"
+                )
         self._admin_field = admin_field
-        self._admin_value = admin_value
+        self._admin_value = set(admin_value)
         self._server = None
         if cache_time is not None:
             cache_time = int(cache_time)
         self._cache = TimedCache(cache_time, self._fetch_user)
         if service_username is not None:
             self._cache.set_expire(
-                service_username,
-                User(service_username, service_dn, True),
-                None
+                service_username, User(service_username, service_dn, True), None
             )
         self._ignore_cert = ignore_cert
         self._ignore_referrals = ignore_referrals
@@ -112,23 +126,21 @@ class LDAP(object):
         if self._user_dn_format is not None:
             dn = self._user_dn_format.format(username=username)
             LOG.debug("LDAP searching user %r with dn %r", username, dn)
-            results = self._server.search_s(dn, ldap.SCOPE_BASE,
-                                            attrlist=search_attrs)
+            results = self._server.search_s(dn, ldap.SCOPE_BASE, attrlist=search_attrs)
         else:
             search_filter = self._user_search_filter.format(username=username)
-            LOG.debug("LDAP searching user %r with filter %r", username,
-                      search_filter)
+            LOG.debug("LDAP searching user %r with filter %r", username, search_filter)
             results = self._server.search_s(
-                self._base_dn,
-                ldap.SCOPE_SUBTREE,
-                search_filter,
-                search_attrs,
+                self._base_dn, ldap.SCOPE_SUBTREE, search_filter, search_attrs
             )
         if not results:
             LOG.debug("LDAP user %r not found", username)
             return None
         if len(results) > 1:
-            err_msg = "More than one user found for %r: %r" % (username, [r[0] for r in results])
+            err_msg = "More than one user found for %r: %r" % (
+                username,
+                [r[0] for r in results],
+            )
             if self._ignore_multiple_results:
                 LOG.warning(err_msg)
             else:
@@ -138,8 +150,7 @@ class LDAP(object):
         is_admin = False
         if self._admin_field is not None:
             if self._admin_field in attributes:
-                is_admin = any((val in attributes[self._admin_field]
-                                for val in self._admin_value))
+                is_admin = self._admin_value.intersection(attributes[self._admin_field])
 
         return User(username, dn, is_admin)
 
@@ -185,22 +196,24 @@ class LDAPAccessBackend(IAccessBackend):
     def configure(cls, settings):
         kwargs = super(LDAPAccessBackend, cls).configure(settings)
         conn = LDAP(
-            admin_field=settings.get('auth.ldap.admin_field'),
-            admin_value=aslist(settings.get('auth.ldap.admin_value', [])),
-            base_dn=settings.get('auth.ldap.base_dn'),
-            cache_time=settings.get('auth.ldap.cache_time'),
-            service_dn=settings.get('auth.ldap.service_dn'),
-            service_password=settings.get('auth.ldap.service_password', ''),
-            service_username=settings.get('auth.ldap.service_username'),
-            url=settings['auth.ldap.url'],
-            user_dn_format=settings.get('auth.ldap.user_dn_format'),
-            user_search_filter=settings.get('auth.ldap.user_search_filter'),
-            ignore_cert=asbool(settings.get('auth.ldap.ignore_cert')),
-            ignore_referrals=asbool(settings.get('auth.ldap.ignore_referrals', False)),
-            ignore_multiple_results=asbool(settings.get('auth.ldap.ignore_multiple_results', False))
+            admin_field=settings.get("auth.ldap.admin_field"),
+            admin_value=aslist(settings.get("auth.ldap.admin_value", [])),
+            base_dn=settings.get("auth.ldap.base_dn"),
+            cache_time=settings.get("auth.ldap.cache_time"),
+            service_dn=settings.get("auth.ldap.service_dn"),
+            service_password=settings.get("auth.ldap.service_password", ""),
+            service_username=settings.get("auth.ldap.service_username"),
+            url=settings["auth.ldap.url"],
+            user_dn_format=settings.get("auth.ldap.user_dn_format"),
+            user_search_filter=settings.get("auth.ldap.user_search_filter"),
+            ignore_cert=asbool(settings.get("auth.ldap.ignore_cert")),
+            ignore_referrals=asbool(settings.get("auth.ldap.ignore_referrals", False)),
+            ignore_multiple_results=asbool(
+                settings.get("auth.ldap.ignore_multiple_results", False)
+            ),
         )
         conn.connect()
-        kwargs['conn'] = conn
+        kwargs["conn"] = conn
         return kwargs
 
     def _get_password_hash(self, *_):  # pragma: no cover
@@ -251,4 +264,4 @@ class LDAPAccessBackend(IAccessBackend):
         except ldap.LDAPError as e:
             return (False, str(e))
         else:
-            return (True, '')
+            return (True, "")
