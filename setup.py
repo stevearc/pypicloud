@@ -13,7 +13,7 @@ CHANGES = re.sub(r"\(\s*:(issue|pr|sha):.*?\)", "", CHANGES)
 CHANGES = re.sub(r":ref:`(.*?) <.*>`", r"\1", CHANGES)
 
 REQUIREMENTS = [
-    "boto3>=1.7.0",
+    "boto3>=1.7.0,<1.8",  # Hack until https://github.com/spulec/moto/issues/1793 is fixed
     # beaker needs this
     "cryptography",
     # We're doing enough subclassing and monkey patching to where we really do
