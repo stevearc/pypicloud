@@ -150,7 +150,9 @@ class LDAP(object):
         is_admin = False
         if self._admin_field is not None:
             if self._admin_field in attributes:
-                is_admin = self._admin_value.intersection([self._decode_attribute(x) for x in attributes[self._admin_field]])
+                is_admin = self._admin_value.intersection(
+                    [self._decode_attribute(x) for x in attributes[self._admin_field]]
+                )
 
         return User(username, dn, is_admin)
 
