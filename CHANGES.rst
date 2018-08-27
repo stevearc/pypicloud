@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.0.8 - 2018/8/27
+-----------------
+* Feature: Google Cloud Storage support (:pr:`189`)
+
 1.0.7 - 2018/8/14
 -----------------
 * Feature: ``/health`` endpoint checks health of connection to DB backends (:issue:`181`)
