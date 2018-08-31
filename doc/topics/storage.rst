@@ -184,7 +184,7 @@ The same as ``cloud_front_key_file``, but contains the raw private key instead
 of a path to a file.
 
 Google Cloud Storage
---
+--------------------
 This option will store your packages in GCS.
 
 Set ``pypi.storage = gcs`` OR ``pypi.s3 = pypicloud.storage.GoogleCloudStorage``
