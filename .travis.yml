@@ -19,4 +19,4 @@ before_script:
   - mysql -e 'create database test;'
 script: tox
 after_success:
-  if [ "$TOXENV" == "py27" ]; then coveralls; fi
+  if [ "$TOXENV" == "py36" ]; then coveralls; fi
