@@ -34,7 +34,7 @@ def reconnect(func):
             return func(self, *args, **kwargs)
         except ldap.LDAPError:
             self.connect()
-            return func(*args, **kwargs)
+            return func(self, *args, **kwargs)
 
     return _reconnect
 
