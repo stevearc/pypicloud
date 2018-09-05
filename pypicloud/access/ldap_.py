@@ -48,6 +48,7 @@ class LDAP(object):
     def __init__(
         self,
         admin_field,
+        admin_group_dn,
         admin_value,
         base_dn,
         cache_time,
@@ -79,6 +80,11 @@ class LDAP(object):
                     "and user_search_filter"
                 )
         self._admin_field = admin_field
+        self._admin_group_dn = admin_group_dn
+        if admin_group_dn and not self._user_dn_format:
+            raise ValueError(
+                "ldap.admin_group_dn must be used with ldap.user_dn_format"
+            )
         self._admin_value = set(admin_value)
         self._server = None
         if cache_time is not None:
@@ -91,6 +97,7 @@ class LDAP(object):
         self._ignore_cert = ignore_cert
         self._ignore_referrals = ignore_referrals
         self._ignore_multiple_results = ignore_multiple_results
+        self._admin_member_type = None
 
     def connect(self):
         """ Initializes the python-ldap module and does the initial bind """
@@ -99,8 +106,27 @@ class LDAP(object):
         if self._ignore_referrals:
             ldap.set_option(ldap.OPT_REFERRALS, ldap.OPT_OFF)
         LOG.debug("LDAP connecting to %s", self._url)
-        self._server = ldap.initialize(self._url)
+        self._server = ldap.initialize(self._url, bytes_mode=False)
         self._bind_to_service()
+
+    @property
+    def admin_member_type(self):
+        if self._admin_member_type is None:
+            LOG.debug("Fetching admin group %s", self._admin_group_dn)
+            try:
+                results = self._server.search_s(
+                    self._admin_group_dn, ldap.SCOPE_BASE, attrlist=["objectClass"]
+                )
+            except ldap.NO_SUCH_OBJECT as e:
+                LOG.debug("NO_SUCH_OBJECT %s", e)
+                return "member"
+            dn, attributes = results[0]
+            classes = [self._decode_attribute(x) for x in attributes["objectClass"]]
+            if "groupOfUniqueNames" in classes:
+                self._admin_member_type = "uniqueMember"
+            else:
+                self._admin_member_type = "member"
+        return self._admin_member_type
 
     def _bind_to_service(self):
         """ Bind to the service account or anonymous """
@@ -126,13 +152,26 @@ class LDAP(object):
         if self._user_dn_format is not None:
             dn = self._user_dn_format.format(username=username)
             LOG.debug("LDAP searching user %r with dn %r", username, dn)
-            results = self._server.search_s(dn, ldap.SCOPE_BASE, attrlist=search_attrs)
+            try:
+                results = self._server.search_s(
+                    dn, ldap.SCOPE_BASE, attrlist=search_attrs
+                )
+            except ldap.NO_SUCH_OBJECT as e:
+                LOG.debug("NO_SUCH_OBJECT %s", e)
+                return
         else:
             search_filter = self._user_search_filter.format(username=username)
             LOG.debug("LDAP searching user %r with filter %r", username, search_filter)
-            results = self._server.search_s(
-                self._base_dn, ldap.SCOPE_SUBTREE, search_filter, search_attrs
-            )
+            try:
+                results = self._server.search_s(
+                    self._base_dn, ldap.SCOPE_SUBTREE, search_filter, search_attrs
+                )
+            except ldap.NO_SUCH_OBJECT as e:
+                LOG.debug("NO_SUCH_OBJECT %s", e)
+                return
+            except ldap.NO_RESULTS_RETURNED as e:
+                LOG.debug("NO_RESULTS_RETURNED %s", e)
+                return
         if not results:
             LOG.debug("LDAP user %r not found", username)
             return None
@@ -146,13 +185,33 @@ class LDAP(object):
             else:
                 raise ValueError(err_msg)
         dn, attributes = results[0]
+        LOG.debug("dn: %r, attributes %r", dn, attributes)
 
         is_admin = False
         if self._admin_field is not None:
             if self._admin_field in attributes:
-                is_admin = self._admin_value.intersection(
-                    [self._decode_attribute(x) for x in attributes[self._admin_field]]
+                is_admin = bool(
+                    self._admin_value.intersection(
+                        [
+                            self._decode_attribute(x)
+                            for x in attributes[self._admin_field]
+                        ]
+                    )
                 )
+        if not is_admin and self._admin_group_dn:
+            user_dn = self._user_dn_format.format(username=username)
+            search_filter = "(%s=%s)" % (self.admin_member_type, user_dn)
+            LOG.debug(
+                "Searching admin group %s for %s", self._admin_group_dn, search_filter
+            )
+            try:
+                results = self._server.search_s(
+                    self._admin_group_dn, ldap.SCOPE_BASE, search_filter
+                )
+            except ldap.NO_SUCH_OBJECT as e:
+                LOG.debug("NO_SUCH_OBJECT %s", e)
+            else:
+                is_admin = bool(results)
 
         return User(username, dn, is_admin)
 
@@ -206,6 +265,7 @@ class LDAPAccessBackend(IAccessBackend):
         kwargs = super(LDAPAccessBackend, cls).configure(settings)
         conn = LDAP(
             admin_field=settings.get("auth.ldap.admin_field"),
+            admin_group_dn=settings.get("auth.ldap.admin_group_dn"),
             admin_value=aslist(settings.get("auth.ldap.admin_value", [])),
             base_dn=settings.get("auth.ldap.base_dn"),
             cache_time=settings.get("auth.ldap.cache_time"),
