@@ -1,0 +1,41 @@
+dn: uid=pypidev,dc=example,dc=org
+uid: pypidev
+cn: pypidev
+sn: 3
+objectClass: top
+objectClass: posixAccount
+objectClass: inetOrgPerson
+loginShell: /bin/bash
+homeDirectory: /home/pypidev
+uidNumber: 14583103
+gidNumber: 14564101
+# password: pypidev
+userPassword: {SSHA}6acxd/UELefQSHcSWE2GhLbj1J9Nolrb
+
+dn: uid=pypiadmin,dc=example,dc=org
+uid: pypiadmin
+cn: pypiadmin
+sn: 3
+objectClass: top
+objectClass: posixAccount
+objectClass: inetOrgPerson
+loginShell: /bin/bash
+homeDirectory: /home/pypiadmin
+uidNumber: 14583104
+gidNumber: 14564102
+# password: pypiadmin
+userPassword: {SSHA}fol8vYji2t8cmqF0MJK0QZsl4BNvdbpg
+
+dn: cn=devs,dc=example,dc=org
+cn: devs
+objectClass: top
+objectClass: groupOfUniqueNames
+uniqueMember: uid=pypidev,dc=example,dc=org
+uniqueMember: uid=pypiadmin,dc=example,dc=org
+
+# memberOf overlay requires groupOfUniqueNames
+dn: cn=pypicloud_admin,dc=example,dc=org
+cn: pypicloud_admin
+objectClass: top
+objectClass: groupOfUniqueNames
+uniqueMember: uid=pypiadmin,dc=example,dc=org
