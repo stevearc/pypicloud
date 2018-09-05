@@ -94,7 +94,7 @@ Use this to store your packages in a subdirectory, such as "packages/"
 
 Prepend a 4-letter hash to all S3 keys (default True). This helps S3 load
 balance when traffic scales. See the `AWS documentation
-<http://docs.aws.amazon.com/AmazonS3/latest/dev/request-rate-perf-considerations.html>`_
+<http://docs.aws.amazon.com/AmazonS3/latest/dev/request-rate-perf-considerations.html>`__
 on the subject.
 
 ``storage.expire_after``
@@ -128,7 +128,7 @@ Default is None.
 **Argument:** string, optional
 
 Sets uploaded object's "canned" ACL. See the `AWS documentation
-<http://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl>`_.
+<http://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl>`__.
 Default is "private", i.e. only the account owner will get full access.
 May be useful, if the bucket and pypicloud are hosted in different AWS accounts.
 
@@ -208,11 +208,11 @@ pypicloud via one of two mechanisms:
 
 1. By setting the ``GOOGLE_APPLICATION_CREDENTIALS`` environment variable. For example::
 
-   GOOGLE_APPLICATION_CREDENTIALS=/path/to/my/keyfile.json pserve pypicloud.ini
+     GOOGLE_APPLICATION_CREDENTIALS=/path/to/my/keyfile.json pserve pypicloud.ini
 
 2. Via the config setting ``storage.gcp_service_account_json_filename``, documented below.
 
-For more information on setting up a service account, see the `GCS documentation <https://cloud.google.com/storage/docs/authentication#service_accounts>`.
+For more information on setting up a service account, see the `GCS documentation <https://cloud.google.com/storage/docs/authentication#service_accounts>`__.
 
 
 ``storage.bucket``
@@ -230,7 +230,7 @@ created in this region on startup. If blank, a default US multi-regional bucket
 will be created.
 
 ``storage.gcp_service_account_json_filename``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string, semi-optional
 
 Path to a local file containing a GCP service account JSON key.  This argument
@@ -238,7 +238,7 @@ is required unless the path is provided via the ``GOOGLE_APPLICATION_CREDENTIALS
 environment variable.
 
 ``storage.gcp_project_id``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string, optional
 
 ID of the GCP project that contains your storage bucket.  This is only used when
@@ -283,7 +283,7 @@ The long story: :ref:`redirect_detail`
 **Argument:** string, optional
 
 Sets uploaded object's "predefined" ACL. See the `GCS documentation
-<https://cloud.google.com/storage/docs/access-control/lists#predefined-acl>`_.
+<https://cloud.google.com/storage/docs/access-control/lists#predefined-acl>`__.
 Default is "private", i.e. only the account owner will get full access.
 May be useful, if the bucket and pypicloud are hosted in different GCS accounts.
 
@@ -291,4 +291,7 @@ May be useful, if the bucket and pypicloud are hosted in different GCS accounts.
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string, optional
 
-Sets uploaded object's storage class.  See the `GCS documentation <https://cloud.google.com/storage/docs/per-object-storage-class>`_. Defaults to the default storage class of the bucket, if the bucket is preexisting, or "regional" otherwise.
+Sets uploaded object's storage class.  See the `GCS documentation
+<https://cloud.google.com/storage/docs/per-object-storage-class>`__. Defaults to
+the default storage class of the bucket, if the bucket is preexisting, or
+"regional" otherwise.

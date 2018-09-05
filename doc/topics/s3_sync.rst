@@ -1,3 +1,5 @@
+:orphan:
+
 .. _s3_sync:
 
 Using S3 Notifications to sync caches

@@ -1,3 +1,5 @@
+:orphan:
+
 .. _redirect_detail:
 
 Why you should set redirect_urls = True

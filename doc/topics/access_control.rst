@@ -434,27 +434,30 @@ Note that the result of the search must be exactly one entry.
 **Argument:** string, optional
 
 When fetching the user entry, check to see if the ``admin_field`` attribute
-contains any of ``admin_value``. If so, the user is an admin.
+contains any of ``admin_value``. If so, the user is an admin. This will
+typically be used with the `memberOf overlay
+<https://www.openldap.org/doc/admin24/overlays.html#Reverse%20Group%20Membership%20Maintenance>`__.
 
 For example, if this is your LDAP directory::
 
-  dn: CN=user1,OU=test
+  dn: uid=user1,ou=test
   cn: user1
-  roles: dev
-  -
-  dn: CN=user2,OU=test
-  cn: user2
-  roles: dev
-  roles: pypi_admin
+  objectClass: posixAccount
+
+  dn: cn=pypicloud_admin,dc=example,dc=org
+  objectClass: groupOfUniqueNames
+  uniqueMember: uid=user1,ou=test
+
 
 You would use these settings:
 
 .. code-block:: ini
 
-    auth.ldap.admin_field = roles
-    auth.ldap.admin_value = pypi_admin
+    auth.ldap.admin_field = memberOf
+    auth.ldap.admin_value = cn=pypicloud_admin,dc=example,dc=org
 
-You could also use ``admin_value`` to specify the usernames of admins:
+Since the logic is just checking the value of an attribute, you could also use
+``admin_value`` to specify the usernames of admins:
 
 .. code-block:: ini
 
@@ -463,15 +466,23 @@ You could also use ``admin_value`` to specify the usernames of admins:
       user1
       user2
 
-If this and ``admin_value`` are not provided, the only admin account on
-pypicloud will be the service account (if you provided the
-``service_username``).
-
 ``auth.ldap.admin_value``
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string, optional
 
 See ``admin_field``
+
+
+``auth.ldap.admin_group_dn``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+An alternative to using ``admin_field`` and ``admin_value``. If you don't have
+access to the ``memberOf`` overlay, you can provide ``admin_group_dn``. When a
+user is looked up, pypicloud will search this group to see if the user is a
+member.
+
+Note that to use this setting you must also use ``user_dn_format``.
 
 
 ``auth.ldap.cache_time``

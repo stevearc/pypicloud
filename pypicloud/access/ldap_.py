@@ -1,4 +1,5 @@
 """LDAP authentication plugin for pypicloud."""
+from __future__ import unicode_literals
 import logging
 from collections import namedtuple
 from functools import wraps
