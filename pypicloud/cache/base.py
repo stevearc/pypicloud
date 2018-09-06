@@ -186,14 +186,16 @@ class ICache(object):
             for "name" and "summary" (typically, both of these lists have the
             same search values).
 
-            Example:
-            {
-                "name": ["value1", "value2", ..., "valueN"],
-                "summary": ["value1", "value2", ..., "valueN"]
-            }
+            Example::
+
+                {
+                    "name": ["value1", "value2", ..., "valueN"],
+                    "summary": ["value1", "value2", ..., "valueN"]
+                }
 
         query_type : str
             Type of query to perform. By default, pip sends "or".
+
 
         """
         name_queries = criteria.get("name", [])

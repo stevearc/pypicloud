@@ -1204,11 +1204,94 @@ class TestPostgresBackend(TestSQLiteBackend):
 
 
 class TestLDAPBackend(BaseACLTest):
+    @classmethod
+    def setUpClass(cls):
+        super(TestLDAPBackend, cls).setUpClass()
+        l = ldap.initialize("ldap://localhost")
+        try:
+            l.simple_bind_s("", "")
+        except ldap.SERVER_DOWN:
+            raise unittest.SkipTest("Couldn't connect to LDAP")
+
+    def setUp(self):
+        super(TestLDAPBackend, self).setUp()
+        self.backend = self._backend()
+
+    def _backend(self, settings_override=None):
+        """ Wrapper to instantiate a LDAPAccessBackend """
+        settings = {
+            "auth.ldap.url": "ldap://localhost/",
+            "auth.ldap.cache_time": 0,
+            "auth.ldap.service_dn": "cn=admin,dc=example,dc=org",
+            "auth.ldap.service_password": "admin",
+            "auth.ldap.base_dn": "dc=example,dc=org",
+            "auth.ldap.user_search_filter": "(uid={username})",
+            "auth.ldap.admin_field": "memberOf",
+            "auth.ldap.admin_value": ["cn=pypicloud_admin,dc=example,dc=org"],
+        }
+        settings.update(settings_override or {})
+        settings = dict(((k, v) for (k, v) in settings.items() if v is not None))
+        kwargs = LDAPAccessBackend.configure(settings)
+        request = DummyRequest()
+        request.userid = None
+        return LDAPAccessBackend(request, **kwargs)
+
+    def test_verify(self):
+        """ Users can log in with correct password """
+        valid = self.backend.verify_user("pypidev", "pypidev")
+        self.assertTrue(valid)
+
+    def test_no_verify(self):
+        """ Verification fails with wrong password """
+        valid = self.backend.verify_user("pypidev", "foobarz")
+        self.assertFalse(valid)
+
+    def test_verify_no_user(self):
+        """ Verify fails if user is unknown """
+        valid = self.backend.verify_user("notreal", "foobar")
+        self.assertFalse(valid)
+
+    def test_admin(self):
+        """ Specified users have 'admin' permissions """
+        self.assertTrue(self.backend.is_admin("pypiadmin"))
+
+    def test_not_admin(self):
+        """ Only specified users have 'admin' permissions """
+        self.assertFalse(self.backend.is_admin("pypidev"))
+
+    def test_user_dn_format(self):
+        """ Can use user_dn_format instead of base_dn """
+        backend = self._backend(
+            {
+                "auth.ldap.user_dn_format": "uid={username},dc=example,dc=org",
+                "auth.ldap.base_dn": None,
+                "auth.ldap.user_search_filter": None,
+            }
+        )
+        valid = backend.verify_user("pypidev", "pypidev")
+        self.assertTrue(valid)
+
+    def test_admin_group_dn(self):
+        """ Can use admin_group_dn to check for admin privs """
+        backend = self._backend(
+            {
+                "auth.ldap.user_dn_format": "uid={username},dc=example,dc=org",
+                "auth.ldap.base_dn": None,
+                "auth.ldap.user_search_filter": None,
+                "auth.ldap.admin_field": None,
+                "auth.ldap.admin_value": None,
+                "auth.ldap.admin_group_dn": "cn=pypicloud_admin,dc=example,dc=org",
+            }
+        )
+        self.assertTrue(backend.is_admin("pypiadmin"))
+
+
+class TestMockLDAPBackend(BaseACLTest):
     """ Test the LDAP access backend """
 
     @classmethod
     def setUpClass(cls):
-        super(TestLDAPBackend, cls).setUpClass()
+        super(TestMockLDAPBackend, cls).setUpClass()
         test = ("o=test", {"o": ["test"], "objectClass": ["top"]})
         users = ("ou=users,o=test", {"ou": ["users"], "objectClass": ["top"]})
         admin_list = (
@@ -1241,16 +1324,16 @@ class TestLDAPBackend(BaseACLTest):
 
     @classmethod
     def tearDownClass(cls):
-        super(TestLDAPBackend, cls).tearDownClass()
+        super(TestMockLDAPBackend, cls).tearDownClass()
         del cls.mockldap
 
     def setUp(self):
-        super(TestLDAPBackend, self).setUp()
+        super(TestMockLDAPBackend, self).setUp()
         self.mockldap.start()
         self.backend = self._backend()
 
     def tearDown(self):
-        super(TestLDAPBackend, self).tearDown()
+        super(TestMockLDAPBackend, self).tearDown()
         self.mockldap.stop()
 
     def _backend(self, settings_override=None):
@@ -1265,6 +1348,7 @@ class TestLDAPBackend(BaseACLTest):
             "auth.ldap.admin_value": ["admin"],
         }
         settings.update(settings_override or {})
+        settings = dict(((k, v) for (k, v) in settings.items() if v is not None))
         kwargs = LDAPAccessBackend.configure(settings)
         request = DummyRequest()
         request.userid = None

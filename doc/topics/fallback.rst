@@ -1,3 +1,5 @@
+:orphan:
+
 .. _fallback_detail:
 
 Fallbacks

@@ -1,11 +1,13 @@
+:orphan:
+
 .. _upgrade0.4:
 
 Uprading to 0.4.0
 =================
 
 This version was released to respond to pip 8.1.2 normalizing package names
-differently. Read the discussion on :ref:`this pull request
-<https://github.com/stevearc/pypicloud/pull/87>` for more information.
+differently. Read the discussion on `this pull request
+<https://github.com/stevearc/pypicloud/pull/87>`__ for more information.
 
 This will only affect packages with a ``_`` or ``.``, or multiple ``-``
 characters in their name. If you don't have any, you may ignore these

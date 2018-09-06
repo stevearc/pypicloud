@@ -1,3 +1,5 @@
+:orphan:
+
 .. _dynamodb_policy:
 
 DynamoDB Policy

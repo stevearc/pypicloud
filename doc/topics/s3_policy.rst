@@ -1,3 +1,5 @@
+:orphan:
+
 .. _s3_policy:
 
 S3 Policy

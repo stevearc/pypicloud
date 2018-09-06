@@ -33,7 +33,7 @@ REQUIREMENTS = [
 ]
 
 EXTRAS = {
-    "ldap": ["pyldap"],
+    "ldap": ["python-ldap"],
     "dynamo": ["flywheel >= 0.2.0"],
     "redis": ["redis"],
     "gcs": ["google-cloud-storage>=1.10.0"],
@@ -60,7 +60,7 @@ EXTRAS["doc"] = ["numpydoc", "sphinx", "sphinx_rtd_theme"]
 if __name__ == "__main__":
     setup(
         name="pypicloud",
-        version="1.0.8",
+        version="1.0.9",
         description="Private PyPI backed by S3",
         long_description=README + "\n\n" + CHANGES,
         classifiers=[

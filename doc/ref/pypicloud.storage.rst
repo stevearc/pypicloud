@@ -8,8 +8,9 @@ Submodules
 
    pypicloud.storage.base
    pypicloud.storage.files
-   pypicloud.storage.s3
    pypicloud.storage.gcs
+   pypicloud.storage.object_store
+   pypicloud.storage.s3
 
 Module contents
 ---------------
