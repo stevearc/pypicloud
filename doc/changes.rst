@@ -2,6 +2,12 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.0.9 - 2018/9/6
+----------------
+* Fix: Exception during LDAP reconnect (:pr:`192`)
+* Fix: LDAP on Python 3 could not detect admins (:pr:`193`)
+* Feature: New ``pypi.auth.admin_group_dn`` setting for LDAP (for when memberOf is unavailable)
+
 1.0.8 - 2018/8/27
 -----------------
 * Feature: Google Cloud Storage support (:pr:`189`)
