@@ -1,5 +1,6 @@
 """ Store packages in S3 """
 import posixpath
+import unicodedata
 
 import boto3
 import logging
@@ -189,7 +190,9 @@ class S3Storage(ObjectStoreStorage):
             kwargs["StorageClass"] = self.storage_class
         metadata = {"name": package.name, "version": package.version}
         if package.summary:
-            metadata["summary"] = package.summary
+            metadata["summary"] = u''.join(
+                c for c in unicodedata.normalize('NFKD', package.summary) if ord(c) < 128
+            )
         key.put(Metadata=metadata, Body=datastream, **kwargs)
 
     def delete(self, package):
