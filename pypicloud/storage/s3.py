@@ -1,4 +1,5 @@
 """ Store packages in S3 """
+from __future__ import unicode_literals
 import posixpath
 import unicodedata
 
@@ -17,6 +18,7 @@ from datetime import datetime, timedelta
 from pyramid.settings import asbool, falsey
 from pyramid_duh.settings import asdict
 from six.moves.urllib.parse import urlparse, quote  # pylint: disable=F0401,E0611
+import six
 
 from .object_store import ObjectStoreStorage
 from pypicloud.models import Package
@@ -190,8 +192,12 @@ class S3Storage(ObjectStoreStorage):
             kwargs["StorageClass"] = self.storage_class
         metadata = {"name": package.name, "version": package.version}
         if package.summary:
-            metadata["summary"] = u''.join(
-                c for c in unicodedata.normalize('NFKD', package.summary) if ord(c) < 128
+            if isinstance(package.summary, six.text_type):
+                summary = package.summary
+            else:
+                summary = package.summary.decode("utf-8")
+            metadata["summary"] = "".join(
+                c for c in unicodedata.normalize("NFKD", summary) if ord(c) < 128
             )
         key.put(Metadata=metadata, Body=datastream, **kwargs)
 
