@@ -98,7 +98,7 @@ handlers = file
 
 [handler_file]
 class = handlers.RotatingFileHandler
-args = ('/var/log/pypicloud.log', 'mode=a', 'maxBytes=1000000', 'backupCount=5')
+args = ('/var/log/pypicloud.log', 'a', 1000000, 5)
 level = NOTSET
 formatter = generic
 
