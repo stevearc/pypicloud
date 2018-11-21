@@ -4,6 +4,7 @@ import unittest
 from datetime import datetime, timedelta
 from mock import MagicMock
 from pyramid.testing import DummyRequest
+import redis
 from sqlalchemy.exc import OperationalError
 
 from . import make_package
@@ -166,9 +167,10 @@ class TestRedisCache(unittest.TestCase):
         }
         cls.kwargs = RedisCache.configure(settings)
         cls.redis = cls.kwargs["db"]
+
         try:
             cls.redis.flushdb()
-        except ConnectionError:
+        except redis.exceptions.ConnectionError:
             msg = "Redis not found on port 6379"
             setattr(cls, "setUp", lambda cls: unittest.TestCase.skipTest(cls, msg))
 

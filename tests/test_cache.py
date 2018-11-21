@@ -9,7 +9,7 @@ from dynamo3 import Throughput
 from flywheel.fields.types import UTC
 from mock import MagicMock, patch, ANY
 from pyramid.testing import DummyRequest
-from redis import RedisError
+import redis
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from . import DummyCache, DummyStorage, make_package
@@ -399,7 +399,7 @@ class TestRedisCache(unittest.TestCase):
         cls.redis = cls.kwargs["db"]
         try:
             cls.redis.flushdb()
-        except ConnectionError:
+        except redis.exceptions.ConnectionError:
             msg = "Redis not found on port 6379"
             setattr(cls, "setUp", lambda cls: unittest.TestCase.skipTest(cls, msg))
 
@@ -646,7 +646,7 @@ class TestRedisCache(unittest.TestCase):
 
         def throw(*_, **__):
             """ Throw an exception """
-            raise RedisError("DB exception")
+            raise redis.RedisError("DB exception")
 
         dbmock.echo.side_effect = throw
         ok, msg = self.db.check_health()
