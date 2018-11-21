@@ -1286,12 +1286,12 @@ class TestLDAPBackend(BaseACLTest):
         self.assertTrue(backend.is_admin("pypiadmin"))
 
 
-class TestMockLDAPBackend(BaseACLTest):
-    """ Test the LDAP access backend """
+class BaseLDAPTest(BaseACLTest):
+    """ Base class for LDAP tests that enable mocking the LDAP directory """
 
     @classmethod
     def setUpClass(cls):
-        super(TestMockLDAPBackend, cls).setUpClass()
+        super(BaseLDAPTest, cls).setUpClass()
         test = ("o=test", {"o": ["test"], "objectClass": ["top"]})
         users = ("ou=users,o=test", {"ou": ["users"], "objectClass": ["top"]})
         admin_list = (
@@ -1324,16 +1324,16 @@ class TestMockLDAPBackend(BaseACLTest):
 
     @classmethod
     def tearDownClass(cls):
-        super(TestMockLDAPBackend, cls).tearDownClass()
+        super(BaseLDAPTest, cls).tearDownClass()
         del cls.mockldap
 
     def setUp(self):
-        super(TestMockLDAPBackend, self).setUp()
+        super(BaseLDAPTest, self).setUp()
         self.mockldap.start()
         self.backend = self._backend()
 
     def tearDown(self):
-        super(TestMockLDAPBackend, self).tearDown()
+        super(BaseLDAPTest, self).tearDown()
         self.mockldap.stop()
 
     def _backend(self, settings_override=None):
@@ -1353,6 +1353,10 @@ class TestMockLDAPBackend(BaseACLTest):
         request = DummyRequest()
         request.userid = None
         return LDAPAccessBackend(request, **kwargs)
+
+
+class TestLDAPMockBackend(BaseLDAPTest):
+    """ Test the LDAP access backend by mocking LDAP """
 
     def test_verify(self):
         """ Users can log in with correct password """
@@ -1452,6 +1456,129 @@ class TestMockLDAPBackend(BaseACLTest):
         self.backend.conn.test_connection.side_effect = throw
         ok, msg = self.backend.check_health()
         self.assertFalse(ok)
+
+
+class TestMockLDAPBackendWithConfig(BaseLDAPTest):
+
+    """ Test the LDAP backend falling back to config file for groups/permissions """
+
+    def _backend(self, settings_override=None):
+        settings = {"auth.ldap.fallback": "config"}
+        settings.update(settings_override or {})
+        return super(TestMockLDAPBackendWithConfig, self)._backend(settings)
+
+    def test_verify(self):
+        """ Users can log in with correct password """
+        valid = self.backend.verify_user("u1", "foobar")
+        self.assertTrue(valid)
+
+    def test_no_verify(self):
+        """ Verification fails with wrong password """
+        valid = self.backend.verify_user("u1", "foobarz")
+        self.assertFalse(valid)
+
+    def test_verify_no_user(self):
+        """ Verify fails if user is unknown """
+        valid = self.backend.verify_user("notreal", "foobar")
+        self.assertFalse(valid)
+
+    def test_admin(self):
+        """ Specified users have 'admin' permissions """
+        self.assertTrue(self.backend.is_admin("admin"))
+
+    def test_not_admin(self):
+        """ Only specified users have 'admin' permissions """
+        self.assertFalse(self.backend.is_admin("u1"))
+
+    def test_group_members(self):
+        """ Fetch all members of a group """
+        settings = {"group.g1": "u1 u2 u3"}
+        backend = self._backend(settings)
+        self.assertItemsEqual(backend.group_members("g1"), ["u1", "u2", "u3"])
+
+    def test_all_group_permissions(self):
+        """ Fetch all group permissions on a package """
+        settings = {"package.mypkg.group.g1": "r", "package.mypkg.group.g2": "rw"}
+        backend = self._backend(settings)
+        perms = backend.group_permissions("mypkg")
+        self.assertEqual(perms, {"g1": ["read"], "g2": ["read", "write"]})
+
+    def test_all_user_perms(self):
+        """ Fetch permissions on a package for all users """
+        settings = {"package.mypkg.user.u1": "r", "package.mypkg.user.u2": "rw"}
+        backend = self._backend(settings)
+        perms = backend.user_permissions("mypkg")
+        self.assertEqual(perms, {"u1": ["read"], "u2": ["read", "write"]})
+
+    def test_user_package_perms(self):
+        """ Fetch all packages a user has permissions on """
+        settings = {
+            "package.pkg1.user.u1": "r",
+            "package.pkg2.user.u1": "rw",
+            "unrelated.field": "",
+        }
+        backend = self._backend(settings)
+        packages = backend.user_package_permissions("u1")
+        self.assertItemsEqual(
+            packages,
+            [
+                {"package": "pkg1", "permissions": ["read"]},
+                {"package": "pkg2", "permissions": ["read", "write"]},
+            ],
+        )
+
+    def test_long_user_package_perms(self):
+        """ Can encode user package permissions in verbose form """
+        settings = {
+            "package.pkg1.user.u1": "read ",
+            "package.pkg2.user.u1": "read write",
+            "unrelated.field": "",
+        }
+        backend = self._backend(settings)
+        packages = backend.user_package_permissions("u1")
+        self.assertItemsEqual(
+            packages,
+            [
+                {"package": "pkg1", "permissions": ["read"]},
+                {"package": "pkg2", "permissions": ["read", "write"]},
+            ],
+        )
+
+    def test_group_package_perms(self):
+        """ Fetch all packages a group has permissions on """
+        settings = {
+            "package.pkg1.group.g1": "r",
+            "package.pkg2.group.g1": "rw",
+            "unrelated.field": "",
+        }
+        backend = self._backend(settings)
+        packages = backend.group_package_permissions("g1")
+        self.assertItemsEqual(
+            packages,
+            [
+                {"package": "pkg1", "permissions": ["read"]},
+                {"package": "pkg2", "permissions": ["read", "write"]},
+            ],
+        )
+
+    def test_user_data(self):
+        """ Retrieve all users """
+        settings = {"user.u1": "_", "user.bar": "_"}
+        backend = self._backend(settings)
+        users = backend.user_data()
+        self.assertItemsEqual(
+            users,
+            [{"username": "u1", "admin": False}, {"username": "bar", "admin": False}],
+        )
+
+    def test_single_user_data(self):
+        """ Get data for a single user """
+        settings = {"user.admin": "pass", "group.foobars": ["admin"]}
+        backend = self._backend(settings)
+        user = backend.user_data("admin")
+        self.assertEqual(
+            user, {"username": "admin", "admin": True, "groups": ["foobars"]}
+        )
 
 
 class TestAWSSecretsManagerBackend(unittest.TestCase):

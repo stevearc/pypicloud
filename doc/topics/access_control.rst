@@ -25,6 +25,8 @@ groups:
 You will never need to specify the members of these groups, as membership is
 automatic.
 
+.. _config_access_control:
+
 Config File
 -----------
 The simplest access control available (which is the default) pulls user, group,
@@ -188,6 +190,314 @@ Changing this value will retroactively apply to tokens issued in the past.
 How long (in seconds) the generated registration tokens will be valid for
 (default one week).
 
+.. _ldap_config:
+
+LDAP Authentication
+-------------------
+You can opt to authenticate all users through a remote LDAP or compatible
+server. There is aggressive caching in the LDAP backend in order to keep
+chatter with your LDAP server at a minimum. If you experience a change in your
+LDAP layout, group modifications etc, restart your pypicloud process.
+
+Note that you will need to ``pip install pypicloud[ldap]`` OR
+``pip install -e .[ldap]`` (from source) in order to get the dependencies for
+the LDAP authentication backend.
+
+At the moment there is no way for pypicloud to discern groups from LDAP, so it
+only has the built-in ``admin``, ``authenticated``, and ``everyone`` as the
+available groups. All authorization is configured using ``pypi.default_read``,
+``pypi.default_write``, and ``pypi.cache_update``. If you need to use groups,
+you can use the :ref:`auth.ldap.fallback <auth_ldap_fallback>` setting below.
+
+Configuration
+^^^^^^^^^^^^^
+Set ``pypi.auth = ldap`` OR ``pypi.auth =
+pypicloud.access.ldap_.LDAPAccessBackend``
+
+``auth.ldap.url``
+~~~~~~~~~~~~~~~~~
+**Argument:** string
+
+The LDAP url to use for remote verification. It should include the protocol and
+port, as an example: ``ldap://10.0.0.1:389``
+
+``auth.ldap.service_dn``
+~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+The FQDN of the LDAP service account used. A service account is required to
+perform the initial bind with. It only requires read access to your LDAP. If not
+specified an anonymous bind will be used.
+
+``auth.ldap.service_password``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+The password for the LDAP service account.
+
+``auth.ldap.service_username``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+If provided, this will allow allow you to log in to the pypicloud interface as
+the provided ``service_dn`` using this username. This account will have admin
+privileges.
+
+``auth.ldap.user_dn_format``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+This is used to find a user when they attempt to log in. If the username is part
+of the DN, then you can provide this templated string where ``{username}`` will
+be replaced with the searched username. For example, if your LDAP directory
+looks like this::
+
+  dn: CN=bob,OU=users
+  cn: bob
+  -
+
+Then you could use the setting ``auth.ldap.user_dn_format =
+CN={username},OU=users``.
+
+This option is the preferred method if possible because you can provide the full
+DN when doing the search, which is more efficient. If your directory is not in
+this format, you will need to instead use ``base_dn`` and
+``user_search_filter``.
+
+``auth.ldap.base_dn``
+~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+The base DN under which all of your user accounts are organized in LDAP. Used
+in combination with the ``user_search_filter`` to find users. See also:
+``user_dn_format``.
+
+``base_dn`` and ``user_search_filter`` should be used if your directory format
+does not put the username in the DN of the user entry. For example::
+
+  dn: CN=Robert Paulson,OU=users
+  cn: Robert Paulson
+  unixname: bob
+  -
+
+For that directory structure, you would use the following settings:
+
+.. code-block:: ini
+
+    auth.ldap.base_dn = OU=users
+    auth.ldap.user_search_filter = (unixname={username})
+
+``auth.ldap.user_search_filter``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+An LDAP search filter, which when used with the ``base_dn`` results a user entry.
+The string ``{username}`` will be replaced with the username being searched for.
+For example, ``(cn={username})`` or ``(&(objectClass=person)(name={username}))``
+
+Note that the result of the search must be exactly one entry.
+
+``auth.ldap.admin_field``
+~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+When fetching the user entry, check to see if the ``admin_field`` attribute
+contains any of ``admin_value``. If so, the user is an admin. This will
+typically be used with the `memberOf overlay
+<https://www.openldap.org/doc/admin24/overlays.html#Reverse%20Group%20Membership%20Maintenance>`__.
+
+For example, if this is your LDAP directory::
+
+  dn: uid=user1,ou=test
+  cn: user1
+  objectClass: posixAccount
+
+  dn: cn=pypicloud_admin,dc=example,dc=org
+  objectClass: groupOfUniqueNames
+  uniqueMember: uid=user1,ou=test
+
+
+You would use these settings:
+
+.. code-block:: ini
+
+    auth.ldap.admin_field = uniqueMemberOf
+    auth.ldap.admin_value = cn=pypicloud_admin,dc=example,dc=org
+
+Since the logic is just checking the value of an attribute, you could also use
+``admin_value`` to specify the usernames of admins:
+
+.. code-block:: ini
+
+    auth.ldap.admin_field = cn
+    auth.ldap.admin_value =
+      user1
+      user2
+
+``auth.ldap.admin_value``
+~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+See ``admin_field``
+
+
+``auth.ldap.admin_group_dn``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+An alternative to using ``admin_field`` and ``admin_value``. If you don't have
+access to the ``memberOf`` overlay, you can provide ``admin_group_dn``. When a
+user is looked up, pypicloud will search this group to see if the user is a
+member.
+
+Note that to use this setting you must also use ``user_dn_format``.
+
+
+``auth.ldap.cache_time``
+~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** int, optional
+
+When a user entry is pulled via searching with ``base_dn`` and
+``user_search_filter``, pypicloud will cache that entry to decrease load on your
+LDAP server. This value determines how long (in seconds) to cache the user
+entries for.
+
+The default behavior is to cache users forever (clearing the cache requires a
+server restart).
+
+``auth.ldap.ignore_cert``
+~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** bool, optional
+
+If true then the ldap option to not verify the certificate is used. This is not
+recommended but useful if the cert name does not match the fqdn. Default is false.
+
+``auth.ldap.ignore_referrals``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** bool, optional
+
+If true then the ldap option to not follow referrals is used. This is not
+recommended but useful if the referred servers does not work. Default is false.
+
+``auth.ldap.ignore_multiple_results``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** bool, optional
+
+If true then the a warning is issued if multiple users are found. This is not
+recommended but useful if there are more than user matching a given search criteria.
+Default is false.
+
+.. _auth_ldap_fallback:
+
+``auth.ldap.fallback``
+~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+Since we do not support configuring groups or package permissions via LDAP, this
+setting allows you to use another system on top of LDAP for that purpose. LDAP
+will be used for user login and to determine admin status, but this other access
+backend will be used to determine group membership and package permissions.
+
+Currently the only value supported is ``config``, which will use the
+:ref:`Config File <config_access_control>` values.
+
+AWS Secrets Manager
+-------------------
+This stores all the user data in a single JSON blob using AWS Secrets Manager.
+
+After you set up a new server using this backend, you will need to use the web
+interface to create the initial admin user.
+
+Configuration
+^^^^^^^^^^^^^
+Set ``pypi.auth = aws_secrets_manager`` OR ``pypi.auth =
+pypicloud.access.aws_secrets_manager.AWSSecretsManagerAccessBackend``
+
+The JSON format should look like this:
+
+.. code-block:: javascript
+
+    {
+        "users": {
+            "user1": "hashed_password1",
+            "user2": "hashed_password2",
+            "user3": "hashed_password3",
+            "user4": "hashed_password4",
+            "user5": "hashed_password5",
+        },
+        "groups": {
+            "admins": [
+            "user1",
+            "user2"
+            ],
+            "group1": [
+            "user3"
+            ]
+        },
+        "admins": [
+            "user1"
+        ]
+        "packages": {
+            "mypackage": {
+                "groups": {
+                    "group1": ["read', "write"],
+                    "group2": ["read"],
+                    "group3": [],
+                },
+                "users": {
+                    "user1": ["read", "write"],
+                    "user2": ["read"],
+                    "user3": [],
+                    "user5": ["read"],
+                }
+            }
+        }
+    }
+
+If the secret is not already created, it will be when you make edits using the
+web interface.
+
+``auth.region_name``
+~~~~~~~~~~~~~~~~~~~~
+**Argument:** string
+
+The AWS region you're storing your secrets in
+
+``auth.secret_id``
+~~~~~~~~~~~~~~~~~~
+**Argument:** string
+
+The unique ID of the secret
+
+``auth.aws_access_key_id``, ``auth.aws_secret_access_key``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+Your AWS access key id and secret access key. If they are not specified then
+pypicloud will attempt to get the values from the environment variables
+``AWS_ACCESS_KEY_ID`` and ``AWS_SECRET_ACCESS_KEY`` or any other `credentials
+source
+<http://boto3.readthedocs.io/en/latest/guide/configuration.html#configuring-credentials>`__.
+
+``auth.aws_session_token``
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+The session key for your AWS account. This is only needed when you are using
+temporary credentials. See more: `<http://boto3.readthedocs.io/en/latest/guide/configuration.html#configuration-file>`__
+
+``auth.profile_name``
+~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+The credentials profile to use when reading credentials from the `shared credentials file <http://boto3.readthedocs.io/en/latest/guide/configuration.html#shared-credentials-file>`__
+
+``auth.kms_key_id``
+~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+The ARN or alias of the AWS KMS customer master key (CMK) to be used to encrypt the secret. See more: `<https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_CreateSecret.html>`__
+
 Remote Server
 -------------
 This implementation allows you to delegate all access control to another
@@ -322,296 +632,3 @@ passed to the endpoint, return just a single user dict that also contains
 params: ``username``
 
 returns: ``list``
-
-.. _ldap_config:
-
-LDAP Authentication
--------------------
-You can opt to authenticate all users through a remote LDAP or compatible
-server. There is aggressive caching in the LDAP backend in order to keep
-chatter with your LDAP server at a minimum. If you experience a change in your
-LDAP layout, group modifications etc, restart your pypicloud process.
-
-Note that you will need to ``pip install pypicloud[ldap]`` OR
-``pip install -e .[ldap]`` (from source) in order to get the dependencies for
-the LDAP authentication backend.
-
-At the moment there is no way for pypicloud to discern groups from LDAP, so it
-only has the built-in ``admin``, ``authenticated``, and ``everyone`` as the
-available groups.  All authorization is configured using ``pypi.default_read``,
-``pypi.default_write``, and ``pypi.cache_update``.
-
-Configuration
-^^^^^^^^^^^^^
-Set ``pypi.auth = ldap`` OR ``pypi.auth =
-pypicloud.access.ldap_.LDAPAccessBackend``
-
-``auth.ldap.url``
-~~~~~~~~~~~~~~~~~
-**Argument:** string
-
-The LDAP url to use for remote verification. It should include the protocol and
-port, as an example: ``ldap://10.0.0.1:389``
-
-``auth.ldap.service_dn``
-~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** string, optional
-
-The FQDN of the LDAP service account used. A service account is required to
-perform the initial bind with. It only requires read access to your LDAP. If not
-specified an anonymous bind will be used.
-
-``auth.ldap.service_password``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** string, optional
-
-The password for the LDAP service account.
-
-``auth.ldap.service_username``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** string, optional
-
-If provided, this will allow allow you to log in to the pypicloud interface as
-the provided ``service_dn`` using this username. This account will have admin
-privileges.
-
-``auth.ldap.user_dn_format``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** string, optional
-
-This is used to find a user when they attempt to log in. If the username is part
-of the DN, then you can provide this templated string where ``{username}`` will
-be replaced with the searched username. For example, if your LDAP directory
-looks like this::
-
-  dn: CN=bob,OU=users
-  cn: bob
-  -
-
-Then you could use the setting ``auth.ldap.user_dn_format =
-CN={username},OU=users``.
-
-This option is the preferred method if possible because you can provide the full
-DN when doing the search, which is more efficient. If your directory is not in
-this format, you will need to instead use ``base_dn`` and
-``user_search_filter``.
-
-``auth.ldap.base_dn``
-~~~~~~~~~~~~~~~~~~~~~
-**Argument:** string, optional
-
-The base DN under which all of your user accounts are organized in LDAP. Used
-in combination with the ``user_search_filter`` to find users. See also:
-``user_dn_format``.
-
-``base_dn`` and ``user_search_filter`` should be used if your directory format
-does not put the username in the DN of the user entry. For example::
-
-  dn: CN=Robert Paulson,OU=users
-  cn: Robert Paulson
-  unixname: bob
-  -
-
-For that directory structure, you would use the following settings:
-
-.. code-block:: ini
-
-    auth.ldap.base_dn = OU=users
-    auth.ldap.user_search_filter = (unixname={username})
-
-``auth.ldap.user_search_filter``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** string, optional
-
-An LDAP search filter, which when used with the ``base_dn`` results a user entry.
-The string ``{username}`` will be replaced with the username being searched for.
-For example, ``(cn={username})`` or ``(&(objectClass=person)(name={username}))``
-
-Note that the result of the search must be exactly one entry.
-
-``auth.ldap.admin_field``
-~~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** string, optional
-
-When fetching the user entry, check to see if the ``admin_field`` attribute
-contains any of ``admin_value``. If so, the user is an admin. This will
-typically be used with the `memberOf overlay
-<https://www.openldap.org/doc/admin24/overlays.html#Reverse%20Group%20Membership%20Maintenance>`__.
-
-For example, if this is your LDAP directory::
-
-  dn: uid=user1,ou=test
-  cn: user1
-  objectClass: posixAccount
-
-  dn: cn=pypicloud_admin,dc=example,dc=org
-  objectClass: groupOfUniqueNames
-  uniqueMember: uid=user1,ou=test
-
-
-You would use these settings:
-
-.. code-block:: ini
-
-    auth.ldap.admin_field = memberOf
-    auth.ldap.admin_value = cn=pypicloud_admin,dc=example,dc=org
-
-Since the logic is just checking the value of an attribute, you could also use
-``admin_value`` to specify the usernames of admins:
-
-.. code-block:: ini
-
-    auth.ldap.admin_field = cn
-    auth.ldap.admin_value =
-      user1
-      user2
-
-``auth.ldap.admin_value``
-~~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** string, optional
-
-See ``admin_field``
-
-
-``auth.ldap.admin_group_dn``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** string, optional
-
-An alternative to using ``admin_field`` and ``admin_value``. If you don't have
-access to the ``memberOf`` overlay, you can provide ``admin_group_dn``. When a
-user is looked up, pypicloud will search this group to see if the user is a
-member.
-
-Note that to use this setting you must also use ``user_dn_format``.
-
-
-``auth.ldap.cache_time``
-~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** int, optional
-
-When a user entry is pulled via searching with ``base_dn`` and
-``user_search_filter``, pypicloud will cache that entry to decrease load on your
-LDAP server. This value determines how long (in seconds) to cache the user
-entries for.
-
-The default behavior is to cache users forever (clearing the cache requires a
-server restart).
-
-``auth.ldap.ignore_cert``
-~~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** bool, optional
-
-If true then the ldap option to not verify the certificate is used. This is not
-recommended but useful if the cert name does not match the fqdn. Default is false.
-
-``auth.ldap.ignore_referrals``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** bool, optional
-
-If true then the ldap option to not follow referrals is used. This is not
-recommended but useful if the referred servers does not work. Default is false.
-
-``auth.ldap.ignore_multiple_results``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** bool, optional
-
-If true then the a warning is issued if multiple users are found. This is not
-recommended but useful if there are more than user matching a given search criteria.
-Default is false.
-
-AWS Secrets Manager
--------------------
-This stores all the user data in a single JSON blob using AWS Secrets Manager.
-
-After you set up a new server using this backend, you will need to use the web
-interface to create the initial admin user.
-
-Configuration
-^^^^^^^^^^^^^
-Set ``pypi.auth = aws_secrets_manager`` OR ``pypi.auth =
-pypicloud.access.aws_secrets_manager.AWSSecretsManagerAccessBackend``
-
-The JSON format should look like this:
-
-.. code-block:: javascript
-
-    {
-        "users": {
-            "user1": "hashed_password1",
-            "user2": "hashed_password2",
-            "user3": "hashed_password3",
-            "user4": "hashed_password4",
-            "user5": "hashed_password5",
-        },
-        "groups": {
-            "admins": [
-            "user1",
-            "user2"
-            ],
-            "group1": [
-            "user3"
-            ]
-        },
-        "admins": [
-            "user1"
-        ]
-        "packages": {
-            "mypackage": {
-                "groups": {
-                    "group1": ["read', "write"],
-                    "group2": ["read"],
-                    "group3": [],
-                },
-                "users": {
-                    "user1": ["read", "write"],
-                    "user2": ["read"],
-                    "user3": [],
-                    "user5": ["read"],
-                }
-            }
-        }
-    }
-
-If the secret is not already created, it will be when you make edits using the
-web interface.
-
-``auth.region_name``
-~~~~~~~~~~~~~~~~~~~~
-**Argument:** string
-
-The AWS region you're storing your secrets in
-
-``auth.secret_id``
-~~~~~~~~~~~~~~~~~~
-**Argument:** string
-
-The unique ID of the secret
-
-``auth.aws_access_key_id``, ``auth.aws_secret_access_key``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** string, optional
-
-Your AWS access key id and secret access key. If they are not specified then
-pypicloud will attempt to get the values from the environment variables
-``AWS_ACCESS_KEY_ID`` and ``AWS_SECRET_ACCESS_KEY`` or any other `credentials
-source
-<http://boto3.readthedocs.io/en/latest/guide/configuration.html#configuring-credentials>`__.
-
-``auth.aws_session_token``
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** string, optional
-
-The session key for your AWS account. This is only needed when you are using
-temporary credentials. See more: `<http://boto3.readthedocs.io/en/latest/guide/configuration.html#configuration-file>`__
-
-``auth.profile_name``
-~~~~~~~~~~~~~~~~~~~~~
-**Argument:** string, optional
-
-The credentials profile to use when reading credentials from the `shared credentials file <http://boto3.readthedocs.io/en/latest/guide/configuration.html#shared-credentials-file>`__
-
-``auth.kms_key_id``
-~~~~~~~~~~~~~~~~~~~~~
-**Argument:** string, optional
-
-The ARN or alias of the AWS KMS customer master key (CMK) to be used to encrypt the secret. See more: `<https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_CreateSecret.html>`__

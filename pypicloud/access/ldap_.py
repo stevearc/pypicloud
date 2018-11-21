@@ -6,6 +6,7 @@ from functools import wraps
 from pyramid.settings import aslist, asbool
 
 from .base import IAccessBackend
+from .config import ConfigAccessBackend
 from pypicloud.util import TimedCache
 
 
@@ -257,9 +258,17 @@ class LDAPAccessBackend(IAccessBackend):
     This backend allows you to authenticate against a remote LDAP server.
     """
 
-    def __init__(self, request=None, conn=None, **kwargs):
+    def __init__(self, request=None, conn=None, fallback_factory=None, **kwargs):
         super(LDAPAccessBackend, self).__init__(request, **kwargs)
         self.conn = conn
+        self._fallback = None
+        self._fallback_factory = fallback_factory
+
+    @property
+    def fallback(self):
+        if self._fallback is None and self._fallback_factory is not None:
+            self._fallback = self._fallback_factory(self.request)
+        return self._fallback
 
     @classmethod
     def configure(cls, settings):
@@ -284,6 +293,12 @@ class LDAPAccessBackend(IAccessBackend):
         )
         conn.connect()
         kwargs["conn"] = conn
+
+        fallback = settings.get("auth.ldap.fallback")
+        if fallback == "config":
+            kw = ConfigAccessBackend.configure(settings)
+            kwargs["fallback_factory"] = lambda r: ConfigAccessBackend(r, **kw)
+
         return kwargs
 
     def _get_password_hash(self, *_):  # pragma: no cover
@@ -293,12 +308,16 @@ class LDAPAccessBackend(IAccessBackend):
         return self.conn.verify_user(username, password)
 
     def groups(self, username=None):
-        # We're not supporting groups for LDAP
-        return []  # pragma: no cover
+        if self.fallback is not None:
+            return self.fallback.groups(username)
+        # LDAP doesn't support groups by default
+        return []
 
     def group_members(self, group):
-        # We're not supporting groups for LDAP
-        return []  # pragma: no cover
+        if self.fallback is not None:
+            return self.fallback.group_members(group)
+        # LDAP doesn't support groups by default
+        return []
 
     def is_admin(self, username):
         if not username:
@@ -307,19 +326,29 @@ class LDAPAccessBackend(IAccessBackend):
         return user is not None and user.is_admin
 
     def group_permissions(self, package):
+        if self.fallback is not None:
+            return self.fallback.group_permissions(package)
         return {}
 
     def user_permissions(self, package):
+        if self.fallback is not None:
+            return self.fallback.user_permissions(package)
         return {}
 
     def user_package_permissions(self, username):
+        if self.fallback is not None:
+            return self.fallback.user_package_permissions(username)
         return []
 
     def group_package_permissions(self, group):
+        if self.fallback is not None:
+            return self.fallback.group_package_permissions(group)
         return []
 
     def user_data(self, username=None):
         if username is None:
+            if self.fallback is not None:
+                return self.fallback.user_data()
             return []
         else:
             return {
