@@ -2,6 +2,12 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.0.10 - 2018/11/26
+-------------------
+* Strip non-ASCII characters from summary for S3 backend (:pr:`197`)
+* Fix an issue with production log format (:issue:`198`)
+* Add ``auth.ldap.fallback`` to use config file configure groups and permissions with LDAP access backend (:issue:`199`)
+
 1.0.9 - 2018/9/6
 ----------------
 * Fix: Exception during LDAP reconnect (:pr:`192`)
