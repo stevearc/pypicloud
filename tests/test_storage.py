@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """ Tests for package storage backends """
 import json
 import time
@@ -192,6 +193,20 @@ class TestS3Storage(unittest.TestCase):
         dbmock.head_bucket.side_effect = throw
         ok, msg = self.storage.check_health()
         self.assertFalse(ok)
+
+    def test_unicode_summary(self):
+        """ Unicode characters in summary will be converted to ascii """
+        package = make_package(summary="text 🤪")
+        datastr = b"foobar"
+        data = BytesIO(datastr)
+        self.storage.upload(package, data)
+        key = list(self.bucket.objects.all())[0].Object()
+        contents = BytesIO()
+        key.download_fileobj(contents)
+        self.assertEqual(contents.getvalue(), datastr)
+        self.assertEqual(key.metadata["name"], package.name)
+        self.assertEqual(key.metadata["version"], package.version)
+        self.assertEqual(key.metadata["summary"], "text ")
 
 
 class TestCloudFrontS3Storage(unittest.TestCase):

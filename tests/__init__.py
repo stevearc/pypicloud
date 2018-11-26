@@ -1,6 +1,7 @@
 """ Tests for pypicloud """
 from __future__ import unicode_literals
 
+import os
 import six
 import unittest
 from collections import defaultdict
@@ -16,6 +17,10 @@ from pypicloud.storage import IStorage
 
 if six.PY3:
     unittest.TestCase.assertItemsEqual = unittest.TestCase.assertCountEqual
+
+
+os.environ["AWS_SECRET_ACCESS_KEY"] = "access_key"
+os.environ["AWS_ACCESS_KEY_ID"] = "secret_key"
 
 
 def make_package(

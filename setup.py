@@ -13,7 +13,7 @@ CHANGES = re.sub(r"\(\s*:(issue|pr|sha):.*?\)", "", CHANGES)
 CHANGES = re.sub(r":ref:`(.*?) <.*>`", r"\1", CHANGES)
 
 REQUIREMENTS = [
-    "boto3>=1.7.0,<1.8",  # Hack until https://github.com/spulec/moto/issues/1793 is fixed
+    "boto3>=1.7.0",
     # beaker needs this
     "cryptography",
     # We're doing enough subclassing and monkey patching to where we really do
@@ -60,7 +60,7 @@ EXTRAS["doc"] = ["numpydoc", "sphinx", "sphinx_rtd_theme"]
 if __name__ == "__main__":
     setup(
         name="pypicloud",
-        version="1.0.9",
+        version="1.0.10",
         description="Private PyPI backed by S3",
         long_description=README + "\n\n" + CHANGES,
         classifiers=[
