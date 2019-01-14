@@ -95,6 +95,25 @@ The HTTP Basic Auth realm (default 'pypi')
 
 Overide for the root server URL displayed in the banner of the homepage.
 
+``pypi.stream_files``
+~~~~~~~~~~~~~~~~~~~~~
+**Argument:** bool, optional
+
+Whether or not to stream the raw package data from the storage database,
+as opposed to returning a redirect link to the storage database. This is useful
+for taking advantage of the local `pip` cache, which caches based on the URL
+returned. **Note** that this will in most scenarios make fetching a package slower,
+since the server will download the full package data before sending it to the client.
+
+``pypi.package_max_age``
+~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** int, optional
+
+The `max-age` parameter (in seconds) to use in the `Cache-Control` header when downloading packages.
+If not set, the default will be `0`, which will tell `pip` not to cache any downloaded packages.
+In order to take advantage of the local `pip` cache, you should set this value to a relatively
+high number.
+
 Storage
 ^^^^^^^
 ``pypi.storage``
