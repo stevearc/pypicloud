@@ -143,6 +143,11 @@ def includeme(config):
     config.registry.fallback = fallback_mode
     config.registry.always_show_upstream = always_show_upstream
 
+    config.registry.stream_files = asbool(settings.get("pypi.stream_files", False))
+
+    package_max_age = int(settings.get("pypi.package_max_age", 0))
+    config.registry.package_max_age = package_max_age
+
     # Special request methods
     config.add_request_method(_app_url, name="app_url")
     config.add_request_method(_locator, name="locator", reify=True)

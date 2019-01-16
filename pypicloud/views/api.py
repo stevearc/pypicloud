@@ -6,7 +6,7 @@ import six
 from contextlib import closing
 
 # pylint: disable=E0611,W0403
-from paste.httpheaders import CONTENT_DISPOSITION
+from paste.httpheaders import CONTENT_DISPOSITION, CACHE_CONTROL
 
 # pylint: enable=E0611,W0403
 from pyramid.httpexceptions import HTTPNotFound, HTTPForbidden, HTTPBadRequest
@@ -106,8 +106,23 @@ def download_package(context, request):
         package, data = fetch_dist(request, dist.name, source_url)
         disp = CONTENT_DISPOSITION.tuples(filename=package.filename)
         request.response.headers.update(disp)
+        cache_control = CACHE_CONTROL.tuples(
+            public=True, max_age=request.registry.package_max_age
+        )
+        request.response.headers.update(cache_control)
         request.response.body = data
         request.response.content_type = "application/octet-stream"
+        return request.response
+    if request.registry.stream_files:
+        with request.db.storage.open(package) as data:
+            request.response.body = data.read()
+        disp = CONTENT_DISPOSITION.tuples(filename=package.filename)
+        request.response.headers.update(disp)
+        cache = CACHE_CONTROL.tuples(
+            public=True, max_age=request.registry.package_max_age
+        )
+        request.response.headers.update(cache)
+        request.response.content_type = "application/octect-stream"
         return request.response
     response = request.db.download_response(package)
     return response
