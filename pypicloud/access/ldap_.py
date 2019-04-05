@@ -276,7 +276,9 @@ class LDAPAccessBackend(IAccessBackend):
         conn = LDAP(
             admin_field=settings.get("auth.ldap.admin_field"),
             admin_group_dn=settings.get("auth.ldap.admin_group_dn"),
-            admin_value=aslist(settings.get("auth.ldap.admin_value", []), flatten=False),
+            admin_value=aslist(
+                settings.get("auth.ldap.admin_value", []), flatten=False
+            ),
             base_dn=settings.get("auth.ldap.base_dn"),
             cache_time=settings.get("auth.ldap.cache_time"),
             service_dn=settings.get("auth.ldap.service_dn"),
