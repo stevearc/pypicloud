@@ -391,7 +391,6 @@ class MockGCSBlob(object):
             This is a NOOP because we only check to make sure that it was
             called, not that it changed any state on the MockGCSBlob class
         """
-        pass
 
 
 class MockGCSBucket(object):

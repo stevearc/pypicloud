@@ -46,7 +46,6 @@ class ICache(object):
     @classmethod
     def postfork(cls, **kwargs):
         """ This method will be called after uWSGI forks """
-        pass
 
     def get_url(self, package):
         """

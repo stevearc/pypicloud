@@ -101,7 +101,6 @@ class IAccessBackend(object):
     @classmethod
     def postfork(cls, **kwargs):
         """ This method will be called after uWSGI forks """
-        pass
 
     def allowed_permissions(self, package):
         """
