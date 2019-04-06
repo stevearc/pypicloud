@@ -2,6 +2,11 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.0.11 - 2019/4/5
+-----------------
+* Add ability to stream files through pypicloud (:pr:`202`)
+* Support spaces in ``auth.ldap.admin_value`` values (:pr:`206`)
+
 1.0.10 - 2018/11/26
 -------------------
 * Strip non-ASCII characters from summary for S3 backend (:pr:`197`)
