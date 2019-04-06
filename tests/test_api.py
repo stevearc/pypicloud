@@ -13,6 +13,8 @@ class TestApi(MockServerTest):
     def setUp(self):
         super(TestApi, self).setUp()
         self.access = self.request.access = MagicMock()
+        self.request.registry.stream_files = False
+        self.request.registry.package_max_age = 0
 
     def test_list_packages(self):
         """ List all packages """
@@ -98,6 +100,18 @@ class TestApi(MockServerTest):
         db.download_response.assert_called_with(db.fetch())
         self.assertEqual(ret, db.download_response())
 
+    def test_download_with_stream_files(self):
+        """ Downloading package returns download response from db with max age"""
+        db = self.request.db = MagicMock()
+        self.request.registry.stream_files = True
+        self.request.registry.package_max_age = 30
+        context = MagicMock()
+        ret = api.download_package(context, self.request)
+        db.fetch.assert_called_with(context.filename)
+        db.storage.open.assert_called_once_with(db.fetch())
+        db.download_response.assert_not_called()
+        ret.headers.update.assert_any_call([("Cache-Control", "public, max-age=30")])
+
     def test_download_fallback_no_cache(self):
         """ Downloading missing package on non-'cache' fallback returns 404 """
         db = self.request.db = MagicMock()
@@ -148,6 +162,28 @@ class TestApi(MockServerTest):
         ret = api.download_package(context, self.request)
         fetch_dist.assert_called_with(self.request, dist.name, url)
         self.assertEqual(ret.body, fetch_dist()[1])
+        ret.headers.update.assert_any_call([("Cache-Control", "public, max-age=0")])
+
+    @patch("pypicloud.views.api.fetch_dist")
+    def test_download_fallback_cache_max_age(self, fetch_dist):
+        """ Downloading missing package caches result from fallback """
+        db = self.request.db = MagicMock()
+        locator = self.request.locator = MagicMock()
+        self.request.registry.fallback = "cache"
+        self.request.fallback_simple = "https://pypi.python.org/simple"
+        self.request.access.can_update_cache.return_value = True
+        self.request.registry.package_max_age = 30
+        db.fetch.return_value = None
+        fetch_dist.return_value = (MagicMock(), MagicMock())
+        context = MagicMock()
+        context.filename = "package.tar.gz"
+        dist = MagicMock()
+        url = "https://pypi.python.org/simple/%s" % context.filename
+        locator.get_project.return_value = {"0.1": dist, "urls": {"0.1": set([url])}}
+        ret = api.download_package(context, self.request)
+        fetch_dist.assert_called_with(self.request, dist.name, url)
+        self.assertEqual(ret.body, fetch_dist()[1])
+        ret.headers.update.assert_any_call([("Cache-Control", "public, max-age=30")])
 
     def test_fetch_requirements_no_perm(self):
         """ Fetching requirements without perms returns 403 """

@@ -53,21 +53,21 @@ EXTRAS["test"] = EXTRAS["all_plugins"] + [
 ]
 
 EXTRAS["server"] = ["waitress"]
-EXTRAS["lint"] = ["black", "pylint==2.1.1"]
+EXTRAS["lint"] = ["black", "pylint==2.3.1"]
 EXTRAS["doc"] = ["numpydoc", "sphinx", "sphinx_rtd_theme"]
 
 
 if __name__ == "__main__":
     setup(
         name="pypicloud",
-        version="1.0.10",
+        version="1.0.11",
         description="Private PyPI backed by S3",
         long_description=README + "\n\n" + CHANGES,
         classifiers=[
             "Programming Language :: Python",
             "Programming Language :: Python :: 2",
             "Programming Language :: Python :: 2.7",
-            "Programming Language :: Python :: 3.4",
+            "Programming Language :: Python :: 3",
             "Programming Language :: Python :: 3.5",
             "Programming Language :: Python :: 3.6",
             "Development Status :: 4 - Beta",

@@ -116,9 +116,6 @@ class Permission(Base):
         return perms
 
 
-# pylint: disable=E1002
-
-
 class UserPermission(Permission):
 
     """ Permissions for a user on a package """

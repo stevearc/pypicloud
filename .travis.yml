@@ -8,7 +8,6 @@ services:
   - docker
 env:
   - TOXENV=py27
-  - TOXENV=py34
   - TOXENV=py36
   - TOXENV=lint
 matrix:
