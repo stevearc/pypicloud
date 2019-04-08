@@ -121,7 +121,7 @@ def includeme(config):
         config.registry.fallback_url = settings["pypi.fallback_url"]
         config.registry.fallback_base_url = None
     else:
-        config.registry.fallback_base_url = "https://pypi.python.org"
+        config.registry.fallback_base_url = "https://pypi.org"
         config.registry.fallback_url = None
     config.add_request_method(_fallback_simple, name="fallback_simple", reify=True)
 
