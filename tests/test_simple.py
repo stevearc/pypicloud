@@ -111,9 +111,9 @@ class TestSimple(MockServerTest):
         version = "1.1"
         name = "foo"
         filename = "%s-%s.tar.gz" % (name, version)
-        url = "http://pypi.python.org/pypi/%s/%s" % (name, filename)
+        url = "https://pypi.org/pypi/%s/%s" % (name, filename)
         wheelname = "%s-%s.whl" % (name, version)
-        wheel_url = "http://pypi.python.org/pypi/%s/%s" % (name, wheelname)
+        wheel_url = "https://pypi.org/pypi/%s/%s" % (name, wheelname)
         dist = MagicMock()
         dist.name = name
         self.request.locator.get_project.return_value = {
@@ -134,9 +134,9 @@ class TestSimple(MockServerTest):
         version = "1.1"
         name = "foo"
         filename = "%s-%s.tar.gz" % (name, version)
-        url = "http://pypi.python.org/pypi/%s/%s" % (name, filename)
+        url = "https://pypi.org/pypi/%s/%s" % (name, filename)
         wheelname = "%s-%s.whl" % (name, version)
-        wheel_url = "http://pypi.python.org/pypi/%s/%s" % (name, wheelname)
+        wheel_url = "https://pypi.org/pypi/%s/%s" % (name, wheelname)
         dist = MagicMock()
         dist.name = name
         self.request.locator.get_project.return_value = {
@@ -153,8 +153,8 @@ class PackageReadTestBase(unittest.TestCase):
 
     fallback = None
     always_show_upstream = None
-    fallback_url = "http://pypi.python.org/pypi/"
-    fallback_base_url = "http://pypi.python.org/"
+    fallback_url = "https://pypi.org/pypi/"
+    fallback_base_url = "https://pypi.org/"
 
     @classmethod
     def setUpClass(cls):
