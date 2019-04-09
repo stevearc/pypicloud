@@ -51,8 +51,8 @@ server (``redirect``), or a package index pulled from the fallback server
 ``GET`` ``/pypi/<package>/json``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Returns information about all versions of the package in JSON format. This is
-similar to what PyPI does (ex: `https://pypi.python.org/pypi/requests/json
-<https://pypi.python.org/pypi/requests/json>`__) but the information is more
+similar to what PyPI does (ex: `https://pypi.org/pypi/requests/json
+<https://pypi.org/pypi/requests/json>`__) but the information is more
 limited because pypicloud doesn't store as much package metadata.
 
 **Example**::

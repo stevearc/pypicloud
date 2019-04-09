@@ -150,14 +150,14 @@ class TestApi(MockServerTest):
         db = self.request.db = MagicMock()
         locator = self.request.locator = MagicMock()
         self.request.registry.fallback = "cache"
-        self.request.fallback_simple = "https://pypi.python.org/simple"
+        self.request.fallback_simple = "https://pypi.org/simple"
         self.request.access.can_update_cache.return_value = True
         db.fetch.return_value = None
         fetch_dist.return_value = (MagicMock(), MagicMock())
         context = MagicMock()
         context.filename = "package.tar.gz"
         dist = MagicMock()
-        url = "https://pypi.python.org/simple/%s" % context.filename
+        url = "https://pypi.org/simple/%s" % context.filename
         locator.get_project.return_value = {"0.1": dist, "urls": {"0.1": set([url])}}
         ret = api.download_package(context, self.request)
         fetch_dist.assert_called_with(self.request, dist.name, url)
@@ -170,7 +170,7 @@ class TestApi(MockServerTest):
         db = self.request.db = MagicMock()
         locator = self.request.locator = MagicMock()
         self.request.registry.fallback = "cache"
-        self.request.fallback_simple = "https://pypi.python.org/simple"
+        self.request.fallback_simple = "https://pypi.org/simple"
         self.request.access.can_update_cache.return_value = True
         self.request.registry.package_max_age = 30
         db.fetch.return_value = None
@@ -178,7 +178,7 @@ class TestApi(MockServerTest):
         context = MagicMock()
         context.filename = "package.tar.gz"
         dist = MagicMock()
-        url = "https://pypi.python.org/simple/%s" % context.filename
+        url = "https://pypi.org/simple/%s" % context.filename
         locator.get_project.return_value = {"0.1": dist, "urls": {"0.1": set([url])}}
         ret = api.download_package(context, self.request)
         fetch_dist.assert_called_with(self.request, dist.name, url)

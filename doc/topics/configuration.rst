@@ -45,14 +45,14 @@ shown with the versions found at the ``fallback_base_url``.
 | **Argument:** string, optional
 
 The index server to handle the behavior defined in ``pypi.fallback`` (default
-https://pypi.python.org/simple)
+https://pypi.org/simple)
 
 ``pypi.fallback_base_url``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string, optional
 
 This takes precendence over ``pypi.fallback`` by causing redirects to go to:
-``pypi.fallback_base_url/<simple|pypi>``. (default https://pypi.python.org)
+``pypi.fallback_base_url/<simple|pypi>``. (default https://pypi.org)
 
 ``pypi.default_read``
 ~~~~~~~~~~~~~~~~~~~~~
