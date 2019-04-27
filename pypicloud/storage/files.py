@@ -118,4 +118,4 @@ class FileStorage(IStorage):
 
     def open(self, package):
         filename = self.get_path(package)
-        return closing(open(filename, "r"))
+        return closing(open(filename, "rb"))
