@@ -1,6 +1,7 @@
 sudo: required
 language: python
-python: "3.6"
+python: "3.7"
+dist: xenial
 services:
   - redis-server
   - mysql
@@ -8,12 +9,14 @@ services:
   - docker
 env:
   - TOXENV=py27
-  - TOXENV=py36
+  - TOXENV=py37
   - TOXENV=lint
 matrix:
   include:
   - python: "3.5"
     env: TOXENV=py35
+  - python: "3.6"
+    env: TOXENV=py36
 install:
   - pip install tox coveralls
 before_script:
