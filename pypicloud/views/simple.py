@@ -137,7 +137,7 @@ def get_fallback_packages(request, package_name, redirect=True):
     """ Get all package versions for a package from the fallback_base_url """
     dists = request.locator.get_project(package_name)
     pkgs = {}
-    if not request.access.has_permission(package_name, 'fallback'):
+    if not request.access.has_permission(package_name, "fallback"):
         return pkgs
     for version, url_set in six.iteritems(dists.get("urls", {})):
         dist = dists[version]

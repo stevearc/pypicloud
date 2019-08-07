@@ -270,8 +270,9 @@ class TestBaseBackend(BaseACLTest):
         self.backend.default_read = ["everyone", "authenticated"]
         self.backend.default_write = []
         perms = self.backend.allowed_permissions("anypkg")
-        self.assertEqual(perms, {Everyone: ("read", "fallback"),
-                                 Authenticated: ("read", "fallback")})
+        self.assertEqual(
+            perms, {Everyone: ("read", "fallback"), Authenticated: ("read", "fallback")}
+        )
 
     def test_has_permission_default_write(self):
         """ If no user/group permissions on a package, use default_write """
