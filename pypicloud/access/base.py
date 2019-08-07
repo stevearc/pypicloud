@@ -68,7 +68,7 @@ class IAccessBackend(object):
         request=None,
         default_read=None,
         default_write=None,
-        disallow_fallback=None,
+        disallow_fallback=(),
         cache_update=None,
         pwd_context=None,
         token_expiration=ONE_WEEK,
@@ -134,8 +134,8 @@ class IAccessBackend(object):
                     all_perms[principal] = ("write",)
 
         # add fallback permissions
-        for principal in all_perms:
-            if package not in self.disallow_fallback:
+        if package not in self.disallow_fallback:
+            for principal in all_perms:
                 all_perms[principal] += ("fallback",)
         return all_perms
 

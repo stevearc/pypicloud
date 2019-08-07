@@ -1402,9 +1402,9 @@ class TestLDAPMockBackend(BaseLDAPTest):
         self.assertEqual(user, {"username": "root", "admin": True, "groups": []})
 
     def test_allowed_permissions(self):
-        """ Default settings will only allow authenticated to read """
+        """ Default settings will only allow authenticated to read and fallback"""
         perms = self.backend.allowed_permissions("mypkg")
-        self.assertEqual(perms, {Authenticated: ("read",)})
+        self.assertEqual(perms, {Authenticated: ("read", "fallback")})
 
     def test_user_package_perms(self):
         """ No user package perms in LDAP """
