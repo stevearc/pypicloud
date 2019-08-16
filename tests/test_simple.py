@@ -146,6 +146,25 @@ class TestSimple(MockServerTest):
         pkgs = get_fallback_packages(self.request, "foo")
         self.assertEqual(pkgs, {filename: url, wheelname: wheel_url})
 
+    def test_disallow_fallback_packages(self):
+        """ Disallow fetch fallback packages """
+        self.request.locator = MagicMock()
+        version = "1.1"
+        name = "foo"
+        filename = "%s-%s.tar.gz" % (name, version)
+        url = "http://pypi.python.org/pypi/%s/%s" % (name, filename)
+        wheelname = "%s-%s.whl" % (name, version)
+        wheel_url = "http://pypi.python.org/pypi/%s/%s" % (name, wheelname)
+        dist = MagicMock()
+        dist.name = name
+        self.request.locator.get_project.return_value = {
+            version: dist,
+            "urls": {version: [url, wheel_url]},
+        }
+        self.request.access.has_permission = MagicMock(return_value=False)
+        pkgs = get_fallback_packages(self.request, "foo")
+        self.assertEqual(pkgs, {})
+
 
 class PackageReadTestBase(unittest.TestCase):
 
