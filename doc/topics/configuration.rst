@@ -45,14 +45,22 @@ shown with the versions found at the ``fallback_base_url``.
 | **Argument:** string, optional
 
 The index server to handle the behavior defined in ``pypi.fallback`` (default
-https://pypi.python.org/simple)
+https://pypi.org/simple)
 
 ``pypi.fallback_base_url``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string, optional
 
 This takes precendence over ``pypi.fallback`` by causing redirects to go to:
-``pypi.fallback_base_url/<simple|pypi>``. (default https://pypi.python.org)
+``pypi.fallback_base_url/<simple|pypi>``. (default https://pypi.org)
+
+``pypi.disallow_fallback``
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** list, optional
+
+List of packages that should not be fetch from ``pypi.fallback_base_url``.
+This is useful if private packages have the same name as a package in
+``pypi.fallback_base_url`` and you don't want it to be replaced.
 
 ``pypi.default_read``
 ~~~~~~~~~~~~~~~~~~~~~

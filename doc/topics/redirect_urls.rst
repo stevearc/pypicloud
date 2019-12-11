@@ -17,7 +17,7 @@ that package. That will look like this:
 
 If you have a lot of versions of that package, that's a lot of cryptographic
 signatures that have to be run just for one ``pip install``. It used to be that
-boto used `M2Crypto <https://pypi.python.org/pypi/M2Crypto>`_ for these
+boto used `M2Crypto <https://pypi.org/pypi/M2Crypto>`_ for these
 signatures, but then `this pull request
 <https://github.com/boto/boto/pull/1214>`_ landed which changed it to use `rsa
 <https://stuvel.eu/rsa>`_, a pure-python library that's easier to install.

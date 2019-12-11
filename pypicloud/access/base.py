@@ -68,6 +68,7 @@ class IAccessBackend(object):
         request=None,
         default_read=None,
         default_write=None,
+        disallow_fallback=(),
         cache_update=None,
         pwd_context=None,
         token_expiration=ONE_WEEK,
@@ -76,6 +77,7 @@ class IAccessBackend(object):
         self.request = request
         self.default_read = default_read
         self.default_write = default_write
+        self.disallow_fallback = disallow_fallback
         self.cache_update = cache_update
         self.pwd_context = pwd_context
         self.token_expiration = token_expiration
@@ -90,6 +92,7 @@ class IAccessBackend(object):
                 settings.get("pypi.default_read", ["authenticated"])
             ),
             "default_write": aslist(settings.get("pypi.default_write", [])),
+            "disallow_fallback": aslist(settings.get("pypi.disallow_fallback", [])),
             "cache_update": aslist(
                 settings.get("pypi.cache_update", ["authenticated"])
             ),
@@ -129,6 +132,11 @@ class IAccessBackend(object):
                     all_perms[principal] += ("write",)
                 else:
                     all_perms[principal] = ("write",)
+
+        # add fallback permissions
+        if package not in self.disallow_fallback:
+            for principal in all_perms:
+                all_perms[principal] += ("fallback",)
         return all_perms
 
     def get_acl(self, package):
