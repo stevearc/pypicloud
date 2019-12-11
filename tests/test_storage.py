@@ -98,7 +98,6 @@ class TestS3Storage(unittest.TestCase):
             "X-Amz-SignedHeaders",
             "X-Amz-Signature"
         ])
-        self.assertEqual(query["X-Amz-Date"][0], datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ"))
 
     def test_delete(self):
         """ delete() should remove package from storage """
