@@ -90,14 +90,11 @@ class TestS3Storage(unittest.TestCase):
         self.assertEqual(parts.hostname, "mybucket.s3.amazonaws.com")
         self.assertEqual(parts.path, "/" + self.storage.get_path(package))
         query = parse_qs(parts.query)
-        self.assertItemsEqual(query.keys(), [
-            "X-Amz-Algorithm",
-            "X-Amz-Credential",
-            "X-Amz-Date",
-            "X-Amz-Expires",
-            "X-Amz-SignedHeaders",
-            "X-Amz-Signature"
-        ])
+        self.assertItemsEqual(query.keys(), ["Expires", "Signature", "AWSAccessKeyId"])
+        self.assertTrue(int(query["Expires"][0]) > time.time())
+        self.assertEqual(
+            query["AWSAccessKeyId"][0], self.settings["storage.aws_access_key_id"]
+        )
 
     def test_delete(self):
         """ delete() should remove package from storage """
@@ -141,7 +138,7 @@ class TestS3Storage(unittest.TestCase):
         settings = {
             "storage.bucket": "new_bucket",
             "storage.region_name": "eu-central-1",
-            "signature_version": "s3v4"
+            "signature_version": "s3v4",
         }
         S3Storage.configure(settings)
 
@@ -150,10 +147,7 @@ class TestS3Storage(unittest.TestCase):
 
     def test_create_bucket_us(self):
         """ If S3 bucket doesn't exist, create it """
-        settings = {
-            "storage.bucket": "new_bucket",
-            "storage.region_name": "us-west-1"
-        }
+        settings = {"storage.bucket": "new_bucket", "storage.region_name": "us-west-1"}
         S3Storage.configure(settings)
 
         bucket = self.s3.Bucket("new_bucket")

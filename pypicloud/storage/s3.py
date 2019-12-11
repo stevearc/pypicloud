@@ -68,7 +68,7 @@ class S3Storage(ObjectStoreStorage):
             use_accelerate_endpoint=asbool,
             payload_signing_enabled=asbool,
             addressing_style=str,
-            signature_version=str
+            signature_version=str,
         )
         config = Config(**config_settings)
 
@@ -105,7 +105,7 @@ class S3Storage(ObjectStoreStorage):
                 LOG.info("Creating S3 bucket %s", bucket_name)
 
                 if config.region_name:
-                    location = {'LocationConstraint': config.region_name}
+                    location = {"LocationConstraint": config.region_name}
                     bucket.create(CreateBucketConfiguration=location)
                 else:
                     bucket.create()
