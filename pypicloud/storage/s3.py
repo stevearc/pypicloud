@@ -68,6 +68,7 @@ class S3Storage(ObjectStoreStorage):
             use_accelerate_endpoint=asbool,
             payload_signing_enabled=asbool,
             addressing_style=str,
+            signature_version=str,
         )
         config = Config(**config_settings)
 
@@ -102,7 +103,13 @@ class S3Storage(ObjectStoreStorage):
         except ClientError as e:
             if e.response["Error"]["Code"] == "404":
                 LOG.info("Creating S3 bucket %s", bucket_name)
-                bucket.create()
+
+                if config.region_name:
+                    location = {"LocationConstraint": config.region_name}
+                    bucket.create(CreateBucketConfiguration=location)
+                else:
+                    bucket.create()
+
                 bucket.wait_until_exists()
             else:
                 if e.response["Error"]["Code"] == "301":

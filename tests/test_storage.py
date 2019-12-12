@@ -133,10 +133,23 @@ class TestS3Storage(unittest.TestCase):
         match = re.match(pattern, key.key)
         self.assertIsNotNone(match)
 
-    def test_create_bucket(self):
+    def test_create_bucket_eu(self):
         """ If S3 bucket doesn't exist, create it """
-        settings = {"storage.bucket": "new_bucket", "storage.region_name": "us-east-1"}
+        settings = {
+            "storage.bucket": "new_bucket",
+            "storage.region_name": "eu-central-1",
+            "signature_version": "s3v4",
+        }
         S3Storage.configure(settings)
+
+        bucket = self.s3.Bucket("new_bucket")
+        bucket.load()
+
+    def test_create_bucket_us(self):
+        """ If S3 bucket doesn't exist, create it """
+        settings = {"storage.bucket": "new_bucket", "storage.region_name": "us-west-1"}
+        S3Storage.configure(settings)
+
         bucket = self.s3.Bucket("new_bucket")
         bucket.load()
 
