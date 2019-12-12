@@ -11,7 +11,7 @@ PyPI Cloud
 .. |docs| image:: https://readthedocs.org/projects/pypicloud/badge/?version=latest
 .. _docs: http://pypicloud.readthedocs.org/
 .. |downloads| image:: http://pepy.tech/badge/pypicloud
-.. _downloads: http://pypi.python.org/pypi/pypicloud
+.. _downloads: https://pypi.org/pypi/pypicloud
 
 This package is a Pyramid web app that provides a PyPI server where the packages
 are stored on Amazon's Simple Storage Service (S3) or Google's Cloud Storage

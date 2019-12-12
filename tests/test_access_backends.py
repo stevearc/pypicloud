@@ -270,14 +270,16 @@ class TestBaseBackend(BaseACLTest):
         self.backend.default_read = ["everyone", "authenticated"]
         self.backend.default_write = []
         perms = self.backend.allowed_permissions("anypkg")
-        self.assertEqual(perms, {Everyone: ("read",), Authenticated: ("read",)})
+        self.assertEqual(
+            perms, {Everyone: ("read", "fallback"), Authenticated: ("read", "fallback")}
+        )
 
     def test_has_permission_default_write(self):
         """ If no user/group permissions on a package, use default_write """
         self.backend.default_read = ["authenticated"]
         self.backend.default_write = ["authenticated"]
         perms = self.backend.allowed_permissions("anypkg")
-        self.assertEqual(perms, {Authenticated: ("read", "write")})
+        self.assertEqual(perms, {Authenticated: ("read", "write", "fallback")})
 
     def test_admin_principal(self):
         """ Admin user has the 'admin' principal """
@@ -1402,8 +1404,15 @@ class TestLDAPMockBackend(BaseLDAPTest):
         self.assertEqual(user, {"username": "root", "admin": True, "groups": []})
 
     def test_allowed_permissions(self):
-        """ Default settings will only allow authenticated to read """
+        """ Default settings will only allow authenticated to read and fallback"""
         perms = self.backend.allowed_permissions("mypkg")
+        self.assertEqual(perms, {Authenticated: ("read", "fallback")})
+
+    def test_package_fallback_disallowed(self):
+        """ If package is in disallow_fallback list, it won't have fallback permissions """
+        self.backend.default_read = ["authenticated"]
+        self.backend.disallow_fallback = ["anypkg"]
+        perms = self.backend.allowed_permissions("anypkg")
         self.assertEqual(perms, {Authenticated: ("read",)})
 
     def test_user_package_perms(self):

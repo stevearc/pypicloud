@@ -66,7 +66,7 @@ class BetterScrapingLocator(SimpleScrapingLocator):
         return (
             t.scheme == "https",
             not (self.prefer_wheel ^ filename.endswith(".whl")),
-            "pypi.python.org" in t.netloc,
+            "pypi.org" in t.netloc,
             filename,
         )
 

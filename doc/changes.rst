@@ -2,6 +2,12 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.0.12 - 2019/12/11
+-------------------
+* Change default fallback url from ``http://pypi.python.org`` to ``https://pypi.org`` (:pr:`207`)
+* Add ``pypi.disallow_fallback`` option to disable fallback for specific packages (:pr:`216`)
+* Fix automatic bucket creation for all S3 regions (:pr:`225`)
+
 1.0.11 - 2019/4/5
 -----------------
 * Add ability to stream files through pypicloud (:pr:`202`)

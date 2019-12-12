@@ -111,9 +111,9 @@ class TestSimple(MockServerTest):
         version = "1.1"
         name = "foo"
         filename = "%s-%s.tar.gz" % (name, version)
-        url = "http://pypi.python.org/pypi/%s/%s" % (name, filename)
+        url = "https://pypi.org/pypi/%s/%s" % (name, filename)
         wheelname = "%s-%s.whl" % (name, version)
-        wheel_url = "http://pypi.python.org/pypi/%s/%s" % (name, wheelname)
+        wheel_url = "https://pypi.org/pypi/%s/%s" % (name, wheelname)
         dist = MagicMock()
         dist.name = name
         self.request.locator.get_project.return_value = {
@@ -134,9 +134,9 @@ class TestSimple(MockServerTest):
         version = "1.1"
         name = "foo"
         filename = "%s-%s.tar.gz" % (name, version)
-        url = "http://pypi.python.org/pypi/%s/%s" % (name, filename)
+        url = "https://pypi.org/pypi/%s/%s" % (name, filename)
         wheelname = "%s-%s.whl" % (name, version)
-        wheel_url = "http://pypi.python.org/pypi/%s/%s" % (name, wheelname)
+        wheel_url = "https://pypi.org/pypi/%s/%s" % (name, wheelname)
         dist = MagicMock()
         dist.name = name
         self.request.locator.get_project.return_value = {
@@ -146,6 +146,25 @@ class TestSimple(MockServerTest):
         pkgs = get_fallback_packages(self.request, "foo")
         self.assertEqual(pkgs, {filename: url, wheelname: wheel_url})
 
+    def test_disallow_fallback_packages(self):
+        """ Disallow fetch fallback packages """
+        self.request.locator = MagicMock()
+        version = "1.1"
+        name = "foo"
+        filename = "%s-%s.tar.gz" % (name, version)
+        url = "http://pypi.python.org/pypi/%s/%s" % (name, filename)
+        wheelname = "%s-%s.whl" % (name, version)
+        wheel_url = "http://pypi.python.org/pypi/%s/%s" % (name, wheelname)
+        dist = MagicMock()
+        dist.name = name
+        self.request.locator.get_project.return_value = {
+            version: dist,
+            "urls": {version: [url, wheel_url]},
+        }
+        self.request.access.has_permission = MagicMock(return_value=False)
+        pkgs = get_fallback_packages(self.request, "foo")
+        self.assertEqual(pkgs, {})
+
 
 class PackageReadTestBase(unittest.TestCase):
 
@@ -153,8 +172,8 @@ class PackageReadTestBase(unittest.TestCase):
 
     fallback = None
     always_show_upstream = None
-    fallback_url = "http://pypi.python.org/pypi/"
-    fallback_base_url = "http://pypi.python.org/"
+    fallback_url = "https://pypi.org/pypi/"
+    fallback_base_url = "https://pypi.org/"
 
     @classmethod
     def setUpClass(cls):

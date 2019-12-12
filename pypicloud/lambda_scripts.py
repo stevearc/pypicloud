@@ -25,7 +25,7 @@ HANDLER_FILENAME = "lambda_script.py"
 
 VENV_VERSION = "15.1.0"
 VENV_URL = (
-    "https://pypi.python.org/packages/source/v/"
+    "https://pypi.org/packages/source/v/"
     "virtualenv/virtualenv-%s.tar.gz" % VENV_VERSION
 )
 
