@@ -389,7 +389,7 @@ class MockGCSBlob(object):
         """ Mock the delete() method on google.cloud.storage.Blob """
         self.bucket._delete_blob(self.name)
 
-    def _generate_signed_url(self, expiration):
+    def _generate_signed_url(self, expiration, credentials, version):
         """ Mock the generate_signed_url() method on
             google.cloud.storage.Blob
         """
@@ -617,10 +617,9 @@ class TestGoogleCloudStorage(unittest.TestCase):
         blob = self.bucket.list_blobs()[0]
         blob.update_storage_class.assert_called_with("COLDLINE")
 
-    def test_fail_on_missing_auth(self):
-        """ Raise an exception when loading settings for GoogleCloudStorage
-            and no authentication information is found
-        """
-        settings = {"storage.bucket": "new_bucket", "storage.region_name": "us-east-1"}
-        with self.assertRaises(Exception):
-            GoogleCloudStorage.configure(settings)
+    def test_client_without_credentials(self):
+        """ Can create a client without passing in application credentials """
+        kwargs = GoogleCloudStorage.configure(
+            {"storage.bucket": "new_bucket", "storage.region_name": "us-east-1"}
+        )
+        GoogleCloudStorage(MagicMock(), **kwargs)

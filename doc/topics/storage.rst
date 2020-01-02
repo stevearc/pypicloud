@@ -201,19 +201,27 @@ form ``storage.<key> = <value>``).
 Settings supported by the S3 backend that are not currently supported by the
 GCS backend are ``server_side_encryption`` and ``public_url``.
 
-This backend requires a service account JSON key file in order to authenticate
-against the GCS API, even when the server is running in Google Cloud Platform (
-for example, on Google Compute Engine).  The JSON key filename is passed to
-pypicloud via one of two mechanisms:
-
-1. By setting the ``GOOGLE_APPLICATION_CREDENTIALS`` environment variable. For example::
+Pypicloud authenticates with GCS using the usual Application Default Credentials strategy,
+see the `documentation <https://cloud.google.com/docs/authentication/production>`__ for
+more details.  For example you can set the ``GOOGLE_APPLICATION_CREDENTIALS``
+environment variable::
 
      GOOGLE_APPLICATION_CREDENTIALS=/path/to/my/keyfile.json pserve pypicloud.ini
 
-2. Via the config setting ``storage.gcp_service_account_json_filename``, documented below.
+Pypicloud also exposes a config setting, ``storage.gcp_service_account_json_filename``,
+documented below.
 
 For more information on setting up a service account, see the `GCS documentation <https://cloud.google.com/storage/docs/authentication#service_accounts>`__.
 
+If using the service account provided automatially when running in GCE, GKE, etc, then
+due to `a restriction with the gcloud library <https://github.com/googleapis/google-auth-library-python/issues/50>`__,
+the IAM signing service must be used::
+
+    storage.gcp_use_iam_signer=true
+
+In addition, when using the IAM signing service, the service account used needs to have
+``iam.serviceAccounts.signBlob`` on the storage bucket.  This is available as part of
+``roles/iam.serviceAccountTokenCreator``.
 
 ``storage.bucket``
 ~~~~~~~~~~~~~~~~~~
@@ -295,3 +303,11 @@ Sets uploaded object's storage class.  See the `GCS documentation
 <https://cloud.google.com/storage/docs/per-object-storage-class>`__. Defaults to
 the default storage class of the bucket, if the bucket is preexisting, or
 "regional" otherwise.
+
+``storage.gcp_use_iam_signer``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** boolean, optional
+
+Sign blobs using IAM backed signing, rather than using GCP application credentials.
+The service account used needs to have ``iam.serviceAccounts.signBlob`` on the storage
+bucket.  This is available as part of ``roles/iam.serviceAccountTokenCreator``.
