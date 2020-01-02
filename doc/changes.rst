@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.0.13 - 2020/1/1
+-----------------
+* Add option to use IAM signer on GCS (:pr:`226`)
+
 1.0.12 - 2019/12/11
 -------------------
 * Change default fallback url from ``http://pypi.python.org`` to ``https://pypi.org`` (:pr:`207`)

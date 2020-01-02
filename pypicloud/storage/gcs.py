@@ -1,14 +1,16 @@
 """ Store packages in GCS """
-import posixpath
+import logging
 import os
+import posixpath
 from datetime import timedelta
 
-import logging
+from google.auth import compute_engine
+from google.auth.transport import requests
 from google.cloud import storage
+from pyramid.settings import asbool
 
-from .object_store import ObjectStoreStorage
 from pypicloud.models import Package
-
+from .object_store import ObjectStoreStorage
 
 LOG = logging.getLogger(__name__)
 
@@ -24,11 +26,13 @@ class GoogleCloudStorage(ObjectStoreStorage):
         request=None,
         service_account_json_filename=None,
         project_id=None,
+        use_iam_signer=False,
         **kwargs
     ):
         super(GoogleCloudStorage, self).__init__(request=request, **kwargs)
 
         self.service_account_json_filename = service_account_json_filename
+        self.use_iam_signer = use_iam_signer
 
         if self.public_url:
             raise NotImplementedError(
@@ -62,11 +66,11 @@ class GoogleCloudStorage(ObjectStoreStorage):
                 )
             )
 
-        result = {}
-        result["service_account_json_filename"] = service_account_json_filename
-        result["project_id"] = settings.get("storage.gcp_project_id")
-
-        return result
+        return {
+            "service_account_json_filename": service_account_json_filename,
+            "project_id": settings.get("storage.gcp_project_id"),
+            "use_iam_signer": asbool(settings.get("storage.gcp_use_iam_signer", False)),
+        }
 
     @classmethod
     def _get_storage_client(cls, settings):
@@ -85,28 +89,26 @@ class GoogleCloudStorage(ObjectStoreStorage):
         ) or os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
         if not service_account_json_filename:
-            raise Exception(
-                "Neither the config setting "
-                "storage.service_account_json_filename, nor the "
-                "environment variable GOOGLE_APPLICATION_CREDENTIALS, was "
-                "found.  Pypicloud requires one of these in order to "
-                "properly authenticate against the GCS API."
+            LOG.info("Creating GCS client without service account JSON file")
+
+            client = storage.Client(**client_args)
+        else:
+            if not os.path.isfile(service_account_json_filename) and not cls.test:
+                raise Exception(
+                    "Service account JSON file not found at provided "
+                    "path {}".format(service_account_json_filename)
+                )
+
+            LOG.info(
+                "Creating GCS client from service account JSON file %s",
+                service_account_json_filename,
             )
 
-        if not os.path.isfile(service_account_json_filename) and not cls.test:
-            raise Exception(
-                "Service account JSON file not found at provided "
-                "path {}".format(service_account_json_filename)
+            client = storage.Client.from_service_account_json(
+                service_account_json_filename, **client_args
             )
 
-        LOG.info(
-            "Creating GCS client from service account JSON file %s",
-            service_account_json_filename,
-        )
-
-        return storage.Client.from_service_account_json(
-            service_account_json_filename, **client_args
-        )
+        return client
 
     @classmethod
     def get_bucket(cls, bucket_name, settings):
@@ -143,7 +145,19 @@ class GoogleCloudStorage(ObjectStoreStorage):
     def _generate_url(self, package):
         """ Generate a signed url to the GCS file """
         blob = self._get_gcs_blob(package)
-        return blob.generate_signed_url(expiration=timedelta(seconds=self.expire_after))
+
+        if self.use_iam_signer:
+            # Workaround for https://github.com/googleapis/google-auth-library-python/issues/50
+            signing_credentials = compute_engine.IDTokenCredentials(
+                requests.Request(), ""
+            )
+        else:
+            signing_credentials = None
+        return blob.generate_signed_url(
+            expiration=timedelta(seconds=self.expire_after),
+            credentials=signing_credentials,
+            version="v4",
+        )
 
     def _get_gcs_blob(self, package):
         """ Get a GCS blob object for the specified package """
