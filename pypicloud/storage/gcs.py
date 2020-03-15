@@ -129,10 +129,13 @@ class GoogleCloudStorage(ObjectStoreStorage):
     def package_from_object(cls, blob, factory):
         """ Create a package from a GCS object """
         filename = posixpath.basename(blob.name)
+        if blob.metadata is None:
+            return None
         name = blob.metadata.get("name")
         version = blob.metadata.get("version")
         summary = blob.metadata.get("summary")
-
+        if name is None or version is None:
+            return None
         return factory(name, version, filename, blob.updated, summary, path=blob.name)
 
     def list(self, factory=Package):
