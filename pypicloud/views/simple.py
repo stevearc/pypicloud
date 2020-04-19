@@ -19,7 +19,7 @@ LOG = logging.getLogger(__name__)
 @view_config(context=Root, request_method="POST", subpath=(), renderer="json")
 @view_config(context=SimpleResource, request_method="POST", subpath=(), renderer="json")
 @argify
-def upload(request, content, name=None, version=None, summary=None):
+def upload(request, content, name=None, version=None, summary=None, requires_python=None):
     """ Handle update commands """
     action = request.param(":action", "file_upload")
     # Direct uploads from the web UI go here, and don't have a name/version
@@ -37,6 +37,7 @@ def upload(request, content, name=None, version=None, summary=None):
                 name=name,
                 version=version,
                 summary=summary,
+                requires_python=requires_python,
             )
         except ValueError as e:
             return HTTPConflict(*e.args)
@@ -119,14 +120,14 @@ def package_versions_json(context, request):
         return pkgs
     response = {"info": {"name": context.name}, "releases": {}}
     max_version = None
-    for filename, url in six.iteritems(pkgs["pkgs"]):
+    for filename, pkg in six.iteritems(pkgs["pkgs"]):
         name, version_str = parse_filename(filename)
         version = pkg_resources.parse_version(version_str)
         if max_version is None or version > max_version:
             max_version = version
 
         response["releases"].setdefault(version_str, []).append(
-            {"filename": filename, "url": url}
+            {"filename": filename, "url": pkg['url']}
         )
     if max_version is not None:
         response["urls"] = response["releases"].get(str(max_version), [])
@@ -153,7 +154,10 @@ def packages_to_dict(request, packages):
     """ Convert a list of packages to a dict used by the template """
     pkgs = {}
     for package in packages:
-        pkgs[package.filename] = package.get_url(request)
+        pkgs[package.filename] = {
+            'url': package.get_url(request),
+            'requires_python': package.data.get('requires_python'),
+        }
     return pkgs
 
 
