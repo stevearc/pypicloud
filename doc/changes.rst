@@ -5,6 +5,8 @@ If you are upgrading an existing installation, read :ref:`the instructions <upgr
 1.0.13 - 2020/1/1
 -----------------
 * Add option to use IAM signer on GCS (:pr:`226`)
+* Per PEP 503, if the package is uploaded with the `requires_python` metadata, the simple package index
+  will advertise it through the data-requires-python attribute and allows pip to ignore it when matching.
 
 1.0.12 - 2019/12/11
 -------------------
