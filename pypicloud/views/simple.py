@@ -37,7 +37,7 @@ def upload(request, content, name=None, version=None, summary=None, requires_pyt
                 name=name,
                 version=version,
                 summary=summary,
-                requires_python=requires_python,
+                requires_python=requires_python or None,
             )
         except ValueError as e:
             return HTTPConflict(*e.args)
