@@ -249,10 +249,15 @@ class PackageReadTestBase(unittest.TestCase):
         """ When requested, the endpoint should serve the packages """
         ret = package_versions(self.package, request)
         self.assertEqual(
-            ret, {"pkgs": {self.package.filename: {
-                'url': self.package.get_url(request),
-                'requires_python': None,
-            }}},
+            ret,
+            {
+                "pkgs": {
+                    self.package.filename: {
+                        "url": self.package.get_url(request),
+                        "requires_python": None,
+                    }
+                }
+            },
         )
         # Check the /json endpoint too
         ret = package_versions_json(self.package, request)
@@ -282,8 +287,8 @@ class PackageReadTestBase(unittest.TestCase):
             {
                 "pkgs": {
                     self.package.filename: {
-                        'url': self.package.get_url(request),
-                        'requires_python': None,
+                        "url": self.package.get_url(request),
+                        "requires_python": None,
                     },
                     f2name: self.fallback_packages[f2name],
                 }

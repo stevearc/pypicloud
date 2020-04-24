@@ -19,7 +19,9 @@ LOG = logging.getLogger(__name__)
 @view_config(context=Root, request_method="POST", subpath=(), renderer="json")
 @view_config(context=SimpleResource, request_method="POST", subpath=(), renderer="json")
 @argify
-def upload(request, content, name=None, version=None, summary=None, requires_python=None):
+def upload(
+    request, content, name=None, version=None, summary=None, requires_python=None
+):
     """ Handle update commands """
     action = request.param(":action", "file_upload")
     # Direct uploads from the web UI go here, and don't have a name/version
@@ -127,7 +129,7 @@ def package_versions_json(context, request):
             max_version = version
 
         response["releases"].setdefault(version_str, []).append(
-            {"filename": filename, "url": pkg['url']}
+            {"filename": filename, "url": pkg["url"]}
         )
     if max_version is not None:
         response["urls"] = response["releases"].get(str(max_version), [])
@@ -155,8 +157,8 @@ def packages_to_dict(request, packages):
     pkgs = {}
     for package in packages:
         pkgs[package.filename] = {
-            'url': package.get_url(request),
-            'requires_python': package.data.get('requires_python'),
+            "url": package.get_url(request),
+            "requires_python": package.data.get("requires_python"),
         }
     return pkgs
 
