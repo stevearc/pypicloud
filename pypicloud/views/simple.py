@@ -148,7 +148,7 @@ def get_fallback_packages(request, package_name, redirect=True):
             filename = posixpath.basename(url)
             if not redirect:
                 url = request.app_url("api", "package", dist.name, filename)
-            pkgs[filename] = url
+            pkgs[filename] = {"url": url}
     return pkgs
 
 
@@ -263,8 +263,8 @@ def _simple_cache_always_show(context, request):
                 pkgs = get_fallback_packages(request, context.name)
                 stored_pkgs = packages_to_dict(request, packages)
                 # Overwrite existing package urls
-                for filename, url in six.iteritems(stored_pkgs):
-                    pkgs[filename] = url
+                for filename, data in six.iteritems(stored_pkgs):
+                    pkgs[filename] = data
                 return _pkg_response(pkgs)
             else:
                 return request.request_login()
@@ -272,8 +272,8 @@ def _simple_cache_always_show(context, request):
             pkgs = get_fallback_packages(request, context.name, False)
             stored_pkgs = packages_to_dict(request, packages)
             # Overwrite existing package urls
-            for filename, url in six.iteritems(stored_pkgs):
-                pkgs[filename] = url
+            for filename, data in six.iteritems(stored_pkgs):
+                pkgs[filename] = data
             return _pkg_response(pkgs)
     else:
         if not request.access.can_update_cache():
