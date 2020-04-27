@@ -74,7 +74,15 @@ class ICache(object):
         for pkg in packages:
             self.save(pkg)
 
-    def upload(self, filename, data, name=None, version=None, summary=None):
+    def upload(
+        self,
+        filename,
+        data,
+        name=None,
+        version=None,
+        summary=None,
+        requires_python=None,
+    ):
         """
         Save this package to the storage mechanism and to the cache
 
@@ -92,6 +100,8 @@ class ICache(object):
             from filename)
         summary : str, optional
             The summary of the package
+        requires_python : str, optional
+            The Python version requirement
 
         Returns
         -------
@@ -111,7 +121,9 @@ class ICache(object):
         old_pkg = self.fetch(filename)
         if old_pkg is not None and not self.allow_overwrite:
             raise ValueError("Package '%s' already exists!" % filename)
-        new_pkg = self.package_class(name, version, filename, summary=summary)
+        new_pkg = self.package_class(
+            name, version, filename, summary=summary, requires_python=requires_python
+        )
         self.storage.upload(new_pkg, data)
         self.save(new_pkg)
         return new_pkg

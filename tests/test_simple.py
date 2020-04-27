@@ -125,7 +125,11 @@ class TestSimple(MockServerTest):
         self.request.app_url.assert_any_call("api", "package", name, filename)
         self.request.app_url.assert_any_call("api", "package", name, wheelname)
         self.assertEqual(
-            pkgs, {filename: self.request.app_url(), wheelname: self.request.app_url()}
+            pkgs,
+            {
+                filename: {"url": self.request.app_url()},
+                wheelname: {"url": self.request.app_url()},
+            },
         )
 
     def test_fallback_packages_redirect(self):
@@ -144,7 +148,7 @@ class TestSimple(MockServerTest):
             "urls": {version: [url, wheel_url]},
         }
         pkgs = get_fallback_packages(self.request, "foo")
-        self.assertEqual(pkgs, {filename: url, wheelname: wheel_url})
+        self.assertEqual(pkgs, {filename: {"url": url}, wheelname: {"url": wheel_url}})
 
     def test_disallow_fallback_packages(self):
         """ Disallow fetch fallback packages """
@@ -184,7 +188,10 @@ class PackageReadTestBase(unittest.TestCase):
         get = patch("pypicloud.views.simple.get_fallback_packages").start()
         p2 = self.package2
         self.fallback_packages = get.return_value = {
-            p2.filename: self.fallback_url + p2.filename
+            p2.filename: {
+                "url": self.fallback_url + p2.filename,
+                "requires_python": None,
+            },
         }
 
     def tearDown(self):
@@ -249,7 +256,15 @@ class PackageReadTestBase(unittest.TestCase):
         """ When requested, the endpoint should serve the packages """
         ret = package_versions(self.package, request)
         self.assertEqual(
-            ret, {"pkgs": {self.package.filename: self.package.get_url(request)}}
+            ret,
+            {
+                "pkgs": {
+                    self.package.filename: {
+                        "url": self.package.get_url(request),
+                        "requires_python": None,
+                    }
+                }
+            },
         )
         # Check the /json endpoint too
         ret = package_versions_json(self.package, request)
@@ -278,7 +293,10 @@ class PackageReadTestBase(unittest.TestCase):
             ret,
             {
                 "pkgs": {
-                    self.package.filename: self.package.get_url(request),
+                    self.package.filename: {
+                        "url": self.package.get_url(request),
+                        "requires_python": None,
+                    },
                     f2name: self.fallback_packages[f2name],
                 }
             },
@@ -521,7 +539,10 @@ class TestCacheAlwaysShow(PackageReadTestBase):
             ret,
             {
                 "pkgs": {
-                    self.package.filename: self.package.get_url(req),
+                    self.package.filename: {
+                        "url": self.package.get_url(req),
+                        "requires_python": None,
+                    },
                     self.package2.filename: self.fallback_packages[p2.filename],
                 }
             },
@@ -537,7 +558,10 @@ class TestCacheAlwaysShow(PackageReadTestBase):
             ret,
             {
                 "pkgs": {
-                    self.package.filename: self.package.get_url(req),
+                    self.package.filename: {
+                        "url": self.package.get_url(req),
+                        "requires_python": None,
+                    },
                     self.package2.filename: self.fallback_packages[p2.filename],
                 }
             },

@@ -4,8 +4,8 @@
   <title>Package Index</title>
 </head>
 <body>
-  {% for filename, url in pkgs|dictsort %}
-    <a href="{{ url }}">{{ filename }}</a><br>
+  {% for filename, pkg in pkgs|dictsort %}
+    <a href="{{ pkg.url }}"{% if pkg.requires_python %} data-requires-python="{{ pkg.requires_python }}"{% endif %}>{{ filename }}</a><br>
   {%- endfor %}
 </body>
 </html>
