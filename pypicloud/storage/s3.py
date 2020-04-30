@@ -127,7 +127,7 @@ class S3Storage(ObjectStoreStorage):
         filename = posixpath.basename(obj.key)
         name = obj.metadata.get("name")
         version = obj.metadata.get("version")
-        summary = obj.metadata.get("summary")
+        metadata = Package.read_metadata(obj.metadata)
         # We used to not store metadata. This is for backwards
         # compatibility
         if name is None or version is None:
@@ -138,7 +138,7 @@ class S3Storage(ObjectStoreStorage):
                 return None
 
         return factory(
-            name, version, filename, obj.last_modified, summary, path=obj.key
+            name, version, filename, obj.last_modified, path=obj.key, **metadata
         )
 
     def list(self, factory=Package):
@@ -197,16 +197,21 @@ class S3Storage(ObjectStoreStorage):
             kwargs["ACL"] = self.object_acl
         if self.storage_class is not None:
             kwargs["StorageClass"] = self.storage_class
-        metadata = {"name": package.name, "version": package.version}
-        if package.summary:
-            if isinstance(package.summary, six.text_type):
-                summary = package.summary
-            else:
-                summary = package.summary.decode("utf-8")
-            metadata["summary"] = "".join(
-                c for c in unicodedata.normalize("NFKD", summary) if ord(c) < 128
-            )
+        metadata = package.get_metadata()
+        metadata["name"] = package.name
+        metadata["version"] = package.version
+        self._normalize_metadata(metadata)
         key.put(Metadata=metadata, Body=datastream, **kwargs)
+
+    def _normalize_metadata(self, metadata):
+        """ Strip non-ASCII characters from metadata """
+        for key, value in metadata.items():
+            if isinstance(value, six.string_types):
+                if isinstance(value, six.binary_type):
+                    value = value.decode("utf-8")
+                metadata[key] = "".join(
+                    c for c in unicodedata.normalize("NFKD", value) if ord(c) < 128
+                )
 
     def delete(self, package):
         self.bucket.delete_objects(

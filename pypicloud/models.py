@@ -9,6 +9,9 @@ from functools import total_ordering
 from .util import normalize_name
 
 
+METADATA_FIELDS = ["requires_python", "summary"]
+
+
 @six.python_2_unicode_compatible
 @total_ordering
 class Package(object):
@@ -44,8 +47,10 @@ class Package(object):
             self.last_modified = last_modified
         else:
             self.last_modified = datetime.utcnow()
-        self.summary = summary
-        self.data = kwargs
+        # Disallow empty string
+        self.summary = summary or None
+        # Filter out None or empty string
+        self.data = {k: v for k, v in kwargs.items() if v}
 
     def get_url(self, request):
         """ Create path to the download link """
@@ -63,6 +68,23 @@ class Package(object):
     def is_prerelease(self):
         """ Returns True if the version is a prerelease version """
         return re.match(r"^\d+(\.\d+)*$", self.version) is None
+
+    @staticmethod
+    def read_metadata(blob):
+        """ Read metadata from a blob """
+        metadata = {}
+        for field in METADATA_FIELDS:
+            value = blob.get(field)
+            if value:
+                metadata[field] = value
+        return metadata
+
+    def get_metadata(self):
+        """ Returns the package metadata as a dict """
+        metadata = Package.read_metadata(self.data)
+        if self.summary:
+            metadata["summary"] = self.summary
+        return metadata
 
     def __hash__(self):
         return hash(self.name) + hash(self.version)

@@ -106,7 +106,7 @@ class TestS3Storage(unittest.TestCase):
 
     def test_upload(self):
         """ Uploading package sets metadata and sends to S3 """
-        package = make_package()
+        package = make_package(requires_python="3.6")
         datastr = b"foobar"
         data = BytesIO(datastr)
         self.storage.upload(package, data)
@@ -117,6 +117,7 @@ class TestS3Storage(unittest.TestCase):
         self.assertEqual(key.metadata["name"], package.name)
         self.assertEqual(key.metadata["version"], package.version)
         self.assertEqual(key.metadata["summary"], package.summary)
+        self.assertDictContainsSubset(package.get_metadata(), key.metadata)
 
     def test_upload_prepend_hash(self):
         """ If prepend_hash = True, attach a hash to the file path """
@@ -294,7 +295,7 @@ class TestFileStorage(unittest.TestCase):
 
     def test_upload(self):
         """ Uploading package saves file """
-        package = make_package()
+        package = make_package(requires_python="3.6")
         datastr = b"foobar"
         data = BytesIO(datastr)
         self.storage.upload(package, data)
@@ -305,7 +306,7 @@ class TestFileStorage(unittest.TestCase):
         meta_file = self.storage.get_metadata_path(package)
         self.assertTrue(os.path.exists(meta_file))
         with open(meta_file, "r") as mfile:
-            self.assertEqual(json.loads(mfile.read()), {"summary": package.summary})
+            self.assertEqual(json.loads(mfile.read()), package.get_metadata())
 
     def test_list(self):
         """ Can iterate over uploaded packages """
@@ -547,7 +548,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
 
     def test_upload(self):
         """ Uploading package sets metadata and sends to S3 """
-        package = make_package()
+        package = make_package(requires_python="3.6")
         datastr = b"foobar"
         data = BytesIO(datastr)
         self.storage.upload(package, data)
@@ -558,7 +559,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
         self.assertEqual(blob._content, datastr)
         self.assertEqual(blob.metadata["name"], package.name)
         self.assertEqual(blob.metadata["version"], package.version)
-        self.assertEqual(blob.metadata["summary"], package.summary)
+        self.assertDictContainsSubset(package.get_metadata(), blob.metadata)
 
         self.assertEqual(self.bucket.create.call_count, 0)
 

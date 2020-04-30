@@ -82,9 +82,8 @@ class FileStorage(IStorage):
         # Store metadata as JSON. This could be expanded in the future
         # to store additional metadata about a package (i.e. author)
         tempfile = os.path.join(destdir, ".metadata." + uid)
-        metadata = {"summary": package.summary}
         with open(tempfile, "w") as mfile:
-            json.dump(metadata, mfile)
+            json.dump(package.get_metadata(), mfile)
 
         os.rename(tempfile, dest_meta_file)
 
