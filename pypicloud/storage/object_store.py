@@ -87,7 +87,7 @@ class ObjectStoreStorage(IStorage):
         kwargs["prepend_hash"] = asbool(settings.get("storage.prepend_hash", True))
         kwargs["object_acl"] = settings.get("storage.object_acl", None)
         kwargs["storage_class"] = storage_class = settings.get("storage.storage_class")
-        kwargs["redirect_urls"] = asbool(settings.get("storage.redirect_urls", False))
+        kwargs["redirect_urls"] = asbool(settings.get("storage.redirect_urls", True))
         bucket_name = settings.get("storage.bucket")
         if bucket_name is None:
             raise ValueError("You must specify the 'storage.bucket'")
