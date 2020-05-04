@@ -38,7 +38,7 @@ from pypicloud.access import aws_secrets_manager
 from pypicloud.route import Root
 
 
-pwd_context = get_pwd_context(1000)  # pylint: disable=C0103
+pwd_context = get_pwd_context()  # pylint: disable=C0103
 
 
 class PartialEq(object):

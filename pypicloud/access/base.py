@@ -44,15 +44,15 @@ if sys_bits < 64:
 
 def get_pwd_context(preferred_hash=None, rounds=None):
     """ Create a passlib context for hashing passwords """
-    if preferred_hash not in SCHEMES:
-        raise Exception(
-            "Password hash %r is not in the list of supported schemes" % preferred_hash
-        )
-
     if preferred_hash is None or preferred_hash == "sha":
         preferred_hash = "sha256_crypt" if sys_bits < 64 else "sha512_crypt"
     if preferred_hash is "pbkdf2":
         preferred_hash = "pbkdf2_sha256" if sys_bits < 64 else "pbkdf2_sha512"
+
+    if preferred_hash not in SCHEMES:
+        raise Exception(
+            "Password hash %r is not in the list of supported schemes" % preferred_hash
+        )
 
     # Put the preferred hash at the beginning of the schemes list
     schemes = list(SCHEMES)
