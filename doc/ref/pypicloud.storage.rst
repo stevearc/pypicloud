@@ -5,6 +5,7 @@ Submodules
 ----------
 
 .. toctree::
+   :maxdepth: 4
 
    pypicloud.storage.base
    pypicloud.storage.files
@@ -16,6 +17,6 @@ Module contents
 ---------------
 
 .. automodule:: pypicloud.storage
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:

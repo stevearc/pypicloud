@@ -5,6 +5,7 @@ Submodules
 ----------
 
 .. toctree::
+   :maxdepth: 4
 
    pypicloud.access.aws_secrets_manager
    pypicloud.access.base
@@ -18,6 +19,6 @@ Module contents
 ---------------
 
 .. automodule:: pypicloud.access
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:

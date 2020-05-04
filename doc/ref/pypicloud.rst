@@ -5,16 +5,18 @@ Subpackages
 -----------
 
 .. toctree::
+   :maxdepth: 4
 
-    pypicloud.access
-    pypicloud.cache
-    pypicloud.storage
-    pypicloud.views
+   pypicloud.access
+   pypicloud.cache
+   pypicloud.storage
+   pypicloud.views
 
 Submodules
 ----------
 
 .. toctree::
+   :maxdepth: 4
 
    pypicloud.auth
    pypicloud.lambda_scripts
@@ -27,6 +29,6 @@ Module contents
 ---------------
 
 .. automodule:: pypicloud
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:

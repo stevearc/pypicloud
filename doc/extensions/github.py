@@ -72,7 +72,6 @@ def github_pull_request(
 
 def setup(app):
     """ Add github roles to sphinx """
-    app.info("Adding github link roles")
     app.add_role("sha", github_sha)
     app.add_role("issue", github_issue)
     app.add_role("pr", github_pull_request)
