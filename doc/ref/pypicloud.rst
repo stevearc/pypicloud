@@ -20,6 +20,7 @@ Submodules
 
    pypicloud.auth
    pypicloud.lambda_scripts
+   pypicloud.locator
    pypicloud.models
    pypicloud.route
    pypicloud.scripts

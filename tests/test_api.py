@@ -2,7 +2,7 @@
 from mock import MagicMock, patch
 from pyramid.httpexceptions import HTTPBadRequest, HTTPForbidden
 
-from . import MockServerTest, make_package
+from . import MockServerTest, make_package, make_dist
 from pypicloud.views import api
 
 
@@ -156,11 +156,18 @@ class TestApi(MockServerTest):
         fetch_dist.return_value = (MagicMock(), MagicMock())
         context = MagicMock()
         context.filename = "package.tar.gz"
-        dist = MagicMock()
         url = "https://pypi.org/simple/%s" % context.filename
-        locator.get_project.return_value = {"0.1": dist, "urls": {"0.1": set([url])}}
+        dist = make_dist(url=url)
+        locator.get_releases.return_value = [dist]
         ret = api.download_package(context, self.request)
-        fetch_dist.assert_called_with(self.request, dist.name, url)
+        fetch_dist.assert_called_with(
+            self.request,
+            dist["url"],
+            dist["name"],
+            dist["version"],
+            dist["summary"],
+            dist["requires_python"],
+        )
         self.assertEqual(ret.body, fetch_dist()[1])
         ret.headers.update.assert_any_call([("Cache-Control", "public, max-age=0")])
 
@@ -177,27 +184,10 @@ class TestApi(MockServerTest):
         fetch_dist.return_value = (MagicMock(), MagicMock())
         context = MagicMock()
         context.filename = "package.tar.gz"
-        dist = MagicMock()
         url = "https://pypi.org/simple/%s" % context.filename
-        locator.get_project.return_value = {"0.1": dist, "urls": {"0.1": set([url])}}
+        dist = make_dist(url=url)
+        locator.get_releases.return_value = [dist]
         ret = api.download_package(context, self.request)
-        fetch_dist.assert_called_with(self.request, dist.name, url)
+        fetch_dist.assert_called_once()
         self.assertEqual(ret.body, fetch_dist()[1])
         ret.headers.update.assert_any_call([("Cache-Control", "public, max-age=30")])
-
-    def test_fetch_requirements_no_perm(self):
-        """ Fetching requirements without perms returns 403 """
-        self.request.access.can_update_cache.return_value = False
-        requirements = "requests>=2.0"
-        ret = api.fetch_requirements(self.request, requirements)
-        self.assertEqual(ret.status_code, 403)
-
-    @patch("pypicloud.views.api.fetch_dist")
-    def test_fetch_requirements(self, fetch_dist):
-        """ Fetching requirements without perms returns 403 """
-        requirements = "requests>=2.0"
-        locator = self.request.locator = MagicMock()
-        ret = api.fetch_requirements(self.request, requirements)
-        dist = locator.locate()
-        fetch_dist.assert_called_with(self.request, dist.name, dist.source_url)
-        self.assertEqual(ret, {"pkgs": [fetch_dist()[0]]})

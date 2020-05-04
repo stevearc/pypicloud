@@ -39,6 +39,25 @@ def make_package(
     )
 
 
+def make_dist(
+    url=None,
+    name="mypkg",
+    version="1.0",
+    summary="A package summary",
+    requires_python=">=3.5",
+    digests=None,
+):
+    url = url or "https://pypi.org/pypi/%s/%s-%s.tar.gz" % (name, name, version)
+    return {
+        "name": name,
+        "version": version,
+        "url": url,
+        "summary": summary,
+        "requires_python": requires_python,
+        "digests": digests or {},
+    }
+
+
 class DummyStorage(IStorage):
 
     """ In-memory implementation of IStorage """

@@ -138,17 +138,19 @@ def package_versions_json(context, request):
 
 def get_fallback_packages(request, package_name, redirect=True):
     """ Get all package versions for a package from the fallback_base_url """
-    dists = request.locator.get_project(package_name)
+    releases = request.locator.get_releases(package_name)
     pkgs = {}
     if not request.access.has_permission(package_name, "fallback"):
         return pkgs
-    for version, url_set in six.iteritems(dists.get("urls", {})):
-        dist = dists[version]
-        for url in url_set:
-            filename = posixpath.basename(url)
-            if not redirect:
-                url = request.app_url("api", "package", dist.name, filename)
-            pkgs[filename] = {"url": url}
+    for release in releases:
+        url = release["url"]
+        filename = posixpath.basename(url)
+        if not redirect:
+            url = request.app_url("api", "package", release["name"], filename)
+        pkgs[filename] = {
+            "url": url,
+            "requires_python": release["requires_python"],
+        }
     return pkgs
 
 

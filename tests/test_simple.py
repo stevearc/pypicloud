@@ -3,7 +3,7 @@ import six
 
 from mock import MagicMock, patch
 
-from . import MockServerTest, make_package
+from . import MockServerTest, make_package, make_dist
 from pypicloud.auth import _request_login
 from pypicloud.views.simple import (
     upload,
@@ -114,12 +114,9 @@ class TestSimple(MockServerTest):
         url = "https://pypi.org/pypi/%s/%s" % (name, filename)
         wheelname = "%s-%s.whl" % (name, version)
         wheel_url = "https://pypi.org/pypi/%s/%s" % (name, wheelname)
-        dist = MagicMock()
-        dist.name = name
-        self.request.locator.get_project.return_value = {
-            version: dist,
-            "urls": {version: [url, wheel_url]},
-        }
+        dist = make_dist(url, name, version)
+        wheel_dist = make_dist(wheel_url, name, version)
+        self.request.locator.get_releases.return_value = [dist, wheel_dist]
         self.request.app_url = MagicMock()
         pkgs = get_fallback_packages(self.request, "foo", False)
         self.request.app_url.assert_any_call("api", "package", name, filename)
@@ -127,8 +124,14 @@ class TestSimple(MockServerTest):
         self.assertEqual(
             pkgs,
             {
-                filename: {"url": self.request.app_url()},
-                wheelname: {"url": self.request.app_url()},
+                filename: {
+                    "url": self.request.app_url(),
+                    "requires_python": dist["requires_python"],
+                },
+                wheelname: {
+                    "url": self.request.app_url(),
+                    "requires_python": wheel_dist["requires_python"],
+                },
             },
         )
 
@@ -141,14 +144,20 @@ class TestSimple(MockServerTest):
         url = "https://pypi.org/pypi/%s/%s" % (name, filename)
         wheelname = "%s-%s.whl" % (name, version)
         wheel_url = "https://pypi.org/pypi/%s/%s" % (name, wheelname)
-        dist = MagicMock()
-        dist.name = name
-        self.request.locator.get_project.return_value = {
-            version: dist,
-            "urls": {version: [url, wheel_url]},
-        }
+        dist = make_dist(url, name, version)
+        wheel_dist = make_dist(wheel_url, name, version)
+        self.request.locator.get_releases.return_value = [dist, wheel_dist]
         pkgs = get_fallback_packages(self.request, "foo")
-        self.assertEqual(pkgs, {filename: {"url": url}, wheelname: {"url": wheel_url}})
+        self.assertEqual(
+            pkgs,
+            {
+                filename: {"url": url, "requires_python": dist["requires_python"]},
+                wheelname: {
+                    "url": wheel_url,
+                    "requires_python": wheel_dist["requires_python"],
+                },
+            },
+        )
 
     def test_disallow_fallback_packages(self):
         """ Disallow fetch fallback packages """
