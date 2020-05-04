@@ -136,10 +136,16 @@ def download_package(context, request):
     permission="write",
 )
 @argify
-def upload_package(context, request, content):
+def upload_package(context, request, content, summary=None, requires_python=None):
     """ Upload a package """
     try:
-        return request.db.upload(content.filename, content.file, name=context.name)
+        return request.db.upload(
+            content.filename,
+            content.file,
+            name=context.name,
+            summary=summary,
+            requires_python=requires_python,
+        )
     except ValueError as e:  # pragma: no cover
         return HTTPBadRequest(*e.args)
 
