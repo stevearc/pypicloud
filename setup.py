@@ -25,6 +25,7 @@ REQUIREMENTS = [
     "pyramid_jinja2",
     "pyramid_rpc",
     "pyramid_tm",
+    "requests",
     "six",
     "transaction",
     "zope.sqlalchemy",
