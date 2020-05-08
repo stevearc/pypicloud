@@ -16,9 +16,7 @@ REQUIREMENTS = [
     "boto3>=1.7.0",
     # beaker needs this
     "cryptography",
-    # We're doing enough subclassing and monkey patching to where we really do
-    # need to lock this in to a specific version.
-    "distlib==0.2.5",
+    "distlib",
     "paste",
     "passlib>=1.7",
     "pyramid",
@@ -60,7 +58,7 @@ EXTRAS["doc"] = ["numpydoc", "sphinx", "sphinx_rtd_theme"]
 if __name__ == "__main__":
     setup(
         name="pypicloud",
-        version="1.0.13",
+        version="1.0.14",
         description="Private PyPI backed by S3",
         long_description=README + "\n\n" + CHANGES,
         classifiers=[
@@ -71,6 +69,7 @@ if __name__ == "__main__":
             "Programming Language :: Python :: 3.5",
             "Programming Language :: Python :: 3.6",
             "Programming Language :: Python :: 3.7",
+            "Programming Language :: Python :: 3.8",
             "Development Status :: 4 - Beta",
             "Framework :: Pyramid",
             "Intended Audience :: System Administrators",

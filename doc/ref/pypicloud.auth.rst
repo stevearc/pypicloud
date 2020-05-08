@@ -2,6 +2,6 @@ pypicloud.auth module
 =====================
 
 .. automodule:: pypicloud.auth
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:

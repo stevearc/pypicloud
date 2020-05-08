@@ -5,6 +5,7 @@ Submodules
 ----------
 
 .. toctree::
+   :maxdepth: 4
 
    pypicloud.cache.base
    pypicloud.cache.dynamo
@@ -15,6 +16,6 @@ Module contents
 ---------------
 
 .. automodule:: pypicloud.cache
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:

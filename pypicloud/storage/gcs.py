@@ -129,11 +129,16 @@ class GoogleCloudStorage(ObjectStoreStorage):
     def package_from_object(cls, blob, factory):
         """ Create a package from a GCS object """
         filename = posixpath.basename(blob.name)
+        if blob.metadata is None:
+            return None
         name = blob.metadata.get("name")
         version = blob.metadata.get("version")
-        summary = blob.metadata.get("summary")
-
-        return factory(name, version, filename, blob.updated, summary, path=blob.name)
+        if name is None or version is None:
+            return None
+        metadata = Package.read_metadata(blob.metadata)
+        return factory(
+            name, version, filename, blob.updated, path=blob.name, **metadata
+        )
 
     def list(self, factory=Package):
         blobs = self.bucket.list_blobs(prefix=self.bucket_prefix or None)
@@ -166,8 +171,7 @@ class GoogleCloudStorage(ObjectStoreStorage):
     def upload(self, package, datastream):
         """ Upload the package to GCS """
         metadata = {"name": package.name, "version": package.version}
-        if package.summary:
-            metadata["summary"] = package.summary
+        metadata.update(package.get_metadata())
 
         blob = self._get_gcs_blob(package)
 

@@ -26,11 +26,9 @@ generate a default production config file.
 .. warning::
     You should make sure that ``session.secure`` is ``true``
 
-You probably want to set :ref:`redirect_urls = true <redirect_detail>` for a speed boost.
-
-You may want to tweak :ref:`auth.rounds <auth_rounds>` for more speed (see `#115
-<https://github.com/stevearc/pypicloud/issues/115#issuecomment-346648180>`__ for
-discussion)
+You may want to tweak :ref:`auth.scheme <auth_scheme>` or :ref:`auth.rounds
+<auth_rounds>` for more speed or more security. See :ref:`passlib` for more
+context.
 
 WSGI Server
 -----------

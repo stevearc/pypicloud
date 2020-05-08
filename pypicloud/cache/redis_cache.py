@@ -185,7 +185,7 @@ class RedisCache(ICache):
             self.redis_summary_key(summary["name"]),
             {
                 "name": summary["name"],
-                "summary": summary["summary"],
+                "summary": summary["summary"] or "",
                 "last_modified": last_modified,
             },
         )

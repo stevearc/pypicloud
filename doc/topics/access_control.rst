@@ -87,6 +87,20 @@ Set ``pypi.auth = config`` OR ``pypi.auth =
 pypicloud.access.ConfigAccessBackend`` OR leave it out completely since this is
 the default.
 
+.. _auth_scheme:
+
+``auth.scheme``
+~~~~~~~~~~~~~~~
+**Argument:** str, optional
+
+The default password hash to use. See the passlib docs for `choosing a hash
+<https://passlib.readthedocs.io/en/stable/narr/quickstart.html>`__.  Defaults to
+``sha512_crypt`` on 64 bit systems and ``sha256_crypt`` on 32 bit systems.
+
+Note this only matters for auth backends that allow dynamic user registration.
+If you are generating hashes for your config file with
+``pypicloud-gen-password``, you can configure this with the ``-s`` argument.
+
 .. _auth_rounds:
 
 ``auth.rounds``
@@ -95,9 +109,13 @@ the default.
 
 The number of rounds to use when hashing passwords. See PassLib's docs on
 `choosing rounds values
-<http://passlib.readthedocs.io/en/stable/narr/hash-tutorial.html#choosing-the-right-rounds-value>`_.
-The default value will be secure, but possibly slow. If you find the hashing to
-take a long time, you can edit this value lower.
+<http://passlib.readthedocs.io/en/stable/narr/hash-tutorial.html#choosing-the-right-rounds-value>`__.
+The default rounds chosen by pypicloud are *significantly lower* than PassLib
+recommends; see :ref:`passlib` for why.
+
+Note this only matters for auth backends that allow dynamic user registration.
+If you are generating hashes for your config file with
+``pypicloud-gen-password``, you can configure this with the ``-r`` argument.
 
 ``user.<username>``
 ~~~~~~~~~~~~~~~~~~~

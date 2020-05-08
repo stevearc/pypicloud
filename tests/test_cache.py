@@ -652,6 +652,18 @@ class TestRedisCache(unittest.TestCase):
         ok, msg = self.db.check_health()
         self.assertFalse(ok)
 
+    def test_reload_none_summary(self):
+        """ reload_from_storage() doesn't break on packages with None summary """
+        pkg = make_package(
+            "mypkg3", "1.2", "some/other/path", summary=None, factory=SQLPackage
+        )
+        keys = [pkg]
+        self.storage.list.return_value = keys
+        self.db.reload_from_storage()
+        # The shim will convert None summary to ""
+        pkg.summary = ""
+        self.assert_in_redis(pkg)
+
 
 class TestDynamoCache(unittest.TestCase):
 

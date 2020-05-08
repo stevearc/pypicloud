@@ -2,6 +2,7 @@
 import calendar
 import datetime
 import logging
+import distlib.locators
 from pyramid.config import Configurator
 from pyramid.renderers import JSON, render
 from pyramid.settings import asbool
@@ -9,10 +10,10 @@ from pyramid_beaker import session_factory_from_settings
 from six.moves.urllib.parse import urlencode  # pylint: disable=F0401,E0611
 
 from .route import Root
-from .util import BetterScrapingLocator
+from .locator import SimpleJsonLocator, FormattedScrapingLocator
 
 
-__version__ = "1.0.13"
+__version__ = "1.0.14"
 LOG = logging.getLogger(__name__)
 
 
@@ -37,11 +38,6 @@ def _fallback_simple(request):
         return request.registry.fallback_url
     else:
         return "/".join([request.registry.fallback_base_url, "simple"])
-
-
-def _locator(request):
-    """ Get the scraping locator to find packages from the fallback site """
-    return BetterScrapingLocator(request.fallback_simple)
 
 
 def _add_postfork_hook(config, hook):
@@ -148,9 +144,29 @@ def includeme(config):
     package_max_age = int(settings.get("pypi.package_max_age", 0))
     config.registry.package_max_age = package_max_age
 
+    # Distlib vs JSON scraper
+    force_json_scraper = settings.get("pypi.use_json_scraper", None)
+    if force_json_scraper is None:
+        use_json_scraper = config.registry.fallback_base_url == "https://pypi.org"
+    else:
+        use_json_scraper = asbool(force_json_scraper)
+    if use_json_scraper:
+        if config.registry.fallback_base_url is None:
+            raise Exception(
+                "If setting pypi.use_json_scraper, must also provide pypi.fallback_base_url"
+            )
+        config.registry.locator = SimpleJsonLocator(config.registry.fallback_base_url)
+    else:
+        config.registry.locator = FormattedScrapingLocator(_fallback_simple(config))
+        LOG.warning(
+            "Using distlib scraper. Some packages may fail to install due to "
+            "missing 'requires_python' metadata! Set pypi.use_json_scraper = true. "
+            "See discussion on https://github.com/stevearc/pypicloud/issues/219"
+        )
+
     # Special request methods
     config.add_request_method(_app_url, name="app_url")
-    config.add_request_method(_locator, name="locator", reify=True)
+    config.add_request_method(lambda r: r.registry.locator, name="locator", reify=True)
     config.add_request_method(
         lambda x: __version__, name="pypicloud_version", reify=True
     )

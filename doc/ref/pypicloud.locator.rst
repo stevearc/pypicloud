@@ -1,7 +1,7 @@
-pypicloud.scripts module
+pypicloud.locator module
 ========================
 
-.. automodule:: pypicloud.scripts
+.. automodule:: pypicloud.locator
    :members:
    :undoc-members:
    :show-inheritance:

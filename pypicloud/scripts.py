@@ -14,7 +14,7 @@ from pkg_resources import resource_string  # pylint: disable=E0611
 from pyramid.paster import bootstrap
 
 import os
-from pypicloud.access import get_pwd_context, DEFAULT_ROUNDS
+from pypicloud.access import get_pwd_context, SCHEMES
 
 
 def gen_password(argv=None):
@@ -22,19 +22,20 @@ def gen_password(argv=None):
     if argv is None:
         argv = sys.argv[1:]
     parser = argparse.ArgumentParser(gen_password.__doc__)
+    parser.add_argument("-r", help="Number of rounds", type=int)
     parser.add_argument(
-        "-r",
-        help="Number of rounds (default %(default)s)",
-        type=int,
-        default=DEFAULT_ROUNDS,
+        "-s",
+        help="Hashing scheme (default %(default)s)",
+        default=SCHEMES[0],
+        choices=SCHEMES,
     )
     args = parser.parse_args(argv)
-    six.print_(_gen_password(args.r))
+    six.print_(_gen_password(args.s, args.r))
 
 
-def _gen_password(rounds=DEFAULT_ROUNDS):
+def _gen_password(scheme=None, rounds=None):
     """ Prompt user for a password twice for safety """
-    pwd_context = get_pwd_context(rounds)
+    pwd_context = get_pwd_context(scheme, rounds)
     while True:
         password = getpass.getpass()
         verify = getpass.getpass()

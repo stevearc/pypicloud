@@ -167,22 +167,6 @@ Delete a package version from the server
     curl -X DELETE myserver.com/api/package/flywheel/flywheel-0.1.0.tar.gz
 
 
-``POST`` ``/api/fetch``
-^^^^^^^^^^^^^^^^^^^^^^^
-Fetch packages from the ``fallback_base_url`` and cache them. This is only used if
-``pypi.fallback = cache``.
-
-**Parameters:**
-
-* ``requirements`` (str) - Packages to update, in requirements.txt format (yes, with newlines)
-* ``wheel`` (bool) - Fetch the wheel version of packages, if available (default ``True``)
-* ``prerelease`` (bool) - Fetch unstable versions if available (ex. '1.4a1') (default ``False``)
-
-**Example**::
-
-    curl -d 'requirements=requests>=2.2.0&wheel=true&prerelease=false' myserver.com/api/fetch
-
-
 ``PUT`` ``/api/user/<username>/``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Register a new user account (if user registration is enabled). After

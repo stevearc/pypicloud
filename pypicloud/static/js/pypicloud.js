@@ -197,7 +197,6 @@ angular
       $scope.pageSize = 10;
       $scope.maxSize = 8;
       $scope.currentPage = 1;
-      $scope.fetchCollapsed = true;
       $scope.uploadCollapsed = true;
       if (NEED_ADMIN) {
         $location.path("/new_admin");
@@ -217,35 +216,8 @@ angular
         });
       };
 
-      $scope.toggleFetch = function() {
-        $scope.fetchCollapsed = !$scope.fetchCollapsed;
-        $scope.uploadCollapsed = true;
-      };
-
       $scope.toggleUpload = function() {
         $scope.uploadCollapsed = !$scope.uploadCollapsed;
-        $scope.fetchCollapsed = true;
-      };
-
-      $scope.fetchRequirements = function() {
-        $scope.fetchingRequirements = true;
-        var data = {
-          requirements: $scope.requirements,
-          wheel: $scope.wheel,
-          prerelease: $scope.prerelease
-        };
-        $http
-          .post($scope.API + "fetch", data)
-          .success(function(data, status, headers, config) {
-            addPackages(data.pkgs);
-            $scope.requirements = "";
-            $scope.fetchingRequirements = false;
-            $scope.fetchCollapsed = true;
-          })
-          .error(function(data, status, headers, config) {
-            alert("Fetch operation failed");
-            $scope.fetchingRequirements = false;
-          });
       };
 
       $http

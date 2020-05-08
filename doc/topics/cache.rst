@@ -21,7 +21,6 @@ The database url to use for the caching database. Should be a `SQLAlchemy url
 <http://docs.sqlalchemy.org/en/rel_0_9/core/engines.html>`_
 
 * sqlite: ``sqlite:///%(here)s/db.sqlite``
-* sqlite (in-memory): ``sqlite://``
 * mysql: ``mysql://root@127.0.0.1:3306/pypi?charset=utf8mb4``
 * postgres: ``postgresql://postgres@127.0.0.1:5432/postgres``
 

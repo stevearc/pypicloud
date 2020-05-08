@@ -5,6 +5,7 @@ Submodules
 ----------
 
 .. toctree::
+   :maxdepth: 4
 
    pypicloud.views.admin
    pypicloud.views.api
@@ -16,6 +17,6 @@ Module contents
 ---------------
 
 .. automodule:: pypicloud.views
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:

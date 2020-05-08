@@ -19,17 +19,52 @@ from pyramid.security import (
 from pyramid.settings import aslist
 
 
-DEFAULT_ROUNDS = 535000
+# Roughly tuned using https://bitbucket.org/ecollins/passlib/raw/default/choose_rounds.py
+# For 10ms. This differs from the passlib recommendation of 350ms due to the difference in use case
+DEFAULT_ROUNDS = {
+    "sha512_crypt__default_rounds": 20500,
+    "sha256_crypt__default_rounds": 16000,
+    "pbkdf2_sha512__default_rounds": 10500,
+    "pbkdf2_sha256__default_rounds": 13000,
+    "bcrypt__default_rounds": 7,
+    "argon2__default_rounds": 1,
+}
+SCHEMES = [
+    "sha512_crypt",
+    "sha256_crypt",
+    "pbkdf2_sha512",
+    "pbkdf2_sha256",
+    "bcrypt",
+    "argon2",
+]
+if sys_bits < 64:
+    SCHEMES.remove("sha512_crypt")
+    SCHEMES.remove("pbkdf2_sha512")
 
 
-def get_pwd_context(rounds=DEFAULT_ROUNDS):
+def get_pwd_context(preferred_hash=None, rounds=None):
     """ Create a passlib context for hashing passwords """
-    return LazyCryptContext(
-        schemes=["sha512_crypt", "sha256_crypt"],
-        default="sha256_crypt" if sys_bits < 64 else "sha512_crypt",
-        sha512_crypt__default_rounds=rounds,
-        sha256_crypt__default_rounds=rounds,
-    )
+    if preferred_hash is None or preferred_hash == "sha":
+        preferred_hash = "sha256_crypt" if sys_bits < 64 else "sha512_crypt"
+    if preferred_hash is "pbkdf2":
+        preferred_hash = "pbkdf2_sha256" if sys_bits < 64 else "pbkdf2_sha512"
+
+    if preferred_hash not in SCHEMES:
+        raise Exception(
+            "Password hash %r is not in the list of supported schemes" % preferred_hash
+        )
+
+    # Put the preferred hash at the beginning of the schemes list
+    schemes = list(SCHEMES)
+    schemes.remove(preferred_hash)
+    schemes.insert(0, preferred_hash)
+
+    # Override the default rounds of the preferred hash, if provided
+    default_rounds = dict(DEFAULT_ROUNDS)
+    if rounds is not None:
+        default_rounds[preferred_hash + "__default_rounds"] = rounds
+
+    return LazyCryptContext(schemes=schemes, default=schemes[0], **default_rounds)
 
 
 def group_to_principal(group):
@@ -86,7 +121,8 @@ class IAccessBackend(object):
     @classmethod
     def configure(cls, settings):
         """ Configure the access backend with app settings """
-        rounds = int(settings.get("auth.rounds", DEFAULT_ROUNDS))
+        rounds = settings.get("auth.rounds")
+        scheme = settings.get("auth.scheme")
         return {
             "default_read": aslist(
                 settings.get("pypi.default_read", ["authenticated"])
@@ -96,7 +132,7 @@ class IAccessBackend(object):
             "cache_update": aslist(
                 settings.get("pypi.cache_update", ["authenticated"])
             ),
-            "pwd_context": get_pwd_context(rounds),
+            "pwd_context": get_pwd_context(scheme, rounds),
             "token_expiration": int(settings.get("auth.token_expire", ONE_WEEK)),
             "signing_key": settings.get("auth.signing_key"),
         }

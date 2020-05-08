@@ -19,7 +19,9 @@ LOG = logging.getLogger(__name__)
 @view_config(context=Root, request_method="POST", subpath=(), renderer="json")
 @view_config(context=SimpleResource, request_method="POST", subpath=(), renderer="json")
 @argify
-def upload(request, content, name=None, version=None, summary=None):
+def upload(
+    request, content, name=None, version=None, summary=None, requires_python=None
+):
     """ Handle update commands """
     action = request.param(":action", "file_upload")
     # Direct uploads from the web UI go here, and don't have a name/version
@@ -37,6 +39,7 @@ def upload(request, content, name=None, version=None, summary=None):
                 name=name,
                 version=version,
                 summary=summary,
+                requires_python=requires_python or None,
             )
         except ValueError as e:
             return HTTPConflict(*e.args)
@@ -119,14 +122,18 @@ def package_versions_json(context, request):
         return pkgs
     response = {"info": {"name": context.name}, "releases": {}}
     max_version = None
-    for filename, url in six.iteritems(pkgs["pkgs"]):
+    for filename, pkg in six.iteritems(pkgs["pkgs"]):
         name, version_str = parse_filename(filename)
         version = pkg_resources.parse_version(version_str)
         if max_version is None or version > max_version:
             max_version = version
 
         response["releases"].setdefault(version_str, []).append(
-            {"filename": filename, "url": url}
+            {
+                "filename": filename,
+                "url": pkg["url"],
+                "requires_python": pkg["requires_python"],
+            }
         )
     if max_version is not None:
         response["urls"] = response["releases"].get(str(max_version), [])
@@ -135,17 +142,19 @@ def package_versions_json(context, request):
 
 def get_fallback_packages(request, package_name, redirect=True):
     """ Get all package versions for a package from the fallback_base_url """
-    dists = request.locator.get_project(package_name)
+    releases = request.locator.get_releases(package_name)
     pkgs = {}
     if not request.access.has_permission(package_name, "fallback"):
         return pkgs
-    for version, url_set in six.iteritems(dists.get("urls", {})):
-        dist = dists[version]
-        for url in url_set:
-            filename = posixpath.basename(url)
-            if not redirect:
-                url = request.app_url("api", "package", dist.name, filename)
-            pkgs[filename] = url
+    for release in releases:
+        url = release["url"]
+        filename = posixpath.basename(url)
+        if not redirect:
+            url = request.app_url("api", "package", release["name"], filename)
+        pkgs[filename] = {
+            "url": url,
+            "requires_python": release["requires_python"],
+        }
     return pkgs
 
 
@@ -153,7 +162,10 @@ def packages_to_dict(request, packages):
     """ Convert a list of packages to a dict used by the template """
     pkgs = {}
     for package in packages:
-        pkgs[package.filename] = package.get_url(request)
+        pkgs[package.filename] = {
+            "url": package.get_url(request),
+            "requires_python": package.data.get("requires_python"),
+        }
     return pkgs
 
 
@@ -257,8 +269,8 @@ def _simple_cache_always_show(context, request):
                 pkgs = get_fallback_packages(request, context.name)
                 stored_pkgs = packages_to_dict(request, packages)
                 # Overwrite existing package urls
-                for filename, url in six.iteritems(stored_pkgs):
-                    pkgs[filename] = url
+                for filename, data in six.iteritems(stored_pkgs):
+                    pkgs[filename] = data
                 return _pkg_response(pkgs)
             else:
                 return request.request_login()
@@ -266,8 +278,8 @@ def _simple_cache_always_show(context, request):
             pkgs = get_fallback_packages(request, context.name, False)
             stored_pkgs = packages_to_dict(request, packages)
             # Overwrite existing package urls
-            for filename, url in six.iteritems(stored_pkgs):
-                pkgs[filename] = url
+            for filename, data in six.iteritems(stored_pkgs):
+                pkgs[filename] = data
             return _pkg_response(pkgs)
     else:
         if not request.access.can_update_cache():

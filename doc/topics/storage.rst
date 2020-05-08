@@ -110,8 +110,8 @@ python package security model. So in theory you can bump this number up.
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** bool, optional
 
-The short story: set this to ``true`` if you only use pip and don't have to
-support easy_install. It will dramatically speed up your server.
+Leave this alone unless you're having problems using ``easy_install``. It
+defaults to ``True`` and should not be changed unless you encounter issues.
 
 The long story: :ref:`redirect_detail`
 
@@ -281,8 +281,8 @@ python package security model. So in theory you can bump this number up.
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** bool, optional
 
-The short story: set this to ``true`` if you only use pip and don't have to
-support easy_install. It will dramatically speed up your server.
+Leave this alone unless you're having problems using ``easy_install``. It
+defaults to ``True`` and should not be changed unless you encounter issues.
 
 The long story: :ref:`redirect_detail`
 

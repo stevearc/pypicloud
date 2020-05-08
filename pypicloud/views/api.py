@@ -68,14 +68,19 @@ def package_versions(context, request):
     }
 
 
-def fetch_dist(request, package_name, package_url):
+def fetch_dist(request, url, name, version, summary, requires_python):
     """ Fetch a Distribution and upload it to the storage backend """
-    filename = posixpath.basename(package_url)
-    url = urlopen(package_url)
-    with closing(url):
-        data = url.read()
+    filename = posixpath.basename(url)
+    handle = urlopen(url)
+    with closing(handle):
+        data = handle.read()
     # TODO: digest validation
-    return request.db.upload(filename, six.BytesIO(data), package_name), data
+    return (
+        request.db.upload(
+            filename, six.BytesIO(data), name, version, summary, requires_python
+        ),
+        data,
+    )
 
 
 @view_config(context=APIPackageFileResource, request_method="GET", permission="read")
@@ -88,22 +93,24 @@ def download_package(context, request):
         if not request.access.can_update_cache():
             return request.forbid()
         # If we are caching pypi, download the package from pypi and save it
-        dists = request.locator.get_project(context.name)
+        releases = request.locator.get_releases(context.name)
 
         dist = None
-        source_url = None
-        for version, url_set in six.iteritems(dists.get("urls", {})):
-            if dist is not None:
+        for release in releases:
+            if posixpath.basename(release["url"]) == context.filename:
+                dist = release
                 break
-            for url in url_set:
-                if posixpath.basename(url) == context.filename:
-                    source_url = url
-                    dist = dists[version]
-                    break
         if dist is None:
             return HTTPNotFound()
         LOG.info("Caching %s from %s", context.filename, request.fallback_simple)
-        package, data = fetch_dist(request, dist.name, source_url)
+        package, data = fetch_dist(
+            request,
+            dist["url"],
+            dist["name"],
+            dist["version"],
+            dist["summary"],
+            dist["requires_python"],
+        )
         disp = CONTENT_DISPOSITION.tuples(filename=package.filename)
         request.response.headers.update(disp)
         cache_control = CACHE_CONTROL.tuples(
@@ -136,10 +143,16 @@ def download_package(context, request):
     permission="write",
 )
 @argify
-def upload_package(context, request, content):
+def upload_package(context, request, content, summary=None, requires_python=None):
     """ Upload a package """
     try:
-        return request.db.upload(content.filename, content.file, name=context.name)
+        return request.db.upload(
+            content.filename,
+            content.file,
+            name=context.name,
+            summary=summary,
+            requires_python=requires_python,
+        )
     except ValueError as e:  # pragma: no cover
         return HTTPBadRequest(*e.args)
 
@@ -188,42 +201,3 @@ def change_password(request, old_password, new_password):
         return HTTPForbidden()
     request.access.edit_user_password(request.userid, new_password)
     return request.response
-
-
-@view_config(
-    context=APIResource,
-    name="fetch",
-    renderer="json",
-    permission=NO_PERMISSION_REQUIRED,
-)
-@argify(wheel=bool, prerelease=bool)
-def fetch_requirements(request, requirements, wheel=True, prerelease=False):
-    """
-    Fetch packages from the fallback_base_url
-
-    Parameters
-    ----------
-    requirements : str
-        Requirements in the requirements.txt format (with newlines)
-    wheel : bool, optional
-        If True, will prefer wheels (default True)
-    prerelease : bool, optional
-        If True, will allow prerelease versions (default False)
-
-    Returns
-    -------
-    pkgs : list
-        List of Package objects
-
-    """
-    if not request.access.can_update_cache():
-        return HTTPForbidden()
-    packages = []
-    for line in requirements.splitlines():
-        dist = request.locator.locate(line, prerelease, wheel)
-        if dist is not None:
-            try:
-                packages.append(fetch_dist(request, dist.name, dist.source_url)[0])
-            except ValueError:
-                pass
-    return {"pkgs": packages}
