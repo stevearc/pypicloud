@@ -32,7 +32,7 @@ class SimpleJsonLocator(object):
                         "version": version,
                         "summary": summary,
                         "url": release["url"],
-                        "digests": release["digests"],
+                        "digests": release.get("digests", {}),
                         "requires_python": release["requires_python"],
                     }
                 except KeyError:

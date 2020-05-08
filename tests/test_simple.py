@@ -284,6 +284,7 @@ class PackageReadTestBase(unittest.TestCase):
                     {
                         "filename": self.package.filename,
                         "url": self.package.get_url(request),
+                        "requires_python": None,
                     }
                 ]
             },

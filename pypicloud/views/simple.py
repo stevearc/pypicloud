@@ -129,7 +129,11 @@ def package_versions_json(context, request):
             max_version = version
 
         response["releases"].setdefault(version_str, []).append(
-            {"filename": filename, "url": pkg["url"]}
+            {
+                "filename": filename,
+                "url": pkg["url"],
+                "requires_python": pkg["requires_python"],
+            }
         )
     if max_version is not None:
         response["urls"] = response["releases"].get(str(max_version), [])
