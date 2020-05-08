@@ -13,7 +13,7 @@ from .route import Root
 from .locator import SimpleJsonLocator, FormattedScrapingLocator
 
 
-__version__ = "1.0.13"
+__version__ = "1.0.14"
 LOG = logging.getLogger(__name__)
 
 
