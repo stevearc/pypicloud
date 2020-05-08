@@ -2,6 +2,16 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.0.14 - 2020/5/7
+-----------------
+* Fix a bug with reloading Redis cache (:pr:`230`)
+* More graceful handling of non-package files in GCS (:issue:`232`)
+* Support for ``requires_python`` metadata (:pr:`234`, :issue:`219`)
+* Add ``pypi.use_json_scraper`` setting for configuring
+* Change default value of ``storage.redirect_urls`` to ``True``
+* Add :ref:`auth.scheme <auth_scheme>` setting to customize password hashing algorithm (:issue:`237`)
+* SIGNIFICANTLY LOWERED default password hashing rounds. :ref:`Read about why in the docs <passlib>`
+
 1.0.13 - 2020/1/1
 -----------------
 * Add option to use IAM signer on GCS (:pr:`226`)
