@@ -3,6 +3,7 @@
 import json
 import time
 import datetime
+import sys
 from six import BytesIO
 
 import shutil
@@ -14,6 +15,7 @@ from six.moves.urllib.parse import urlparse, parse_qs  # pylint: disable=F0401,E
 import boto3
 import os
 import re
+import vcr
 from botocore.exceptions import ClientError
 from pypicloud.models import Package
 from pypicloud.storage import (
@@ -21,6 +23,7 @@ from pypicloud.storage import (
     CloudFrontS3Storage,
     FileStorage,
     GoogleCloudStorage,
+    get_storage_impl
 )
 from . import make_package
 
@@ -624,3 +627,85 @@ class TestGoogleCloudStorage(unittest.TestCase):
             {"storage.bucket": "new_bucket", "storage.region_name": "us-east-1"}
         )
         GoogleCloudStorage(MagicMock(), **kwargs)
+
+
+class TestAzureStorage(unittest.TestCase):
+    """ Tests for storing packages in Azure Blob Storage """
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestAzureStorage, cls).setUpClass()
+        if sys.version_info.major < 3 or sys.version_info.minor < 6:
+            raise unittest.SkipTest("vcrpy does not work on < 3.6 :(")
+
+    def setUp(self):
+        super(TestAzureStorage, self).setUp()
+        self.settings = {
+            "pypi.storage": "azure-blob",
+            "storage.azure_storage_account_name": "terrytest2",
+            "storage.azure_storage_account_key": "Aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa==",
+            "storage.azure_storage_container_name": "pypi",
+        }
+        storage_func = get_storage_impl(self.settings)
+        self.storage = storage_func(MagicMock())
+
+    def test_list_and_upload(self):
+        """List packages from blob storage"""
+        with vcr.use_cassette(
+            "tests/vcr_cassettes/test_list.yaml", filter_headers=["authorization"]
+        ):
+            package = make_package("mypkg", "1.2", "pkg.tar.gz", summary="test")
+            self.storage.upload(package, BytesIO(b"test1234"))
+
+            package = list(self.storage.list(Package))[0]
+            self.assertEqual(package.name, "mypkg")
+            self.assertEqual(package.version, "1.2")
+            self.assertEqual(package.filename, "pkg.tar.gz")
+            self.assertEqual(package.summary, "test")
+
+    def test_get_url(self):
+        """Test presigned url generation"""
+        package = make_package()
+        response = self.storage.download_response(package)
+
+        parts = urlparse(response.location)
+        self.assertEqual(parts.scheme, "https")
+        self.assertEqual(parts.hostname, "terrytest2.blob.core.windows.net")
+        self.assertEqual(
+            parts.path,
+            "/"
+            + self.settings["storage.azure_storage_container_name"]
+            + "/"
+            + self.storage.get_path(package),
+        )
+        query = parse_qs(parts.query)
+        self.assertItemsEqual(query.keys(), ["se", "sp", "spr", "sv", "sr", "sig"])
+
+    def test_delete(self):
+        """ delete() should remove package from storage """
+        with vcr.use_cassette(
+            "tests/vcr_cassettes/test_delete.yaml", filter_headers=["authorization"]
+        ):
+            package = make_package()
+            self.storage.upload(package, BytesIO())
+            self.storage.delete(package)
+            packages = list(self.storage.list(Package))
+            self.assertEqual(len(packages), 0)
+
+    def test_check_health_success(self):
+        """ check_health returns True for good connection """
+        with vcr.use_cassette(
+            "tests/vcr_cassettes/test_check.yaml", filter_headers=["authorization"]
+        ):
+            ok, msg = self.storage.check_health()
+            self.assertTrue(ok)
+
+    def test_check_health_fail(self):
+        """ check_health returns False for bad connection """
+        with vcr.use_cassette(
+            "tests/vcr_cassettes/test_check_fail.yaml",
+            filter_headers=["authorization"],
+            record_mode="none",
+        ):
+            ok, msg = self.storage.check_health()
+            self.assertFalse(ok)
