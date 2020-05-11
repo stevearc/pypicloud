@@ -23,7 +23,7 @@ from pypicloud.storage import (
     CloudFrontS3Storage,
     FileStorage,
     GoogleCloudStorage,
-    get_storage_impl
+    get_storage_impl,
 )
 from . import make_package
 
