@@ -14,12 +14,30 @@ try:
 except ImportError:
     GCS_IS_AVAILABLE = False
 
+try:
+    from .azure_blob import AzureBlobStorage
+
+    AZURE_BLOB_IS_AVAILABLE = True
+except ImportError:
+    AZURE_BLOB_IS_AVAILABLE = False
+
 
 def get_storage_impl(settings):
     """ Get and configure the storage backend wrapper """
     resolver = DottedNameResolver(__name__)
     storage = settings.get("pypi.storage", "file")
-    if storage == "s3":
+    if storage == "azure-blob":
+        if not AZURE_BLOB_IS_AVAILABLE:
+            raise ValueError(
+                "azure-blob storage backend selected but Azure Blob "
+                "Storage is not available. "
+                "Please install the azure-storage-blob library by "
+                "including the `azure-blob` extra in your pip-install step. "
+                "For example: `pip install pypicloud[azure-blob]`"
+            )
+
+        storage = "pypicloud.storage.AzureBlobStorage"
+    elif storage == "s3":
         storage = "pypicloud.storage.S3Storage"
     elif storage == "cloudfront":
         storage = "pypicloud.storage.CloudFrontS3Storage"
