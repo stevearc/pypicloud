@@ -77,7 +77,7 @@ class AzureBlobStorage(IStorage):
         return kwargs
 
     def _generate_url(self, package):
-        path = self._get_path(package)
+        path = self.get_path(package)
 
         url_params = generate_blob_sas(
             account_name=self.storage_account_name,
@@ -119,7 +119,7 @@ class AzureBlobStorage(IStorage):
                 **Package.read_metadata(metadata.metadata)
             )
 
-    def _get_path(self, package):
+    def get_path(self, package):
         """ Get the fully-qualified bucket path for a package """
         if "path" not in package.data:
             package.data["path"] = (
@@ -128,7 +128,7 @@ class AzureBlobStorage(IStorage):
         return package.data["path"]
 
     def upload(self, package, datastream):
-        path = self._get_path(package)
+        path = self.get_path(package)
 
         metadata = package.get_metadata()
         metadata["name"] = package.name
@@ -139,7 +139,7 @@ class AzureBlobStorage(IStorage):
         blob_client.upload_blob(data=datastream, metadata=metadata)
 
     def delete(self, package):
-        path = self._get_path(package)
+        path = self.get_path(package)
         blob_client = self.container_client.get_blob_client(blob=path)
         blob_client.delete_blob()
 

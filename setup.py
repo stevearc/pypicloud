@@ -50,6 +50,7 @@ EXTRAS["test"] = EXTRAS["all_plugins"] + [
     "psycopg2-binary",
     "requests",
     "webtest",
+    "vcrpy",
 ]
 
 EXTRAS["server"] = ["waitress"]

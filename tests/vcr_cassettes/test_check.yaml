@@ -1,0 +1,49 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept:
+      - application/xml
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - azsdk-python-storage-blob/12.3.1 Python/3.8.2 (Linux-5.4.0-29-generic-x86_64-with-glibc2.29)
+      x-ms-client-request-id:
+      - 2f9ab1be-93d7-11ea-89fb-89cd17cd7869
+      x-ms-date:
+      - Mon, 11 May 2020 22:31:41 GMT
+      x-ms-version:
+      - '2019-07-07'
+    method: GET
+    uri: https://terrytest2.blob.core.windows.net/pypi?prefix=&restype=container&comp=list
+  response:
+    body:
+      string: "\uFEFF<?xml version=\"1.0\" encoding=\"utf-8\"?><EnumerationResults\
+        \ ServiceEndpoint=\"https://terrytest2.blob.core.windows.net/\" ContainerName=\"\
+        pypi\"><Blobs><Blob><Name>mypkg/mypkg-1.1.tar.gz</Name><Properties><Creation-Time>Mon,\
+        \ 11 May 2020 22:30:12 GMT</Creation-Time><Last-Modified>Mon, 11 May 2020\
+        \ 22:30:12 GMT</Last-Modified><Etag>0x8D7F5FADEEABB8D</Etag><Content-Length>0</Content-Length><Content-Type>application/octet-stream</Content-Type><Content-Encoding\
+        \ /><Content-Language /><Content-CRC64 /><Content-MD5>1B2M2Y8AsgTpgAmY7PhCfg==</Content-MD5><Cache-Control\
+        \ /><Content-Disposition /><BlobType>BlockBlob</BlobType><AccessTier>Hot</AccessTier><AccessTierInferred>true</AccessTierInferred><LeaseStatus>unlocked</LeaseStatus><LeaseState>available</LeaseState><ServerEncrypted>true</ServerEncrypted></Properties></Blob></Blobs><NextMarker\
+        \ /></EnumerationResults>"
+    headers:
+      Content-Type:
+      - application/xml
+      Date:
+      - Mon, 11 May 2020 22:31:41 GMT
+      Server:
+      - Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0
+      Transfer-Encoding:
+      - chunked
+      x-ms-client-request-id:
+      - 2f9ab1be-93d7-11ea-89fb-89cd17cd7869
+      x-ms-request-id:
+      - abac65c0-d01e-001c-1ae3-275139000000
+      x-ms-version:
+      - '2019-07-07'
+    status:
+      code: 200
+      message: OK
+version: 1
