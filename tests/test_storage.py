@@ -642,9 +642,9 @@ class TestAzureStorage(unittest.TestCase):
         super(TestAzureStorage, self).setUp()
         self.settings = {
             "pypi.storage": "azure-blob",
-            "storage.azure_storage_account_name": "terrytest2",
-            "storage.azure_storage_account_key": "Aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa==",
-            "storage.azure_storage_container_name": "pypi",
+            "storage.storage_account_name": "terrytest2",
+            "storage.storage_account_key": "Aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa==",
+            "storage.storage_container_name": "pypi",
         }
         storage_func = get_storage_impl(self.settings)
         self.storage = storage_func(MagicMock())
@@ -674,7 +674,7 @@ class TestAzureStorage(unittest.TestCase):
         self.assertEqual(
             parts.path,
             "/"
-            + self.settings["storage.azure_storage_container_name"]
+            + self.settings["storage.storage_container_name"]
             + "/"
             + self.storage.get_path(package),
         )
