@@ -1,13 +1,12 @@
-""" Store packages in S3 """
+""" Store packages in Azure Blob Storage """
 from __future__ import unicode_literals
 import logging
 import posixpath
-import unicodedata
 from datetime import datetime, timedelta
 from contextlib import contextmanager
 
-import six
 from azure.storage.blob import BlobServiceClient, BlobSasPermissions, generate_blob_sas
+from azure.core.exceptions import ResourceNotFoundError
 from pyramid.httpexceptions import HTTPFound
 from pyramid.settings import asbool
 from six import BytesIO
@@ -15,6 +14,7 @@ from six.moves.urllib.request import urlopen  # pylint: disable=F0401,E0611
 
 from .base import IStorage
 from pypicloud.models import Package
+from pypicloud.util import normalize_metadata
 
 
 LOG = logging.getLogger(__name__)
@@ -31,27 +31,27 @@ class AzureBlobStorage(IStorage):
         expire_after=None,
         path_prefix=None,
         redirect_urls=None,
-        azure_storage_account_name=None,
-        azure_storage_account_key=None,
-        azure_storage_container_name=None,
+        storage_account_name=None,
+        storage_account_key=None,
+        storage_container_name=None,
     ):
         super(AzureBlobStorage, self).__init__(request)
 
         self.expire_after = expire_after
         self.path_prefix = path_prefix
         self.redirect_urls = redirect_urls
-        self.azure_storage_account_name = azure_storage_account_name
-        self.azure_storage_account_key = azure_storage_account_key
-        self.azure_storage_container_name = azure_storage_container_name
+        self.storage_account_name = storage_account_name
+        self.storage_account_key = storage_account_key
+        self.storage_container_name = storage_container_name
         self.azure_storage_account_url = "https://{}.blob.core.windows.net".format(
-            azure_storage_account_name
+            storage_account_name
         )
         self.blob_service_client = BlobServiceClient(
             account_url=self.azure_storage_account_url,
-            credential=self.azure_storage_account_key,
+            credential=self.storage_account_key,
         )
         self.container_client = self.blob_service_client.get_container_client(
-            self.azure_storage_container_name
+            self.storage_container_name
         )
 
     @classmethod
@@ -60,27 +60,19 @@ class AzureBlobStorage(IStorage):
         kwargs["expire_after"] = int(settings.get("storage.expire_after", 60 * 60 * 24))
         kwargs["path_prefix"] = settings.get("storage.prefix", "")
         kwargs["redirect_urls"] = asbool(settings.get("storage.redirect_urls", True))
-        kwargs["azure_storage_account_name"] = settings.get(
-            "storage.azure_storage_account_name"
-        )
-        if kwargs["azure_storage_account_name"] is None:
-            raise ValueError(
-                "You must specify the 'storage.azure_storage_account_name'"
-            )
+        kwargs["storage_account_name"] = settings.get("storage.storage_account_name")
+        if kwargs["storage_account_name"] is None:
+            raise ValueError("You must specify the 'storage.storage_account_name'")
 
-        kwargs["azure_storage_account_key"] = settings.get(
-            "storage.azure_storage_account_key"
-        )
-        if kwargs["azure_storage_account_key"] is None:
-            raise ValueError("You must specify the 'storage.azure_storage_account_key'")
+        kwargs["storage_account_key"] = settings.get("storage.storage_account_key")
+        if kwargs["storage_account_key"] is None:
+            raise ValueError("You must specify the 'storage.storage_account_key'")
 
-        kwargs["azure_storage_container_name"] = settings.get(
-            "storage.azure_storage_container_name"
+        kwargs["storage_container_name"] = settings.get(
+            "storage.storage_container_name"
         )
-        if kwargs["azure_storage_container_name"] is None:
-            raise ValueError(
-                "You must specify the 'storage.azure_storage_container_name'"
-            )
+        if kwargs["storage_container_name"] is None:
+            raise ValueError("You must specify the 'storage.storage_container_name'")
 
         return kwargs
 
@@ -88,10 +80,10 @@ class AzureBlobStorage(IStorage):
         path = self._get_path(package)
 
         url_params = generate_blob_sas(
-            account_name=self.azure_storage_account_name,
-            container_name=self.azure_storage_container_name,
+            account_name=self.storage_account_name,
+            container_name=self.storage_container_name,
             blob_name=path,
-            account_key=self.azure_storage_account_key,
+            account_key=self.storage_account_key,
             permission=BlobSasPermissions(read=True),
             expiry=datetime.now() + timedelta(seconds=self.expire_after),
             protocol="https",
@@ -99,7 +91,7 @@ class AzureBlobStorage(IStorage):
 
         url = "{}/{}/{}?{}".format(
             self.azure_storage_account_url,
-            self.azure_storage_container_name,
+            self.storage_container_name,
             path,
             url_params,
         )
@@ -141,21 +133,10 @@ class AzureBlobStorage(IStorage):
         metadata = package.get_metadata()
         metadata["name"] = package.name
         metadata["version"] = package.version
-        self._normalize_metadata(metadata)
+        normalize_metadata(metadata)
 
         blob_client = self.container_client.get_blob_client(blob=path)
         blob_client.upload_blob(data=datastream, metadata=metadata)
-
-    @staticmethod
-    def _normalize_metadata(metadata):
-        """Strip non-ASCII characters from metadata"""
-        for key, value in metadata.items():
-            if isinstance(value, six.string_types):
-                if isinstance(value, six.binary_type):
-                    value = value.decode("utf-8")
-                metadata[key] = "".join(
-                    c for c in unicodedata.normalize("NFKD", value) if ord(c) < 128
-                )
 
     def delete(self, package):
         path = self._get_path(package)
@@ -164,11 +145,14 @@ class AzureBlobStorage(IStorage):
 
     def check_health(self):
         try:
-            self.container_client.list_blobs()
+            self.container_client.get_blob_client(
+                blob="__notexist"
+            ).get_blob_properties()
+        except ResourceNotFoundError:
+            pass
         except Exception as e:
             return False, str(e)
-        else:
-            return True, ""
+        return True, ""
 
     @contextmanager
     def open(self, package):

@@ -320,19 +320,19 @@ Set ``pypi.storage = azure-blob`` OR ``pypi.s3 = pypicloud.storage.AzureBlobStor
 
 A few key, required options are mentioned below.
 
-``storage.azure_storage_account_name``
+``storage.storage_account_name``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string
 
 The name of the Azure Storage Account.
 
-``storage.azure_storage_account_key``
+``storage.storage_account_key``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string
 
 A valid access key, either key1 or key2.
 
-``storage.azure_storage_container_name``
+``storage.storage_container_name``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string
 

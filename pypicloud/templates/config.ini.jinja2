@@ -22,9 +22,9 @@ pypi.storage = {{ storage }}
 {% if storage == 'file' -%}
 storage.dir = {{ workdir }}/packages
 {%- elif storage == 'azure-blob' -%}
-storage.azure_storage_account_name = {{ storage_account_name }}
-storage.azure_storage_account_key = {{ storage_account_key }}
-storage.azure_storage_container_name = {{ storage_container_name }}
+storage.storage_account_name = {{ storage_account_name }}
+storage.storage_account_key = {{ storage_account_key }}
+storage.storage_container_name = {{ storage_container_name }}
 {%- elif storage == 'gcs' -%}
 storage.bucket = {{ gcs_bucket }}
 {% if bucket_region -%}

@@ -1,7 +1,6 @@
 """ Store packages in S3 """
 from __future__ import unicode_literals
 import posixpath
-import unicodedata
 
 import boto3
 import logging
@@ -18,11 +17,10 @@ from datetime import datetime, timedelta
 from pyramid.settings import asbool, falsey
 from pyramid_duh.settings import asdict
 from six.moves.urllib.parse import urlparse, quote  # pylint: disable=F0401,E0611
-import six
 
 from .object_store import ObjectStoreStorage
 from pypicloud.models import Package
-from pypicloud.util import parse_filename, get_settings
+from pypicloud.util import parse_filename, get_settings, normalize_metadata
 
 
 LOG = logging.getLogger(__name__)
@@ -200,18 +198,8 @@ class S3Storage(ObjectStoreStorage):
         metadata = package.get_metadata()
         metadata["name"] = package.name
         metadata["version"] = package.version
-        self._normalize_metadata(metadata)
+        normalize_metadata(metadata)
         key.put(Metadata=metadata, Body=datastream, **kwargs)
-
-    def _normalize_metadata(self, metadata):
-        """ Strip non-ASCII characters from metadata """
-        for key, value in metadata.items():
-            if isinstance(value, six.string_types):
-                if isinstance(value, six.binary_type):
-                    value = value.decode("utf-8")
-                metadata[key] = "".join(
-                    c for c in unicodedata.normalize("NFKD", value) if ord(c) < 128
-                )
 
     def delete(self, package):
         self.bucket.delete_objects(
