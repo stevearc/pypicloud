@@ -109,6 +109,14 @@ def bucket_validate(name):
     return True
 
 
+def storage_account_name_validate(name):
+    """ Check for valid storage account name """
+    if "." in name:
+        six.print_("Storage account names cannot contain '.'")
+        return False
+    return True
+
+
 def make_config(argv=None):
     """ Create a server config file """
     if argv is None:
@@ -155,7 +163,8 @@ def make_config(argv=None):
     data["reload_templates"] = env == "dev"
 
     storage = prompt_option(
-        "Where do you want to store your packages?", ["s3", "gcs", "filesystem"]
+        "Where do you want to store your packages?",
+        ["s3", "gcs", "filesystem", "azure-blob"],
     )
     if storage == "filesystem":
         storage = "file"
@@ -178,6 +187,13 @@ def make_config(argv=None):
 
     if storage == "gcs":
         data["gcs_bucket"] = prompt("GCS bucket name?", validate=bucket_validate)
+
+    if storage == "azure-blob":
+        data["storage_account_name"] = prompt(
+            "Storage account name?", validate=storage_account_name_validate
+        )
+        data["storage_account_key"] = prompt("Storage account key?")
+        data["storage_container_name"] = prompt("Container name?")
 
     data["encrypt_key"] = b64encode(os.urandom(32)).decode("utf-8")
     data["validate_key"] = b64encode(os.urandom(32)).decode("utf-8")

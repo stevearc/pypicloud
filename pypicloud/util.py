@@ -1,6 +1,7 @@
 """ Utilities """
 import re
 import time
+import unicodedata
 
 import logging
 import six
@@ -41,6 +42,17 @@ def normalize_name(name):
     # Lifted directly from PEP503:
     # https://www.python.org/dev/peps/pep-0503/#id4
     return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def normalize_metadata(metadata):
+    """Strip non-ASCII characters from metadata"""
+    for key, value in metadata.items():
+        if isinstance(value, six.string_types):
+            if isinstance(value, six.binary_type):
+                value = value.decode("utf-8")
+            metadata[key] = "".join(
+                c for c in unicodedata.normalize("NFKD", value) if ord(c) < 128
+            )
 
 
 def create_matcher(queries, query_type):

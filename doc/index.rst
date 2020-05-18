@@ -8,7 +8,8 @@ packages. It uses a three layer system for storing and serving files::
   +---------+        +-------+        +-----------+
 
 The **Storage** layer is where the actual package files will be kept and served
-from. This can be S3, GCS, or a directory on the server running pypicloud.
+from. This can be S3, GCS, Azure Blob Storage or a directory on the server
+running pypicloud.
 
 The **Cache** layer stores information about which packages are in stored in
 Storage. This can be DynamoDB, Redis, or any SQL database.

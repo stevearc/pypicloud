@@ -36,6 +36,7 @@ EXTRAS = {
     "dynamo": ["flywheel >= 0.2.0"],
     "redis": ["redis"],
     "gcs": ["google-cloud-storage>=1.10.0"],
+    "azure-blob": ["azure-storage-blob>=12.3.1"],
 }
 
 EXTRAS["all_plugins"] = sum(EXTRAS.values(), [])
@@ -49,6 +50,7 @@ EXTRAS["test"] = EXTRAS["all_plugins"] + [
     "psycopg2-binary",
     "requests",
     "webtest",
+    "vcrpy",
 ]
 
 EXTRAS["server"] = ["waitress"]

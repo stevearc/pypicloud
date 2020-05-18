@@ -21,6 +21,10 @@ pypi.default_write =
 pypi.storage = {{ storage }}
 {% if storage == 'file' -%}
 storage.dir = {{ workdir }}/packages
+{%- elif storage == 'azure-blob' -%}
+storage.storage_account_name = {{ storage_account_name }}
+storage.storage_account_key = {{ storage_account_key }}
+storage.storage_container_name = {{ storage_container_name }}
 {%- elif storage == 'gcs' -%}
 storage.bucket = {{ gcs_bucket }}
 {% if bucket_region -%}
