@@ -29,7 +29,7 @@ class Package(object):
         The datetime when this package was uploaded (default now)
     summary : str, optional
         The summary of the package
-    **kwargs : dict
+    **kwargs :
         Metadata about the package
 
     """

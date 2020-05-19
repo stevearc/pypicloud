@@ -1,5 +1,4 @@
 """ Store packages in Azure Blob Storage """
-from __future__ import unicode_literals
 import logging
 import posixpath
 from io import BytesIO
@@ -76,7 +75,7 @@ class AzureBlobStorage(IStorage):
 
         return kwargs
 
-    def _generate_url(self, package):
+    def _generate_url(self, package: Package) -> str:
         path = self.get_path(package)
 
         url_params = generate_blob_sas(

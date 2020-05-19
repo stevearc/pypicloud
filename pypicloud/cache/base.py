@@ -1,4 +1,5 @@
 """ Base class for all cache implementations """
+from typing import BinaryIO, Optional, List, Dict, Any, Tuple
 from datetime import datetime
 
 import logging
@@ -23,7 +24,7 @@ class ICache(object):
         self.storage = storage(request)
         self.allow_overwrite = allow_overwrite
 
-    def reload_if_needed(self):
+    def reload_if_needed(self) -> None:
         """
         Reload packages from storage backend if cache is empty
 
@@ -47,7 +48,7 @@ class ICache(object):
     def postfork(cls, **kwargs):
         """ This method will be called after uWSGI forks """
 
-    def get_url(self, package):
+    def get_url(self, package: Package) -> str:
         """
         Get the download url for a package
 
@@ -62,11 +63,11 @@ class ICache(object):
         """
         return self.storage.get_url(package)
 
-    def download_response(self, package):
+    def download_response(self, package: Package):
         """ Pass through to storage """
         return self.storage.download_response(package)
 
-    def reload_from_storage(self, clear=True):
+    def reload_from_storage(self, clear: bool = True) -> None:
         """ Make sure local database is populated with packages """
         if clear:
             self.clear_all()
@@ -76,13 +77,13 @@ class ICache(object):
 
     def upload(
         self,
-        filename,
-        data,
-        name=None,
-        version=None,
-        summary=None,
-        requires_python=None,
-    ):
+        filename: str,
+        data: BinaryIO,
+        name: Optional[str] = None,
+        version: Optional[str] = None,
+        summary: Optional[str] = None,
+        requires_python: Optional[str] = None,
+    ) -> Package:
         """
         Save this package to the storage mechanism and to the cache
 
@@ -128,7 +129,7 @@ class ICache(object):
         self.save(new_pkg)
         return new_pkg
 
-    def delete(self, package):
+    def delete(self, package: Package) -> None:
         """
         Delete this package from the database and from storage
 
@@ -140,7 +141,7 @@ class ICache(object):
         self.storage.delete(package)
         self.clear(package)
 
-    def fetch(self, filename):
+    def fetch(self, filename: str) -> Package:
         """
         Get matching package if it exists
 
@@ -156,7 +157,7 @@ class ICache(object):
         """
         raise NotImplementedError
 
-    def all(self, name):
+    def all(self, name: str) -> List[Package]:
         """
         Search for all versions of a package
 
@@ -174,7 +175,7 @@ class ICache(object):
         """
         raise NotImplementedError
 
-    def distinct(self):
+    def distinct(self) -> List[str]:
         """
         Get all distinct package names
 
@@ -186,7 +187,7 @@ class ICache(object):
         """
         raise NotImplementedError
 
-    def search(self, criteria, query_type):
+    def search(self, criteria: Dict[str, List[str]], query_type: str) -> List[Package]:
         """
         Perform a search from pip
 
@@ -233,7 +234,7 @@ class ICache(object):
 
         return packages
 
-    def summary(self):
+    def summary(self) -> List[Dict[str, Any]]:
         """
         Summarize package metadata
 
@@ -255,12 +256,13 @@ class ICache(object):
             for package in self.all(name):
                 pkg["last_modified"] = max(pkg["last_modified"], package.last_modified)
                 max_pkg = package if max_pkg is None else max(max_pkg, package)
-            pkg["summary"] = max_pkg.summary
-            packages.append(pkg)
+            if max_pkg:
+                pkg["summary"] = max_pkg.summary
+                packages.append(pkg)
 
         return packages
 
-    def clear(self, package):
+    def clear(self, package: Package) -> None:
         """
         Remove this package from the caching database
 
@@ -271,11 +273,11 @@ class ICache(object):
         """
         raise NotImplementedError
 
-    def clear_all(self):
+    def clear_all(self) -> None:
         """ Clear all cached packages from the database """
         raise NotImplementedError
 
-    def save(self, package):
+    def save(self, package: Package) -> None:
         """
         Save this package to the database
 
@@ -286,7 +288,7 @@ class ICache(object):
         """
         raise NotImplementedError
 
-    def check_health(self):
+    def check_health(self) -> Tuple[bool, str]:
         """
         Check the health of the cache backend
 
@@ -297,4 +299,4 @@ class ICache(object):
             status message
 
         """
-        return (True, "")
+        return True, ""

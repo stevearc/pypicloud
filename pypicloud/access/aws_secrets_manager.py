@@ -5,12 +5,7 @@ from botocore.exceptions import ClientError
 
 from .base_json import IMutableJsonAccessBackend
 from pypicloud.util import get_settings
-
-
-try:
-    from json.decoder import JSONDecodeError
-except ImportError:
-    JSONDecodeError = ValueError
+from json import JSONDecodeError
 
 
 class AWSSecretsManagerAccessBackend(IMutableJsonAccessBackend):

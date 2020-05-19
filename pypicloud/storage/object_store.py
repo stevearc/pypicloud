@@ -11,6 +11,7 @@ from pyramid.settings import asbool
 from pyramid.httpexceptions import HTTPFound
 
 from .base import IStorage
+from pypicloud.models import Package
 
 
 LOG = logging.getLogger(__name__)
@@ -52,13 +53,13 @@ class ObjectStoreStorage(IStorage):
         self.public_url = public_url
 
     @classmethod
-    def get_bucket(cls, bucket_name, settings):
+    def get_bucket(cls, bucket_name: str, settings):
         """ Subclasses must implement a method for generating a Bucket class
             instance in the backend's SDK
         """
         raise NotImplementedError
 
-    def _generate_url(self, package):
+    def _generate_url(self, package: Package) -> str:
         """ Subclasses must implement a method for generating signed URLs to
             the package in the object store
         """

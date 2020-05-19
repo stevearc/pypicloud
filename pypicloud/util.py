@@ -2,6 +2,7 @@
 import re
 import time
 import unicodedata
+from typing import Dict, Union, Optional, Tuple, Callable, List, Any
 
 import logging
 from distlib.locators import Locator
@@ -14,7 +15,7 @@ ALL_EXTENSIONS = Locator.source_extensions + Locator.binary_extensions
 SENTINEL = object()
 
 
-def parse_filename(filename, name=None):
+def parse_filename(filename: str, name: Optional[str] = None) -> Tuple[str, str]:
     """ Parse a name and version out of a filename """
     version = None
     for ext in ALL_EXTENSIONS:
@@ -36,14 +37,14 @@ def parse_filename(filename, name=None):
     return normalize_name(name), version
 
 
-def normalize_name(name):
+def normalize_name(name: str) -> str:
     """ Normalize a python package name """
     # Lifted directly from PEP503:
     # https://www.python.org/dev/peps/pep-0503/#id4
     return re.sub(r"[-_.]+", "-", name).lower()
 
 
-def normalize_metadata(metadata):
+def normalize_metadata(metadata: Dict[str, Union[str, bytes]]) -> None:
     """Strip non-ASCII characters from metadata"""
     for key, value in metadata.items():
         if isinstance(value, bytes):
@@ -55,7 +56,7 @@ def normalize_metadata(metadata):
             )
 
 
-def create_matcher(queries, query_type):
+def create_matcher(queries: List[str], query_type: str) -> Callable[[str], bool]:
     """
     Create a matcher for a list of queries
 
@@ -79,7 +80,7 @@ def create_matcher(queries, query_type):
         return lambda x: all((q in x.lower() for q in queries))
 
 
-def get_settings(settings, prefix, **kwargs):
+def get_settings(settings: dict, prefix: str, **kwargs) -> dict:
     """
     Convenience method for fetching settings
 
@@ -122,13 +123,13 @@ class TimedCache(dict):
 
     """
 
-    def __init__(self, cache_time, factory=None):
+    def __init__(self, cache_time: Optional[int], factory: Optional[Callable[[Any], Any]] = None):
         super(TimedCache, self).__init__()
         if cache_time is not None and cache_time < 0:
             raise ValueError("cache_time cannot be negative")
         self._cache_time = cache_time
         self._factory = factory
-        self._times = {}
+        self._times = {}  # type: Dict[str, float]
 
     def _has_expired(self, key):
         """ Check if a key is both present and expired """

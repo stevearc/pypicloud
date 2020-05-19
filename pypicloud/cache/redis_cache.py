@@ -1,6 +1,4 @@
 """ Store package data in redis """
-from __future__ import unicode_literals
-
 import calendar
 import json
 import logging
@@ -10,11 +8,6 @@ from pyramid.settings import asbool
 
 from .base import ICache
 
-
-try:
-    from itertools import izip
-except ImportError:  # pragma: no cover
-    izip = zip  # pylint: disable=C0103
 
 LOG = logging.getLogger(__name__)
 
@@ -295,7 +288,7 @@ class RedisCache(ICache):
                 pipe.scard(self.redis_filename_set(name))
             counts = pipe.execute()
             pipe = self.db.pipeline()
-            for name, count in izip(removed, counts):
+            for name, count in zip(removed, counts):
                 if count == 0:
                     self._delete_summary(name, pipe)
             pipe.execute()
