@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """ Tests for database cache implementations """
+from io import BytesIO
 import calendar
 import transaction
 import unittest
@@ -32,14 +33,14 @@ class TestBaseCache(unittest.TestCase):
         """ Uploading a preexisting packages overwrites current package """
         cache = DummyCache()
         cache.allow_overwrite = True
-        name, filename = "a", "a-1.tar.gz"
-        cache.upload(filename, "old", name)
-        cache.upload(filename, "new", name)
+        name, filename, content = "a", "a-1.tar.gz", BytesIO(b"new")
+        cache.upload(filename, BytesIO(b"old"), name)
+        cache.upload(filename, content, name)
 
         all_versions = cache.all(name)
         self.assertEqual(len(all_versions), 1)
-        data = cache.storage.open(all_versions[0])
-        self.assertEqual(data, "new")
+        data = cache.storage.open(all_versions[0]).read()
+        self.assertEqual(data, b"new")
 
         stored_pkgs = list(cache.storage.list(cache.new_package))
         self.assertEqual(len(stored_pkgs), 1)
@@ -49,9 +50,9 @@ class TestBaseCache(unittest.TestCase):
         cache = DummyCache()
         cache.allow_overwrite = False
         name, version, filename = "a", "1", "a-1.tar.gz"
-        cache.upload(filename, None, name, version)
+        cache.upload(filename, BytesIO(b"test1234"), name, version)
         with self.assertRaises(ValueError):
-            cache.upload(filename, None, name, version)
+            cache.upload(filename, BytesIO(b"test1234"), name, version)
 
     def test_multiple_packages_same_version(self):
         """ Can upload multiple packages that have the same version """
@@ -59,9 +60,9 @@ class TestBaseCache(unittest.TestCase):
         cache.allow_overwrite = False
         name, version = "a", "1"
         path1 = "old_package_path-1.tar.gz"
-        cache.upload(path1, None, name, version)
+        cache.upload(path1, BytesIO(b"test1234"), name, version)
         path2 = "new_path-1.whl"
-        cache.upload(path2, None, name, version)
+        cache.upload(path2, BytesIO(b"test1234"), name, version)
 
         all_versions = cache.all(name)
         self.assertEqual(len(all_versions), 2)
@@ -77,10 +78,14 @@ class TestBaseCache(unittest.TestCase):
     def test_summary(self):
         """ summary constructs per-package metadata summary """
         cache = DummyCache()
-        cache.upload("pkg1-0.3.tar.gz", None)
-        cache.upload("pkg1-1.1.tar.gz", None)
-        p1 = cache.upload("pkg1a2.tar.gz", None, "pkg1", "1.1.1a2", "summary")
-        p2 = cache.upload("pkg2.tar.gz", None, "pkg2", "0.1dev2", "summary")
+        cache.upload("pkg1-0.3.tar.gz", BytesIO(b"test1234"))
+        cache.upload("pkg1-1.1.tar.gz", BytesIO(b"test1234"))
+        p1 = cache.upload(
+            "pkg1a2.tar.gz", BytesIO(b"test1234"), "pkg1", "1.1.1a2", "summary"
+        )
+        p2 = cache.upload(
+            "pkg2.tar.gz", BytesIO(b"test1234"), "pkg2", "0.1dev2", "summary"
+        )
         summaries = cache.summary()
         self.assertItemsEqual(
             summaries,
@@ -173,19 +178,22 @@ class TestSQLiteCache(unittest.TestCase):
     def test_upload(self):
         """ upload() saves package and uploads to storage """
         pkg = make_package(factory=SQLPackage)
-        self.db.upload(pkg.filename, None, pkg.name, pkg.version)
+        content = BytesIO(b"test1234")
+        self.db.upload(pkg.filename, content, pkg.name, pkg.version)
         count = self.sql.query(SQLPackage).count()
         self.assertEqual(count, 1)
         saved_pkg = self.sql.query(SQLPackage).first()
         self.assertEqual(saved_pkg, pkg)
-        self.storage.upload.assert_called_with(pkg, None)
+        # If calculate hashes is on, it'll read the data
+        # and rewrap with BytesIO
+        self.storage.upload.assert_called_with(pkg, ANY)
 
     def test_upload_overwrite(self):
         """ Uploading a preexisting packages overwrites current package """
         self.db.allow_overwrite = True
         name, filename = "a", "a-1.tar.gz"
-        self.db.upload(filename, "old", name)
-        self.db.upload(filename, "new", name)
+        self.db.upload(filename, BytesIO(b"old"), name)
+        self.db.upload(filename, BytesIO(b"new"), name)
 
         all_versions = self.db.all(name)
         self.assertEqual(len(all_versions), 1)
@@ -314,10 +322,10 @@ class TestSQLiteCache(unittest.TestCase):
 
     def test_summary(self):
         """ summary constructs per-package metadata summary """
-        self.db.upload("pkg1-0.3.tar.gz", None, "pkg1", "0.3")
-        self.db.upload("pkg1-1.1.tar.gz", None, "pkg1", "1.1")
-        p1 = self.db.upload("pkg1a2.tar.gz", None, "pkg1", "1.1.1a2")
-        p2 = self.db.upload("pkg2.tar.gz", None, "pkg2", "0.1dev2")
+        self.db.upload("pkg1-0.3.tar.gz", BytesIO(b"test1234"), "pkg1", "0.3")
+        self.db.upload("pkg1-1.1.tar.gz", BytesIO(b"test1234"), "pkg1", "1.1")
+        p1 = self.db.upload("pkg1a2.tar.gz", BytesIO(b"test1234"), "pkg1", "1.1.1a2")
+        p2 = self.db.upload("pkg2.tar.gz", BytesIO(b"test1234"), "pkg2", "0.1dev2")
         s1, s2 = self.db.summary()  # pylint: disable=E0632
         # Order them correctly. assertItemsEqual isn't playing nice in py2.6
         if s1["name"] == "pkg2":
@@ -340,9 +348,9 @@ class TestSQLiteCache(unittest.TestCase):
         with patch.object(self.db, "allow_overwrite", False):
             name, version = "a", "1"
             path1 = "old_package_path-1.tar.gz"
-            self.db.upload(path1, None, name, version)
+            self.db.upload(path1, BytesIO(b"test1234"), name, version)
             path2 = "new_path-1.whl"
-            self.db.upload(path2, None, name, version)
+            self.db.upload(path2, BytesIO(b"test1234"), name, version)
 
             all_versions = self.db.all(name)
             self.assertEqual(len(all_versions), 2)
