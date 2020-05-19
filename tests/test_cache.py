@@ -610,19 +610,23 @@ class TestRedisCache(unittest.TestCase):
         with patch.object(self.db, "allow_overwrite", False):
             name, version = "a", "1"
             path1 = "old_package_path-1.tar.gz"
-            self.db.upload(path1, None, name, version)
+            self.db.upload(path1, BytesIO(b"test1234"), name, version)
             path2 = "new_path-1.whl"
-            self.db.upload(path2, None, name, version)
+            self.db.upload(path2, BytesIO(b"test1234"), name, version)
 
             all_versions = self.db.all(name)
             self.assertEqual(len(all_versions), 2)
 
     def test_summary(self):
         """ summary constructs per-package metadata summary """
-        self.db.upload("pkg1-0.3a2.tar.gz", None, "pkg1", "0.3a2")
-        self.db.upload("pkg1-1.1.tar.gz", None, "pkg1", "1.1")
-        p1 = self.db.upload("pkg1a2.tar.gz", None, "pkg1", "1.1.1a2", "summary")
-        p2 = self.db.upload("pkg2.tar.gz", None, "pkg2", "0.1dev2", "summary")
+        self.db.upload("pkg1-0.3a2.tar.gz", BytesIO(b"test1234"), "pkg1", "0.3a2")
+        self.db.upload("pkg1-1.1.tar.gz", BytesIO(b"test1234"), "pkg1", "1.1")
+        p1 = self.db.upload(
+            "pkg1a2.tar.gz", BytesIO(b"test1234"), "pkg1", "1.1.1a2", "summary"
+        )
+        p2 = self.db.upload(
+            "pkg2.tar.gz", BytesIO(b"test1234"), "pkg2", "0.1dev2", "summary"
+        )
         summaries = self.db.summary()
         self.assertItemsEqual(
             summaries,
@@ -719,12 +723,12 @@ class TestDynamoCache(unittest.TestCase):
     def test_upload(self):
         """ upload() saves package and uploads to storage """
         pkg = make_package(factory=DynamoPackage)
-        self.db.upload(pkg.filename, None, pkg.name, pkg.version)
+        self.db.upload(pkg.filename, BytesIO(b"test1234"), pkg.name, pkg.version)
         count = self.engine.scan(DynamoPackage).count()
         self.assertEqual(count, 1)
         saved_pkg = self.engine.scan(DynamoPackage).first()
         self.assertEqual(saved_pkg, pkg)
-        self.storage.upload.assert_called_with(pkg, None)
+        self.storage.upload.assert_called_with(pkg, ANY)
 
     def test_save(self):
         """ save() puts object into database """
@@ -841,10 +845,14 @@ class TestDynamoCache(unittest.TestCase):
 
     def test_summary(self):
         """ summary constructs per-package metadata summary """
-        self.db.upload("pkg1-0.3a2.tar.gz", None, "pkg1", "0.3a2")
-        self.db.upload("pkg1-1.1.tar.gz", None, "pkg1", "1.1")
-        p1 = self.db.upload("pkg1a2.tar.gz", None, "pkg1", "1.1.1a2", "summary")
-        p2 = self.db.upload("pkg2.tar.gz", None, "pkg2", "0.1dev2", "summary")
+        self.db.upload("pkg1-0.3a2.tar.gz", BytesIO(b"test1234"), "pkg1", "0.3a2")
+        self.db.upload("pkg1-1.1.tar.gz", BytesIO(b"test1234"), "pkg1", "1.1")
+        p1 = self.db.upload(
+            "pkg1a2.tar.gz", BytesIO(b"test1234"), "pkg1", "1.1.1a2", "summary"
+        )
+        p2 = self.db.upload(
+            "pkg2.tar.gz", BytesIO(b"test1234"), "pkg2", "0.1dev2", "summary"
+        )
         summaries = self.db.summary()
         self.assertItemsEqual(
             summaries,
@@ -867,9 +875,9 @@ class TestDynamoCache(unittest.TestCase):
         with patch.object(self.db, "allow_overwrite", False):
             name, version = "a", "1"
             path1 = "old_package_path-1.tar.gz"
-            self.db.upload(path1, None, name, version)
+            self.db.upload(path1, BytesIO(b"test1234"), name, version)
             path2 = "new_path-1.whl"
-            self.db.upload(path2, None, name, version)
+            self.db.upload(path2, BytesIO(b"test1234"), name, version)
 
             all_versions = self.db.all(name)
             self.assertEqual(len(all_versions), 2)
@@ -900,12 +908,14 @@ class TestDynamoCache(unittest.TestCase):
     def test_upload_no_summary(self):
         """ upload() saves package even when there is no summary """
         pkg = make_package(factory=DynamoPackage)
-        self.db.upload(pkg.filename, None, pkg.name, pkg.version, summary="")
+        self.db.upload(
+            pkg.filename, BytesIO(b"test1234"), pkg.name, pkg.version, summary=""
+        )
         count = self.engine.scan(DynamoPackage).count()
         self.assertEqual(count, 1)
         saved_pkg = self.engine.scan(DynamoPackage).first()
         self.assertEqual(saved_pkg, pkg)
-        self.storage.upload.assert_called_with(pkg, None)
+        self.storage.upload.assert_called_with(pkg, ANY)
 
     def test_check_health_success(self):
         """ check_health returns True for good connection """
