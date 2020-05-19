@@ -8,7 +8,7 @@ from functools import total_ordering
 from .util import normalize_name
 
 
-METADATA_FIELDS = ["requires_python", "summary"]
+METADATA_FIELDS = ["requires_python", "summary", "hash_sha256", "hash_md5"]
 
 
 @total_ordering

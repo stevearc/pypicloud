@@ -1,7 +1,8 @@
 """ Base class for all cache implementations """
 from typing import BinaryIO, Callable, Optional, List, Dict, Any, Tuple
 from datetime import datetime
-
+from io import BytesIO
+import hashlib
 import logging
 from pyramid.settings import asbool
 
@@ -17,10 +18,15 @@ class ICache(object):
 
     """ Base class for a caching database that stores package metadata """
 
-    def __init__(self, request=None, storage=None, allow_overwrite=None):
+    package_class = Package
+
+    def __init__(
+        self, request=None, storage=None, allow_overwrite=None, calculate_hashes=True
+    ):
         self.request = request
         self.storage = storage(request)
         self.allow_overwrite = allow_overwrite
+        self.calculate_hashes = calculate_hashes
 
     def new_package(self, *args, **kwargs):
         return Package(*args, **kwargs)
@@ -43,6 +49,9 @@ class ICache(object):
         return {
             "storage": get_storage_impl(settings),
             "allow_overwrite": asbool(settings.get("pypi.allow_overwrite", False)),
+            "calculate_hashes": asbool(
+                settings.get("pypi.calculate_package_hashes", True)
+            ),
         }
 
     @classmethod
@@ -121,10 +130,17 @@ class ICache(object):
         name = normalize_name(name)
         filename = posixpath.basename(filename)
         old_pkg = self.fetch(filename)
+        metadata = {"requires_python": requires_python}
         if old_pkg is not None and not self.allow_overwrite:
             raise ValueError("Package '%s' already exists!" % filename)
-        new_pkg = self.new_package(
-            name, version, filename, summary=summary, requires_python=requires_python
+        if self.calculate_hashes:
+            file_data = data.read()
+            metadata["hash_sha256"] = hashlib.sha256(file_data).hexdigest()
+            metadata["hash_md5"] = hashlib.md5(file_data).hexdigest()
+            data = BytesIO(file_data)
+
+        new_pkg = self.package_class(
+            name, version, filename, summary=summary, **metadata
         )
         self.storage.upload(new_pkg, data)
         self.save(new_pkg)

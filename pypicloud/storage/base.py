@@ -1,4 +1,5 @@
 """ Base class for storage backends """
+from pyramid.request import Request
 from typing import Type, List, BinaryIO, Tuple
 from pypicloud.models import Package
 
@@ -7,7 +8,7 @@ class IStorage(object):
 
     """ Base class for a backend that stores package files """
 
-    def __init__(self, request):
+    def __init__(self, request: Request):
         self.request = request
 
     @classmethod
@@ -33,7 +34,12 @@ class IStorage(object):
             Link to the location of this package file
 
         """
-        return self.request.app_url("api", "package", package.name, package.filename)
+        fragment = ""
+        if package.data.get("hash_sha256"):
+            fragment = "sha256=" + package.data["hash_sha256"]
+        return self.request.app_url(
+            "api", "package", package.name, package.filename, fragment=fragment
+        )
 
     def download_response(self, package: Package):
         """
