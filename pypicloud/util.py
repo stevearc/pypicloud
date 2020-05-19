@@ -123,7 +123,9 @@ class TimedCache(dict):
 
     """
 
-    def __init__(self, cache_time: Optional[int], factory: Optional[Callable[[Any], Any]] = None):
+    def __init__(
+        self, cache_time: Optional[int], factory: Optional[Callable[[Any], Any]] = None
+    ):
         super(TimedCache, self).__init__()
         if cache_time is not None and cache_time < 0:
             raise ValueError("cache_time cannot be negative")

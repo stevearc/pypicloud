@@ -40,7 +40,9 @@ if sys_bits < 64:
     SCHEMES.remove("pbkdf2_sha512")
 
 
-def get_pwd_context(preferred_hash: Optional[str] = None, rounds: Optional[int] = None) -> LazyCryptContext:
+def get_pwd_context(
+    preferred_hash: Optional[str] = None, rounds: Optional[int] = None
+) -> LazyCryptContext:
     """ Create a passlib context for hashing passwords """
     if preferred_hash is None or preferred_hash == "sha":
         preferred_hash = "sha256_crypt" if sys_bits < 64 else "sha512_crypt"
@@ -508,7 +510,10 @@ class IAccessBackend(object):
             user["password"] = self._get_password_hash(user["username"])
 
         data["groups"] = {}
-        packages = {"users": defaultdict(dict), "groups": defaultdict(dict)}  # type: Dict[str, Any]
+        packages = {
+            "users": defaultdict(dict),
+            "groups": defaultdict(dict),
+        }  # type: Dict[str, Any]
         for group in groups:
             data["groups"][group] = self.group_members(group)
             perms = self.group_package_permissions(group)
@@ -615,7 +620,9 @@ class IMutableAccessBackend(IAccessBackend):
             return None
         _, expected = self._hmac(username, issued)
         if hasattr(hmac, "compare_digest"):
-            if not hmac.compare_digest(signature.encode("utf-8"), expected.encode("utf-8")):
+            if not hmac.compare_digest(
+                signature.encode("utf-8"), expected.encode("utf-8")
+            ):
                 return None
         else:
             if signature != expected:
@@ -777,7 +784,9 @@ class IMutableAccessBackend(IAccessBackend):
         """
         raise NotImplementedError
 
-    def edit_user_permission(self, package: str, username: str, perm: Set[str], add: bool) -> None:
+    def edit_user_permission(
+        self, package: str, username: str, perm: Set[str], add: bool
+    ) -> None:
         """
         Grant or revoke a permission for a user on a package
 
@@ -792,7 +801,9 @@ class IMutableAccessBackend(IAccessBackend):
         """
         raise NotImplementedError
 
-    def edit_group_permission(self, package: str, group: str, perm: Set[str], add: bool) -> None:
+    def edit_group_permission(
+        self, package: str, group: str, perm: Set[str], add: bool
+    ) -> None:
         """
         Grant or revoke a permission for a group on a package
 
