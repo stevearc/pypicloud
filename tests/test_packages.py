@@ -42,9 +42,33 @@ class TestPackages(MockServerTest):
         self.request.db.all.side_effect = get_packages
         result = list_packages(self.request)
         expected = {
-            "b0": {"requires_python": None, "url": "b0.ext"},
-            "c0": {"requires_python": None, "url": "c0.ext"},
-            "c1": {"requires_python": None, "url": "c1.ext"},
-            "c2": {"requires_python": None, "url": "c2.ext"},
+            "b0": {
+                "requires_python": None,
+                "hash_sha256": None,
+                "hash_md5": None,
+                "non_hashed_url": "b0.ext",
+                "url": "b0.ext",
+            },
+            "c0": {
+                "requires_python": None,
+                "hash_sha256": None,
+                "hash_md5": None,
+                "non_hashed_url": "c0.ext",
+                "url": "c0.ext",
+            },
+            "c1": {
+                "requires_python": None,
+                "hash_sha256": None,
+                "hash_md5": None,
+                "non_hashed_url": "c1.ext",
+                "url": "c1.ext",
+            },
+            "c2": {
+                "requires_python": None,
+                "hash_sha256": None,
+                "hash_md5": None,
+                "non_hashed_url": "c2.ext",
+                "url": "c2.ext",
+            },
         }
         self.assertEqual(result, {"pkgs": expected})
