@@ -8,7 +8,6 @@ services:
   - postgresql
   - docker
 env:
-  - TOXENV=py27
   - TOXENV=py38
   - TOXENV=lint
 matrix:
