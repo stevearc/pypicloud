@@ -2,7 +2,6 @@
 import re
 
 import pkg_resources
-import six
 from datetime import datetime
 from functools import total_ordering
 
@@ -12,7 +11,6 @@ from .util import normalize_name
 METADATA_FIELDS = ["requires_python", "summary"]
 
 
-@six.python_2_unicode_compatible
 @total_ordering
 class Package(object):
 
@@ -99,7 +97,7 @@ class Package(object):
         return self.__str__()
 
     def __str__(self):
-        return u"Package(%s)" % (self.filename)
+        return "Package(%s)" % self.filename
 
     def __json__(self, request):
         return {

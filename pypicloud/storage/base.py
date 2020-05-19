@@ -102,4 +102,4 @@ class IStorage(object):
             status message
 
         """
-        return (True, "")
+        return True, ""

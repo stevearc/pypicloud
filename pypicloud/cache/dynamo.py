@@ -1,6 +1,5 @@
 """ Store package data in DynamoDB """
 import logging
-import six
 from collections import defaultdict
 from datetime import datetime
 from dynamo3 import DynamoDBConnection
@@ -220,7 +219,7 @@ class DynamoCache(ICache):
         summaries_by_name = {}
         for summary in summaries:
             summaries_by_name[summary.name] = summary
-        for name, packages in six.iteritems(packages_by_name):
+        for name, packages in packages_by_name.items():
             if name in summaries_by_name:
                 summary = summaries_by_name[name]
             else:
@@ -247,6 +246,6 @@ class DynamoCache(ICache):
         try:
             self.engine.scan(PackageSummary).first()
         except Exception as e:
-            return (False, str(e))
+            return False, str(e)
         else:
-            return (True, "")
+            return True, ""

@@ -3,11 +3,12 @@ import calendar
 import datetime
 import logging
 import distlib.locators
+from urllib.parse import urlencode
+
 from pyramid.config import Configurator
 from pyramid.renderers import JSON, render
 from pyramid.settings import asbool
 from pyramid_beaker import session_factory_from_settings
-from six.moves.urllib.parse import urlencode  # pylint: disable=F0401,E0611
 
 from .route import Root
 from .locator import SimpleJsonLocator, FormattedScrapingLocator

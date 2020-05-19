@@ -2,6 +2,8 @@
 from __future__ import unicode_literals
 import logging
 import posixpath
+from io import BytesIO
+from urllib.request import urlopen
 from datetime import datetime, timedelta
 from contextlib import contextmanager
 
@@ -9,8 +11,6 @@ from azure.storage.blob import BlobServiceClient, BlobSasPermissions, generate_b
 from azure.core.exceptions import ResourceNotFoundError
 from pyramid.httpexceptions import HTTPFound
 from pyramid.settings import asbool
-from six import BytesIO
-from six.moves.urllib.request import urlopen  # pylint: disable=F0401,E0611
 
 from .base import IStorage
 from pypicloud.models import Package

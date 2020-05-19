@@ -1,7 +1,6 @@
 """ Unit tests for the simple endpoints """
-import six
-
 from mock import MagicMock, patch
+from types import MethodType
 
 from . import MockServerTest, make_package, make_dist
 from pypicloud.auth import _request_login
@@ -13,12 +12,7 @@ from pypicloud.views.simple import (
     package_versions_json,
     get_fallback_packages,
 )
-
-
-try:
-    import unittest2 as unittest  # pylint: disable=F0401
-except ImportError:
-    import unittest
+import unittest
 
 
 class TestSimple(MockServerTest):
@@ -221,7 +215,7 @@ class PackageReadTestBase(unittest.TestCase):
         request.access.can_update_cache = lambda: "c" in perms
         request.access.has_permission.side_effect = lambda n, p: "r" in perms
         request.is_logged_in = user is not None
-        request.request_login = six.create_bound_method(_request_login, request)
+        request.request_login = MethodType(_request_login, request)
         pkgs = []
         if package is not None:
             pkgs.append(package)

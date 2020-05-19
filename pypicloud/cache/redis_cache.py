@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 import calendar
 import json
 import logging
-import six
 from collections import defaultdict
 from datetime import datetime
 from pyramid.settings import asbool
@@ -86,7 +85,7 @@ class RedisCache(ICache):
         summary = data.pop("summary")
         if summary == "":
             summary = None
-        kwargs = dict(((k, json.loads(v)) for k, v in six.iteritems(data)))
+        kwargs = dict(((k, json.loads(v)) for k, v in data.items()))
         return self.package_class(
             name, version, filename, last_modified, summary, **kwargs
         )
@@ -167,7 +166,7 @@ class RedisCache(ICache):
             "last_modified": last_modified,
             "summary": package.summary or "",
         }
-        for key, value in six.iteritems(package.data):
+        for key, value in package.data.items():
             data[key] = json.dumps(value)
         pipe.hmset(self.redis_key(package.filename), data)
         pipe.sadd(self.redis_set, package.name)
@@ -267,7 +266,7 @@ class RedisCache(ICache):
         summaries_by_name = {}
         for summary in summaries:
             summaries_by_name[summary["name"]] = summary
-        for name, packages in six.iteritems(packages_by_name):
+        for name, packages in packages_by_name.items():
             if name in summaries_by_name:
                 summary = summaries_by_name[name]
             else:

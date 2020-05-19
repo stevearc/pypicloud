@@ -4,7 +4,6 @@ import time
 import unicodedata
 
 import logging
-import six
 from distlib.locators import Locator
 from distlib.util import split_filename
 from distlib.wheel import Wheel
@@ -47,9 +46,10 @@ def normalize_name(name):
 def normalize_metadata(metadata):
     """Strip non-ASCII characters from metadata"""
     for key, value in metadata.items():
-        if isinstance(value, six.string_types):
-            if isinstance(value, six.binary_type):
-                value = value.decode("utf-8")
+        if isinstance(value, bytes):
+            value = value.decode("utf-8")
+
+        if isinstance(value, str):
             metadata[key] = "".join(
                 c for c in unicodedata.normalize("NFKD", value) if ord(c) < 128
             )
@@ -98,7 +98,7 @@ def get_settings(settings, prefix, **kwargs):
 
     """
     computed = {}
-    for name, fxn in six.iteritems(kwargs):
+    for name, fxn in kwargs.items():
         val = settings.get(prefix + name)
         if val is not None:
             computed[name] = fxn(val)

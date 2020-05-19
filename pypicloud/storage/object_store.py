@@ -1,5 +1,7 @@
 """ Store packages in S3 """
 from binascii import hexlify
+from io import BytesIO
+from urllib.request import urlopen
 
 import logging
 
@@ -7,8 +9,6 @@ from contextlib import contextmanager
 from hashlib import md5
 from pyramid.settings import asbool
 from pyramid.httpexceptions import HTTPFound
-from six.moves.urllib.request import urlopen  # pylint: disable=F0401,E0611
-from six import BytesIO
 
 from .base import IStorage
 

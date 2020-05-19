@@ -1,8 +1,5 @@
 """ Tests for pypicloud """
-from __future__ import unicode_literals
-
 import os
-import six
 import unittest
 from collections import defaultdict
 from datetime import datetime
@@ -15,8 +12,7 @@ from pypicloud.models import Package
 from pypicloud.storage import IStorage
 
 
-if six.PY3:
-    unittest.TestCase.assertItemsEqual = unittest.TestCase.assertCountEqual
+unittest.TestCase.assertItemsEqual = unittest.TestCase.assertCountEqual
 
 
 os.environ["AWS_SECRET_ACCESS_KEY"] = "access_key"
@@ -68,7 +64,7 @@ class DummyStorage(IStorage):
 
     def list(self, factory=Package):
         """ Return a list or generator of all packages """
-        for args in six.itervalues(self.packages):
+        for args in self.packages.values():
             yield args[0]
 
     def download_response(self, package):
@@ -99,11 +95,11 @@ class DummyCache(ICache):
 
     def all(self, name):
         """ Override this method to implement 'all' """
-        return [p for p in six.itervalues(self.packages) if p.name == name]
+        return [p for p in self.packages.values() if p.name == name]
 
     def distinct(self):
         """ Get all distinct package names """
-        return list(set((p.name for p in six.itervalues(self.packages))))
+        return list(set((p.name for p in self.packages.values())))
 
     def clear(self, package):
         """ Remove this package from the caching database """

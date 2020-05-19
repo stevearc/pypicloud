@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 """ Tests for database cache implementations """
-from __future__ import unicode_literals
-
 import calendar
 import transaction
 import unittest

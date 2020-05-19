@@ -1,7 +1,4 @@
 """ The access backend object base class """
-from __future__ import unicode_literals
-
-import six
 import hmac
 import hashlib
 import time
@@ -152,10 +149,10 @@ class IAccessBackend(object):
 
         """
         all_perms = {}
-        for user, perms in six.iteritems(self.user_permissions(package)):
+        for user, perms in self.user_permissions(package).items():
             all_perms["user:" + user] = tuple(perms)
 
-        for group, perms in six.iteritems(self.group_permissions(package)):
+        for group, perms in self.group_permissions(package).items():
             all_perms[group_to_principal(group)] = tuple(perms)
 
         # If there are no group or user specifications for the package, use the
@@ -179,7 +176,7 @@ class IAccessBackend(object):
         """ Construct an ACL for a package """
         acl = []
         permissions = self.allowed_permissions(package)
-        for principal, perms in six.iteritems(permissions):
+        for principal, perms in permissions.items():
             for perm in perms:
                 acl.append((Allow, principal, perm))
         return acl
@@ -617,9 +614,9 @@ class IMutableAccessBackend(IAccessBackend):
             return None
         _, expected = self._hmac(username, issued)
         if hasattr(hmac, "compare_digest"):
-            if isinstance(signature, six.text_type):
+            if isinstance(signature, str):
                 signature = signature.encode("utf-8")
-            if isinstance(expected, six.text_type):
+            if isinstance(expected, str):
                 expected = expected.encode("utf-8")
             if not hmac.compare_digest(signature, expected):
                 return None
@@ -835,7 +832,7 @@ class IMutableAccessBackend(IAccessBackend):
                 self.approve_user(user["username"])
             self.set_user_admin(user["username"], user.get("admin", False))
 
-        for group, members in six.iteritems(data["groups"]):
+        for group, members in data["groups"].items():
             if not self.group_members(group):
                 self.create_group(group)
             current_members = self.group_members(group)
@@ -847,13 +844,13 @@ class IMutableAccessBackend(IAccessBackend):
             if not user_exists(user["username"]):
                 self._register(user["username"], user["password"])
 
-        for package, groups in six.iteritems(data["packages"]["groups"]):
-            for group, permissions in six.iteritems(groups):
+        for package, groups in data["packages"]["groups"].items():
+            for group, permissions in groups.items():
                 for perm in permissions:
                     self.edit_group_permission(package, group, perm, True)
 
-        for package, users in six.iteritems(data["packages"]["users"]):
-            for user, permissions in six.iteritems(users):
+        for package, users in data["packages"]["users"].items():
+            for user, permissions in users.items():
                 for perm in permissions:
                     self.edit_user_permission(package, user, perm, True)
 
