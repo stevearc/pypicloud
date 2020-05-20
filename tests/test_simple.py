@@ -194,6 +194,7 @@ class PackageReadTestBase(unittest.TestCase):
     def setUpClass(cls):
         cls.package = make_package()
         cls.package2 = make_package(version="2.1")
+        cls.package3 = make_package(version="2.1", hash_sha256="sha", hash_md5="md5")
 
     def setUp(self):
         get = patch("pypicloud.views.simple.get_fallback_packages").start()
@@ -289,6 +290,40 @@ class PackageReadTestBase(unittest.TestCase):
                     {
                         "filename": self.package.filename,
                         "url": self.package.get_url(request),
+                        "requires_python": None,
+                    }
+                ]
+            },
+        )
+
+    def should_serve_hashes(self, request):
+        """ When requested, the endpoint should serve the packages with hashes """
+        ret = package_versions(self.package3, request)
+        self.assertEqual(
+            ret,
+            {
+                "pkgs": {
+                    self.package3.filename: {
+                        "url": self.package3.get_url(request),
+                        "requires_python": None,
+                        "hash_sha256": "sha",
+                        "hash_md5": "md5",
+                        "non_hashed_url": self.package3.get_url(request),
+                    }
+                }
+            },
+        )
+        # Check the /json endpoint too
+        ret = package_versions_json(self.package3, request)
+        self.assertEqual(
+            ret["releases"],
+            {
+                "2.1": [
+                    {
+                        "filename": self.package3.filename,
+                        "url": self.package.get_url(request),
+                        "md5_digest": "md5",
+                        "digests": {"sha256": "sha", "md5": "md5"},
                         "requires_python": None,
                     }
                 ]
@@ -633,6 +668,10 @@ class TestNoFallback(PackageReadTestBase):
     def test_package_read_no_user(self):
         """ Package, read perms, no user. """
         self.should_serve(self.get_request(self.package, "r"))
+
+    def test_package_read_hashes_no_user(self):
+        """ Package, read perms, no user. """
+        self.should_serve_hashes(self.get_request(self.package3, "r"))
 
     def test_package_read_user(self):
         """ Package, read perms, user. """

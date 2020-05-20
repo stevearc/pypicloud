@@ -29,6 +29,16 @@ class TestBaseCache(unittest.TestCase):
         self.assertEqual(hash(p1), hash(p2))
         self.assertEqual(p1, p2)
 
+    def test_upload_hash_generation(self):
+        """ Uploading a package generates SHA256 and MD5 hashes """
+        cache = DummyCache()
+        pkg = cache.upload("a-1.tar.gz", BytesIO(b"test1234"), "a")
+        self.assertEqual(
+            pkg["data"]["hash_sha256"],
+            "937e8d5fbb48bd4949536cd65b8d35c426b80d2f830c5c308e2cdec422ae2244",
+        )
+        self.assertEqual(pkg["data"]["hash_md5"], "16d7a4fca7442dda3ad93c9a726597e4")
+
     def test_upload_overwrite(self):
         """ Uploading a preexisting packages overwrites current package """
         cache = DummyCache()
@@ -241,7 +251,14 @@ class TestSQLiteCache(unittest.TestCase):
         """ reload_from_storage() inserts packages into the database """
         keys = [
             make_package(factory=SQLPackage),
-            make_package("mypkg2", "1.3.4", "my/other/path", factory=SQLPackage),
+            make_package(
+                "mypkg2",
+                "1.3.4",
+                "my/other/path",
+                factory=SQLPackage,
+                hash_md5="md5",
+                hash_sha256="sha256",
+            ),
         ]
         self.storage.list.return_value = keys
         self.db.reload_from_storage()
