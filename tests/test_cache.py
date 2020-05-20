@@ -34,10 +34,10 @@ class TestBaseCache(unittest.TestCase):
         cache = DummyCache()
         pkg = cache.upload("a-1.tar.gz", BytesIO(b"test1234"), "a")
         self.assertEqual(
-            pkg["data"]["hash_sha256"],
+            pkg.data["hash_sha256"],
             "937e8d5fbb48bd4949536cd65b8d35c426b80d2f830c5c308e2cdec422ae2244",
         )
-        self.assertEqual(pkg["data"]["hash_md5"], "16d7a4fca7442dda3ad93c9a726597e4")
+        self.assertEqual(pkg.data["hash_md5"], "16d7a4fca7442dda3ad93c9a726597e4")
 
     def test_upload_overwrite(self):
         """ Uploading a preexisting packages overwrites current package """
