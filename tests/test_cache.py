@@ -41,7 +41,7 @@ class TestBaseCache(unittest.TestCase):
         data = cache.storage.open(all_versions[0])
         self.assertEqual(data, "new")
 
-        stored_pkgs = list(cache.storage.list(cache.package_class))
+        stored_pkgs = list(cache.storage.list(cache.new_package))
         self.assertEqual(len(stored_pkgs), 1)
 
     def test_upload_no_overwrite(self):
@@ -65,7 +65,7 @@ class TestBaseCache(unittest.TestCase):
 
         all_versions = cache.all(name)
         self.assertEqual(len(all_versions), 2)
-        stored_pkgs = list(cache.storage.list(cache.package_class))
+        stored_pkgs = list(cache.storage.list(cache.new_package))
         self.assertEqual(len(stored_pkgs), 2)
 
     def test_configure_storage(self):

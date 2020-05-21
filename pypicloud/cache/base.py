@@ -1,5 +1,5 @@
 """ Base class for all cache implementations """
-from typing import BinaryIO, Optional, List, Dict, Any, Tuple
+from typing import BinaryIO, Callable, Optional, List, Dict, Any, Tuple
 from datetime import datetime
 
 import logging
@@ -17,12 +17,13 @@ class ICache(object):
 
     """ Base class for a caching database that stores package metadata """
 
-    package_class = Package
-
     def __init__(self, request=None, storage=None, allow_overwrite=None):
         self.request = request
         self.storage = storage(request)
         self.allow_overwrite = allow_overwrite
+
+    def new_package(self, *args, **kwargs):
+        return Package(*args, **kwargs)
 
     def reload_if_needed(self) -> None:
         """
@@ -71,7 +72,7 @@ class ICache(object):
         """ Make sure local database is populated with packages """
         if clear:
             self.clear_all()
-        packages = self.storage.list(self.package_class)
+        packages = self.storage.list(self.new_package)
         for pkg in packages:
             self.save(pkg)
 
@@ -115,14 +116,14 @@ class ICache(object):
             If the package already exists and allow_overwrite = False
 
         """
-        if version is None:
+        if version is None or name is None:
             name, version = parse_filename(filename, name)
         name = normalize_name(name)
         filename = posixpath.basename(filename)
         old_pkg = self.fetch(filename)
         if old_pkg is not None and not self.allow_overwrite:
             raise ValueError("Package '%s' already exists!" % filename)
-        new_pkg = self.package_class(
+        new_pkg = self.new_package(
             name, version, filename, summary=summary, requires_python=requires_python
         )
         self.storage.upload(new_pkg, data)

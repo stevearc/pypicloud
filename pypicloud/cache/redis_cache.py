@@ -79,7 +79,7 @@ class RedisCache(ICache):
         if summary == "":
             summary = None
         kwargs = dict(((k, json.loads(v)) for k, v in data.items()))
-        return self.package_class(
+        return self.new_package(
             name, version, filename, last_modified, summary, **kwargs
         )
 
@@ -193,7 +193,7 @@ class RedisCache(ICache):
         if not self.graceful_reload:
             if clear:
                 self.clear_all()
-            packages = self.storage.list(self.package_class)
+            packages = self.storage.list(self.new_package)
             pipe = self.db.pipeline()
             for pkg in packages:
                 self.save(pkg, pipe=pipe)
@@ -204,7 +204,7 @@ class RedisCache(ICache):
         # Log start time
         start = datetime.utcnow()
         # Fetch packages from storage s1
-        s1 = set(self.storage.list(self.package_class))
+        s1 = set(self.storage.list(self.new_package))
         # Fetch cache packages c1
         c1 = set(self._load_all_packages())
 
@@ -231,7 +231,7 @@ class RedisCache(ICache):
         # If any packages were concurrently deleted during the cache rebuild,
         # we can detect them by polling storage again and looking for any
         # packages that were present in s1 and are missing from s2
-        s2 = set(self.storage.list(self.package_class))
+        s2 = set(self.storage.list(self.new_package))
         # Delete extra packages from cache (s1 - s2)
         extra2 = s1 - s2
         if extra2:

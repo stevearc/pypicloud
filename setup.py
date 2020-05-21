@@ -53,7 +53,7 @@ EXTRAS["test"] = EXTRAS["all_plugins"] + [
 ]
 
 EXTRAS["server"] = ["waitress"]
-EXTRAS["lint"] = ["black", "pylint==2.3.1"]
+EXTRAS["lint"] = ["black", "pylint==2.3.1", "mypy", "sqlalchemy-stubs"]
 EXTRAS["doc"] = ["numpydoc", "sphinx", "sphinx_rtd_theme"]
 
 

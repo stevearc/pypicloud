@@ -61,12 +61,13 @@ class DynamoCache(ICache):
 
     """ Caching database that uses DynamoDB """
 
-    package_class = DynamoPackage
-
     def __init__(self, request=None, engine=None, graceful_reload=False, **kwargs):
         super(DynamoCache, self).__init__(request, **kwargs)
         self.engine = engine
         self.graceful_reload = graceful_reload
+
+    def new_package(self, *args, **kwargs):
+        return DynamoPackage(*args, **kwargs)
 
     @classmethod
     def configure(cls, settings):
@@ -175,7 +176,7 @@ class DynamoCache(ICache):
         # Log start time
         start = datetime.utcnow().replace(tzinfo=UTC)
         # Fetch packages from storage s1
-        s1 = set(self.storage.list(self.package_class))
+        s1 = set(self.storage.list(self.new_package))
         # Fetch cache packages c1
         c1 = set(self.engine.scan(DynamoPackage))
         # Add missing packages to cache (s1 - c1)
@@ -194,7 +195,7 @@ class DynamoCache(ICache):
         # If any packages were concurrently deleted during the cache rebuild,
         # we can detect them by polling storage again and looking for any
         # packages that were present in s1 and are missing from s2
-        s2 = set(self.storage.list(self.package_class))
+        s2 = set(self.storage.list(self.new_package))
         # Delete extra packages from cache (s1 - s2)
         extra2 = s1 - s2
         if extra2:

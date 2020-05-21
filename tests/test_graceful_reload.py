@@ -98,7 +98,7 @@ class TestDynamoCache(unittest.TestCase):
         # we will have "uploaded" pkgs[2]
         return_values = [lambda: pkgs[1:2], lambda: pkgs[1:]]
 
-        def list_storage(package_class):
+        def list_storage(factory):
             """ mocked method for listing storage packages """
             # The first time we list from storage, concurrently "upload"
             # pkgs[2]
@@ -225,7 +225,7 @@ class TestRedisCache(unittest.TestCase):
         # we will have "uploaded" pkgs[2]
         return_values = [lambda: pkgs[1:2], lambda: pkgs[1:]]
 
-        def list_storage(package_class):
+        def list_storage(factory):
             """ mocked method for listing storage packages """
             # The first time we list from storage, concurrently "upload"
             # pkgs[2]
@@ -347,7 +347,7 @@ class TestSQLiteCache(unittest.TestCase):
         # we will have "uploaded" pkgs[2]
         return_values = [lambda: pkgs[1:2], lambda: pkgs[1:]]
 
-        def list_storage(package_class):
+        def list_storage(factory):
             """ mocked method for listing storage packages """
             # The first time we list from storage, concurrently "upload"
             # pkgs[2]
