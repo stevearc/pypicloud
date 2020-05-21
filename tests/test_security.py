@@ -1,5 +1,4 @@
 """ Tests for view security and auth """
-import six
 import base64
 import webtest
 from collections import defaultdict
@@ -7,12 +6,7 @@ from passlib.hash import sha256_crypt  # pylint: disable=E0611
 
 from . import DummyCache, DummyStorage, make_package
 from pypicloud import main
-
-
-try:
-    import unittest2 as unittest  # pylint: disable=F0401
-except ImportError:
-    import unittest
+import unittest
 
 # pylint: disable=W0212
 
@@ -25,8 +19,7 @@ def _auth(username, password):
         .replace("\n", "")
     )
     header = "Basic " + base64string
-    if six.PY2:
-        header = header.encode("utf8")
+
     return {"Authorization": header}
 
 

@@ -1,6 +1,4 @@
 """ AWS Lambda handler that process S3 object notifications """
-from __future__ import print_function
-
 import os
 import posixpath
 

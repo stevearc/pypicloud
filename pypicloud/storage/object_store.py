@@ -1,5 +1,7 @@
 """ Store packages in S3 """
 from binascii import hexlify
+from io import BytesIO
+from urllib.request import urlopen
 
 import logging
 
@@ -7,10 +9,9 @@ from contextlib import contextmanager
 from hashlib import md5
 from pyramid.settings import asbool
 from pyramid.httpexceptions import HTTPFound
-from six.moves.urllib.request import urlopen  # pylint: disable=F0401,E0611
-from six import BytesIO
 
 from .base import IStorage
+from pypicloud.models import Package
 
 
 LOG = logging.getLogger(__name__)
@@ -52,13 +53,13 @@ class ObjectStoreStorage(IStorage):
         self.public_url = public_url
 
     @classmethod
-    def get_bucket(cls, bucket_name, settings):
+    def get_bucket(cls, bucket_name: str, settings):
         """ Subclasses must implement a method for generating a Bucket class
             instance in the backend's SDK
         """
         raise NotImplementedError
 
-    def _generate_url(self, package):
+    def _generate_url(self, package: Package) -> str:
         """ Subclasses must implement a method for generating signed URLs to
             the package in the object store
         """

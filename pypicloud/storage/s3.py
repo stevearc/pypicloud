@@ -1,6 +1,6 @@
 """ Store packages in S3 """
-from __future__ import unicode_literals
 import posixpath
+from urllib.parse import urlparse, quote
 
 import boto3
 import logging
@@ -16,7 +16,6 @@ from cryptography.hazmat.primitives import hashes
 from datetime import datetime, timedelta
 from pyramid.settings import asbool, falsey
 from pyramid_duh.settings import asdict
-from six.moves.urllib.parse import urlparse, quote  # pylint: disable=F0401,E0611
 
 from .object_store import ObjectStoreStorage
 from pypicloud.models import Package

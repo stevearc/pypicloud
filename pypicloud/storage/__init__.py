@@ -1,5 +1,6 @@
 """ Storage backend implementations """
 from functools import partial
+from typing import Callable, Any
 
 from .base import IStorage
 from .files import FileStorage
@@ -22,7 +23,7 @@ except ImportError:
     AZURE_BLOB_IS_AVAILABLE = False
 
 
-def get_storage_impl(settings):
+def get_storage_impl(settings) -> Callable[[Any], Any]:
     """ Get and configure the storage backend wrapper """
     resolver = DottedNameResolver(__name__)
     storage = settings.get("pypi.storage", "file")

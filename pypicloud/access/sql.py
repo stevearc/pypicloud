@@ -228,6 +228,7 @@ class SQLAccessBackend(IMutableAccessBackend):
     def group_permissions(self, package):
         query = self.db.query(GroupPermission).filter_by(package=package)
         perms = {}
+
         for perm in query:
             perms[perm.groupname] = perm.permissions
         return perms

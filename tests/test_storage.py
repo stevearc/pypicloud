@@ -4,13 +4,13 @@ import json
 import time
 import datetime
 import sys
-from six import BytesIO
+from io import BytesIO
+from urllib.parse import urlparse, parse_qs
 
 import shutil
 import tempfile
 from mock import MagicMock, patch, ANY
 from moto import mock_s3
-from six.moves.urllib.parse import urlparse, parse_qs  # pylint: disable=F0401,E0611
 
 import boto3
 import os
@@ -26,11 +26,7 @@ from pypicloud.storage import (
     get_storage_impl,
 )
 from . import make_package
-
-try:
-    import unittest2 as unittest  # pylint: disable=F0401
-except ImportError:
-    import unittest
+import unittest
 
 
 class TestS3Storage(unittest.TestCase):
