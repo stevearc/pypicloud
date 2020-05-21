@@ -15,7 +15,7 @@ from .remote import RemoteAccessBackend
 from .sql import SQLAccessBackend
 
 
-def includeme(config):
+def includeme(config) -> None:
     """ Configure the app """
     settings = config.get_settings()
 

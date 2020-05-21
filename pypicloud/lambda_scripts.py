@@ -1,21 +1,18 @@
 """ Helpers for syncing packages into the cache in AWS Lambda """
-from __future__ import print_function
-
 import os
 import sys
 from distutils.spawn import find_executable  # pylint: disable=E0611,F0401
+from urllib.request import urlretrieve
 
 import argparse
 import boto3
 import json
 import logging
 import shutil
-import six
 import subprocess
 import tempfile
 import zipfile
 from pyramid.paster import get_appsettings
-from six.moves.urllib.request import urlretrieve  # pylint: disable=E0611,F0401
 
 from pypicloud import __version__, _lambda_handler
 from pypicloud.storage.s3 import S3Storage
@@ -323,7 +320,7 @@ def create_sync_scripts(argv=None):
         handler_module = os.path.splitext(HANDLER_FILENAME)[0]
         # Pull out only the cache db settings
         small_settings = {"pypi.db": settings["pypi.db"]}
-        for key, val in six.iteritems(settings):
+        for key, val in settings.items():
             if key.startswith("db."):
                 small_settings[key] = val
 

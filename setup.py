@@ -26,7 +26,6 @@ REQUIREMENTS = [
     "pyramid_rpc",
     "pyramid_tm",
     "requests",
-    "six",
     "transaction",
     "zope.sqlalchemy",
 ]
@@ -66,8 +65,6 @@ if __name__ == "__main__":
         long_description=README + "\n\n" + CHANGES,
         classifiers=[
             "Programming Language :: Python",
-            "Programming Language :: Python :: 2",
-            "Programming Language :: Python :: 2.7",
             "Programming Language :: Python :: 3",
             "Programming Language :: Python :: 3.5",
             "Programming Language :: Python :: 3.6",
@@ -88,6 +85,7 @@ if __name__ == "__main__":
         keywords="pypi s3 cheeseshop package",
         platforms="any",
         zip_safe=False,
+        python_requires=">=3.5",
         include_package_data=True,
         packages=find_packages(exclude=("tests",)),
         entry_points={

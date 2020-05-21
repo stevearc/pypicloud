@@ -3,7 +3,6 @@ import posixpath
 
 import pkg_resources
 import logging
-import six
 from pyramid.httpexceptions import HTTPBadRequest, HTTPFound, HTTPNotFound, HTTPConflict
 from pyramid.view import view_config
 from pyramid_duh import argify, addslash
@@ -122,7 +121,7 @@ def package_versions_json(context, request):
         return pkgs
     response = {"info": {"name": context.name}, "releases": {}}
     max_version = None
-    for filename, pkg in six.iteritems(pkgs["pkgs"]):
+    for filename, pkg in pkgs["pkgs"].items():
         name, version_str = parse_filename(filename)
         version = pkg_resources.parse_version(version_str)
         if max_version is None or version > max_version:
@@ -221,7 +220,7 @@ def _simple_redirect_always_show(context, request):
             pkgs = get_fallback_packages(request, context.name)
             stored_pkgs = packages_to_dict(request, packages)
             # Overwrite existing package urls
-            for filename, url in six.iteritems(stored_pkgs):
+            for filename, url in stored_pkgs.items():
                 pkgs[filename] = url
             return _pkg_response(pkgs)
     else:
@@ -269,7 +268,7 @@ def _simple_cache_always_show(context, request):
                 pkgs = get_fallback_packages(request, context.name)
                 stored_pkgs = packages_to_dict(request, packages)
                 # Overwrite existing package urls
-                for filename, data in six.iteritems(stored_pkgs):
+                for filename, data in stored_pkgs.items():
                     pkgs[filename] = data
                 return _pkg_response(pkgs)
             else:
@@ -278,7 +277,7 @@ def _simple_cache_always_show(context, request):
             pkgs = get_fallback_packages(request, context.name, False)
             stored_pkgs = packages_to_dict(request, packages)
             # Overwrite existing package urls
-            for filename, data in six.iteritems(stored_pkgs):
+            for filename, data in stored_pkgs.items():
                 pkgs[filename] = data
             return _pkg_response(pkgs)
     else:

@@ -1,21 +1,13 @@
 """ Store package data in redis """
-from __future__ import unicode_literals
-
 import calendar
 import json
 import logging
-import six
 from collections import defaultdict
 from datetime import datetime
 from pyramid.settings import asbool
 
 from .base import ICache
 
-
-try:
-    from itertools import izip
-except ImportError:  # pragma: no cover
-    izip = zip  # pylint: disable=C0103
 
 LOG = logging.getLogger(__name__)
 
@@ -86,7 +78,7 @@ class RedisCache(ICache):
         summary = data.pop("summary")
         if summary == "":
             summary = None
-        kwargs = dict(((k, json.loads(v)) for k, v in six.iteritems(data)))
+        kwargs = dict(((k, json.loads(v)) for k, v in data.items()))
         return self.package_class(
             name, version, filename, last_modified, summary, **kwargs
         )
@@ -167,7 +159,7 @@ class RedisCache(ICache):
             "last_modified": last_modified,
             "summary": package.summary or "",
         }
-        for key, value in six.iteritems(package.data):
+        for key, value in package.data.items():
             data[key] = json.dumps(value)
         pipe.hmset(self.redis_key(package.filename), data)
         pipe.sadd(self.redis_set, package.name)
@@ -267,7 +259,7 @@ class RedisCache(ICache):
         summaries_by_name = {}
         for summary in summaries:
             summaries_by_name[summary["name"]] = summary
-        for name, packages in six.iteritems(packages_by_name):
+        for name, packages in packages_by_name.items():
             if name in summaries_by_name:
                 summary = summaries_by_name[name]
             else:
@@ -296,7 +288,7 @@ class RedisCache(ICache):
                 pipe.scard(self.redis_filename_set(name))
             counts = pipe.execute()
             pipe = self.db.pipeline()
-            for name, count in izip(removed, counts):
+            for name, count in zip(removed, counts):
                 if count == 0:
                     self._delete_summary(name, pipe)
             pipe.execute()

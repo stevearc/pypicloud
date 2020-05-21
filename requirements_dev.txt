@@ -2,3 +2,5 @@
 bumpversion
 tox
 wheel
+mypy
+sqlalchemy-stubs
