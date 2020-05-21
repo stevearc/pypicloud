@@ -36,6 +36,7 @@ EXTRAS = {
     "dynamo": ["flywheel >= 0.2.0"],
     "redis": ["redis"],
     "gcs": ["google-cloud-storage>=1.10.0"],
+    "azure-blob": ["azure-storage-blob>=12.3.1"],
 }
 
 EXTRAS["all_plugins"] = sum(EXTRAS.values(), [])
@@ -49,6 +50,7 @@ EXTRAS["test"] = EXTRAS["all_plugins"] + [
     "psycopg2-binary",
     "requests",
     "webtest",
+    "vcrpy",
 ]
 
 EXTRAS["server"] = ["waitress"]
@@ -59,7 +61,7 @@ EXTRAS["doc"] = ["numpydoc", "sphinx", "sphinx_rtd_theme"]
 if __name__ == "__main__":
     setup(
         name="pypicloud",
-        version="1.0.15",
+        version="1.0.16",
         description="Private PyPI backed by S3",
         long_description=README + "\n\n" + CHANGES,
         classifiers=[

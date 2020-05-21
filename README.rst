@@ -14,8 +14,8 @@ PyPI Cloud
 .. _downloads: https://pypi.org/pypi/pypicloud
 
 This package is a Pyramid web app that provides a PyPI server where the packages
-are stored on Amazon's Simple Storage Service (S3) or Google's Cloud Storage
-(GCS).
+are stored on Amazon's Simple Storage Service (S3), Google's Cloud Storage
+(GCS) or Azure's Blob Storage.
 
 Quick Start
 ===========

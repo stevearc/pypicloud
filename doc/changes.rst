@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.0.16 - 2020/5/20
+------------------
+* Add support for Microsoft Azure Blob storage (:pr:`241`)
+
 1.0.15 - 2020/5/8
 -----------------
 * Add ``requests`` as a dependency (:pr:`240`)

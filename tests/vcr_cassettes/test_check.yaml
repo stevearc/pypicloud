@@ -1,0 +1,42 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - azsdk-python-storage-blob/12.3.1 Python/3.8.2 (Linux-5.4.0-29-generic-x86_64-with-glibc2.29)
+      x-ms-client-request-id:
+      - 35aa35ef-9601-11ea-90ae-c90b731c6091
+      x-ms-date:
+      - Thu, 14 May 2020 16:37:32 GMT
+      x-ms-version:
+      - '2019-07-07'
+    method: HEAD
+    uri: https://terrytest2.blob.core.windows.net/pypi/__notexist
+  response:
+    body:
+      string: ''
+    headers:
+      Date:
+      - Thu, 14 May 2020 16:37:32 GMT
+      Server:
+      - Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0
+      Transfer-Encoding:
+      - chunked
+      x-ms-client-request-id:
+      - 35aa35ef-9601-11ea-90ae-c90b731c6091
+      x-ms-error-code:
+      - BlobNotFound
+      x-ms-request-id:
+      - 31f30baf-e01e-00a6-140d-2a7761000000
+      x-ms-version:
+      - '2019-07-07'
+    status:
+      code: 404
+      message: The specified blob does not exist.
+version: 1

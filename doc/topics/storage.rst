@@ -311,3 +311,29 @@ the default storage class of the bucket, if the bucket is preexisting, or
 Sign blobs using IAM backed signing, rather than using GCP application credentials.
 The service account used needs to have ``iam.serviceAccounts.signBlob`` on the storage
 bucket.  This is available as part of ``roles/iam.serviceAccountTokenCreator``.
+
+Azure Blob Storage
+------------------
+This option will store your packages in a container in Azure Blob Storage.
+
+Set ``pypi.storage = azure-blob`` OR ``pypi.s3 = pypicloud.storage.AzureBlobStorage``
+
+A few key, required options are mentioned below.
+
+``storage.storage_account_name``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string
+
+The name of the Azure Storage Account.
+
+``storage.storage_account_key``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string
+
+A valid access key, either key1 or key2.
+
+``storage.storage_container_name``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string
+
+Name of the container you wish to store packages in.
