@@ -137,9 +137,7 @@ class ICache(object):
             metadata["hash_md5"] = hashlib.md5(file_data).hexdigest()
             data = BytesIO(file_data)
 
-        new_pkg = self.new_package(
-            name, version, filename, summary=summary, **metadata
-        )
+        new_pkg = self.new_package(name, version, filename, summary=summary, **metadata)
         self.storage.upload(new_pkg, data)
         self.save(new_pkg)
         return new_pkg
