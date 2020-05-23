@@ -18,8 +18,6 @@ class ICache(object):
 
     """ Base class for a caching database that stores package metadata """
 
-    package_class = Package
-
     def __init__(
         self, request=None, storage=None, allow_overwrite=None, calculate_hashes=True
     ):
@@ -28,7 +26,7 @@ class ICache(object):
         self.allow_overwrite = allow_overwrite
         self.calculate_hashes = calculate_hashes
 
-    def new_package(self, *args, **kwargs):
+    def new_package(self, *args, **kwargs) -> Package:
         return Package(*args, **kwargs)
 
     def reload_if_needed(self) -> None:
@@ -139,7 +137,7 @@ class ICache(object):
             metadata["hash_md5"] = hashlib.md5(file_data).hexdigest()
             data = BytesIO(file_data)
 
-        new_pkg = self.package_class(
+        new_pkg = self.new_package(
             name, version, filename, summary=summary, **metadata
         )
         self.storage.upload(new_pkg, data)
