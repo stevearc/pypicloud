@@ -1,22 +1,21 @@
 """ Helpers for syncing packages into the cache in AWS Lambda """
+import argparse
+import json
+import logging
 import os
+import shutil
+import subprocess
 import sys
+import tempfile
+import zipfile
 from distutils.spawn import find_executable  # pylint: disable=E0611,F0401
 from urllib.request import urlretrieve
 
-import argparse
 import boto3
-import json
-import logging
-import shutil
-import subprocess
-import tempfile
-import zipfile
 from pyramid.paster import get_appsettings
 
 from pypicloud import __version__, _lambda_handler
 from pypicloud.storage.s3 import S3Storage
-
 
 HANDLER_FILENAME = "lambda_script.py"
 

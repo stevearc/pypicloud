@@ -2,13 +2,14 @@
 import logging
 from collections import defaultdict
 from datetime import datetime
+
 from dynamo3 import DynamoDBConnection
 from pkg_resources import parse_version
 from pyramid.settings import asbool, aslist
 
-from .base import ICache
 from pypicloud.models import Package
 
+from .base import ICache
 
 try:
     from flywheel import Engine, Model, Field, GlobalIndex, __version__

@@ -1,32 +1,33 @@
 # -*- coding: utf-8 -*-
 """ Tests for package storage backends """
-import json
-import time
 import datetime
-import sys
-from io import BytesIO
-from urllib.parse import urlparse, parse_qs
-
-import shutil
-import tempfile
-from mock import MagicMock, patch, ANY
-from moto import mock_s3
-
-import boto3
+import json
 import os
 import re
+import shutil
+import sys
+import tempfile
+import time
+import unittest
+from io import BytesIO
+from urllib.parse import parse_qs, urlparse
+
+import boto3
 import vcr
 from botocore.exceptions import ClientError
+from mock import ANY, MagicMock, patch
+from moto import mock_s3
+
 from pypicloud.models import Package
 from pypicloud.storage import (
-    S3Storage,
     CloudFrontS3Storage,
     FileStorage,
     GoogleCloudStorage,
+    S3Storage,
     get_storage_impl,
 )
+
 from . import make_package
-import unittest
 
 
 class TestS3Storage(unittest.TestCase):

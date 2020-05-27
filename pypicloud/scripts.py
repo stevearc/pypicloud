@@ -1,19 +1,19 @@
 """ Commandline scripts """
-import sys
-
 import argparse
 import getpass
 import gzip
 import json
 import logging
-import transaction
+import os
+import sys
 from base64 import b64encode
+
+import transaction
 from jinja2 import Template
 from pkg_resources import resource_string  # pylint: disable=E0611
 from pyramid.paster import bootstrap
 
-import os
-from pypicloud.access import get_pwd_context, SCHEMES
+from pypicloud.access import SCHEMES, get_pwd_context
 
 
 def gen_password(argv=None):

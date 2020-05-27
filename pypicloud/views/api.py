@@ -1,29 +1,28 @@
 """ Views for simple api calls that return json data """
-import posixpath
-
 import logging
-from io import BytesIO
+import posixpath
 from contextlib import closing
+from io import BytesIO
 from urllib.request import urlopen
 
 # pylint: disable=E0611,W0403
-from paste.httpheaders import CONTENT_DISPOSITION, CACHE_CONTROL
+from paste.httpheaders import CACHE_CONTROL, CONTENT_DISPOSITION
 
 # pylint: enable=E0611,W0403
-from pyramid.httpexceptions import HTTPNotFound, HTTPForbidden, HTTPBadRequest
+from pyramid.httpexceptions import HTTPBadRequest, HTTPForbidden, HTTPNotFound
 from pyramid.security import NO_PERMISSION_REQUIRED
 from pyramid.view import view_config
-from pyramid_duh import argify, addslash
+from pyramid_duh import addslash, argify
 
-from .login import handle_register_request
 from pypicloud.route import (
-    APIResource,
+    APIPackageFileResource,
     APIPackageResource,
     APIPackagingResource,
-    APIPackageFileResource,
+    APIResource,
 )
 from pypicloud.util import normalize_name
 
+from .login import handle_register_request
 
 LOG = logging.getLogger(__name__)
 

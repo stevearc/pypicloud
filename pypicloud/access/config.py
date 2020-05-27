@@ -1,9 +1,9 @@
 """ Backend that reads access control rules from config file """
 import logging
+
 from pyramid.settings import aslist
 
 from .base_json import IJsonAccessBackend
-
 
 LOG = logging.getLogger(__name__)
 

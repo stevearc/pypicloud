@@ -1,12 +1,11 @@
 """ Model objects """
 import re
-
-import pkg_resources
 from datetime import datetime
 from functools import total_ordering
 
-from .util import normalize_name
+import pkg_resources
 
+from .util import normalize_name
 
 METADATA_FIELDS = ["requires_python", "summary", "hash_sha256", "hash_md5"]
 

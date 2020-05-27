@@ -2,12 +2,13 @@
 import logging
 from collections import namedtuple
 from functools import wraps
-from pyramid.settings import aslist, asbool
+
+from pyramid.settings import asbool, aslist
+
+from pypicloud.util import TimedCache
 
 from .base import IAccessBackend
 from .config import ConfigAccessBackend
-from pypicloud.util import TimedCache
-
 
 try:
     import ldap

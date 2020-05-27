@@ -1,39 +1,39 @@
 # -*- coding: utf-8 -*-
 """ Tests for access backends """
 import json
-import ldap
-import transaction
 import unittest
+
+import transaction
 import zope.sqlalchemy
 from mock import MagicMock, patch
 from mockldap import MockLdap
 from pyramid.authorization import ACLAuthorizationPolicy
-from pyramid.security import Everyone, Authenticated
+from pyramid.security import Authenticated, Everyone
 from pyramid.testing import DummyRequest
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
+import ldap
 from pypicloud.access import (
+    ConfigAccessBackend,
     IAccessBackend,
     IMutableAccessBackend,
-    ConfigAccessBackend,
     RemoteAccessBackend,
-    includeme,
+    aws_secrets_manager,
     get_pwd_context,
+    includeme,
 )
 from pypicloud.access.base import group_to_principal
 from pypicloud.access.ldap_ import LDAPAccessBackend
 from pypicloud.access.sql import (
+    Base,
+    Group,
+    GroupPermission,
     SQLAccessBackend,
     User,
     UserPermission,
     association_table,
-    GroupPermission,
-    Group,
-    Base,
 )
-from pypicloud.access import aws_secrets_manager
 from pypicloud.route import Root
-
 
 pwd_context = get_pwd_context()  # pylint: disable=C0103
 

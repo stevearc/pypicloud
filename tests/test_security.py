@@ -1,13 +1,15 @@
 """ Tests for view security and auth """
-from io import BytesIO
 import base64
-import webtest
+import unittest
 from collections import defaultdict
+from io import BytesIO
+
+import webtest
 from passlib.hash import sha256_crypt  # pylint: disable=E0611
 
-from . import DummyCache, DummyStorage, make_package
 from pypicloud import main
-import unittest
+
+from . import DummyCache, DummyStorage, make_package
 
 # pylint: disable=W0212
 

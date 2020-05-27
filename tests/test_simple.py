@@ -1,20 +1,21 @@
 """ Unit tests for the simple endpoints """
+import unittest
 from io import BytesIO
-
-from mock import MagicMock, patch
 from types import MethodType
 
-from . import MockServerTest, make_package, make_dist
+from mock import MagicMock, patch
+
 from pypicloud.auth import _request_login
 from pypicloud.views.simple import (
-    upload,
-    search,
-    simple,
+    get_fallback_packages,
     package_versions,
     package_versions_json,
-    get_fallback_packages,
+    search,
+    simple,
+    upload,
 )
-import unittest
+
+from . import MockServerTest, make_dist, make_package
 
 
 class FileUpload(object):

@@ -2,17 +2,16 @@
 import calendar
 import datetime
 import logging
-import distlib.locators
 from urllib.parse import urlencode
 
+import distlib.locators
 from pyramid.config import Configurator
 from pyramid.renderers import JSON, render
 from pyramid.settings import asbool
 from pyramid_beaker import session_factory_from_settings
 
+from .locator import FormattedScrapingLocator, SimpleJsonLocator
 from .route import Root
-from .locator import SimpleJsonLocator, FormattedScrapingLocator
-
 
 __version__ = "1.0.16"
 LOG = logging.getLogger(__name__)

@@ -3,6 +3,7 @@ import os
 import unittest
 from collections import defaultdict
 from datetime import datetime
+
 from mock import MagicMock
 from pyramid.testing import DummyRequest
 
@@ -10,7 +11,6 @@ from pypicloud.auth import _is_logged_in
 from pypicloud.cache import ICache
 from pypicloud.models import Package
 from pypicloud.storage import IStorage
-
 
 unittest.TestCase.assertItemsEqual = unittest.TestCase.assertCountEqual
 

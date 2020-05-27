@@ -1,16 +1,17 @@
 """ Classes that provide user and package permissions """
 from functools import partial
+
 from pyramid.path import DottedNameResolver
 
 from .aws_secrets_manager import AWSSecretsManagerAccessBackend
-from .config import ConfigAccessBackend
 from .base import (
+    DEFAULT_ROUNDS,
+    SCHEMES,
     IAccessBackend,
     IMutableAccessBackend,
     get_pwd_context,
-    DEFAULT_ROUNDS,
-    SCHEMES,
 )
+from .config import ConfigAccessBackend
 from .remote import RemoteAccessBackend
 from .sql import SQLAccessBackend
 

@@ -1,15 +1,16 @@
 """ Base class for all cache implementations """
-from typing import BinaryIO, Callable, Optional, List, Dict, Any, Tuple
-from datetime import datetime
-from io import BytesIO
 import hashlib
 import logging
+import posixpath
+from datetime import datetime
+from io import BytesIO
+from typing import Any, BinaryIO, Callable, Dict, List, Optional, Tuple
+
 from pyramid.settings import asbool
 
-import posixpath
 from pypicloud.models import Package
 from pypicloud.storage import get_storage_impl
-from pypicloud.util import create_matcher, parse_filename, normalize_name
+from pypicloud.util import create_matcher, normalize_name, parse_filename
 
 LOG = logging.getLogger(__name__)
 

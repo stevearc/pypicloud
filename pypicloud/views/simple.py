@@ -1,16 +1,15 @@
 """ Views for simple pip interaction """
+import logging
 import posixpath
 
 import pkg_resources
-import logging
-from pyramid.httpexceptions import HTTPBadRequest, HTTPFound, HTTPNotFound, HTTPConflict
+from pyramid.httpexceptions import HTTPBadRequest, HTTPConflict, HTTPFound, HTTPNotFound
 from pyramid.view import view_config
-from pyramid_duh import argify, addslash
+from pyramid_duh import addslash, argify
 from pyramid_rpc.xmlrpc import xmlrpc_method
 
 from pypicloud.route import Root, SimplePackageResource, SimpleResource
 from pypicloud.util import normalize_name, parse_filename
-
 
 LOG = logging.getLogger(__name__)
 

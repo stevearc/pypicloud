@@ -1,14 +1,13 @@
 """ Utilities """
+import logging
 import re
 import time
 import unicodedata
-from typing import Dict, Union, Optional, Tuple, Callable, List, Any
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-import logging
 from distlib.locators import Locator
 from distlib.util import split_filename
 from distlib.wheel import Wheel
-
 
 LOG = logging.getLogger(__name__)
 ALL_EXTENSIONS = Locator.source_extensions + Locator.binary_extensions

@@ -1,10 +1,12 @@
 """ Tests for auth methods """
 from base64 import b64encode
+
 from mock import MagicMock, patch
 from pyramid.security import Everyone
 
-from . import MockServerTest
 from pypicloud import auth
+
+from . import MockServerTest
 
 
 class TestBasicAuth(MockServerTest):

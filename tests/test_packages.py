@@ -1,8 +1,9 @@
 """ Unit tests for the packages endpoints """
 from mock import MagicMock
 
-from . import MockServerTest
 from pypicloud.views.packages import list_packages
+
+from . import MockServerTest
 
 
 class TestPackages(MockServerTest):

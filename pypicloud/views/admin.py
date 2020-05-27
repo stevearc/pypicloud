@@ -2,6 +2,7 @@
 import gzip
 import json
 from io import BytesIO
+
 from paste.httpheaders import CONTENT_DISPOSITION  # pylint: disable=E0611
 from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.response import FileIter

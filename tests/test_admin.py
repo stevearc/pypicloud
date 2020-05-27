@@ -1,7 +1,9 @@
 """ Tests for admin endpoints """
-from pyramid.httpexceptions import HTTPBadRequest
 from mock import MagicMock
+from pyramid.httpexceptions import HTTPBadRequest
+
 from pypicloud.views.admin import AdminEndpoints
+
 from . import MockServerTest
 
 

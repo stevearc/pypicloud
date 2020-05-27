@@ -1,10 +1,12 @@
 """ Tests for API endpoints """
 from io import BytesIO
+
 from mock import MagicMock, patch
 from pyramid.httpexceptions import HTTPBadRequest, HTTPForbidden
 
-from . import MockServerTest, make_package, make_dist
 from pypicloud.views import api
+
+from . import MockServerTest, make_dist, make_package
 
 
 class TestApi(MockServerTest):

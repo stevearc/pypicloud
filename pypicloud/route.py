@@ -1,6 +1,6 @@
 """ Tools and resources for traversal routing """
 import functools
-from typing import Dict, Callable, Any
+from typing import Any, Callable, Dict
 
 
 class IStaticResource(object):

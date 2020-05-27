@@ -1,21 +1,23 @@
 # -*- coding: utf-8 -*-
 """ Tests for database cache implementations """
-from io import BytesIO
 import calendar
-import transaction
 import unittest
+from io import BytesIO
+
+import redis
+import transaction
 from dynamo3 import Throughput
 from flywheel.fields.types import UTC
-from mock import MagicMock, patch, ANY
+from mock import ANY, MagicMock, patch
 from pyramid.testing import DummyRequest
-import redis
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
-from . import DummyCache, DummyStorage, make_package
-from pypicloud.cache import ICache, SQLCache, RedisCache
+from pypicloud.cache import ICache, RedisCache, SQLCache
 from pypicloud.cache.dynamo import DynamoCache, DynamoPackage, PackageSummary
 from pypicloud.cache.sql import SQLPackage
 from pypicloud.storage import IStorage
+
+from . import DummyCache, DummyStorage, make_package
 
 
 class TestBaseCache(unittest.TestCase):

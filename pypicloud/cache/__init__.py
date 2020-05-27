@@ -1,5 +1,6 @@
 """ Caching database implementations """
 from functools import partial
+
 from pyramid.path import DottedNameResolver
 
 from .base import ICache

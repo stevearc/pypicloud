@@ -1,18 +1,17 @@
 """ Store packages in S3 """
+import logging
 from binascii import hexlify
+from contextlib import contextmanager
+from hashlib import md5
 from io import BytesIO
 from urllib.request import urlopen
 
-import logging
-
-from contextlib import contextmanager
-from hashlib import md5
-from pyramid.settings import asbool
 from pyramid.httpexceptions import HTTPFound
+from pyramid.settings import asbool
 
-from .base import IStorage
 from pypicloud.models import Package
 
+from .base import IStorage
 
 LOG = logging.getLogger(__name__)
 

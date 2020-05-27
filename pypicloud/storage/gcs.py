@@ -10,6 +10,7 @@ from google.cloud import storage
 from pyramid.settings import asbool
 
 from pypicloud.models import Package
+
 from .object_store import ObjectStoreStorage
 
 LOG = logging.getLogger(__name__)

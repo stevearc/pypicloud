@@ -1,11 +1,13 @@
 """ Backend that defers to another server for access control """
-import boto3
 import json
+from json import JSONDecodeError
+
+import boto3
 from botocore.exceptions import ClientError
 
-from .base_json import IMutableJsonAccessBackend
 from pypicloud.util import get_settings
-from json import JSONDecodeError
+
+from .base_json import IMutableJsonAccessBackend
 
 
 class AWSSecretsManagerAccessBackend(IMutableJsonAccessBackend):

@@ -1,7 +1,8 @@
 """ Simple replacement for distlib SimpleScrapingLocator """
-import requests
 import distlib.locators
+import requests
 from distlib.locators import SimpleScrapingLocator
+
 from .util import TimedCache
 
 

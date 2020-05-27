@@ -1,10 +1,10 @@
 """ AWS Lambda handler that process S3 object notifications """
+import json
 import os
 import posixpath
+from datetime import datetime
 
 import boto3
-import json
-from datetime import datetime
 
 
 def handle_s3_event(event, context):

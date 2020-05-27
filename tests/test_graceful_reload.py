@@ -1,17 +1,19 @@
 """ Tests for gracefully reloading the caches """
-import transaction
 import unittest
 from datetime import datetime, timedelta
+
+import redis
+import transaction
 from mock import MagicMock
 from pyramid.testing import DummyRequest
-import redis
 from sqlalchemy.exc import OperationalError
 
-from . import make_package
-from pypicloud.cache import SQLCache, RedisCache
+from pypicloud.cache import RedisCache, SQLCache
 from pypicloud.cache.dynamo import DynamoCache, DynamoPackage, PackageSummary
 from pypicloud.cache.sql import SQLPackage
 from pypicloud.storage import IStorage
+
+from . import make_package
 
 
 class TestDynamoCache(unittest.TestCase):

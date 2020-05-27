@@ -1,21 +1,21 @@
 """ The access backend object base class """
-import hmac
 import hashlib
+import hmac
 import time
-from typing import Optional, List, Any, Dict, Tuple, Set
 from collections import defaultdict
+from typing import Any, Dict, List, Optional, Set, Tuple
+
 from passlib.apps import LazyCryptContext
 from passlib.utils import sys_bits
 from pyramid.security import (
+    ALL_PERMISSIONS,
+    Allow,
     Authenticated,
+    Deny,
     Everyone,
     effective_principals,
-    Allow,
-    Deny,
-    ALL_PERMISSIONS,
 )
 from pyramid.settings import aslist
-
 
 # Roughly tuned using https://bitbucket.org/ecollins/passlib/raw/default/choose_rounds.py
 # For 10ms. This differs from the passlib recommendation of 350ms due to the difference in use case

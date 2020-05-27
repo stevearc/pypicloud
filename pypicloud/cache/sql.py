@@ -1,20 +1,21 @@
 """ Store package data in a SQL database """
 import json
 import logging
-import zope.sqlalchemy
 from datetime import datetime
+
+import zope.sqlalchemy
 from pyramid.settings import asbool
-from sqlalchemy import engine_from_config, distinct, and_, or_, Column, DateTime, String
+from sqlalchemy import Column, DateTime, String, and_, distinct, engine_from_config, or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.mutable import Mutable
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import func
-from sqlalchemy.types import TypeDecorator, TEXT
+from sqlalchemy.types import TEXT, TypeDecorator
 
-from .base import ICache
 from pypicloud.models import Package
 
+from .base import ICache
 
 LOG = logging.getLogger(__name__)
 

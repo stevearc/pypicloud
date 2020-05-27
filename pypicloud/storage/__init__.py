@@ -1,12 +1,12 @@
 """ Storage backend implementations """
 from functools import partial
-from typing import Callable, Any
+from typing import Any, Callable
+
+from pyramid.path import DottedNameResolver
 
 from .base import IStorage
 from .files import FileStorage
-from .s3 import S3Storage, CloudFrontS3Storage
-
-from pyramid.path import DottedNameResolver
+from .s3 import CloudFrontS3Storage, S3Storage
 
 try:
     from .gcs import GoogleCloudStorage

@@ -4,10 +4,10 @@ import json
 import logging
 from collections import defaultdict
 from datetime import datetime
+
 from pyramid.settings import asbool
 
 from .base import ICache
-
 
 LOG = logging.getLogger(__name__)
 
