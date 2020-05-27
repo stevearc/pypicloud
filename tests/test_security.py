@@ -1,4 +1,5 @@
 """ Tests for view security and auth """
+from io import BytesIO
 import base64
 import webtest
 from collections import defaultdict
@@ -75,7 +76,10 @@ class TestEndpointSecurity(unittest.TestCase):
     def setUp(self):
         cache = GlobalDummyCache()
         cache.upload(
-            self.package.filename, None, self.package.name, self.package.version
+            self.package.filename,
+            BytesIO(b"test1234"),
+            self.package.name,
+            self.package.version,
         )
 
     def tearDown(self):

@@ -98,6 +98,15 @@ Only used when ``pypi.fallback = cache``. This is
 the list of groups that are allowed to trigger the operation that fetches
 packages from ``fallback_base_url``.  (default ['authenticated'])
 
+``pypi.calculate_package_hashes``
+**Argument:** bool, optional
+
+Package SHA256 and MD5 hashes are now calculated by default when a package is
+uploaded. This option enables or disables the hash calculation (default true)
+
+Scripts to calculate hashes on existing packages exist here:
+https://github.com/stevearc/pypicloud/tree/master/scripts
+
 ``pypi.allow_overwrite``
 ~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** bool, optional

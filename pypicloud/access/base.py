@@ -46,7 +46,7 @@ def get_pwd_context(
     """ Create a passlib context for hashing passwords """
     if preferred_hash is None or preferred_hash == "sha":
         preferred_hash = "sha256_crypt" if sys_bits < 64 else "sha512_crypt"
-    if preferred_hash is "pbkdf2":
+    if preferred_hash == "pbkdf2":
         preferred_hash = "pbkdf2_sha256" if sys_bits < 64 else "pbkdf2_sha512"
 
     if preferred_hash not in SCHEMES:

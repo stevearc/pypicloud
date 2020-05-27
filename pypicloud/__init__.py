@@ -23,14 +23,16 @@ def to_json(value):
     return render("json", value)
 
 
-def _app_url(request, *paths, **params):
+def _app_url(request, *paths, fragment="", **params):
     """ Get the base url for the root of the app plus an optional path """
     path = "/".join(paths)
     if not path.startswith("/"):
         path = "/" + path
     if params:
         path += "?" + urlencode(params)
-    return request.application_url + path
+    if fragment:
+        fragment = "#" + fragment
+    return request.application_url + path + fragment
 
 
 def _fallback_simple(request):
