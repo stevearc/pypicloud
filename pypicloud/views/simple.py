@@ -129,7 +129,7 @@ def package_versions_json(context, request):
 
         release = {
             "filename": filename,
-            "url": pkg["non_hashed_url"],
+            "url": pkg.get("non_hashed_url", pkg["url"]),
             "requires_python": pkg["requires_python"],
         }
         if pkg.get("hash_sha256"):
@@ -156,6 +156,8 @@ def get_fallback_packages(request, package_name, redirect=True):
         pkgs[filename] = {
             "url": url,
             "requires_python": release["requires_python"],
+            "hash_sha256": release["digests"].get("sha256"),
+            "hash_md5": release["digests"].get("md5"),
         }
     return pkgs
 

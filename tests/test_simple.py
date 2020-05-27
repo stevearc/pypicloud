@@ -129,10 +129,14 @@ class TestSimple(MockServerTest):
                 filename: {
                     "url": self.request.app_url(),
                     "requires_python": dist["requires_python"],
+                    "hash_md5": None,
+                    "hash_sha256": None,
                 },
                 wheelname: {
                     "url": self.request.app_url(),
                     "requires_python": wheel_dist["requires_python"],
+                    "hash_md5": None,
+                    "hash_sha256": None,
                 },
             },
         )
@@ -153,10 +157,17 @@ class TestSimple(MockServerTest):
         self.assertEqual(
             pkgs,
             {
-                filename: {"url": url, "requires_python": dist["requires_python"]},
+                filename: {
+                    "url": url,
+                    "requires_python": dist["requires_python"],
+                    "hash_md5": None,
+                    "hash_sha256": None,
+                },
                 wheelname: {
                     "url": wheel_url,
                     "requires_python": wheel_dist["requires_python"],
+                    "hash_md5": None,
+                    "hash_sha256": None,
                 },
             },
         )
