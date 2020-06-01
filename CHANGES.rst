@@ -2,6 +2,11 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.1.0 - 2020/5/31
+-----------------
+* Drop support for Python 2 (:pr:`243`)
+* Add support for package hashes (:pr:`244`)
+
 1.0.16 - 2020/5/20
 ------------------
 * Add support for Microsoft Azure Blob storage (:pr:`241`)
