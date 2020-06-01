@@ -1,10 +1,9 @@
 """ Backend that reads access control rules from config file """
 import logging
-import six
+
 from pyramid.settings import aslist
 
 from .base_json import IJsonAccessBackend
-
 
 LOG = logging.getLogger(__name__)
 
@@ -23,7 +22,7 @@ class ConfigAccessBackend(IJsonAccessBackend):
         data = {}
 
         users = {}
-        for key, value in six.iteritems(settings):
+        for key, value in settings.items():
             if not key.startswith("user."):
                 continue
             users[key[len("user.") :]] = value
@@ -32,14 +31,14 @@ class ConfigAccessBackend(IJsonAccessBackend):
         data["admins"] = aslist(settings.get("auth.admins", []))
 
         groups = {}
-        for key, value in six.iteritems(settings):
+        for key, value in settings.items():
             if not key.startswith("group."):
                 continue
             groups[key[len("group.") :]] = aslist(value)
         data["groups"] = groups
 
         packages = {}
-        for key, value in six.iteritems(settings):
+        for key, value in settings.items():
             pieces = key.split(".")
             if len(pieces) != 4 or pieces[0] != "package":
                 continue
@@ -83,7 +82,7 @@ class ConfigAccessBackend(IJsonAccessBackend):
             for admin in admins:
                 lines.append("    {0}".format(admin))
 
-        for group, members in six.iteritems(data["groups"]):
+        for group, members in data["groups"].items():
             lines.append("group.{0} =".format(group))
             for member in members:
                 lines.append("    {0}".format(member))
@@ -97,16 +96,16 @@ class ConfigAccessBackend(IJsonAccessBackend):
                 ret += "w"
             return ret
 
-        for package, groups in six.iteritems(data["packages"]["groups"]):
-            for group, permissions in six.iteritems(groups):
+        for package, groups in data["packages"]["groups"].items():
+            for group, permissions in groups.items():
                 lines.append(
                     "package.{0}.group.{1} = {2}".format(
                         package, group, encode_permissions(permissions)
                     )
                 )
 
-        for package, users in six.iteritems(data["packages"]["users"]):
-            for user, permissions in six.iteritems(users):
+        for package, users in data["packages"]["users"].items():
+            for user, permissions in users.items():
                 lines.append(
                     "package.{0}.user.{1} = {2}".format(
                         package, user, encode_permissions(permissions)

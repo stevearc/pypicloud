@@ -1,17 +1,19 @@
 """ Tests for gracefully reloading the caches """
-import transaction
 import unittest
 from datetime import datetime, timedelta
+
+import redis
+import transaction
 from mock import MagicMock
 from pyramid.testing import DummyRequest
-import redis
 from sqlalchemy.exc import OperationalError
 
-from . import make_package
-from pypicloud.cache import SQLCache, RedisCache
+from pypicloud.cache import RedisCache, SQLCache
 from pypicloud.cache.dynamo import DynamoCache, DynamoPackage, PackageSummary
 from pypicloud.cache.sql import SQLPackage
 from pypicloud.storage import IStorage
+
+from . import make_package
 
 
 class TestDynamoCache(unittest.TestCase):
@@ -98,7 +100,7 @@ class TestDynamoCache(unittest.TestCase):
         # we will have "uploaded" pkgs[2]
         return_values = [lambda: pkgs[1:2], lambda: pkgs[1:]]
 
-        def list_storage(package_class):
+        def list_storage(factory):
             """ mocked method for listing storage packages """
             # The first time we list from storage, concurrently "upload"
             # pkgs[2]
@@ -225,7 +227,7 @@ class TestRedisCache(unittest.TestCase):
         # we will have "uploaded" pkgs[2]
         return_values = [lambda: pkgs[1:2], lambda: pkgs[1:]]
 
-        def list_storage(package_class):
+        def list_storage(factory):
             """ mocked method for listing storage packages """
             # The first time we list from storage, concurrently "upload"
             # pkgs[2]
@@ -347,7 +349,7 @@ class TestSQLiteCache(unittest.TestCase):
         # we will have "uploaded" pkgs[2]
         return_values = [lambda: pkgs[1:2], lambda: pkgs[1:]]
 
-        def list_storage(package_class):
+        def list_storage(factory):
             """ mocked method for listing storage packages """
             # The first time we list from storage, concurrently "upload"
             # pkgs[2]

@@ -1,6 +1,6 @@
 """ Utilities for authentication and authorization """
-from base64 import b64decode
 import binascii
+from base64 import b64decode
 
 # pylint: disable=E0611,W0403
 from paste.httpheaders import AUTHORIZATION, WWW_AUTHENTICATE

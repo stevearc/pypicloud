@@ -1,21 +1,20 @@
 """ Access backend for storing permissions in using SQLAlchemy """
-from sqlalchemy import (
-    engine_from_config,
-    Column,
-    String,
-    Text,
-    Boolean,
-    Table,
-    ForeignKey,
-)
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, backref
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import orm
 import zope.sqlalchemy
+from sqlalchemy import (
+    Boolean,
+    Column,
+    ForeignKey,
+    String,
+    Table,
+    Text,
+    engine_from_config,
+    orm,
+)
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import backref, sessionmaker
 
 from .base import IMutableAccessBackend
-
 
 # pylint: disable=C0103,W0231
 Base = declarative_base()
@@ -228,6 +227,7 @@ class SQLAccessBackend(IMutableAccessBackend):
     def group_permissions(self, package):
         query = self.db.query(GroupPermission).filter_by(package=package)
         perms = {}
+
         for perm in query:
             perms[perm.groupname] = perm.permissions
         return perms

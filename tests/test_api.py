@@ -1,9 +1,12 @@
 """ Tests for API endpoints """
+from io import BytesIO
+
 from mock import MagicMock, patch
 from pyramid.httpexceptions import HTTPBadRequest, HTTPForbidden
 
-from . import MockServerTest, make_package, make_dist
 from pypicloud.views import api
+
+from . import MockServerTest, make_dist, make_package
 
 
 class TestApi(MockServerTest):
@@ -19,14 +22,14 @@ class TestApi(MockServerTest):
     def test_list_packages(self):
         """ List all packages """
         p1 = make_package()
-        self.db.upload(p1.filename, None)
+        self.db.upload(p1.filename, BytesIO(b"test1234"))
         pkgs = api.all_packages(self.request)
         self.assertEqual(pkgs["packages"], [p1.name])
 
     def test_list_packages_no_perm(self):
         """ If no read permission, package not in all_packages """
         p1 = make_package()
-        self.db.upload(p1.filename, None)
+        self.db.upload(p1.filename, BytesIO(b"test1234"))
         self.access.has_permission.return_value = False
         pkgs = api.all_packages(self.request)
         self.assertEqual(pkgs["packages"], [])
@@ -34,7 +37,7 @@ class TestApi(MockServerTest):
     def test_list_packages_verbose(self):
         """ List all package data """
         p1 = make_package()
-        p1 = self.db.upload(p1.filename, None)
+        p1 = self.db.upload(p1.filename, BytesIO(b"test1234"))
         pkgs = api.all_packages(self.request, True)
         self.assertEqual(
             pkgs["packages"],

@@ -1,24 +1,27 @@
 """ Unit tests for the simple endpoints """
-import six
+import unittest
+from io import BytesIO
+from types import MethodType
 
 from mock import MagicMock, patch
 
-from . import MockServerTest, make_package, make_dist
 from pypicloud.auth import _request_login
 from pypicloud.views.simple import (
-    upload,
-    search,
-    simple,
+    get_fallback_packages,
     package_versions,
     package_versions_json,
-    get_fallback_packages,
+    search,
+    simple,
+    upload,
 )
 
+from . import MockServerTest, make_dist, make_package
 
-try:
-    import unittest2 as unittest  # pylint: disable=F0401
-except ImportError:
-    import unittest
+
+class FileUpload(object):
+    def __init__(self, name, data):
+        self.filename = name
+        self.file = BytesIO(data)
 
 
 class TestSimple(MockServerTest):
@@ -32,7 +35,7 @@ class TestSimple(MockServerTest):
     def test_upload(self):
         """ Upload endpoint returns the result of api call """
         self.params = {":action": "file_upload"}
-        name, version, content = "foo", "bar", MagicMock()
+        name, version, content = "foo", "bar", FileUpload("testfile", b"test1234")
         content.filename = "foo-1.2.tar.gz"
         pkg = upload(self.request, content, name, version)
 
@@ -48,7 +51,7 @@ class TestSimple(MockServerTest):
     def test_upload_no_write_permission(self):
         """ Upload without write permission returns 403 """
         self.params = {":action": "file_upload"}
-        name, version, content = "foo", "bar", MagicMock()
+        name, version, content = "foo", "bar", FileUpload("testfile", b"test1234")
         content.filename = "foo-1.2.tar.gz"
         self.request.access.has_permission.return_value = False
         response = upload(self.request, content, name, version)
@@ -57,18 +60,18 @@ class TestSimple(MockServerTest):
     def test_upload_duplicate(self):
         """ Uploading a duplicate package returns 409 """
         self.params = {":action": "file_upload"}
-        name, version, content = "foo", "1.2", MagicMock()
+        name, version, content = "foo", "1.2", FileUpload("testfile", b"test1234")
         content.filename = "foo-1.2.tar.gz"
-        self.db.upload(content.filename, content, name)
+        self.db.upload(content.filename, content.file, name)
         response = upload(self.request, content, name, version)
         self.assertEqual(response.status_code, 409)
 
     def test_search(self):
         """ Pip search executes successfully """
         self.params = {":action": "file_upload"}
-        name1, version1, content1 = "foo", "1.1", MagicMock()
+        name1, version1, content1 = "foo", "1.1", FileUpload("testfile", b"test1234")
         content1.filename = "bar-1.2.tar.gz"
-        name2, version2, content2 = "bar", "1.0", MagicMock()
+        name2, version2, content2 = "bar", "1.0", FileUpload("testfile", b"test1234")
         content2.filename = "bar-1.2.tar.gz"
         upload(self.request, content1, name1, version1)
         upload(self.request, content2, name2, version2)
@@ -81,11 +84,11 @@ class TestSimple(MockServerTest):
     def test_search_permission_filter(self):
         """ Pip search only gets results that user has read perms for """
         self.params = {":action": "file_upload"}
-        name1, version1, content1 = "pkg1", "1.1", MagicMock()
+        name1, version1, content1 = "pkg1", "1.1", FileUpload("testfile", b"test1234")
         content1.filename = "pkg1-1.1.tar.gz"
-        name2, version2, content2 = "pkg2", "1.0", MagicMock()
+        name2, version2, content2 = "pkg2", "1.0", FileUpload("testfile", b"test1234")
         content2.filename = "pkg2-1.0.tar.gz"
-        name3, version3, content3 = "other", "1.0", MagicMock()
+        name3, version3, content3 = "other", "1.0", FileUpload("testfile", b"test1234")
         content3.filename = "other-1.0.tar.gz"
         upload(self.request, content1, name1, version1)
         upload(self.request, content2, name2, version2)
@@ -127,10 +130,14 @@ class TestSimple(MockServerTest):
                 filename: {
                     "url": self.request.app_url(),
                     "requires_python": dist["requires_python"],
+                    "hash_md5": None,
+                    "hash_sha256": None,
                 },
                 wheelname: {
                     "url": self.request.app_url(),
                     "requires_python": wheel_dist["requires_python"],
+                    "hash_md5": None,
+                    "hash_sha256": None,
                 },
             },
         )
@@ -151,10 +158,17 @@ class TestSimple(MockServerTest):
         self.assertEqual(
             pkgs,
             {
-                filename: {"url": url, "requires_python": dist["requires_python"]},
+                filename: {
+                    "url": url,
+                    "requires_python": dist["requires_python"],
+                    "hash_md5": None,
+                    "hash_sha256": None,
+                },
                 wheelname: {
                     "url": wheel_url,
                     "requires_python": wheel_dist["requires_python"],
+                    "hash_md5": None,
+                    "hash_sha256": None,
                 },
             },
         )
@@ -192,6 +206,7 @@ class PackageReadTestBase(unittest.TestCase):
     def setUpClass(cls):
         cls.package = make_package()
         cls.package2 = make_package(version="2.1")
+        cls.package3 = make_package(version="2.1", hash_sha256="sha", hash_md5="md5")
 
     def setUp(self):
         get = patch("pypicloud.views.simple.get_fallback_packages").start()
@@ -221,7 +236,7 @@ class PackageReadTestBase(unittest.TestCase):
         request.access.can_update_cache = lambda: "c" in perms
         request.access.has_permission.side_effect = lambda n, p: "r" in perms
         request.is_logged_in = user is not None
-        request.request_login = six.create_bound_method(_request_login, request)
+        request.request_login = MethodType(_request_login, request)
         pkgs = []
         if package is not None:
             pkgs.append(package)
@@ -271,6 +286,9 @@ class PackageReadTestBase(unittest.TestCase):
                     self.package.filename: {
                         "url": self.package.get_url(request),
                         "requires_python": None,
+                        "hash_sha256": None,
+                        "hash_md5": None,
+                        "non_hashed_url": self.package.get_url(request),
                     }
                 }
             },
@@ -284,6 +302,40 @@ class PackageReadTestBase(unittest.TestCase):
                     {
                         "filename": self.package.filename,
                         "url": self.package.get_url(request),
+                        "requires_python": None,
+                    }
+                ]
+            },
+        )
+
+    def should_serve_hashes(self, request):
+        """ When requested, the endpoint should serve the packages with hashes """
+        ret = package_versions(self.package3, request)
+        self.assertEqual(
+            ret,
+            {
+                "pkgs": {
+                    self.package3.filename: {
+                        "url": self.package3.get_url(request),
+                        "requires_python": None,
+                        "hash_sha256": "sha",
+                        "hash_md5": "md5",
+                        "non_hashed_url": self.package3.get_url(request),
+                    }
+                }
+            },
+        )
+        # Check the /json endpoint too
+        ret = package_versions_json(self.package3, request)
+        self.assertEqual(
+            ret["releases"],
+            {
+                "2.1": [
+                    {
+                        "filename": self.package3.filename,
+                        "url": self.package.get_url(request),
+                        "md5_digest": "md5",
+                        "digests": {"sha256": "sha", "md5": "md5"},
                         "requires_python": None,
                     }
                 ]
@@ -306,6 +358,9 @@ class PackageReadTestBase(unittest.TestCase):
                     self.package.filename: {
                         "url": self.package.get_url(request),
                         "requires_python": None,
+                        "non_hashed_url": self.package.get_url(request),
+                        "hash_sha256": None,
+                        "hash_md5": None,
                     },
                     f2name: self.fallback_packages[f2name],
                 }
@@ -552,6 +607,9 @@ class TestCacheAlwaysShow(PackageReadTestBase):
                     self.package.filename: {
                         "url": self.package.get_url(req),
                         "requires_python": None,
+                        "non_hashed_url": self.package.get_url(req),
+                        "hash_sha256": None,
+                        "hash_md5": None,
                     },
                     self.package2.filename: self.fallback_packages[p2.filename],
                 }
@@ -571,6 +629,9 @@ class TestCacheAlwaysShow(PackageReadTestBase):
                     self.package.filename: {
                         "url": self.package.get_url(req),
                         "requires_python": None,
+                        "non_hashed_url": self.package.get_url(req),
+                        "hash_sha256": None,
+                        "hash_md5": None,
                     },
                     self.package2.filename: self.fallback_packages[p2.filename],
                 }
@@ -619,6 +680,10 @@ class TestNoFallback(PackageReadTestBase):
     def test_package_read_no_user(self):
         """ Package, read perms, no user. """
         self.should_serve(self.get_request(self.package, "r"))
+
+    def test_package_read_hashes_no_user(self):
+        """ Package, read perms, no user. """
+        self.should_serve_hashes(self.get_request(self.package3, "r"))
 
     def test_package_read_user(self):
         """ Package, read perms, user. """

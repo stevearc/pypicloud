@@ -2,18 +2,18 @@
 import calendar
 import datetime
 import logging
+from urllib.parse import urlencode
+
 import distlib.locators
 from pyramid.config import Configurator
 from pyramid.renderers import JSON, render
 from pyramid.settings import asbool
 from pyramid_beaker import session_factory_from_settings
-from six.moves.urllib.parse import urlencode  # pylint: disable=F0401,E0611
 
+from .locator import FormattedScrapingLocator, SimpleJsonLocator
 from .route import Root
-from .locator import SimpleJsonLocator, FormattedScrapingLocator
 
-
-__version__ = "1.0.16"
+__version__ = "1.1.0"
 LOG = logging.getLogger(__name__)
 
 
@@ -22,14 +22,16 @@ def to_json(value):
     return render("json", value)
 
 
-def _app_url(request, *paths, **params):
+def _app_url(request, *paths, fragment="", **params):
     """ Get the base url for the root of the app plus an optional path """
     path = "/".join(paths)
     if not path.startswith("/"):
         path = "/" + path
     if params:
         path += "?" + urlencode(params)
-    return request.application_url + path
+    if fragment:
+        fragment = "#" + fragment
+    return request.application_url + path + fragment
 
 
 def _fallback_simple(request):

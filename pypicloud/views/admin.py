@@ -1,7 +1,8 @@
 """ API endpoints for admin controls """
 import gzip
 import json
-import six
+from io import BytesIO
+
 from paste.httpheaders import CONTENT_DISPOSITION  # pylint: disable=E0611
 from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.response import FileIter
@@ -129,13 +130,11 @@ class AdminEndpoints(object):
         package = self.request.named_subpaths["package"]
         user_perms = [
             {"username": key, "permissions": val}
-            for key, val in six.iteritems(self.request.access.user_permissions(package))
+            for key, val in self.request.access.user_permissions(package).items()
         ]
         group_perms = [
             {"group": key, "permissions": val}
-            for key, val in six.iteritems(
-                self.request.access.group_permissions(package)
-            )
+            for key, val in self.request.access.group_permissions(package).items()
         ]
         return {"user": user_perms, "group": group_perms}
 
@@ -184,7 +183,7 @@ class AdminEndpoints(object):
     def download_access_control(self):
         """ Download the ACL data as a gzipped-json file """
         data = self.request.access.dump()
-        compressed = six.BytesIO()
+        compressed = BytesIO()
         zipfile = gzip.GzipFile(mode="wb", fileobj=compressed)
         zipfile.write(json.dumps(data, separators=(",", ":")).encode("utf8"))
         zipfile.close()

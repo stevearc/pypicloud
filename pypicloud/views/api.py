@@ -1,29 +1,28 @@
 """ Views for simple api calls that return json data """
-import posixpath
-
 import logging
-import six
+import posixpath
 from contextlib import closing
+from io import BytesIO
+from urllib.request import urlopen
 
 # pylint: disable=E0611,W0403
-from paste.httpheaders import CONTENT_DISPOSITION, CACHE_CONTROL
+from paste.httpheaders import CACHE_CONTROL, CONTENT_DISPOSITION
 
 # pylint: enable=E0611,W0403
-from pyramid.httpexceptions import HTTPNotFound, HTTPForbidden, HTTPBadRequest
+from pyramid.httpexceptions import HTTPBadRequest, HTTPForbidden, HTTPNotFound
 from pyramid.security import NO_PERMISSION_REQUIRED
 from pyramid.view import view_config
-from pyramid_duh import argify, addslash
-from six.moves.urllib.request import urlopen  # pylint: disable=F0401,E0611
+from pyramid_duh import addslash, argify
 
-from .login import handle_register_request
 from pypicloud.route import (
-    APIResource,
+    APIPackageFileResource,
     APIPackageResource,
     APIPackagingResource,
-    APIPackageFileResource,
+    APIResource,
 )
 from pypicloud.util import normalize_name
 
+from .login import handle_register_request
 
 LOG = logging.getLogger(__name__)
 
@@ -42,7 +41,7 @@ def all_packages(request, verbose=False):
     i = 0
     while i < len(packages):
         package = packages[i]
-        name = package if isinstance(package, six.string_types) else package["name"]
+        name = package if isinstance(package, str) else package["name"]
         if not request.access.has_permission(name, "read"):
             del packages[i]
             continue
@@ -77,7 +76,7 @@ def fetch_dist(request, url, name, version, summary, requires_python):
     # TODO: digest validation
     return (
         request.db.upload(
-            filename, six.BytesIO(data), name, version, summary, requires_python
+            filename, BytesIO(data), name, version, summary, requires_python
         ),
         data,
     )

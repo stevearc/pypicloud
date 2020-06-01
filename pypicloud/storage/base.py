@@ -1,4 +1,8 @@
 """ Base class for storage backends """
+from typing import BinaryIO, List, Tuple, Type
+
+from pyramid.request import Request
+
 from pypicloud.models import Package
 
 
@@ -6,7 +10,7 @@ class IStorage(object):
 
     """ Base class for a backend that stores package files """
 
-    def __init__(self, request):
+    def __init__(self, request: Request):
         self.request = request
 
     @classmethod
@@ -14,11 +18,11 @@ class IStorage(object):
         """ Configure the storage method with app settings """
         return {}
 
-    def list(self, factory=Package):
+    def list(self, factory: Type[Package] = Package) -> List[Package]:
         """ Return a list or generator of all packages """
         raise NotImplementedError
 
-    def get_url(self, package):
+    def get_url(self, package: Package) -> str:
         """
         Create or return an HTTP url for a package file
 
@@ -32,9 +36,14 @@ class IStorage(object):
             Link to the location of this package file
 
         """
-        return self.request.app_url("api", "package", package.name, package.filename)
+        fragment = ""
+        if package.data.get("hash_sha256"):
+            fragment = "sha256=" + package.data["hash_sha256"]
+        return self.request.app_url(
+            "api", "package", package.name, package.filename, fragment=fragment
+        )
 
-    def download_response(self, package):
+    def download_response(self, package: Package):
         """
         Return a HTTP Response that will download this package
 
@@ -43,7 +52,7 @@ class IStorage(object):
         """
         raise NotImplementedError
 
-    def upload(self, package, datastream):
+    def upload(self, package: Package, datastream: BinaryIO) -> None:
         """
         Upload a package file to the storage backend
 
@@ -57,7 +66,7 @@ class IStorage(object):
         """
         raise NotImplementedError
 
-    def delete(self, package):
+    def delete(self, package: Package) -> None:
         """
         Delete a package file
 
@@ -69,7 +78,7 @@ class IStorage(object):
         """
         raise NotImplementedError
 
-    def open(self, package):
+    def open(self, package: Package):
         """
         Get a buffer object that can read the package data
 
@@ -91,7 +100,7 @@ class IStorage(object):
         """
         raise NotImplementedError
 
-    def check_health(self):
+    def check_health(self) -> Tuple[bool, str]:
         """
         Check the health of the storage backend
 
@@ -102,4 +111,4 @@ class IStorage(object):
             status message
 
         """
-        return (True, "")
+        return True, ""

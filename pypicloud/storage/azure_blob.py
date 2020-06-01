@@ -1,21 +1,20 @@
 """ Store packages in Azure Blob Storage """
-from __future__ import unicode_literals
 import logging
 import posixpath
-from datetime import datetime, timedelta
 from contextlib import contextmanager
+from datetime import datetime, timedelta
+from io import BytesIO
+from urllib.request import urlopen
 
-from azure.storage.blob import BlobServiceClient, BlobSasPermissions, generate_blob_sas
 from azure.core.exceptions import ResourceNotFoundError
+from azure.storage.blob import BlobSasPermissions, BlobServiceClient, generate_blob_sas
 from pyramid.httpexceptions import HTTPFound
 from pyramid.settings import asbool
-from six import BytesIO
-from six.moves.urllib.request import urlopen  # pylint: disable=F0401,E0611
 
-from .base import IStorage
 from pypicloud.models import Package
 from pypicloud.util import normalize_metadata
 
+from .base import IStorage
 
 LOG = logging.getLogger(__name__)
 
@@ -76,7 +75,7 @@ class AzureBlobStorage(IStorage):
 
         return kwargs
 
-    def _generate_url(self, package):
+    def _generate_url(self, package: Package) -> str:
         path = self.get_path(package)
 
         url_params = generate_blob_sas(

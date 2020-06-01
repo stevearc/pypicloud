@@ -1,14 +1,10 @@
 """ Tests for commandline scripts """
+import unittest
+
 from mock import patch
 
 from pypicloud import scripts
 from pypicloud.access import get_pwd_context
-
-
-try:
-    import unittest2 as unittest  # pylint: disable=F0401
-except ImportError:
-    import unittest
 
 
 class TestScripts(unittest.TestCase):

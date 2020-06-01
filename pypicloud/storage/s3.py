@@ -1,27 +1,23 @@
 """ Store packages in S3 """
-from __future__ import unicode_literals
+import logging
 import posixpath
+from datetime import datetime, timedelta
+from urllib.parse import quote, urlparse
 
 import boto3
-import logging
 from botocore.config import Config
-from botocore.signers import CloudFrontSigner
 from botocore.exceptions import ClientError
-
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives import serialization
+from botocore.signers import CloudFrontSigner
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes
-
-from datetime import datetime, timedelta
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding
 from pyramid.settings import asbool, falsey
 from pyramid_duh.settings import asdict
-from six.moves.urllib.parse import urlparse, quote  # pylint: disable=F0401,E0611
+
+from pypicloud.models import Package
+from pypicloud.util import get_settings, normalize_metadata, parse_filename
 
 from .object_store import ObjectStoreStorage
-from pypicloud.models import Package
-from pypicloud.util import parse_filename, get_settings, normalize_metadata
-
 
 LOG = logging.getLogger(__name__)
 

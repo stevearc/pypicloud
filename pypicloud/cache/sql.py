@@ -1,20 +1,21 @@
 """ Store package data in a SQL database """
 import json
 import logging
-import zope.sqlalchemy
 from datetime import datetime
+
+import zope.sqlalchemy
 from pyramid.settings import asbool
-from sqlalchemy import engine_from_config, distinct, and_, or_, Column, DateTime, String
+from sqlalchemy import Column, DateTime, String, and_, distinct, engine_from_config, or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.mutable import Mutable
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import func
-from sqlalchemy.types import TypeDecorator, TEXT
+from sqlalchemy.types import TEXT, TypeDecorator
 
-from .base import ICache
 from pypicloud.models import Package
 
+from .base import ICache
 
 LOG = logging.getLogger(__name__)
 
@@ -122,8 +123,6 @@ class SQLCache(ICache):
 
     """ Caching database that uses SQLAlchemy """
 
-    package_class = SQLPackage
-
     def __init__(self, request=None, dbmaker=None, graceful_reload=False, **kwargs):
         super(SQLCache, self).__init__(request, **kwargs)
         self.dbmaker = dbmaker
@@ -132,6 +131,9 @@ class SQLCache(ICache):
 
         if request is not None:
             zope.sqlalchemy.register(self.db, transaction_manager=request.tm)
+
+    def new_package(self, *args, **kwargs):
+        return SQLPackage(*args, **kwargs)
 
     def reload_if_needed(self):
         super(SQLCache, self).reload_if_needed()
@@ -192,7 +194,7 @@ class SQLCache(ICache):
         for key, queries in criteria.items():
             # Make sure search key exists in the package class.
             # It should be either "name" or "summary".
-            field = getattr(self.package_class, key, None)
+            field = getattr(SQLPackage, key, None)
             if not field:
                 continue
 
@@ -275,7 +277,7 @@ class SQLCache(ICache):
         # Log start time
         start = datetime.utcnow()
         # Fetch packages from storage s1
-        s1 = set(self.storage.list(self.package_class))
+        s1 = set(self.storage.list(SQLPackage))
         # Fetch cache packages c1
         c1 = set(self.db.query(SQLPackage).all())
         # Add missing packages to cache (s1 - c1)
@@ -298,7 +300,7 @@ class SQLCache(ICache):
         # If any packages were concurrently deleted during the cache rebuild,
         # we can detect them by polling storage again and looking for any
         # packages that were present in s1 and are missing from s2
-        s2 = set(self.storage.list(self.package_class))
+        s2 = set(self.storage.list(SQLPackage))
         # Delete extra packages from cache (s1 - s2)
         extra2 = s1 - s2
         if extra2:

@@ -1,42 +1,39 @@
 # -*- coding: utf-8 -*-
 """ Tests for access backends """
-from __future__ import unicode_literals
-
-import six
 import json
-import ldap
-import transaction
 import unittest
+
+import transaction
 import zope.sqlalchemy
 from mock import MagicMock, patch
 from mockldap import MockLdap
 from pyramid.authorization import ACLAuthorizationPolicy
-from pyramid.security import Everyone, Authenticated
+from pyramid.security import Authenticated, Everyone
 from pyramid.testing import DummyRequest
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
+import ldap
 from pypicloud.access import (
+    ConfigAccessBackend,
     IAccessBackend,
     IMutableAccessBackend,
-    ConfigAccessBackend,
     RemoteAccessBackend,
-    includeme,
+    aws_secrets_manager,
     get_pwd_context,
+    includeme,
 )
 from pypicloud.access.base import group_to_principal
 from pypicloud.access.ldap_ import LDAPAccessBackend
 from pypicloud.access.sql import (
+    Base,
+    Group,
+    GroupPermission,
     SQLAccessBackend,
     User,
     UserPermission,
     association_table,
-    GroupPermission,
-    Group,
-    Base,
 )
-from pypicloud.access import aws_secrets_manager
 from pypicloud.route import Root
-
 
 pwd_context = get_pwd_context()  # pylint: disable=C0103
 
@@ -1152,7 +1149,7 @@ class TestSQLiteBackend(unittest.TestCase):
             """ Assertion that handles unordered lists inside dicts """
             if isinstance(obj1, dict):
                 self.assertEqual(len(obj1), len(obj2))
-                for key, val in six.iteritems(obj1):
+                for key, val in obj1.items():
                     assert_nice_equals(val, obj2[key])
             elif isinstance(obj1, list):
                 self.assertItemsEqual(obj1, obj2)

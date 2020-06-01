@@ -1,9 +1,8 @@
 """ Setup file """
-from setuptools import setup, find_packages
-
 import os
 import re
 
+from setuptools import find_packages, setup
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(HERE, "README.rst")).read()
@@ -26,7 +25,6 @@ REQUIREMENTS = [
     "pyramid_rpc",
     "pyramid_tm",
     "requests",
-    "six",
     "transaction",
     "zope.sqlalchemy",
 ]
@@ -54,20 +52,18 @@ EXTRAS["test"] = EXTRAS["all_plugins"] + [
 ]
 
 EXTRAS["server"] = ["waitress"]
-EXTRAS["lint"] = ["black", "pylint==2.3.1"]
+EXTRAS["lint"] = ["black", "pylint==2.3.1", "mypy", "sqlalchemy-stubs"]
 EXTRAS["doc"] = ["numpydoc", "sphinx", "sphinx_rtd_theme"]
 
 
 if __name__ == "__main__":
     setup(
         name="pypicloud",
-        version="1.0.16",
+        version="1.1.0",
         description="Private PyPI backed by S3",
         long_description=README + "\n\n" + CHANGES,
         classifiers=[
             "Programming Language :: Python",
-            "Programming Language :: Python :: 2",
-            "Programming Language :: Python :: 2.7",
             "Programming Language :: Python :: 3",
             "Programming Language :: Python :: 3.5",
             "Programming Language :: Python :: 3.6",
@@ -88,6 +84,7 @@ if __name__ == "__main__":
         keywords="pypi s3 cheeseshop package",
         platforms="any",
         zip_safe=False,
+        python_requires=">=3.5",
         include_package_data=True,
         packages=find_packages(exclude=("tests",)),
         entry_points={

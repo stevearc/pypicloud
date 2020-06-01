@@ -1,18 +1,15 @@
 """ Model objects """
 import re
-
-import pkg_resources
-import six
 from datetime import datetime
 from functools import total_ordering
 
+import pkg_resources
+
 from .util import normalize_name
 
+METADATA_FIELDS = ["requires_python", "summary", "hash_sha256", "hash_md5"]
 
-METADATA_FIELDS = ["requires_python", "summary"]
 
-
-@six.python_2_unicode_compatible
 @total_ordering
 class Package(object):
 
@@ -31,7 +28,7 @@ class Package(object):
         The datetime when this package was uploaded (default now)
     summary : str, optional
         The summary of the package
-    **kwargs : dict
+    **kwargs :
         Metadata about the package
 
     """
@@ -99,7 +96,7 @@ class Package(object):
         return self.__str__()
 
     def __str__(self):
-        return u"Package(%s)" % (self.filename)
+        return "Package(%s)" % self.filename
 
     def __json__(self, request):
         return {

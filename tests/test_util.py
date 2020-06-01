@@ -1,7 +1,9 @@
 """ Tests for pypicloud utilities """
-from pypicloud import util
 import unittest
+
 from mock import patch
+
+from pypicloud import util
 
 
 class TestParse(unittest.TestCase):

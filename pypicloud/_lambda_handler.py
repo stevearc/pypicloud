@@ -1,12 +1,10 @@
 """ AWS Lambda handler that process S3 object notifications """
-from __future__ import print_function
-
+import json
 import os
 import posixpath
+from datetime import datetime
 
 import boto3
-import json
-from datetime import datetime
 
 
 def handle_s3_event(event, context):
@@ -33,7 +31,7 @@ def handle_s3_event(event, context):
         if event_name.startswith("ObjectCreated"):
             print("S3 object %r created" % key)
             obj = s3.Object(bucket, key)
-            package = S3Storage.package_from_object(obj, cache.package_class)
+            package = S3Storage.package_from_object(obj, cache.new_package)
             existing_pkg = cache.fetch(package.filename)
             if existing_pkg is None:
                 print("Saving package %s" % package)
@@ -47,8 +45,6 @@ def handle_s3_event(event, context):
                 name, version = parse_filename(filename)
             except ValueError:
                 name = version = "dummy"
-            package = cache.package_class(
-                name, version, filename, datetime.utcnow(), ""
-            )
+            package = cache.new_package(name, version, filename, datetime.utcnow(), "")
             print("Deleting package %s" % package)
             cache.clear(package)

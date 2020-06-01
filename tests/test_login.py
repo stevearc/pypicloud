@@ -1,7 +1,9 @@
 """ Tests for login views """
-from . import MockServerTest
 from mock import MagicMock, patch
+
 from pypicloud.views import login
+
+from . import MockServerTest
 
 
 class TestLoginPage(MockServerTest):

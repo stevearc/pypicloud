@@ -1,17 +1,15 @@
 """ Views for simple pip interaction """
+import logging
 import posixpath
 
 import pkg_resources
-import logging
-import six
-from pyramid.httpexceptions import HTTPBadRequest, HTTPFound, HTTPNotFound, HTTPConflict
+from pyramid.httpexceptions import HTTPBadRequest, HTTPConflict, HTTPFound, HTTPNotFound
 from pyramid.view import view_config
-from pyramid_duh import argify, addslash
+from pyramid_duh import addslash, argify
 from pyramid_rpc.xmlrpc import xmlrpc_method
 
 from pypicloud.route import Root, SimplePackageResource, SimpleResource
 from pypicloud.util import normalize_name, parse_filename
-
 
 LOG = logging.getLogger(__name__)
 
@@ -122,19 +120,22 @@ def package_versions_json(context, request):
         return pkgs
     response = {"info": {"name": context.name}, "releases": {}}
     max_version = None
-    for filename, pkg in six.iteritems(pkgs["pkgs"]):
+    for filename, pkg in pkgs["pkgs"].items():
         name, version_str = parse_filename(filename)
         version = pkg_resources.parse_version(version_str)
         if max_version is None or version > max_version:
             max_version = version
 
-        response["releases"].setdefault(version_str, []).append(
-            {
-                "filename": filename,
-                "url": pkg["url"],
-                "requires_python": pkg["requires_python"],
-            }
-        )
+        release = {
+            "filename": filename,
+            "url": pkg.get("non_hashed_url", pkg["url"]),
+            "requires_python": pkg["requires_python"],
+        }
+        if pkg.get("hash_sha256"):
+            release["digests"] = {"md5": pkg["hash_md5"], "sha256": pkg["hash_sha256"]}
+            release["md5_digest"] = pkg["hash_md5"]
+
+        response["releases"].setdefault(version_str, []).append(release)
     if max_version is not None:
         response["urls"] = response["releases"].get(str(max_version), [])
     return response
@@ -154,6 +155,8 @@ def get_fallback_packages(request, package_name, redirect=True):
         pkgs[filename] = {
             "url": url,
             "requires_python": release["requires_python"],
+            "hash_sha256": release["digests"].get("sha256"),
+            "hash_md5": release["digests"].get("md5"),
         }
     return pkgs
 
@@ -162,9 +165,18 @@ def packages_to_dict(request, packages):
     """ Convert a list of packages to a dict used by the template """
     pkgs = {}
     for package in packages:
+        url = package.get_url(request)
+        # We could also do with a url without the sha256 fragment for the JSON api
+        non_fragment_url = url
+        if "#sha256=" in url:
+            non_fragment_url = non_fragment_url[: url.find("#sha256=")]
+
         pkgs[package.filename] = {
-            "url": package.get_url(request),
+            "url": url,
+            "non_hashed_url": non_fragment_url,
             "requires_python": package.data.get("requires_python"),
+            "hash_sha256": package.data.get("hash_sha256"),
+            "hash_md5": package.data.get("hash_md5"),
         }
     return pkgs
 
@@ -221,7 +233,7 @@ def _simple_redirect_always_show(context, request):
             pkgs = get_fallback_packages(request, context.name)
             stored_pkgs = packages_to_dict(request, packages)
             # Overwrite existing package urls
-            for filename, url in six.iteritems(stored_pkgs):
+            for filename, url in stored_pkgs.items():
                 pkgs[filename] = url
             return _pkg_response(pkgs)
     else:
@@ -269,7 +281,7 @@ def _simple_cache_always_show(context, request):
                 pkgs = get_fallback_packages(request, context.name)
                 stored_pkgs = packages_to_dict(request, packages)
                 # Overwrite existing package urls
-                for filename, data in six.iteritems(stored_pkgs):
+                for filename, data in stored_pkgs.items():
                     pkgs[filename] = data
                 return _pkg_response(pkgs)
             else:
@@ -278,7 +290,7 @@ def _simple_cache_always_show(context, request):
             pkgs = get_fallback_packages(request, context.name, False)
             stored_pkgs = packages_to_dict(request, packages)
             # Overwrite existing package urls
-            for filename, data in six.iteritems(stored_pkgs):
+            for filename, data in stored_pkgs.items():
                 pkgs[filename] = data
             return _pkg_response(pkgs)
     else:

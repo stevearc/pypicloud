@@ -1,13 +1,16 @@
 """ Base class for all cache implementations """
-from datetime import datetime
-
+import hashlib
 import logging
+import posixpath
+from datetime import datetime
+from io import BytesIO
+from typing import Any, BinaryIO, Callable, Dict, List, Optional, Tuple
+
 from pyramid.settings import asbool
 
-import posixpath
 from pypicloud.models import Package
 from pypicloud.storage import get_storage_impl
-from pypicloud.util import create_matcher, parse_filename, normalize_name
+from pypicloud.util import create_matcher, normalize_name, parse_filename
 
 LOG = logging.getLogger(__name__)
 
@@ -16,14 +19,18 @@ class ICache(object):
 
     """ Base class for a caching database that stores package metadata """
 
-    package_class = Package
-
-    def __init__(self, request=None, storage=None, allow_overwrite=None):
+    def __init__(
+        self, request=None, storage=None, allow_overwrite=None, calculate_hashes=True
+    ):
         self.request = request
         self.storage = storage(request)
         self.allow_overwrite = allow_overwrite
+        self.calculate_hashes = calculate_hashes
 
-    def reload_if_needed(self):
+    def new_package(self, *args, **kwargs) -> Package:
+        return Package(*args, **kwargs)
+
+    def reload_if_needed(self) -> None:
         """
         Reload packages from storage backend if cache is empty
 
@@ -41,13 +48,16 @@ class ICache(object):
         return {
             "storage": get_storage_impl(settings),
             "allow_overwrite": asbool(settings.get("pypi.allow_overwrite", False)),
+            "calculate_hashes": asbool(
+                settings.get("pypi.calculate_package_hashes", True)
+            ),
         }
 
     @classmethod
     def postfork(cls, **kwargs):
         """ This method will be called after uWSGI forks """
 
-    def get_url(self, package):
+    def get_url(self, package: Package) -> str:
         """
         Get the download url for a package
 
@@ -62,27 +72,27 @@ class ICache(object):
         """
         return self.storage.get_url(package)
 
-    def download_response(self, package):
+    def download_response(self, package: Package):
         """ Pass through to storage """
         return self.storage.download_response(package)
 
-    def reload_from_storage(self, clear=True):
+    def reload_from_storage(self, clear: bool = True) -> None:
         """ Make sure local database is populated with packages """
         if clear:
             self.clear_all()
-        packages = self.storage.list(self.package_class)
+        packages = self.storage.list(self.new_package)
         for pkg in packages:
             self.save(pkg)
 
     def upload(
         self,
-        filename,
-        data,
-        name=None,
-        version=None,
-        summary=None,
-        requires_python=None,
-    ):
+        filename: str,
+        data: BinaryIO,
+        name: Optional[str] = None,
+        version: Optional[str] = None,
+        summary: Optional[str] = None,
+        requires_python: Optional[str] = None,
+    ) -> Package:
         """
         Save this package to the storage mechanism and to the cache
 
@@ -114,21 +124,26 @@ class ICache(object):
             If the package already exists and allow_overwrite = False
 
         """
-        if version is None:
+        if version is None or name is None:
             name, version = parse_filename(filename, name)
         name = normalize_name(name)
         filename = posixpath.basename(filename)
         old_pkg = self.fetch(filename)
+        metadata = {"requires_python": requires_python}
         if old_pkg is not None and not self.allow_overwrite:
             raise ValueError("Package '%s' already exists!" % filename)
-        new_pkg = self.package_class(
-            name, version, filename, summary=summary, requires_python=requires_python
-        )
+        if self.calculate_hashes:
+            file_data = data.read()
+            metadata["hash_sha256"] = hashlib.sha256(file_data).hexdigest()
+            metadata["hash_md5"] = hashlib.md5(file_data).hexdigest()
+            data = BytesIO(file_data)
+
+        new_pkg = self.new_package(name, version, filename, summary=summary, **metadata)
         self.storage.upload(new_pkg, data)
         self.save(new_pkg)
         return new_pkg
 
-    def delete(self, package):
+    def delete(self, package: Package) -> None:
         """
         Delete this package from the database and from storage
 
@@ -140,7 +155,7 @@ class ICache(object):
         self.storage.delete(package)
         self.clear(package)
 
-    def fetch(self, filename):
+    def fetch(self, filename: str) -> Package:
         """
         Get matching package if it exists
 
@@ -156,7 +171,7 @@ class ICache(object):
         """
         raise NotImplementedError
 
-    def all(self, name):
+    def all(self, name: str) -> List[Package]:
         """
         Search for all versions of a package
 
@@ -174,7 +189,7 @@ class ICache(object):
         """
         raise NotImplementedError
 
-    def distinct(self):
+    def distinct(self) -> List[str]:
         """
         Get all distinct package names
 
@@ -186,7 +201,7 @@ class ICache(object):
         """
         raise NotImplementedError
 
-    def search(self, criteria, query_type):
+    def search(self, criteria: Dict[str, List[str]], query_type: str) -> List[Package]:
         """
         Perform a search from pip
 
@@ -233,7 +248,7 @@ class ICache(object):
 
         return packages
 
-    def summary(self):
+    def summary(self) -> List[Dict[str, Any]]:
         """
         Summarize package metadata
 
@@ -255,12 +270,13 @@ class ICache(object):
             for package in self.all(name):
                 pkg["last_modified"] = max(pkg["last_modified"], package.last_modified)
                 max_pkg = package if max_pkg is None else max(max_pkg, package)
-            pkg["summary"] = max_pkg.summary
-            packages.append(pkg)
+            if max_pkg:
+                pkg["summary"] = max_pkg.summary
+                packages.append(pkg)
 
         return packages
 
-    def clear(self, package):
+    def clear(self, package: Package) -> None:
         """
         Remove this package from the caching database
 
@@ -271,11 +287,11 @@ class ICache(object):
         """
         raise NotImplementedError
 
-    def clear_all(self):
+    def clear_all(self) -> None:
         """ Clear all cached packages from the database """
         raise NotImplementedError
 
-    def save(self, package):
+    def save(self, package: Package) -> None:
         """
         Save this package to the database
 
@@ -286,7 +302,7 @@ class ICache(object):
         """
         raise NotImplementedError
 
-    def check_health(self):
+    def check_health(self) -> Tuple[bool, str]:
         """
         Check the health of the cache backend
 
@@ -297,4 +313,4 @@ class ICache(object):
             status message
 
         """
-        return (True, "")
+        return True, ""

@@ -1,20 +1,19 @@
 """ Commandline scripts """
-import sys
-import six
-
 import argparse
 import getpass
 import gzip
 import json
 import logging
-import transaction
+import os
+import sys
 from base64 import b64encode
+
+import transaction
 from jinja2 import Template
 from pkg_resources import resource_string  # pylint: disable=E0611
 from pyramid.paster import bootstrap
 
-import os
-from pypicloud.access import get_pwd_context, SCHEMES
+from pypicloud.access import SCHEMES, get_pwd_context
 
 
 def gen_password(argv=None):
@@ -30,7 +29,7 @@ def gen_password(argv=None):
         choices=SCHEMES,
     )
     args = parser.parse_args(argv)
-    six.print_(_gen_password(args.s, args.r))
+    print(_gen_password(args.s, args.r))
 
 
 def _gen_password(scheme=None, rounds=None):
@@ -42,7 +41,7 @@ def _gen_password(scheme=None, rounds=None):
         if password == verify:
             return pwd_context.hash(password)
         else:
-            six.print_("Passwords do not match!")
+            print("Passwords do not match!")
 
 
 NO_DEFAULT = object()
@@ -50,7 +49,7 @@ NO_DEFAULT = object()
 
 def wrapped_input(msg):
     """ Wraps input for tests """
-    return six.moves.input(msg)
+    return input(msg)
 
 
 def prompt(msg, default=NO_DEFAULT, validate=None):
@@ -69,13 +68,13 @@ def prompt_option(text, choices, default=NO_DEFAULT):
     """ Prompt the user to choose one of a list of options """
     while True:
         for i, msg in enumerate(choices):
-            six.print_("[%d] %s" % (i + 1, msg))
+            print("[%d] %s" % (i + 1, msg))
         response = prompt(text, default=default)
         try:
             idx = int(response) - 1
             return choices[idx]
         except (ValueError, IndexError):
-            six.print_("Invalid choice\n")
+            print("Invalid choice\n")
 
 
 def promptyn(msg, default=None):
@@ -98,13 +97,13 @@ def promptyn(msg, default=None):
 def bucket_validate(name):
     """ Check for valid bucket name """
     if name.startswith("."):
-        six.print_("Bucket names cannot start with '.'")
+        print("Bucket names cannot start with '.'")
         return False
     if name.endswith("."):
-        six.print_("Bucket names cannot end with '.'")
+        print("Bucket names cannot end with '.'")
         return False
     if ".." in name:
-        six.print_("Bucket names cannot contain '..'")
+        print("Bucket names cannot contain '..'")
         return False
     return True
 
@@ -112,7 +111,7 @@ def bucket_validate(name):
 def storage_account_name_validate(name):
     """ Check for valid storage account name """
     if "." in name:
-        six.print_("Storage account names cannot contain '.'")
+        print("Storage account names cannot contain '.'")
         return False
     return True
 
@@ -224,7 +223,7 @@ def make_config(argv=None):
         with open(args.outfile, "w") as ofile:
             ofile.write(config_file)
 
-        six.print_("Config file written to '%s'" % args.outfile)
+        print("Config file written to '%s'" % args.outfile)
 
 
 def migrate_packages(argv=None):
@@ -259,7 +258,7 @@ def migrate_packages(argv=None):
     new_env = bootstrap(args.config_to)
     new_storage = new_env["request"].db.storage
     for package in all_packages:
-        six.print_("Migrating %s" % package)
+        print("Migrating %s" % package)
         with old_storage.open(package) as data:
             # we need to recalculate the path for the new storage config
             package.data.pop("path", None)
@@ -284,7 +283,7 @@ def export_access(argv=None):
         with gzip.open(args.o, "w") as ofile:
             json.dump(data, ofile)
     else:
-        six.print_(json.dumps(data, indent=2))
+        print(json.dumps(data, indent=2))
 
 
 def import_access(argv=None):
@@ -311,7 +310,7 @@ def import_access(argv=None):
         with gzip.open(args.i, "r") as ifile:
             data = json.load(ifile)
     else:
-        six.print_("Reading data from stdin...")
+        print("Reading data from stdin...")
         data = json.load(sys.stdin)
 
     env = bootstrap(args.config)
@@ -319,4 +318,4 @@ def import_access(argv=None):
     result = access.load(data)
     transaction.commit()
     if result is not None:
-        six.print_(result)
+        print(result)

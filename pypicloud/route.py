@@ -1,5 +1,6 @@
 """ Tools and resources for traversal routing """
 import functools
+from typing import Any, Callable, Dict
 
 
 class IStaticResource(object):
@@ -8,7 +9,7 @@ class IStaticResource(object):
 
     __name__ = ""
     __parent__ = None
-    subobjects = {}
+    subobjects = {}  # type: Dict[str, Callable[[Any], Any]]
 
     def __init__(self, request):
         self.request = request

@@ -1,14 +1,15 @@
 """ Store packages as files on disk """
 import json
-from datetime import datetime
-from contextlib import closing
+import os
 from binascii import hexlify
+from contextlib import closing
+from datetime import datetime
 
 from pyramid.response import FileResponse
 
-import os
-from .base import IStorage
 from pypicloud.models import Package
+
+from .base import IStorage
 
 
 class FileStorage(IStorage):
