@@ -1,5 +1,6 @@
 """ Utilities """
 import logging
+import os
 import re
 import time
 import unicodedata
@@ -77,6 +78,11 @@ def create_matcher(queries: List[str], query_type: str) -> Callable[[str], bool]
         return lambda x: any((q in x.lower() for q in queries))
     else:
         return lambda x: all((q in x.lower() for q in queries))
+
+
+def get_environ_setting(settings: dict, key: str, default=None):
+    env_key = "PPC_" + key.upper().replace(".", "_")
+    return os.environ.get(env_key, settings.get(key, default))
 
 
 def get_settings(settings: dict, prefix: str, **kwargs) -> dict:

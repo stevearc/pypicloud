@@ -17,6 +17,8 @@ from pyramid.security import (
 )
 from pyramid.settings import aslist
 
+from pypicloud.util import get_environ_setting
+
 # Roughly tuned using https://bitbucket.org/ecollins/passlib/raw/default/choose_rounds.py
 # For 10ms. This differs from the passlib recommendation of 350ms due to the difference in use case
 DEFAULT_ROUNDS = {
@@ -134,7 +136,7 @@ class IAccessBackend(object):
             ),
             "pwd_context": get_pwd_context(scheme, rounds),
             "token_expiration": int(settings.get("auth.token_expire", ONE_WEEK)),
-            "signing_key": settings.get("auth.signing_key"),
+            "signing_key": get_environ_setting(settings, "auth.signing_key"),
         }
 
     @classmethod
