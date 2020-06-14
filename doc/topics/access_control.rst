@@ -189,8 +189,9 @@ The number of rounds to use when hashing passwords. See :ref:`auth_rounds`
 ~~~~~~~~~~~~~~~~~~~~
 **Argument:** string, optional
 
-Encryption key to use for the token signing HMAC. Here is a reasonable way to
-generate one:
+Encryption key to use for the token signing HMAC. You may also pass this in with
+the environment variable ``PPC_AUTH_SIGNING_KEY``. Here is a reasonable way to
+generate a random key:
 
 .. code-block:: bash
 

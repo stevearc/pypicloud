@@ -1,7 +1,7 @@
 import argparse
-from azure.storage.blob import BlobServiceClient
 import hashlib
 
+from azure.storage.blob import BlobServiceClient
 
 parser = argparse.ArgumentParser()
 parser.add_argument("storage_account_url", help="Storage account url")

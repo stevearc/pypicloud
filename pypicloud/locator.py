@@ -49,13 +49,17 @@ class FormattedScrapingLocator(SimpleScrapingLocator):
         for version, urls in projects["urls"].items():
             for url in urls:
                 dist = projects[version]
+                digest = projects["digests"].get(url)
+                digest_dict = {}
+                if digest is not None:
+                    digest_dict[digest[0]] = digest[1]
                 items.append(
                     {
                         "name": dist.name,
                         "version": dist.version,
                         "summary": dist.metadata.dictionary.get("summary"),
                         "url": url,
-                        "digests": projects["digests"].get(url),
+                        "digests": digest_dict,
                         "requires_python": dist.metadata.dictionary.get(
                             "requires_python"
                         ),

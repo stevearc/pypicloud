@@ -1,7 +1,7 @@
 import argparse
-import boto3
 import hashlib
 
+import boto3
 
 parser = argparse.ArgumentParser()
 parser.add_argument("s3_bucket", help="S3 Bucket name")
