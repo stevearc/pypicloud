@@ -2,6 +2,12 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.1.1 - 2020/6/14
+-----------------
+* Fix an exception when ``pypi.use_json_scraper = false`` (:issue:`250`)
+* Allow passing in ``auth.signing_key`` as an environment variable (:issue:`247`)
+* Add some documentation about the DynamoDB cache (:issue:`249`)
+
 1.1.0 - 2020/5/31
 -----------------
 * Drop support for Python 2 (:pr:`243`)
