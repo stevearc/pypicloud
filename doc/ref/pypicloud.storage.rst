@@ -7,6 +7,7 @@ Submodules
 .. toctree::
    :maxdepth: 4
 
+   pypicloud.storage.azure_blob
    pypicloud.storage.base
    pypicloud.storage.files
    pypicloud.storage.gcs

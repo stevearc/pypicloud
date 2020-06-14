@@ -1,5 +1,5 @@
-pypicloud.storage.azure_blob module
-===================================
+pypicloud.storage.azure\_blob module
+====================================
 
 .. automodule:: pypicloud.storage.azure_blob
    :members:
