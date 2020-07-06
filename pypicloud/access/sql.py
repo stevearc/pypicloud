@@ -159,6 +159,8 @@ class SQLAccessBackend(IMutableAccessBackend):
 
     """
 
+    wrap_transactions = True
+
     def __init__(self, request=None, dbmaker=None, **kwargs):
         super(SQLAccessBackend, self).__init__(request, **kwargs)
         self._db = None

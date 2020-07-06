@@ -18,6 +18,8 @@ class AWSSecretsManagerAccessBackend(IMutableJsonAccessBackend):
 
     """
 
+    wrap_transactions = True
+
     def __init__(
         self, request=None, secret_id=None, kms_key_id=None, client=None, **kwargs
     ):

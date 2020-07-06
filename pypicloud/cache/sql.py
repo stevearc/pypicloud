@@ -123,6 +123,8 @@ class SQLCache(ICache):
 
     """ Caching database that uses SQLAlchemy """
 
+    wrap_transactions = True
+
     def __init__(self, request=None, dbmaker=None, graceful_reload=False, **kwargs):
         super(SQLCache, self).__init__(request, **kwargs)
         self.dbmaker = dbmaker

@@ -84,6 +84,8 @@ class DummyCache(ICache):
 
     """ In-memory implementation of ICache """
 
+    wrap_transactions = False
+
     def __init__(self, request=None, **kwargs):
         kwargs.setdefault("storage", DummyStorage)
         super(DummyCache, self).__init__(request, **kwargs)

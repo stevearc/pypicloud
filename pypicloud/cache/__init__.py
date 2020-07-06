@@ -27,6 +27,8 @@ def includeme(config):
     cache_impl = get_cache_impl(settings)
     kwargs = cache_impl.configure(settings)
     cache = cache_impl(**kwargs)
+    if cache.wrap_transactions:
+        config.include("pyramid_tm")
     cache.reload_if_needed()
     config.add_request_method(partial(cache_impl, **kwargs), name="db", reify=True)
     config.add_postfork_hook(partial(cache_impl.postfork, **kwargs))

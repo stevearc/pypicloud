@@ -52,7 +52,6 @@ def includeme(config):
     config.set_root_factory(Root)
     settings = config.get_settings()
     config.add_route("health", "/health")
-    config.include("pyramid_tm")
     # Beaker should be set by default to invalidate corrupt sessions, otherwise
     # a bad cookie will break the website for you and the only fix is to
     # manually delete the cookie.

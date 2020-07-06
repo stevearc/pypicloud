@@ -33,6 +33,8 @@ def includeme(config) -> None:
     elif dotted_name == "aws_secrets_manager":
         dotted_name = AWSSecretsManagerAccessBackend
     access_backend = resolver.maybe_resolve(dotted_name)
+    if access_backend.wrap_transactions:
+        config.include("pyramid_tm")
     kwargs = access_backend.configure(settings)
     config.add_request_method(
         partial(access_backend, **kwargs), name="access", reify=True

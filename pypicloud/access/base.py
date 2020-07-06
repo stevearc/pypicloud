@@ -93,6 +93,7 @@ class IAccessBackend(object):
 
     """ Base class for retrieving user and package permission data """
 
+    wrap_transactions = False
     mutable = False
     ROOT_ACL = [
         (Allow, Authenticated, "login"),

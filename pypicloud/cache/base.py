@@ -16,6 +16,7 @@ LOG = logging.getLogger(__name__)
 
 
 class ICache(object):
+    wrap_transations = False
 
     """ Base class for a caching database that stores package metadata """
 
