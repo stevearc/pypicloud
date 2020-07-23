@@ -52,14 +52,20 @@ EXTRAS["test"] = EXTRAS["all_plugins"] + [
 ]
 
 EXTRAS["server"] = ["waitress"]
-EXTRAS["lint"] = ["black", "pylint==2.3.1", "mypy", "sqlalchemy-stubs", "isort"]
+EXTRAS["lint"] = [
+    "black",
+    "pylint==2.3.1",
+    "mypy",
+    "sqlalchemy-stubs",
+    "isort>=4.2.5,<5",
+]
 EXTRAS["doc"] = ["numpydoc", "sphinx", "sphinx_rtd_theme"]
 
 
 if __name__ == "__main__":
     setup(
         name="pypicloud",
-        version="1.1.1",
+        version="1.1.2",
         description="Private PyPI backed by S3",
         long_description=README + "\n\n" + CHANGES,
         classifiers=[
