@@ -21,8 +21,7 @@ def gen_password(argv=None):
     if argv is None:
         argv = sys.argv[1:]
     parser = argparse.ArgumentParser(gen_password.__doc__)
-    parser.add_argument("-i", help="Read password from stdin",
-        action="store_true")
+    parser.add_argument("-i", help="Read password from stdin", action="store_true")
     parser.add_argument("-r", help="Number of rounds", type=int)
     parser.add_argument(
         "-s",
@@ -49,7 +48,7 @@ def _get_password():
             print("Passwords do not match!")
 
 
-def _gen_password(password, scheme=None, rounds=None):
+def _gen_password(password: str, scheme: str = None, rounds: int = None) -> str:
     pwd_context = get_pwd_context(scheme, rounds)
     return pwd_context.hash(password)
 
@@ -208,7 +207,7 @@ def make_config(argv=None):
     data["validate_key"] = b64encode(os.urandom(32)).decode("utf-8")
 
     data["admin"] = prompt("Admin username?")
-    data["password"] = _gen_password()
+    data["password"] = _gen_password(_get_password())
 
     data["session_secure"] = env == "prod"
     data["env"] = env
