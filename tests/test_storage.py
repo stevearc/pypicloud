@@ -117,7 +117,7 @@ class TestS3Storage(unittest.TestCase):
         self.assertEqual(key.metadata["name"], package.name)
         self.assertEqual(key.metadata["version"], package.version)
         self.assertEqual(key.metadata["summary"], package.summary)
-        self.assertDictContainsSubset(package.get_metadata(), key.metadata)
+        self.assertDictContainsSubset(package.get_metadata(), Package.read_metadata(key.metadata))
 
     def test_upload_prepend_hash(self):
         """ If prepend_hash = True, attach a hash to the file path """
