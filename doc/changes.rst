@@ -2,6 +2,15 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.1.3 - 2020/8/17
+-----------------
+* Fix metadata storage issue with some S3-compatible backends (:pr:`255`)
+* Command line arg to generate password hash from stdin (:pr:`253`)
+
+1.1.2 - 2020/7/23
+-----------------
+* Fix error when package in local storage but not in fallback repository (:issue:`251`)
+
 1.1.1 - 2020/6/14
 -----------------
 * Fix an exception when ``pypi.use_json_scraper = false`` (:issue:`250`)

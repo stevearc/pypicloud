@@ -12,7 +12,7 @@ class SimpleJsonLocator(object):
 
     def __init__(self, base_index):
         self.base_index = base_index
-        # 10m cache
+        # 16m cache
         self._cache = TimedCache(1000, self._get_releases)
 
     def get_releases(self, project_name):
@@ -21,6 +21,9 @@ class SimpleJsonLocator(object):
     def _get_releases(self, project_name):
         url = "%s/pypi/%s/json" % (self.base_index, project_name)
         response = requests.get(url)
+        # Return empty list for 4xx
+        if 400 <= response.status_code < 500:
+            return []
         response.raise_for_status()
         data = response.json()
         items = []

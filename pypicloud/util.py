@@ -44,16 +44,24 @@ def normalize_name(name: str) -> str:
     return re.sub(r"[-_.]+", "-", name).lower()
 
 
-def normalize_metadata(metadata: Dict[str, Union[str, bytes]]) -> None:
-    """Strip non-ASCII characters from metadata"""
-    for key, value in metadata.items():
-        if isinstance(value, bytes):
-            value = value.decode("utf-8")
+def normalize_metadata_value(value: Union[str, bytes]) -> str:
+    """Strip non-ASCII characters from metadata values"""
+    if isinstance(value, bytes):
+        value = value.decode("utf-8")
+    if isinstance(value, str):
+        value = "".join(c for c in unicodedata.normalize("NFKD", value) if ord(c) < 128)
+    return value
 
-        if isinstance(value, str):
-            metadata[key] = "".join(
-                c for c in unicodedata.normalize("NFKD", value) if ord(c) < 128
-            )
+
+def normalize_metadata(metadata: Dict[str, Union[str, bytes]]) -> Dict[str, str]:
+    """
+    Strip non-ASCII characters from metadata values
+    and replace "_" in metadata keys to "-"
+    """
+    return {
+        key.replace("_", "-"): normalize_metadata_value(value)
+        for key, value in metadata.items()
+    }
 
 
 def create_matcher(queries: List[str], query_type: str) -> Callable[[str], bool]:

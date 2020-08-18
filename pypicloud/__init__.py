@@ -13,7 +13,7 @@ from pyramid_beaker import session_factory_from_settings
 from .locator import FormattedScrapingLocator, SimpleJsonLocator
 from .route import Root
 
-__version__ = "1.1.1"
+__version__ = "1.1.3"
 LOG = logging.getLogger(__name__)
 
 
