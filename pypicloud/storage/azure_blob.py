@@ -132,7 +132,7 @@ class AzureBlobStorage(IStorage):
         metadata = package.get_metadata()
         metadata["name"] = package.name
         metadata["version"] = package.version
-        normalize_metadata(metadata)
+        metadata = normalize_metadata(metadata)
 
         blob_client = self.container_client.get_blob_client(blob=path)
         blob_client.upload_blob(data=datastream, metadata=metadata)

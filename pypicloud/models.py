@@ -74,6 +74,10 @@ class Package(object):
             value = blob.get(field)
             if value:
                 metadata[field] = value
+                continue
+            value = blob.get(field.replace("_", "-"))
+            if value:
+                metadata[field] = value
         return metadata
 
     def get_metadata(self):

@@ -194,7 +194,7 @@ class S3Storage(ObjectStoreStorage):
         metadata = package.get_metadata()
         metadata["name"] = package.name
         metadata["version"] = package.version
-        normalize_metadata(metadata)
+        metadata = normalize_metadata(metadata)
         key.put(Metadata=metadata, Body=datastream, **kwargs)
 
     def delete(self, package):
