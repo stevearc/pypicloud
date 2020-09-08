@@ -194,8 +194,7 @@ def includeme(config):
 
 
 def main(config, **settings):
-    """ This function returns a Pyramid WSGI application.
-    """
+    """This function returns a Pyramid WSGI application."""
     config = Configurator(settings=settings)
     config.include("pypicloud")
     config.scan("pypicloud.views")

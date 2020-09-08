@@ -18,8 +18,8 @@ LOG = logging.getLogger(__name__)
 
 class ObjectStoreStorage(IStorage):
 
-    """ Storage backend base class containing code that is common between
-        supported object stores (S3 / GCS)
+    """Storage backend base class containing code that is common between
+    supported object stores (S3 / GCS)
     """
 
     test = False
@@ -27,7 +27,6 @@ class ObjectStoreStorage(IStorage):
     def __init__(
         self,
         request=None,
-        bucket=None,
         expire_after=None,
         bucket_prefix=None,
         prepend_hash=None,
@@ -40,7 +39,6 @@ class ObjectStoreStorage(IStorage):
         **kwargs
     ):
         super(ObjectStoreStorage, self).__init__(request, **kwargs)
-        self.bucket = bucket
         self.expire_after = expire_after
         self.bucket_prefix = bucket_prefix
         self.prepend_hash = prepend_hash
@@ -51,31 +49,24 @@ class ObjectStoreStorage(IStorage):
         self.region_name = region_name
         self.public_url = public_url
 
-    @classmethod
-    def get_bucket(cls, bucket_name: str, settings):
-        """ Subclasses must implement a method for generating a Bucket class
-            instance in the backend's SDK
-        """
-        raise NotImplementedError
-
     def _generate_url(self, package: Package) -> str:
-        """ Subclasses must implement a method for generating signed URLs to
-            the package in the object store
+        """Subclasses must implement a method for generating signed URLs to
+        the package in the object store
         """
         raise NotImplementedError
 
     @classmethod
     def package_from_object(cls, obj, factory):
-        """ Subclasses must implement a method for constructing a Package
-            instance from the backend's storage object format
+        """Subclasses must implement a method for constructing a Package
+        instance from the backend's storage object format
         """
         raise NotImplementedError
 
     @classmethod
     def _subclass_specific_config(cls, settings, common_config):
-        """ Method to allow subclasses to extract configuration parameters
-            specific to them and not covered in the common configuration
-            in this class.
+        """Method to allow subclasses to extract configuration parameters
+        specific to them and not covered in the common configuration
+        in this class.
         """
         return {}
 
@@ -88,11 +79,6 @@ class ObjectStoreStorage(IStorage):
         kwargs["object_acl"] = settings.get("storage.object_acl", None)
         kwargs["storage_class"] = storage_class = settings.get("storage.storage_class")
         kwargs["redirect_urls"] = asbool(settings.get("storage.redirect_urls", True))
-        bucket_name = settings.get("storage.bucket")
-        if bucket_name is None:
-            raise ValueError("You must specify the 'storage.bucket'")
-        kwargs["bucket"] = cls.get_bucket(bucket_name, settings)
-
         kwargs["region_name"] = settings.get("storage.region_name")
         kwargs["public_url"] = asbool(settings.get("storage.public_url"))
 

@@ -375,9 +375,9 @@ class MockGCSBlob(object):
         self.update_storage_class = MagicMock(wraps=self._update_storage_class)
 
     def upload_from_string(self, s):
-        """ Utility method for uploading this blob; not used by the
-            GoogleCloudStorage backend, but used to pre-populate the GCS
-            mock for testing
+        """Utility method for uploading this blob; not used by the
+        GoogleCloudStorage backend, but used to pre-populate the GCS
+        mock for testing
         """
         self.updated = datetime.datetime.utcnow()
         self._content = s
@@ -393,8 +393,8 @@ class MockGCSBlob(object):
         self.bucket._delete_blob(self.name)
 
     def _generate_signed_url(self, expiration, credentials, version):
-        """ Mock the generate_signed_url() method on
-            google.cloud.storage.Blob
+        """Mock the generate_signed_url() method on
+        google.cloud.storage.Blob
         """
         return "https://storage.googleapis.com/{bucket_name}/{blob_name}?Expires={expires}&GoogleAccessId=my-service-account%40my-project.iam.gserviceaccount.com&Signature=MySignature".format(
             bucket_name=self.bucket.name,
@@ -403,9 +403,9 @@ class MockGCSBlob(object):
         )
 
     def _update_storage_class(self, storage_class):
-        """ Mock the update_storage_class() method on google.cloud.storage.Blob.
-            This is a NOOP because we only check to make sure that it was
-            called, not that it changed any state on the MockGCSBlob class
+        """Mock the update_storage_class() method on google.cloud.storage.Blob.
+        This is a NOOP because we only check to make sure that it was
+        called, not that it changed any state on the MockGCSBlob class
         """
 
 
@@ -427,14 +427,14 @@ class MockGCSBucket(object):
         self._blobs = {}
 
     def _upload_blob(self, blob):
-        """ Method used by the MockGCSBlob class to register blobs after
-            MockGCSBlob.upload is called
+        """Method used by the MockGCSBlob class to register blobs after
+        MockGCSBlob.upload is called
         """
         self._blobs[blob.name] = blob
 
     def _delete_blob(self, blob_name):
-        """ Method used by the MockGCSBlob class to unregister blobs after
-            MockGCSBlob.delete is called
+        """Method used by the MockGCSBlob class to unregister blobs after
+        MockGCSBlob.delete is called
         """
         self._blobs.pop(blob_name)
 
@@ -468,14 +468,14 @@ class MockGCSClient(object):
         self._buckets = {}
 
     def from_service_account_json(self, *args, **kwargs):
-        """ Mock the from_service_account_json method from the cloud storage
-            client class, used by the GoogleCloudStorage backend.
+        """Mock the from_service_account_json method from the cloud storage
+        client class, used by the GoogleCloudStorage backend.
         """
         return self
 
     def __call__(self):
-        """ Provide a call() method so that we can easily patch an instance
-            of this class in place of the constructor of the mocked class
+        """Provide a call() method so that we can easily patch an instance
+        of this class in place of the constructor of the mocked class
         """
         return self
 
@@ -595,8 +595,8 @@ class TestGoogleCloudStorage(unittest.TestCase):
         bucket.create.assert_called_once_with()
 
     def test_object_acl(self):
-        """ Can specify an object ACL for GCS objects.  Just test to make
-            sure that the configured ACL is forwarded to the API client
+        """Can specify an object ACL for GCS objects.  Just test to make
+        sure that the configured ACL is forwarded to the API client
         """
         settings = dict(self.settings)
         settings["storage.object_acl"] = "authenticated-read"
