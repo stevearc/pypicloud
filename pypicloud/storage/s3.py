@@ -28,6 +28,10 @@ class S3Storage(ObjectStoreStorage):
 
     test = False
 
+    def __init__(self, request=None, bucket=None, **kwargs):
+        super(S3Storage, self).__init__(request=request, **kwargs)
+        self.bucket = bucket
+
     @classmethod
     def _subclass_specific_config(cls, settings, common_config):
         sse = settings.get("storage.server_side_encryption")
@@ -39,7 +43,11 @@ class S3Storage(ObjectStoreStorage):
                 sse,
             )
 
-        return {"sse": sse}
+        bucket_name = settings.get("storage.bucket")
+        if bucket_name is None:
+            raise ValueError("You must specify the 'storage.bucket'")
+
+        return {"sse": sse, "bucket": cls.get_bucket(bucket_name, settings)}
 
     @classmethod
     def get_bucket(cls, bucket_name, settings):

@@ -25,6 +25,7 @@ class GoogleCloudStorage(ObjectStoreStorage):
     def __init__(
         self,
         request=None,
+        bucket_factory=None,
         service_account_json_filename=None,
         project_id=None,
         use_iam_signer=False,
@@ -32,6 +33,8 @@ class GoogleCloudStorage(ObjectStoreStorage):
     ):
         super(GoogleCloudStorage, self).__init__(request=request, **kwargs)
 
+        self._bucket = None
+        self._bucket_factory = bucket_factory
         self.service_account_json_filename = service_account_json_filename
         self.use_iam_signer = use_iam_signer
 
@@ -48,9 +51,9 @@ class GoogleCloudStorage(ObjectStoreStorage):
 
     @classmethod
     def _subclass_specific_config(cls, settings, common_config):
-        """ Extract GCP-specific config settings: specifically, the path to
-            the service account key file, and the project id.  Both are
-            optional.
+        """Extract GCP-specific config settings: specifically, the path to
+        the service account key file, and the project id.  Both are
+        optional.
         """
         service_account_json_filename = settings.get(
             "storage.gcp_service_account_json_filename"
@@ -67,16 +70,21 @@ class GoogleCloudStorage(ObjectStoreStorage):
                 )
             )
 
+        bucket_name = settings.get("storage.bucket")
+        if bucket_name is None:
+            raise ValueError("You must specify the 'storage.bucket'")
+
         return {
             "service_account_json_filename": service_account_json_filename,
             "project_id": settings.get("storage.gcp_project_id"),
             "use_iam_signer": asbool(settings.get("storage.gcp_use_iam_signer", False)),
+            "bucket_factory": lambda: cls.get_bucket(bucket_name, settings),
         }
 
     @classmethod
     def _get_storage_client(cls, settings):
-        """ Helper method for constructing a properly-configured GCS client
-            object from the provided settings.
+        """Helper method for constructing a properly-configured GCS client
+        object from the provided settings.
         """
         client_settings = cls._subclass_specific_config(settings, {})
 
@@ -140,6 +148,12 @@ class GoogleCloudStorage(ObjectStoreStorage):
         return factory(
             name, version, filename, blob.updated, path=blob.name, **metadata
         )
+
+    @property
+    def bucket(self):
+        if self._bucket is None:
+            self._bucket = self._bucket_factory()
+        return self._bucket
 
     def list(self, factory=Package):
         blobs = self.bucket.list_blobs(prefix=self.bucket_prefix or None)

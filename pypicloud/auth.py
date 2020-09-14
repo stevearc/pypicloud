@@ -36,7 +36,7 @@ def get_basicauth_credentials(request):
 
 class BasicAuthenticationPolicy(object):
 
-    """ A :app:`Pyramid` :term:`authentication policy` which
+    """A :app:`Pyramid` :term:`authentication policy` which
     obtains data from basic authentication headers.
 
     Constructor Arguments
@@ -84,7 +84,7 @@ class SessionAuthPolicy(object):
     """ Simple auth policy using beaker sessions """
 
     def authenticated_userid(self, request):
-        """ Return the authenticated userid or ``None`` if no
+        """Return the authenticated userid or ``None`` if no
         authenticated userid can be found. This method of the policy
         should ensure that a record exists in whatever persistent store is
         used related to the user (the user should not have been deleted);
@@ -93,7 +93,7 @@ class SessionAuthPolicy(object):
         return request.session.get("user", None)
 
     def unauthenticated_userid(self, request):
-        """ Return the *unauthenticated* userid.  This method performs the
+        """Return the *unauthenticated* userid.  This method performs the
         same duty as ``authenticated_userid`` but is permitted to return the
         userid based only on data present in the request; it needn't (and
         shouldn't) check any persistent store to ensure that the user record
@@ -101,11 +101,11 @@ class SessionAuthPolicy(object):
         return request.userid
 
     def effective_principals(self, request):
-        """ Return a sequence representing the effective principals
+        """Return a sequence representing the effective principals
         including the userid and any groups belonged to by the current
         user, including 'system' groups such as
         ``pyramid.security.Everyone`` and
-        ``pyramid.security.Authenticated``. """
+        ``pyramid.security.Authenticated``."""
         if request.userid is None:
             return [Everyone]
         return request.access.user_principals(request.userid)
@@ -121,8 +121,8 @@ class SessionAuthPolicy(object):
         return []
 
     def forget(self, request):
-        """ Return a set of headers suitable for 'forgetting' the
-        current user on subsequent requests. """
+        """Return a set of headers suitable for 'forgetting' the
+        current user on subsequent requests."""
         request.session.delete()
         return []
 

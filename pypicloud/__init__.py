@@ -13,7 +13,7 @@ from pyramid_beaker import session_factory_from_settings
 from .locator import FormattedScrapingLocator, SimpleJsonLocator
 from .route import Root
 
-__version__ = "1.1.3"
+__version__ = "1.1.4"
 LOG = logging.getLogger(__name__)
 
 
@@ -194,8 +194,7 @@ def includeme(config):
 
 
 def main(config, **settings):
-    """ This function returns a Pyramid WSGI application.
-    """
+    """This function returns a Pyramid WSGI application."""
     config = Configurator(settings=settings)
     config.include("pypicloud")
     config.scan("pypicloud.views")
