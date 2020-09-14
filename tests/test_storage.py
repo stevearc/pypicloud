@@ -588,7 +588,8 @@ class TestGoogleCloudStorage(unittest.TestCase):
             "storage.region_name": "us-east-1",
             "storage.gcp_service_account_json_filename": "my-filename.json",
         }
-        storage = GoogleCloudStorage.configure(settings)
+        arguments = GoogleCloudStorage.configure(settings)
+        arguments["bucket_factory"]()
 
         self.gcs.bucket.assert_called_with("new_bucket")
         bucket = self.gcs.bucket("new_bucket")
