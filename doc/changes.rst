@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.1.4 - 2020/9/13
+-----------------
+* Fix concurrency bugs in GCS backend (:issue:`258`)
+
 1.1.3 - 2020/8/17
 -----------------
 * Fix metadata storage issue with some S3-compatible backends (:pr:`255`)
