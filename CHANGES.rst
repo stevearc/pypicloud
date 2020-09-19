@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.1.5 - 2020/9/19
+-----------------
+* Add ``pypi.allow_delete`` to disable deleting packages (:issue:`259`)
+
 1.1.4 - 2020/9/13
 -----------------
 * Fix concurrency bugs in GCS backend (:issue:`258`)
