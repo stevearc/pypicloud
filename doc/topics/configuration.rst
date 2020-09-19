@@ -114,6 +114,12 @@ https://github.com/stevearc/pypicloud/tree/master/scripts
 Allow users to upload packages that will overwrite an existing version (default
 False)
 
+``pypi.allow_delete``
+~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** bool, optional
+
+Allow users to delete packages (default True)
+
 ``pypi.realm``
 ~~~~~~~~~~~~~~
 **Argument:** string, optional

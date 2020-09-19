@@ -143,6 +143,7 @@ angular
       $rootScope.PARTIAL = STATIC + "partial/";
       $rootScope.VERSION = VERSION;
       $rootScope.SECURE_COOKIE = SECURE_COOKIE;
+      $rootScope.ALLOW_DELETE = ALLOW_DELETE;
       if (NEED_ADMIN) {
         $location.path("/new_admin");
       }

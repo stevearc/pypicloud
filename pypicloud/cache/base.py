@@ -20,11 +20,17 @@ class ICache(object):
     """ Base class for a caching database that stores package metadata """
 
     def __init__(
-        self, request=None, storage=None, allow_overwrite=None, calculate_hashes=True
+        self,
+        request=None,
+        storage=None,
+        allow_overwrite=None,
+        calculate_hashes=True,
+        allow_delete=True,
     ):
         self.request = request
         self.storage = storage(request)
         self.allow_overwrite = allow_overwrite
+        self.allow_delete = allow_delete
         self.calculate_hashes = calculate_hashes
 
     def new_package(self, *args, **kwargs) -> Package:
@@ -48,6 +54,7 @@ class ICache(object):
         return {
             "storage": get_storage_impl(settings),
             "allow_overwrite": asbool(settings.get("pypi.allow_overwrite", False)),
+            "allow_delete": asbool(settings.get("pypi.allow_delete", True)),
             "calculate_hashes": asbool(
                 settings.get("pypi.calculate_package_hashes", True)
             ),
@@ -152,6 +159,10 @@ class ICache(object):
         package : :class:`~pypicloud.models.Package`
 
         """
+        if not self.allow_delete:
+            raise ValueError(
+                "Cannot delete packages. Set pypi.allow_delete = true if you want to enable deletes."
+            )
         self.storage.delete(package)
         self.clear(package)
 
