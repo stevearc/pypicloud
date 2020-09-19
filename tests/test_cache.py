@@ -66,6 +66,14 @@ class TestBaseCache(unittest.TestCase):
         with self.assertRaises(ValueError):
             cache.upload(filename, BytesIO(b"test1234"), name, version)
 
+    def test_no_delete(self):
+        """ If allow_delete=False, packages cannot be deleted"""
+        cache = DummyCache()
+        cache.allow_delete = False
+        pkg = make_package()
+        with self.assertRaises(ValueError):
+            cache.delete(pkg)
+
     def test_multiple_packages_same_version(self):
         """ Can upload multiple packages that have the same version """
         cache = DummyCache()
