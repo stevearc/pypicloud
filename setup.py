@@ -53,6 +53,7 @@ EXTRAS["test"] = EXTRAS["all_plugins"] + [
 
 EXTRAS["server"] = ["waitress"]
 EXTRAS["lint"] = [
+    "docutils",
     "black",
     "pylint==2.3.1",
     "mypy",
