@@ -128,7 +128,7 @@ def download_package(context, request):
             public=True, max_age=request.registry.package_max_age
         )
         request.response.headers.update(cache)
-        request.response.content_type = "application/octect-stream"
+        request.response.content_type = "application/octet-stream"
         return request.response
     response = request.db.download_response(package)
     return response
