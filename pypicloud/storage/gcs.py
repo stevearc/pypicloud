@@ -29,6 +29,7 @@ class GoogleCloudStorage(ObjectStoreStorage):
         service_account_json_filename=None,
         project_id=None,
         use_iam_signer=False,
+        service_account_email=None,
         **kwargs
     ):
         super(GoogleCloudStorage, self).__init__(request=request, **kwargs)
@@ -37,6 +38,7 @@ class GoogleCloudStorage(ObjectStoreStorage):
         self._bucket_factory = bucket_factory
         self.service_account_json_filename = service_account_json_filename
         self.use_iam_signer = use_iam_signer
+        self.service_account_email = service_account_email
 
         if self.public_url:
             raise NotImplementedError(
@@ -78,6 +80,9 @@ class GoogleCloudStorage(ObjectStoreStorage):
             "service_account_json_filename": service_account_json_filename,
             "project_id": settings.get("storage.gcp_project_id"),
             "use_iam_signer": asbool(settings.get("storage.gcp_use_iam_signer", False)),
+            "service_account_email": settings.get(
+                "storage.service_account_email", False
+            ),
             "bucket_factory": lambda: cls.get_bucket(bucket_name, settings),
         }
 
@@ -169,7 +174,7 @@ class GoogleCloudStorage(ObjectStoreStorage):
         if self.use_iam_signer:
             # Workaround for https://github.com/googleapis/google-auth-library-python/issues/50
             signing_credentials = compute_engine.IDTokenCredentials(
-                requests.Request(), ""
+                requests.Request(), "", service_account_email=self.service_account_email
             )
         else:
             signing_credentials = None

@@ -213,7 +213,7 @@ documented below.
 
 For more information on setting up a service account, see the `GCS documentation <https://cloud.google.com/storage/docs/authentication#service_accounts>`__.
 
-If using the service account provided automatially when running in GCE, GKE, etc, then
+If using the service account provided automatically when running in GCE, GKE, etc, then
 due to `a restriction with the gcloud library <https://github.com/googleapis/google-auth-library-python/issues/50>`__,
 the IAM signing service must be used::
 
