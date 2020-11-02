@@ -22,7 +22,7 @@ class SimpleJsonLocator(object):
         url = "%s/pypi/%s/json" % (self.base_index, project_name)
         response = requests.get(url)
         # Return empty list for 4xx
-        if 400 <= response.status_code < 500:
+        if 400 <= response.status_code < 600:
             return []
         response.raise_for_status()
         data = response.json()
