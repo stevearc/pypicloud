@@ -1,9 +1,13 @@
 """ Simple replacement for distlib SimpleScrapingLocator """
+import logging
+
 import distlib.locators
 import requests
 from distlib.locators import SimpleScrapingLocator
 
 from .util import TimedCache
+
+LOG = logging.getLogger(__name__)
 
 
 class SimpleJsonLocator(object):
@@ -19,12 +23,13 @@ class SimpleJsonLocator(object):
         return self._cache[project_name]
 
     def _get_releases(self, project_name):
-        url = "%s/pypi/%s/json" % (self.base_index, project_name)
+        url = "%s/pypi/%s/json/" % (self.base_index, project_name)
         response = requests.get(url)
-        # Return empty list for 4xx
-        if 400 <= response.status_code < 500:
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            LOG.warning("Error fetching '%s' from upstream: %s", project_name, e)
             return []
-        response.raise_for_status()
         data = response.json()
         items = []
         summary = data["info"].get("summary")
