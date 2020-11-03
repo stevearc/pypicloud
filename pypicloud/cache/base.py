@@ -280,7 +280,10 @@ class ICache(object):
             max_pkg = None
             for package in self.all(name):
                 pkg["last_modified"] = max(pkg["last_modified"], package.last_modified)
-                max_pkg = package if max_pkg is None else max(max_pkg, package)
+                if max_pkg is None:
+                    max_pkg = package
+                elif package > max_pkg:
+                    max_pkg = package
             if max_pkg:
                 pkg["summary"] = max_pkg.summary
                 packages.append(pkg)
