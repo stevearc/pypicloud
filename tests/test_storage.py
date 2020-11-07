@@ -494,10 +494,13 @@ class TestGoogleCloudStorage(unittest.TestCase):
     def setUp(self):
         super(TestGoogleCloudStorage, self).setUp()
         self.gcs = MockGCSClient()
+        self._config_file = tempfile.mktemp()
+        with open(self._config_file, "w") as ofile:
+            json.dump({}, ofile)
         patch("google.cloud.storage.Client", self.gcs).start()
         self.settings = {
             "storage.bucket": "mybucket",
-            "storage.gcp_service_account_json_filename": "my-filename.json",
+            "storage.gcp_service_account_json_filename": self._config_file,
         }
         self.bucket = self.gcs.bucket("mybucket")
         self.bucket._created = True
@@ -508,6 +511,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
     def tearDown(self):
         super(TestGoogleCloudStorage, self).tearDown()
         patch.stopall()
+        os.remove(self._config_file)
 
     def test_list(self):
         """ Can construct a package from a GoogleCloudStorage Blob """
@@ -586,7 +590,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
         settings = {
             "storage.bucket": "new_bucket",
             "storage.region_name": "us-east-1",
-            "storage.gcp_service_account_json_filename": "my-filename.json",
+            "storage.gcp_service_account_json_filename": self._config_file,
         }
         arguments = GoogleCloudStorage.configure(settings)
         arguments["bucket_factory"]()
