@@ -2,6 +2,12 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.1.6 - 2020/11/7
+-----------------
+* Fix content-type when streaming packages (:pr:`260`)
+* JSON scraper doesn't throw exceptions if it receives a HTTP error (:issue:`264`)
+* Add config option for GCS IAM signing email (:pr:`262`)
+
 1.1.5 - 2020/9/19
 -----------------
 * Add ``pypi.allow_delete`` to disable deleting packages (:issue:`259`)
