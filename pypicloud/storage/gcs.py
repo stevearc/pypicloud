@@ -1,4 +1,6 @@
 """ Store packages in GCS """
+import io
+import json
 import logging
 import os
 import posixpath
@@ -29,14 +31,15 @@ class GoogleCloudStorage(ObjectStoreStorage):
         service_account_json_filename=None,
         project_id=None,
         use_iam_signer=False,
+        iam_signer_service_account_email=None,
         **kwargs
     ):
         super(GoogleCloudStorage, self).__init__(request=request, **kwargs)
 
         self._bucket = None
         self._bucket_factory = bucket_factory
-        self.service_account_json_filename = service_account_json_filename
         self.use_iam_signer = use_iam_signer
+        self.iam_signer_service_account_email = iam_signer_service_account_email
 
         if self.public_url:
             raise NotImplementedError(
@@ -57,7 +60,7 @@ class GoogleCloudStorage(ObjectStoreStorage):
         """
         service_account_json_filename = settings.get(
             "storage.gcp_service_account_json_filename"
-        )
+        ) or os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
         if (
             service_account_json_filename
@@ -74,10 +77,19 @@ class GoogleCloudStorage(ObjectStoreStorage):
         if bucket_name is None:
             raise ValueError("You must specify the 'storage.bucket'")
 
+        iam_signer_service_account_email = settings.get(
+            "storage.iam_signer_service_account_email"
+        )
+        if iam_signer_service_account_email is None and service_account_json_filename:
+            with io.open(service_account_json_filename, "r", encoding="utf-8") as ifile:
+                credentials = json.load(ifile)
+            iam_signer_service_account_email = credentials.get("client_email")
+
         return {
             "service_account_json_filename": service_account_json_filename,
             "project_id": settings.get("storage.gcp_project_id"),
             "use_iam_signer": asbool(settings.get("storage.gcp_use_iam_signer", False)),
+            "iam_signer_service_account_email": iam_signer_service_account_email,
             "bucket_factory": lambda: cls.get_bucket(bucket_name, settings),
         }
 
@@ -95,7 +107,7 @@ class GoogleCloudStorage(ObjectStoreStorage):
 
         service_account_json_filename = client_settings.get(
             "service_account_json_filename"
-        ) or os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+        )
 
         if not service_account_json_filename:
             LOG.info("Creating GCS client without service account JSON file")
@@ -169,7 +181,9 @@ class GoogleCloudStorage(ObjectStoreStorage):
         if self.use_iam_signer:
             # Workaround for https://github.com/googleapis/google-auth-library-python/issues/50
             signing_credentials = compute_engine.IDTokenCredentials(
-                requests.Request(), ""
+                requests.Request(),
+                "",
+                service_account_email=self.iam_signer_service_account_email,
             )
         else:
             signing_credentials = None

@@ -213,7 +213,7 @@ documented below.
 
 For more information on setting up a service account, see the `GCS documentation <https://cloud.google.com/storage/docs/authentication#service_accounts>`__.
 
-If using the service account provided automatially when running in GCE, GKE, etc, then
+If using the service account provided automatically when running in GCE, GKE, etc, then
 due to `a restriction with the gcloud library <https://github.com/googleapis/google-auth-library-python/issues/50>`__,
 the IAM signing service must be used::
 
@@ -244,6 +244,23 @@ will be created.
 Path to a local file containing a GCP service account JSON key.  This argument
 is required unless the path is provided via the ``GOOGLE_APPLICATION_CREDENTIALS``
 environment variable.
+
+``storage.gcp_use_iam_signer``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** bool, optional
+
+If true, will use the IAM credentials to sign the generated package links
+(default ``false``).
+
+``storage.iam_signer_service_account_email``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+The email address to use for signing GCS links when ``gcp_use_iam_signer =
+true``.  If not provided, will fall back to the email in
+``gcp_service_account_json_filename``.
+
+See :issue:`261` for more details
 
 ``storage.gcp_project_id``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
