@@ -1,7 +1,7 @@
 """ Store packages in S3 """
 import logging
 import posixpath
-from datetime import datetime, timedelta
+from datetime import timedelta
 from urllib.parse import quote, urlparse
 
 import boto3
@@ -14,6 +14,7 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from pyramid.settings import asbool, falsey
 from pyramid_duh.settings import asdict
 
+from pypicloud.dateutil import utcnow
 from pypicloud.models import Package
 from pypicloud.util import get_settings, normalize_metadata, parse_filename
 
@@ -271,5 +272,5 @@ class CloudFrontS3Storage(S3Storage):
             return url
 
         # To sign with a canned policy:
-        expires = datetime.utcnow() + timedelta(seconds=self.expire_after)
+        expires = utcnow() + timedelta(seconds=self.expire_after)
         return self.cf_signer.generate_presigned_url(url, date_less_than=expires)

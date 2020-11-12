@@ -2,7 +2,7 @@
 import logging
 import posixpath
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import timedelta
 from io import BytesIO
 from urllib.request import urlopen
 
@@ -11,6 +11,7 @@ from azure.storage.blob import BlobSasPermissions, BlobServiceClient, generate_b
 from pyramid.httpexceptions import HTTPFound
 from pyramid.settings import asbool
 
+from pypicloud.dateutil import utcnow
 from pypicloud.models import Package
 from pypicloud.util import normalize_metadata
 
@@ -84,7 +85,7 @@ class AzureBlobStorage(IStorage):
             blob_name=path,
             account_key=self.storage_account_key,
             permission=BlobSasPermissions(read=True),
-            expiry=datetime.now() + timedelta(seconds=self.expire_after),
+            expiry=utcnow() + timedelta(seconds=self.expire_after),
             protocol="https",
         )
 

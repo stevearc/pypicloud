@@ -7,13 +7,13 @@ from dynamo3 import DynamoDBConnection
 from pkg_resources import parse_version
 from pyramid.settings import asbool, aslist
 
+from pypicloud.dateutil import UTC, utcnow
 from pypicloud.models import Package
 
 from .base import ICache
 
 try:
     from flywheel import Engine, Model, Field, GlobalIndex, __version__
-    from flywheel.fields.types import UTC
 
     if parse_version(__version__) < parse_version("0.2.0"):  # pragma: no cover
         raise ValueError("Pypicloud requires flywheel>=0.2.0")
@@ -175,7 +175,7 @@ class DynamoCache(ICache):
             return super(DynamoCache, self).reload_from_storage(clear)
         LOG.info("Rebuilding cache from storage")
         # Log start time
-        start = datetime.utcnow().replace(tzinfo=UTC)
+        start = utcnow()
         # Fetch packages from storage s1
         s1 = set(self.storage.list(self.new_package))
         # Fetch cache packages c1

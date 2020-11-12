@@ -1,6 +1,6 @@
 """ Tests for gracefully reloading the caches """
 import unittest
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import redis
 import transaction
@@ -11,6 +11,7 @@ from sqlalchemy.exc import OperationalError
 from pypicloud.cache import RedisCache, SQLCache
 from pypicloud.cache.dynamo import DynamoCache, DynamoPackage, PackageSummary
 from pypicloud.cache.sql import SQLPackage
+from pypicloud.dateutil import utcnow
 from pypicloud.storage import IStorage
 
 from . import make_package
@@ -139,7 +140,7 @@ class TestDynamoCache(unittest.TestCase):
         """ If we sync a more recent package, update the summary """
         pkgs = [
             make_package(
-                last_modified=datetime.utcnow() - timedelta(hours=1),
+                last_modified=utcnow() - timedelta(hours=1),
                 factory=DynamoPackage,
             ),
             make_package(version="1.5", factory=DynamoPackage),
@@ -262,7 +263,7 @@ class TestRedisCache(unittest.TestCase):
     def test_add_missing_more_recent(self):
         """ If we sync a more recent package, update the summary """
         pkgs = [
-            make_package(last_modified=datetime.utcnow() - timedelta(hours=1)),
+            make_package(last_modified=utcnow() - timedelta(hours=1)),
             make_package(version="1.5"),
         ]
         self.db.save(pkgs[0])
@@ -316,7 +317,7 @@ class TestSQLiteCache(unittest.TestCase):
         # Some SQL dbs are rounding the timestamps (looking at you MySQL >:|
         # which is a problem if they round UP to the future, as our
         # calculations depend on the timestamps being monotonically increasing.
-        now = datetime.utcnow() - timedelta(seconds=1)
+        now = utcnow() - timedelta(seconds=1)
         kwargs.setdefault("last_modified", now)
         kwargs.setdefault("factory", SQLPackage)
         return make_package(*args, **kwargs)
@@ -354,7 +355,7 @@ class TestSQLiteCache(unittest.TestCase):
             # The first time we list from storage, concurrently "upload"
             # pkgs[2]
             if len(return_values) == 2:
-                nowish = datetime.utcnow() + timedelta(seconds=1)
+                nowish = utcnow() + timedelta(seconds=1)
                 pkg = self._make_package("mypkg3", last_modified=nowish)
                 pkgs.append(pkg)
                 self.db.save(pkg)
@@ -383,7 +384,7 @@ class TestSQLiteCache(unittest.TestCase):
     def test_add_missing_more_recent(self):
         """ If we sync a more recent package, update the summary """
         pkgs = [
-            self._make_package(last_modified=datetime.utcnow() - timedelta(hours=1)),
+            self._make_package(last_modified=utcnow() - timedelta(hours=1)),
             self._make_package(version="1.5"),
         ]
         self.db.save(pkgs[0])

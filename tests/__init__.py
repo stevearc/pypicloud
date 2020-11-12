@@ -2,13 +2,13 @@
 import os
 import unittest
 from collections import defaultdict
-from datetime import datetime
 
 from mock import MagicMock
 from pyramid.testing import DummyRequest
 
 from pypicloud.auth import _is_logged_in
 from pypicloud.cache import ICache
+from pypicloud.dateutil import utcnow
 from pypicloud.models import Package
 from pypicloud.storage import IStorage
 
@@ -31,7 +31,7 @@ def make_package(
     """ Convenience method for constructing a package """
     filename = filename or "%s-%s.tar.gz" % (name, version)
     return factory(
-        name, version, filename, last_modified or datetime.utcnow(), summary, **kwargs
+        name, version, filename, last_modified or utcnow(), summary, **kwargs
     )
 
 

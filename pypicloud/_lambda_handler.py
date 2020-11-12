@@ -2,7 +2,6 @@
 import json
 import os
 import posixpath
-from datetime import datetime
 
 import boto3
 
@@ -12,6 +11,7 @@ def handle_s3_event(event, context):
     from pypicloud.cache import get_cache_impl
     from pypicloud.storage.s3 import S3Storage
     from pypicloud.util import parse_filename
+    from pypicloud.dateutil import utcnow
 
     settings = json.loads(os.environ["PYPICLOUD_SETTINGS"])
     # Set 'file' storage as a hack. We're going to load the cache, which will
@@ -45,6 +45,6 @@ def handle_s3_event(event, context):
                 name, version = parse_filename(filename)
             except ValueError:
                 name = version = "dummy"
-            package = cache.new_package(name, version, filename, datetime.utcnow(), "")
+            package = cache.new_package(name, version, filename, utcnow(), "")
             print("Deleting package %s" % package)
             cache.clear(package)

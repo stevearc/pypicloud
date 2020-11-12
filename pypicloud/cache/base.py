@@ -2,12 +2,12 @@
 import hashlib
 import logging
 import posixpath
-from datetime import datetime
 from io import BytesIO
 from typing import Any, BinaryIO, Callable, Dict, List, Optional, Tuple
 
 from pyramid.settings import asbool
 
+from pypicloud.dateutil import utcfromtimestamp
 from pypicloud.models import Package
 from pypicloud.storage import get_storage_impl
 from pypicloud.util import create_matcher, normalize_name, parse_filename
@@ -275,7 +275,7 @@ class ICache(object):
             pkg = {
                 "name": name,
                 "summary": "",
-                "last_modified": datetime.fromtimestamp(0),
+                "last_modified": utcfromtimestamp(0),
             }
             max_pkg = None
             for package in self.all(name):

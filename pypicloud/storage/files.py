@@ -3,10 +3,10 @@ import json
 import os
 from binascii import hexlify
 from contextlib import closing
-from datetime import datetime
 
 from pyramid.response import FileResponse
 
+from pypicloud.dateutil import utcfromtimestamp
 from pypicloud.models import Package
 
 from .base import IStorage
@@ -53,7 +53,7 @@ class FileStorage(IStorage):
                 shortpath = root[len(self.directory) :].strip("/")
                 name, version = shortpath.split("/")
                 fullpath = os.path.join(root, filename)
-                last_modified = datetime.fromtimestamp(os.path.getmtime(fullpath))
+                last_modified = utcfromtimestamp(os.path.getmtime(fullpath))
                 metadata = {}
                 metafile = self.path_to_meta_path(fullpath)
                 if os.path.exists(metafile):

@@ -1,10 +1,10 @@
 """ Model objects """
 import re
-from datetime import datetime
 from functools import total_ordering
 
 import pkg_resources
 
+from .dateutil import UTC, utcnow
 from .util import normalize_name
 
 METADATA_FIELDS = ["requires_python", "summary", "hash_sha256", "hash_md5"]
@@ -43,7 +43,9 @@ class Package(object):
         if last_modified is not None:
             self.last_modified = last_modified
         else:
-            self.last_modified = datetime.utcnow()
+            self.last_modified = utcnow()
+        if self.last_modified.tzinfo is None:
+            self.last_modified = self.last_modified.replace(tzinfo=UTC)
         # Disallow empty string
         self.summary = summary or None
         # Filter out None or empty string

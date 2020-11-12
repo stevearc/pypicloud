@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """ Tests for package storage backends """
-import datetime
 import json
 import os
 import re
@@ -18,6 +17,7 @@ from botocore.exceptions import ClientError
 from mock import ANY, MagicMock, patch
 from moto import mock_s3
 
+from pypicloud.dateutil import utcnow
 from pypicloud.models import Package
 from pypicloud.storage import (
     CloudFrontS3Storage,
@@ -379,7 +379,7 @@ class MockGCSBlob(object):
         GoogleCloudStorage backend, but used to pre-populate the GCS
         mock for testing
         """
-        self.updated = datetime.datetime.utcnow()
+        self.updated = utcnow()
         self._content = s
         self.bucket._upload_blob(self)
 

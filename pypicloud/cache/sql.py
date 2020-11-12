@@ -1,7 +1,6 @@
 """ Store package data in a SQL database """
 import json
 import logging
-from datetime import datetime
 
 import zope.sqlalchemy
 from pyramid.settings import asbool
@@ -13,6 +12,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import func
 from sqlalchemy.types import TEXT, TypeDecorator
 
+from pypicloud.dateutil import UTC, utcnow
 from pypicloud.models import Package
 
 from .base import ICache
@@ -72,6 +72,20 @@ class MutableDict(Mutable, dict):
 MutableDict.associate_with(JSONEncodedDict)
 
 
+class TZAwareDateTime(TypeDecorator):  # pylint: disable=W0223
+    impl = DateTime
+
+    def process_bind_param(self, value, dialect):
+        if value.tzinfo is None:
+            return value.replace(tzinfo=UTC)
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value.tzinfo is None:
+            return value.replace(tzinfo=UTC)
+        return value
+
+
 class SQLPackage(Package, Base):
 
     """ Python package stored in SQLAlchemy """
@@ -80,7 +94,7 @@ class SQLPackage(Package, Base):
     filename = Column(String(255, convert_unicode=True), primary_key=True)
     name = Column(String(255, convert_unicode=True), index=True, nullable=False)
     version = Column(String(1000, convert_unicode=True), nullable=False)
-    last_modified = Column(DateTime(), index=True, nullable=False)
+    last_modified = Column(TZAwareDateTime(), index=True, nullable=False)
     summary = Column(String(255, convert_unicode=True), index=True, nullable=True)
     data = Column(JSONEncodedDict(), nullable=False)
 
@@ -275,7 +289,7 @@ class SQLCache(ICache):
 
         LOG.info("Rebuilding cache from storage")
         # Log start time
-        start = datetime.utcnow()
+        start = utcnow()
         # Fetch packages from storage s1
         s1 = set(self.storage.list(SQLPackage))
         # Fetch cache packages c1

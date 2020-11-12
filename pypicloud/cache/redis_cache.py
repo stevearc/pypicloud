@@ -3,9 +3,10 @@ import calendar
 import json
 import logging
 from collections import defaultdict
-from datetime import datetime
 
 from pyramid.settings import asbool
+
+from pypicloud.dateutil import utcfromtimestamp, utcnow
 
 from .base import ICache
 
@@ -74,7 +75,7 @@ class RedisCache(ICache):
         name = data.pop("name")
         version = data.pop("version")
         filename = data.pop("filename")
-        last_modified = datetime.utcfromtimestamp(float(data.pop("last_modified")))
+        last_modified = utcfromtimestamp(float(data.pop("last_modified")))
         summary = data.pop("summary")
         if summary == "":
             summary = None
@@ -107,9 +108,7 @@ class RedisCache(ICache):
         for summary in summaries:
             if summary.get("summary", "") == "":
                 summary["summary"] = None
-            summary["last_modified"] = datetime.utcfromtimestamp(
-                float(summary["last_modified"])
-            )
+            summary["last_modified"] = utcfromtimestamp(float(summary["last_modified"]))
         return summaries
 
     def clear(self, package):
@@ -202,7 +201,7 @@ class RedisCache(ICache):
 
         LOG.info("Rebuilding cache from storage")
         # Log start time
-        start = datetime.utcnow()
+        start = utcnow()
         # Fetch packages from storage s1
         s1 = set(self.storage.list(self.new_package))
         # Fetch cache packages c1
