@@ -90,13 +90,17 @@ class Package(object):
         return metadata
 
     def __hash__(self):
-        return hash(self.name) + hash(self.version)
+        return hash(self.filename)
 
     def __eq__(self, other):
-        return self.name == other.name and self.version == other.version
+        return isinstance(other, Package) and self.filename == other.filename
 
     def __lt__(self, other):
-        return (self.name, self.parsed_version) < (other.name, other.parsed_version)
+        return (self.name, self.parsed_version, self.filename) < (
+            other.name,
+            other.parsed_version,
+            self.filename,
+        )
 
     def __repr__(self):
         return self.__str__()
