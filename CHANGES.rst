@@ -2,6 +2,11 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.1.7 - 2020/11/16
+------------------
+* Fix a datetime crash when reloading the cache (:issue:`266`)
+* Fix a logic error with ``db.graceful_reload`` (:pr:`267`)
+
 1.1.6 - 2020/11/7
 -----------------
 * Fix content-type when streaming packages (:pr:`260`)
