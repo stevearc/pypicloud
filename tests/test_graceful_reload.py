@@ -155,6 +155,20 @@ class TestDynamoCache(unittest.TestCase):
         summary = summaries[0]
         self.assertEqual(summary["last_modified"], pkgs[1].last_modified)
 
+    def test_same_package_name_version(self):
+        """ Storage can have packages with the same name and version (different filename) """
+        pkgs = [
+            make_package(filename="mypkg-1.1-win32.whl", factory=DynamoPackage),
+            make_package(filename="mypkg-1.1-macosx.whl", factory=DynamoPackage),
+            make_package(filename="mypkg-1.1-x86_64.whl", factory=DynamoPackage),
+        ]
+        self.storage.list.return_value = pkgs
+        self.db.reload_from_storage()
+        all_pkgs = self.engine.scan(DynamoPackage).all()
+        self.assertCountEqual(all_pkgs, pkgs)
+        summaries = self.db.summary()
+        self.assertEqual(len(summaries), 1)
+
 
 class TestRedisCache(unittest.TestCase):
 
@@ -276,6 +290,20 @@ class TestRedisCache(unittest.TestCase):
         summary = summaries[0]
         self.assertEqual(summary["last_modified"].hour, pkgs[1].last_modified.hour)
 
+    def test_same_package_name_version(self):
+        """ Storage can have packages with the same name and version (different filename) """
+        pkgs = [
+            make_package(filename="mypkg-1.1-win32.whl"),
+            make_package(filename="mypkg-1.1-macosx.whl"),
+            make_package(filename="mypkg-1.1-x86_64.whl"),
+        ]
+        self.storage.list.return_value = pkgs
+        self.db.reload_from_storage()
+        all_pkgs = self.db._load_all_packages()
+        self.assertCountEqual(all_pkgs, pkgs)
+        summaries = self.db.summary()
+        self.assertEqual(len(summaries), 1)
+
 
 class TestSQLiteCache(unittest.TestCase):
 
@@ -392,6 +420,18 @@ class TestSQLiteCache(unittest.TestCase):
         self.db.reload_from_storage()
         all_pkgs = self.sql.query(SQLPackage).all()
         self.assertItemsEqual(all_pkgs, pkgs)
+
+    def test_same_package_name_version(self):
+        """ Storage can have packages with the same name and version (different filename) """
+        pkgs = [
+            self._make_package(filename="mypkg-1.1-win32.whl"),
+            self._make_package(filename="mypkg-1.1-macosx.whl"),
+            self._make_package(filename="mypkg-1.1-x86_64.whl"),
+        ]
+        self.storage.list.return_value = pkgs
+        self.db.reload_from_storage()
+        all_pkgs = self.sql.query(SQLPackage).all()
+        self.assertCountEqual(all_pkgs, pkgs)
 
 
 class TestMySQLCache(TestSQLiteCache):

@@ -25,11 +25,18 @@ class TestBaseCache(unittest.TestCase):
     """ Tests for the caching base class """
 
     def test_equality(self):
-        """ Two packages with same name & version should be equal """
-        p1 = make_package(filename="wibbly")
-        p2 = make_package(filename="wobbly")
+        """ Two packages with same filename should be equal """
+        p1 = make_package(filename="foo")
+        p2 = make_package(filename="foo")
         self.assertEqual(hash(p1), hash(p2))
         self.assertEqual(p1, p2)
+
+    def test_not_equal(self):
+        """ Two packages with different filenames should not be equal """
+        p1 = make_package(filename="foobar")
+        p2 = make_package(filename="foo")
+        self.assertNotEqual(hash(p1), hash(p2))
+        self.assertNotEqual(p1, p2)
 
     def test_upload_hash_generation(self):
         """ Uploading a package generates SHA256 and MD5 hashes """
