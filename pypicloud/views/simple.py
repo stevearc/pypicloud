@@ -118,7 +118,14 @@ def package_versions_json(context, request):
     pkgs = _package_versions(context, request)
     if not isinstance(pkgs, dict):
         return pkgs
-    response = {"info": {"name": context.name}, "releases": {}}
+    response = {
+        "info": {
+            "name": context.name,
+            "license": "",
+            "classifiers": [],
+        },
+        "releases": {},
+    }
     max_version = None
     for filename, pkg in pkgs["pkgs"].items():
         name, version_str = parse_filename(filename)
@@ -138,6 +145,7 @@ def package_versions_json(context, request):
 
         response["releases"].setdefault(version_str, []).append(release)
     if max_version is not None:
+        response["info"]["version"] = str(max_version)
         response["urls"] = response["releases"].get(str(max_version), [])
     return response
 
