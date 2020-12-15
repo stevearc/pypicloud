@@ -37,6 +37,18 @@ def parse_filename(filename: str, name: Optional[str] = None) -> Tuple[str, str]
     return normalize_name(name), version
 
 
+def get_packagetype(name: str) -> str:
+    """ Get package type out of a filename """
+    if name.endswith(".tar.gz"):
+        return "sdist"
+    elif name.endswith(".egg"):
+        return "bdist_egg"
+    elif name.endswith(".whl"):
+        return "bdist_wheel"
+    else:
+        return ""
+
+
 def normalize_name(name: str) -> str:
     """ Normalize a python package name """
     # Lifted directly from PEP503:

@@ -301,6 +301,7 @@ class PackageReadTestBase(unittest.TestCase):
                 "1.1": [
                     {
                         "filename": self.package.filename,
+                        "packagetype": "sdist",
                         "url": self.package.get_url(request),
                         "requires_python": None,
                     }

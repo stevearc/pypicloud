@@ -9,7 +9,7 @@ from pyramid_duh import addslash, argify
 from pyramid_rpc.xmlrpc import xmlrpc_method
 
 from pypicloud.route import Root, SimplePackageResource, SimpleResource
-from pypicloud.util import normalize_name, parse_filename
+from pypicloud.util import normalize_name, parse_filename, get_packagetype
 
 LOG = logging.getLogger(__name__)
 
@@ -128,6 +128,7 @@ def package_versions_json(context, request):
 
         release = {
             "filename": filename,
+            "packagetype": get_packagetype(filename),
             "url": pkg.get("non_hashed_url", pkg["url"]),
             "requires_python": pkg["requires_python"],
         }
