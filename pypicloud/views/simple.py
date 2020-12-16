@@ -9,7 +9,7 @@ from pyramid_duh import addslash, argify
 from pyramid_rpc.xmlrpc import xmlrpc_method
 
 from pypicloud.route import Root, SimplePackageResource, SimpleResource
-from pypicloud.util import normalize_name, parse_filename, get_packagetype
+from pypicloud.util import get_packagetype, normalize_name, parse_filename
 
 LOG = logging.getLogger(__name__)
 
