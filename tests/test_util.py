@@ -161,11 +161,12 @@ class TestGetPackagetype(unittest.TestCase):
 
     def test_wheel(self):
         """ get package type for bdist_wheel """
-        packagetype = util.get_packagetype("mypkg-1.1-cp38-cp38-manylinux2010_x86_64.whl")
+        packagetype = util.get_packagetype(
+            "mypkg-1.1-cp38-cp38-manylinux2010_x86_64.whl"
+        )
         self.assertEqual(packagetype, "bdist_wheel")
 
     def test_invalid(self):
         """ get package type for invalid file name """
         packagetype = util.get_packagetype("mypkg-1.1.tar")
         self.assertEqual(packagetype, "")
-
