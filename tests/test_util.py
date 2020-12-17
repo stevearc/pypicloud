@@ -144,3 +144,29 @@ class TestTimedCache(unittest.TestCase):
         self.assertTrue("a" not in cache)
         cache.set_expire("b", None, 0)
         self.assertTrue("b" not in cache)
+
+
+class TestGetPackagetype(unittest.TestCase):
+    """ Tests for get_packagetype """
+
+    def test_sdist(self):
+        """ get package type for sdist """
+        packagetype = util.get_packagetype("mypkg-1.1.tar.gz")
+        self.assertEqual(packagetype, "sdist")
+
+    def test_egg(self):
+        """ get package type for bdist_egg """
+        packagetype = util.get_packagetype("mypkg-1.1-py3.7-linux-x86_64.egg")
+        self.assertEqual(packagetype, "bdist_egg")
+
+    def test_wheel(self):
+        """ get package type for bdist_wheel """
+        packagetype = util.get_packagetype(
+            "mypkg-1.1-cp38-cp38-manylinux2010_x86_64.whl"
+        )
+        self.assertEqual(packagetype, "bdist_wheel")
+
+    def test_invalid(self):
+        """ get package type for invalid file name """
+        packagetype = util.get_packagetype("mypkg-1.1.tar")
+        self.assertEqual(packagetype, "")

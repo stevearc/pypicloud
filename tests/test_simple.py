@@ -301,6 +301,7 @@ class PackageReadTestBase(unittest.TestCase):
                 "1.1": [
                     {
                         "filename": self.package.filename,
+                        "packagetype": "sdist",
                         "url": self.package.get_url(request),
                         "requires_python": None,
                     }
@@ -333,6 +334,7 @@ class PackageReadTestBase(unittest.TestCase):
                 "2.1": [
                     {
                         "filename": self.package3.filename,
+                        "packagetype": "sdist",
                         "url": self.package.get_url(request),
                         "md5_digest": "md5",
                         "digests": {"sha256": "sha", "md5": "md5"},
