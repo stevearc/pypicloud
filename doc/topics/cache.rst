@@ -72,10 +72,9 @@ Set ``pypi.db = dynamo`` OR ``pypi.db = pypicloud.cache.dynamo.DynamoCache``
 .. note::
 
    Pypicloud will create the DynamoDB tables if none exist. By default the
-   tables will be named ``pypicloud-DynamoPackage`` and
-   ``pypicloud-PackageSummary`` (this can be configured with ``db.namespace``
-   and ``db.tablenames``). You may create and configure these tables yourself as
-   long as they have the same schema.
+   tables will be named ``DynamoPackage`` and ``PackageSummary`` (this can be
+   configured with ``db.namespace`` and ``db.tablenames``). You may create and
+   configure these tables yourself as long as they have the same schema.
 
 .. warning::
 
