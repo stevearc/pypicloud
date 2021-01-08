@@ -13,7 +13,6 @@ from pyramid.settings import asbool
 
 from pypicloud.dateutil import utcnow
 from pypicloud.models import Package
-from pypicloud.util import normalize_metadata
 
 from .base import IStorage
 
@@ -133,7 +132,6 @@ class AzureBlobStorage(IStorage):
         metadata = package.get_metadata()
         metadata["name"] = package.name
         metadata["version"] = package.version
-        metadata = normalize_metadata(metadata)
 
         blob_client = self.container_client.get_blob_client(blob=path)
         blob_client.upload_blob(data=datastream, metadata=metadata)
