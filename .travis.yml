@@ -22,6 +22,7 @@ install:
   - pip install tox coveralls
 before_script:
   - mysql -e 'create database test;'
+  - echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USERNAME" --password-stdin
   - docker run -d --name pypi-ldap -p 389:389 -v "$TRAVIS_BUILD_DIR/ldap:/container/service/slapd/assets/config/bootstrap/ldif/custom" osixia/openldap --copy-service
 script: tox
 after_success:
