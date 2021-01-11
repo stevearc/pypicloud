@@ -341,13 +341,15 @@ A few key, required options are mentioned below.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string
 
-The name of the Azure Storage Account.
+The name of the Azure Storage Account. If not present, will look for the
+``AZURE_STORAGE_ACCOUNT`` environment variable.
 
 ``storage.storage_account_key``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string
 
-A valid access key, either key1 or key2.
+A valid access key, either key1 or key2. If not present, will look for the
+``AZURE_STORAGE_KEY`` environment variable.
 
 ``storage.storage_container_name``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

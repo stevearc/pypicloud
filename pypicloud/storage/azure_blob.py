@@ -1,5 +1,6 @@
 """ Store packages in Azure Blob Storage """
 import logging
+import os
 import posixpath
 from contextlib import contextmanager
 from datetime import timedelta
@@ -55,15 +56,25 @@ class AzureBlobStorage(IStorage):
 
     @classmethod
     def configure(cls, settings):
+        def get_setting(key, env_key, default=None):
+            if key in settings:
+                return settings[key]
+            else:
+                return os.environ.get(env_key, default)
+
         kwargs = super(AzureBlobStorage, cls).configure(settings)
         kwargs["expire_after"] = int(settings.get("storage.expire_after", 60 * 60 * 24))
         kwargs["path_prefix"] = settings.get("storage.prefix", "")
         kwargs["redirect_urls"] = asbool(settings.get("storage.redirect_urls", True))
-        kwargs["storage_account_name"] = settings.get("storage.storage_account_name")
+        kwargs["storage_account_name"] = get_setting(
+            "storage.storage_account_name", "AZURE_STORAGE_ACCOUNT"
+        )
         if kwargs["storage_account_name"] is None:
             raise ValueError("You must specify the 'storage.storage_account_name'")
 
-        kwargs["storage_account_key"] = settings.get("storage.storage_account_key")
+        kwargs["storage_account_key"] = get_setting(
+            "storage.storage_account_key", "AZURE_STORAGE_KEY"
+        )
         if kwargs["storage_account_key"] is None:
             raise ValueError("You must specify the 'storage.storage_account_key'")
 
