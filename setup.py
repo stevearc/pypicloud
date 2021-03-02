@@ -66,7 +66,7 @@ EXTRAS["doc"] = ["numpydoc", "sphinx", "sphinx_rtd_theme"]
 if __name__ == "__main__":
     setup(
         name="pypicloud",
-        version="1.1.7",
+        version="1.2.0",
         description="Private PyPI backed by S3",
         long_description=README + "\n\n" + CHANGES,
         classifiers=[
