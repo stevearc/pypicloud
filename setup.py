@@ -18,7 +18,7 @@ REQUIREMENTS = [
     "distlib",
     "paste",
     "passlib>=1.7",
-    "pyramid",
+    "pyramid<2.0",
     "pyramid_beaker",
     "pyramid_duh>=0.1.1",
     "pyramid_jinja2",
