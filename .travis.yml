@@ -12,12 +12,10 @@ env:
   - TOXENV=lint
 matrix:
   include:
-  - python: "3.5"
-    env: TOXENV=py35
-  - python: "3.6"
-    env: TOXENV=py36
   - python: "3.7"
     env: TOXENV=py37
+  - python: "3.9"
+    env: TOXENV=py39
 install:
   - pip install tox coveralls
 before_script:
@@ -26,4 +24,4 @@ before_script:
   - docker run -d --name pypi-ldap -p 389:389 -v "$TRAVIS_BUILD_DIR/ldap:/container/service/slapd/assets/config/bootstrap/ldif/custom" osixia/openldap --copy-service
 script: tox
 after_success:
-  if [ "$TOXENV" == "py36" ]; then coveralls; fi
+  if [ "$TOXENV" == "py38" ]; then coveralls; fi
