@@ -9,9 +9,9 @@ import boto3
 def handle_s3_event(event, context):
     """ Handle S3 object notification """
     from pypicloud.cache import get_cache_impl
+    from pypicloud.dateutil import utcnow
     from pypicloud.storage.s3 import S3Storage
     from pypicloud.util import parse_filename
-    from pypicloud.dateutil import utcnow
 
     settings = json.loads(os.environ["PYPICLOUD_SETTINGS"])
     # Set 'file' storage as a hack. We're going to load the cache, which will

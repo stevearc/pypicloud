@@ -38,10 +38,10 @@ class RedisCache(ICache):
         kwargs = super(RedisCache, cls).configure(settings)
         try:
             from redis import StrictRedis
-        except ImportError:  # pragma: no cover
+        except ImportError as e:  # pragma: no cover
             raise ImportError(
                 "You must 'pip install redis' before using " "redis as the database"
-            )
+            ) from e
         kwargs["graceful_reload"] = asbool(settings.get("db.graceful_reload", False))
         db_url = settings.get("db.url")
         kwargs["db"] = StrictRedis.from_url(db_url, decode_responses=True)

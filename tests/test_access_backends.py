@@ -37,6 +37,8 @@ from pypicloud.route import Root
 
 pwd_context = get_pwd_context()  # pylint: disable=C0103
 
+# pylint: disable=W0707
+
 
 class PartialEq(object):
 

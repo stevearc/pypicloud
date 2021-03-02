@@ -5,10 +5,10 @@ from contextlib import closing
 from io import BytesIO
 from urllib.request import urlopen
 
-# pylint: disable=E0611,W0403
+# pylint: disable=E0611
 from paste.httpheaders import CACHE_CONTROL, CONTENT_DISPOSITION
 
-# pylint: enable=E0611,W0403
+# pylint: enable=E0611
 from pyramid.httpexceptions import HTTPBadRequest, HTTPForbidden, HTTPNotFound
 from pyramid.security import NO_PERMISSION_REQUIRED
 from pyramid.view import view_config

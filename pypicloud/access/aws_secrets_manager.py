@@ -55,15 +55,15 @@ class AWSSecretsManagerAccessBackend(IMutableJsonAccessBackend):
             if e.response["Error"]["Code"] == "ResourceNotFoundException":
                 return {}
             elif e.response["Error"]["Code"] == "InvalidRequestException":
-                raise Exception("The request was invalid due to:", e)
+                raise Exception("The request was invalid due to:", e) from e
             elif e.response["Error"]["Code"] == "InvalidParameterException":
-                raise Exception("The request had invalid params:", e)
+                raise Exception("The request had invalid params:", e) from e
             raise
 
         try:
             return json.loads(response["SecretString"])
         except JSONDecodeError as e:
-            raise Exception("Invalid json detected: {}".format(e))
+            raise Exception("Invalid json detected: {}".format(e)) from e
 
     def _save(self):
         if not self.dirty:

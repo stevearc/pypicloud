@@ -19,6 +19,8 @@ from pypicloud.storage import IStorage
 
 from . import DummyCache, DummyStorage, make_package
 
+# pylint: disable=W0707
+
 
 class TestBaseCache(unittest.TestCase):
 

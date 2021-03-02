@@ -16,6 +16,8 @@ from pypicloud.storage import IStorage
 
 from . import make_package
 
+# pylint: disable=W0707
+
 
 class TestDynamoCache(unittest.TestCase):
 

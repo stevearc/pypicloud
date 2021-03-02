@@ -55,10 +55,10 @@ EXTRAS["server"] = ["waitress"]
 EXTRAS["lint"] = [
     "docutils",
     "black",
-    "pylint==2.3.1",
+    "pylint==2.7.1",
     "mypy",
     "sqlalchemy-stubs",
-    "isort>=4.2.5,<5",
+    "isort",
 ]
 EXTRAS["doc"] = ["numpydoc", "sphinx", "sphinx_rtd_theme"]
 

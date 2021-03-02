@@ -2,10 +2,10 @@
 import binascii
 from base64 import b64decode
 
-# pylint: disable=E0611,W0403
+# pylint: disable=E0611
 from paste.httpheaders import AUTHORIZATION, WWW_AUTHENTICATE
 
-# pylint: enable=E0611,W0403
+# pylint: enable=E0611
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.httpexceptions import HTTPForbidden, HTTPUnauthorized
 from pyramid.security import Everyone, authenticated_userid

@@ -12,11 +12,11 @@ from .config import ConfigAccessBackend
 
 try:
     import ldap
-except ImportError:  # pragma: no cover
+except ImportError as e:  # pragma: no cover
     raise ImportError(
         "You must 'pip install pypicloud[ldap]' before using ldap as the "
         "authentication backend."
-    )
+    ) from e
 
 
 LOG = logging.getLogger(__name__)
