@@ -2,6 +2,13 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.1.8 - 2021/3/1
+----------------
+* Add more package info to JSON API (:pr:`269`)
+* Stop normalizing metadata for Azure (:pr:`272`)
+* Provide Azure credentials via environment variable (:issue:`270`)
+* Pin the Pyramid version to avoid deprecation (:issue:`274`)
+
 1.1.7 - 2020/11/16
 ------------------
 * Fix a datetime crash when reloading the cache (:issue:`266`)
