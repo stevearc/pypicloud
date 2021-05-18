@@ -17,7 +17,7 @@ from .sql import SQLAccessBackend
 
 
 def includeme(config) -> None:
-    """ Configure the app """
+    """Configure the app"""
     settings = config.get_settings()
 
     resolver = DottedNameResolver(__name__)

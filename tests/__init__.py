@@ -28,7 +28,7 @@ def make_package(
     factory=Package,
     **kwargs
 ):
-    """ Convenience method for constructing a package """
+    """Convenience method for constructing a package"""
     filename = filename or "%s-%s.tar.gz" % (name, version)
     return factory(
         name, version, filename, last_modified or utcnow(), summary, **kwargs
@@ -56,14 +56,14 @@ def make_dist(
 
 class DummyStorage(IStorage):
 
-    """ In-memory implementation of IStorage """
+    """In-memory implementation of IStorage"""
 
     def __init__(self, request=None):
         super(DummyStorage, self).__init__(request)
         self.packages = {}
 
     def list(self, factory=Package):
-        """ Return a list or generator of all packages """
+        """Return a list or generator of all packages"""
         for args in self.packages.values():
             yield args[0]
 
@@ -82,7 +82,7 @@ class DummyStorage(IStorage):
 
 class DummyCache(ICache):
 
-    """ In-memory implementation of ICache """
+    """In-memory implementation of ICache"""
 
     def __init__(self, request=None, **kwargs):
         kwargs.setdefault("storage", DummyStorage)
@@ -90,33 +90,33 @@ class DummyCache(ICache):
         self.packages = defaultdict(dict)
 
     def fetch(self, filename):
-        """ Override this method to implement 'fetch' """
+        """Override this method to implement 'fetch'"""
         return self.packages.get(filename)
 
     def all(self, name):
-        """ Override this method to implement 'all' """
+        """Override this method to implement 'all'"""
         return [p for p in self.packages.values() if p.name == name]
 
     def distinct(self):
-        """ Get all distinct package names """
+        """Get all distinct package names"""
         return list(set((p.name for p in self.packages.values())))
 
     def clear(self, package):
-        """ Remove this package from the caching database """
+        """Remove this package from the caching database"""
         del self.packages[package.filename]
 
     def clear_all(self):
-        """ Clear all cached packages from the database """
+        """Clear all cached packages from the database"""
         self.packages.clear()
 
     def save(self, package):
-        """ Save this package to the database """
+        """Save this package to the database"""
         self.packages[package.filename] = package
 
 
 class MockServerTest(unittest.TestCase):
 
-    """ Base class for tests that need in-memory ICache objects """
+    """Base class for tests that need in-memory ICache objects"""
 
     def setUp(self):
         self.request = DummyRequest()

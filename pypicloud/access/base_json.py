@@ -53,7 +53,7 @@ class IJsonAccessBackend(IAccessBackend):
 
     @property
     def db(self):
-        """ Fetch JSON and cache it for future calls """
+        """Fetch JSON and cache it for future calls"""
         if self._db is None:
             self._db = self._get_db()
             for key in ["users", "groups", "packages", "pending_users"]:
@@ -168,7 +168,7 @@ class IMutableJsonAccessBackend(IJsonAccessBackend, IMutableAccessBackend):
     mutable = True
 
     def _save(self):
-        """ Save the JSON to the backend """
+        """Save the JSON to the backend"""
         raise NotImplementedError
 
     def _set_password_hash(self, username, password_hash):

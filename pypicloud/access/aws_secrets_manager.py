@@ -48,7 +48,7 @@ class AWSSecretsManagerAccessBackend(IMutableJsonAccessBackend):
         return kwargs
 
     def _get_db(self):
-        """ Hit a server endpoint and return the json response """
+        """Hit a server endpoint and return the json response"""
         try:
             response = self.client.get_secret_value(SecretId=self.secret_id)
         except ClientError as e:
@@ -71,7 +71,7 @@ class AWSSecretsManagerAccessBackend(IMutableJsonAccessBackend):
             self.request.tm.get().addAfterCommitHook(self._do_save)
 
     def _do_save(self, succeeded):
-        """ Save the auth data to the backend """
+        """Save the auth data to the backend"""
         if not succeeded:
             return
         kwargs = {"SecretString": json.dumps(self._db)}

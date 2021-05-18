@@ -16,7 +16,7 @@ from pypicloud.route import Root
     renderer="login.jinja2",
 )
 def get_login_page(request):
-    """ Catch login and redirect to login wall """
+    """Catch login and redirect to login wall"""
     if request.userid is not None:
         # User is logged in and fetching /login, so redirect to /
         return HTTPFound(location=request.app_url())
@@ -27,7 +27,7 @@ def get_login_page(request):
     context=HTTPForbidden, permission=NO_PERMISSION_REQUIRED, renderer="login.jinja2"
 )
 def do_forbidden(request):
-    """ Intercept 403's and return 401's when necessary """
+    """Intercept 403's and return 401's when necessary"""
     return request.forbid()
 
 
@@ -41,7 +41,7 @@ def do_forbidden(request):
 )
 @argify
 def do_login(request, username, password):
-    """ Check credentials and log in """
+    """Check credentials and log in"""
     if request.access.verify_user(username, password):
         request.response.headers.extend(remember(request, username))
         return {"next": request.app_url()}
@@ -50,7 +50,7 @@ def do_login(request, username, password):
 
 
 def register_new_user(access, username, password):
-    """ Register a new user & handle duplicate detection """
+    """Register a new user & handle duplicate detection"""
     if access.user_data(username) is not None:
         raise ValueError("User '%s' already exists!" % username)
     if username in access.pending_users():
@@ -64,7 +64,7 @@ def register_new_user(access, username, password):
 
 
 def handle_register_request(request, username, password):
-    """ Process a request to register a new user """
+    """Process a request to register a new user"""
     if not request.access.allow_register() and not request.access.need_admin():
         return HTTPForbidden()
     username = username.strip()
@@ -91,7 +91,7 @@ def handle_register_request(request, username, password):
 )
 @argify
 def do_token_register(request, token, password):
-    """ Consume a signed token and create a new user """
+    """Consume a signed token and create a new user"""
     username = request.access.validate_signup_token(token)
     if username is None:
         raise ValueError("Invalid token")
@@ -113,12 +113,12 @@ def do_token_register(request, token, password):
 )
 @argify
 def register(request, username, password):
-    """ Check credentials and log in """
+    """Check credentials and log in"""
     return handle_register_request(request, username, password)
 
 
 @view_config(context=Root, name="logout", subpath=())
 def logout(request):
-    """ Delete the user session """
+    """Delete the user session"""
     request.response.headers.extend(forget(request))
     return HTTPFound(location=request.app_url())

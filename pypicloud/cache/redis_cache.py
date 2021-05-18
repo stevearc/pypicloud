@@ -14,7 +14,7 @@ LOG = logging.getLogger(__name__)
 
 
 def summary_from_package(package):
-    """ Create a summary dict from a package """
+    """Create a summary dict from a package"""
     return {
         "name": package.name,
         "summary": package.summary or "",
@@ -24,7 +24,7 @@ def summary_from_package(package):
 
 class RedisCache(ICache):
 
-    """ Caching database that uses redis """
+    """Caching database that uses redis"""
 
     redis_prefix = "pypicloud:"
 
@@ -48,20 +48,20 @@ class RedisCache(ICache):
         return kwargs
 
     def redis_key(self, key):
-        """ Get the key to a redis hash that stores a package """
+        """Get the key to a redis hash that stores a package"""
         return "%spackage:%s" % (self.redis_prefix, key)
 
     @property
     def redis_set(self):
-        """ Get the key to the redis set of package names """
+        """Get the key to the redis set of package names"""
         return self.redis_prefix + "set"
 
     def redis_filename_set(self, name):
-        """ Get the key to a redis set of filenames for a package """
+        """Get the key to a redis set of filenames for a package"""
         return "%sset:%s" % (self.redis_prefix, name)
 
     def redis_summary_key(self, name):
-        """ Get the redis key to a summary for a package """
+        """Get the redis key to a summary for a package"""
         return "%ssummary:%s" % (self.redis_prefix, name)
 
     def fetch(self, filename):
@@ -71,7 +71,7 @@ class RedisCache(ICache):
         return self._load(data)
 
     def _load(self, data):
-        """ Load a Package class from redis data """
+        """Load a Package class from redis data"""
         name = data.pop("name")
         version = data.pop("version")
         filename = data.pop("filename")
@@ -100,7 +100,7 @@ class RedisCache(ICache):
         return self._load_summaries(self.db.smembers(self.redis_set))
 
     def _load_summaries(self, package_names):
-        """ Load summaries for provided package names """
+        """Load summaries for provided package names"""
         pipe = self.db.pipeline()
         for name in package_names:
             pipe.hgetall(self.redis_summary_key(name))
@@ -117,7 +117,7 @@ class RedisCache(ICache):
             self._delete_summary(package.name)
 
     def _delete_package(self, package, pipe=None):
-        """ Delete package keys from redis """
+        """Delete package keys from redis"""
         should_execute = False
         if pipe is None:
             should_execute = True
@@ -129,7 +129,7 @@ class RedisCache(ICache):
             return pipe.execute()[2]
 
     def _delete_summary(self, package_name, pipe=None):
-        """ Delete summary keys from redis """
+        """Delete summary keys from redis"""
         should_execute = False
         if pipe is None:
             should_execute = True
@@ -169,7 +169,7 @@ class RedisCache(ICache):
             pipe.execute()
 
     def _save_summary(self, summary, pipe):
-        """ Save a summary dict to redis """
+        """Save a summary dict to redis"""
         dt = summary["last_modified"]
         last_modified = calendar.timegm(dt.utctimetuple()) + dt.microsecond / 1000000.0
         pipe.hmset(
@@ -182,7 +182,7 @@ class RedisCache(ICache):
         )
 
     def _load_all_packages(self):
-        """ Load all packages that are in redis """
+        """Load all packages that are in redis"""
         pipe = self.db.pipeline()
         for filename_key in self.db.keys(self.redis_key("*")):
             pipe.hgetall(filename_key)

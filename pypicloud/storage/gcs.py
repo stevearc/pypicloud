@@ -20,7 +20,7 @@ LOG = logging.getLogger(__name__)
 
 class GoogleCloudStorage(ObjectStoreStorage):
 
-    """ Storage backend that uses GCS """
+    """Storage backend that uses GCS"""
 
     test = False
 
@@ -148,7 +148,7 @@ class GoogleCloudStorage(ObjectStoreStorage):
 
     @classmethod
     def package_from_object(cls, blob, factory):
-        """ Create a package from a GCS object """
+        """Create a package from a GCS object"""
         filename = posixpath.basename(blob.name)
         if blob.metadata is None:
             return None
@@ -175,7 +175,7 @@ class GoogleCloudStorage(ObjectStoreStorage):
                 yield pkg
 
     def _generate_url(self, package):
-        """ Generate a signed url to the GCS file """
+        """Generate a signed url to the GCS file"""
         blob = self._get_gcs_blob(package)
 
         if self.use_iam_signer:
@@ -194,11 +194,11 @@ class GoogleCloudStorage(ObjectStoreStorage):
         )
 
     def _get_gcs_blob(self, package):
-        """ Get a GCS blob object for the specified package """
+        """Get a GCS blob object for the specified package"""
         return self.bucket.blob(self.get_path(package))
 
     def upload(self, package, datastream):
-        """ Upload the package to GCS """
+        """Upload the package to GCS"""
         metadata = {"name": package.name, "version": package.version}
         metadata.update(package.get_metadata())
 
@@ -212,6 +212,6 @@ class GoogleCloudStorage(ObjectStoreStorage):
             blob.update_storage_class(self.storage_class)
 
     def delete(self, package):
-        """ Delete the package """
+        """Delete the package"""
         blob = self._get_gcs_blob(package)
         blob.delete()

@@ -45,7 +45,7 @@ if sys_bits < 64:
 def get_pwd_context(
     preferred_hash: Optional[str] = None, rounds: Optional[int] = None
 ) -> LazyCryptContext:
-    """ Create a passlib context for hashing passwords """
+    """Create a passlib context for hashing passwords"""
     if preferred_hash is None or preferred_hash == "sha":
         preferred_hash = "sha256_crypt" if sys_bits < 64 else "sha512_crypt"
     if preferred_hash == "pbkdf2":
@@ -70,7 +70,7 @@ def get_pwd_context(
 
 
 def group_to_principal(group: str) -> str:
-    """ Convert a group to its corresponding principal """
+    """Convert a group to its corresponding principal"""
     if group in (Everyone, Authenticated) or group.startswith("group:"):
         return group
     elif group == "everyone":
@@ -82,7 +82,7 @@ def group_to_principal(group: str) -> str:
 
 
 def groups_to_principals(groups: List[str]) -> List[str]:
-    """ Convert a list of groups to a list of principals """
+    """Convert a list of groups to a list of principals"""
     return [group_to_principal(g) for g in groups]
 
 
@@ -91,7 +91,7 @@ ONE_WEEK = 60 * 60 * 24 * 7
 
 class IAccessBackend(object):
 
-    """ Base class for retrieving user and package permission data """
+    """Base class for retrieving user and package permission data"""
 
     mutable = False
     ROOT_ACL = [
@@ -122,7 +122,7 @@ class IAccessBackend(object):
 
     @classmethod
     def configure(cls, settings) -> Dict[str, Any]:
-        """ Configure the access backend with app settings """
+        """Configure the access backend with app settings"""
         rounds = settings.get("auth.rounds")
         scheme = settings.get("auth.scheme")
         return {
@@ -141,7 +141,7 @@ class IAccessBackend(object):
 
     @classmethod
     def postfork(cls, **kwargs):
-        """ This method will be called after uWSGI forks """
+        """This method will be called after uWSGI forks"""
 
     def allowed_permissions(self, package: str) -> Dict[str, Tuple[str, ...]]:
         """
@@ -178,7 +178,7 @@ class IAccessBackend(object):
         return all_perms
 
     def get_acl(self, package: str) -> List[Tuple[str, str, str]]:
-        """ Construct an ACL for a package """
+        """Construct an ACL for a package"""
         acl = []
         permissions = self.allowed_permissions(package)
         for principal, perms in permissions.items():
@@ -187,7 +187,7 @@ class IAccessBackend(object):
         return acl
 
     def has_permission(self, package: str, perm: str) -> bool:
-        """ Check if this user has a permission for a package """
+        """Check if this user has a permission for a package"""
         current_userid = self.request.userid
         if current_userid is not None and self.is_admin(current_userid):
             return True
@@ -338,7 +338,7 @@ class IAccessBackend(object):
         return bool(stored_pw and self.pwd_context.verify(password, stored_pw))
 
     def _get_password_hash(self, username: str) -> str:
-        """ Get the stored password hash for a user """
+        """Get the stored password hash for a user"""
         raise NotImplementedError
 
     def groups(self, username: Optional[str] = None) -> List[str]:
@@ -587,7 +587,7 @@ class IMutableAccessBackend(IAccessBackend):
         return msg + ":" + signature
 
     def _hmac(self, username: str, timestamp: float) -> Tuple[str, str]:
-        """ HMAC a username/expiration combo """
+        """HMAC a username/expiration combo"""
         if self.signing_key is None:
             raise RuntimeError("auth.signing_key is not set!")
         msg = "%s:%d" % (username, timestamp)
@@ -833,7 +833,7 @@ class IMutableAccessBackend(IAccessBackend):
         pending_users = set(self.pending_users())
 
         def user_exists(username):
-            """ Helper function that checks if a user already exists """
+            """Helper function that checks if a user already exists"""
             return username in pending_users or self.user_data(username) is not None
 
         for user in data["users"]:

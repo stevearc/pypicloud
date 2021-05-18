@@ -25,7 +25,7 @@ LOG = logging.getLogger(__name__)
 
 class S3Storage(ObjectStoreStorage):
 
-    """ Storage backend that uses S3 """
+    """Storage backend that uses S3"""
 
     test = False
 
@@ -76,7 +76,7 @@ class S3Storage(ObjectStoreStorage):
         config = Config(**config_settings)
 
         def verify_value(val):
-            """ Verify can be a boolean (False) or a string """
+            """Verify can be a boolean (False) or a string"""
             s = str(val).strip().lower()
             if s in falsey:
                 return False
@@ -126,7 +126,7 @@ class S3Storage(ObjectStoreStorage):
 
     @classmethod
     def package_from_object(cls, obj, factory):
-        """ Create a package from a S3 object """
+        """Create a package from a S3 object"""
         filename = posixpath.basename(obj.key)
         name = obj.metadata.get("name")
         version = obj.metadata.get("version")
@@ -154,7 +154,7 @@ class S3Storage(ObjectStoreStorage):
                 yield pkg
 
     def _generate_url(self, package):
-        """ Generate a signed url to the S3 file """
+        """Generate a signed url to the S3 file"""
         if self.public_url:
             if self.region_name:
                 return "https://s3.{0}.amazonaws.com/{1}/{2}".format(
@@ -183,7 +183,7 @@ class S3Storage(ObjectStoreStorage):
         return url
 
     def _log_region_warning(self):
-        """ Spit out a warning about including region_name """
+        """Spit out a warning about including region_name"""
         LOG.warning(
             "Your signed S3 urls may not work! "
             "Try adding the bucket region to the config with "
@@ -222,7 +222,7 @@ class S3Storage(ObjectStoreStorage):
 
 class CloudFrontS3Storage(S3Storage):
 
-    """ Storage backend that uses S3 and CloudFront """
+    """Storage backend that uses S3 and CloudFront"""
 
     def __init__(
         self, request=None, domain=None, crypto_pk=None, key_id=None, **kwargs
@@ -259,11 +259,11 @@ class CloudFrontS3Storage(S3Storage):
         return kwargs
 
     def _rsa_signer(self, message):
-        """ Generate a RSA signature for a message """
+        """Generate a RSA signature for a message"""
         return self.crypto_pk.sign(message, padding.PKCS1v15(), hashes.SHA1())
 
     def _generate_url(self, package):
-        """ Get the fully-qualified CloudFront path for a package """
+        """Get the fully-qualified CloudFront path for a package"""
         path = self.get_path(package)
         url = self.domain + "/" + quote(path)
 

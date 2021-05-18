@@ -7,7 +7,7 @@ import boto3
 
 
 def handle_s3_event(event, context):
-    """ Handle S3 object notification """
+    """Handle S3 object notification"""
     from pypicloud.cache import get_cache_impl
     from pypicloud.dateutil import utcnow
     from pypicloud.storage.s3 import S3Storage

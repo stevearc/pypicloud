@@ -52,12 +52,12 @@ class Package(object):
         self.data = {k: v for k, v in kwargs.items() if v}
 
     def get_url(self, request):
-        """ Create path to the download link """
+        """Create path to the download link"""
         return request.db.get_url(self)
 
     @property
     def parsed_version(self):
-        """ Parse and cache the version using pkg_resources """
+        """Parse and cache the version using pkg_resources"""
         # Use getattr because __init__ isn't called by some ORMs.
         if getattr(self, "_parsed_version", None) is None:
             self._parsed_version = pkg_resources.parse_version(self.version)
@@ -65,12 +65,12 @@ class Package(object):
 
     @property
     def is_prerelease(self):
-        """ Returns True if the version is a prerelease version """
+        """Returns True if the version is a prerelease version"""
         return re.match(r"^\d+(\.\d+)*$", self.version) is None
 
     @staticmethod
     def read_metadata(blob):
-        """ Read metadata from a blob """
+        """Read metadata from a blob"""
         metadata = {}
         for field in METADATA_FIELDS:
             value = blob.get(field)
@@ -83,7 +83,7 @@ class Package(object):
         return metadata
 
     def get_metadata(self):
-        """ Returns the package metadata as a dict """
+        """Returns the package metadata as a dict"""
         metadata = Package.read_metadata(self.data)
         if self.summary:
             metadata["summary"] = self.summary
@@ -119,7 +119,7 @@ class Package(object):
         }
 
     def search_summary(self):
-        """ Data to return from a pip search """
+        """Data to return from a pip search"""
         return {
             "name": self.name,
             "summary": self.summary or "",  # May be None

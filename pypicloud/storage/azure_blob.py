@@ -21,7 +21,7 @@ LOG = logging.getLogger(__name__)
 
 
 class AzureBlobStorage(IStorage):
-    """ Storage backend that uses Azure Blob Storage """
+    """Storage backend that uses Azure Blob Storage"""
 
     test = False
 
@@ -130,7 +130,7 @@ class AzureBlobStorage(IStorage):
             )
 
     def get_path(self, package):
-        """ Get the fully-qualified bucket path for a package """
+        """Get the fully-qualified bucket path for a package"""
         if "path" not in package.data:
             package.data["path"] = (
                 self.path_prefix + package.name + "/" + package.filename

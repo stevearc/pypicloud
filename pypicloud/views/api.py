@@ -33,7 +33,7 @@ LOG = logging.getLogger(__name__)
 @addslash
 @argify
 def all_packages(request, verbose=False):
-    """ List all packages """
+    """List all packages"""
     if verbose:
         packages = request.db.summary()
     else:
@@ -58,7 +58,7 @@ def all_packages(request, verbose=False):
 )
 @addslash
 def package_versions(context, request):
-    """ List all unique package versions """
+    """List all unique package versions"""
     normalized_name = normalize_name(context.name)
     versions = request.db.all(normalized_name)
     return {
@@ -68,7 +68,7 @@ def package_versions(context, request):
 
 
 def fetch_dist(request, url, name, version, summary, requires_python):
-    """ Fetch a Distribution and upload it to the storage backend """
+    """Fetch a Distribution and upload it to the storage backend"""
     filename = posixpath.basename(url)
     handle = urlopen(url)
     with closing(handle):
@@ -84,7 +84,7 @@ def fetch_dist(request, url, name, version, summary, requires_python):
 
 @view_config(context=APIPackageFileResource, request_method="GET", permission="read")
 def download_package(context, request):
-    """ Download package, or redirect to the download link """
+    """Download package, or redirect to the download link"""
     package = request.db.fetch(context.filename)
     if not package:
         if request.registry.fallback != "cache":
@@ -143,7 +143,7 @@ def download_package(context, request):
 )
 @argify
 def upload_package(context, request, content, summary=None, requires_python=None):
-    """ Upload a package """
+    """Upload a package"""
     try:
         return request.db.upload(
             content.filename,
@@ -163,7 +163,7 @@ def upload_package(context, request, content, summary=None, requires_python=None
     permission="write",
 )
 def delete_package(context, request):
-    """ Delete a package """
+    """Delete a package"""
     package = request.db.fetch(context.filename)
     if package is None:
         return HTTPBadRequest("Could not find %s" % context.filename)
@@ -181,7 +181,7 @@ def delete_package(context, request):
 )
 @argify
 def register(request, password):
-    """ Register a user """
+    """Register a user"""
     username = request.named_subpaths["username"]
     return handle_register_request(request, username, password)
 
@@ -195,7 +195,7 @@ def register(request, password):
 )
 @argify
 def change_password(request, old_password, new_password):
-    """ Change a user's password """
+    """Change a user's password"""
     if not request.access.verify_user(request.userid, old_password):
         return HTTPForbidden()
     request.access.edit_user_password(request.userid, new_password)

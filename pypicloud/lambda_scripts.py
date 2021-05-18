@@ -27,7 +27,7 @@ VENV_URL = (
 
 
 def _create_role(role_name, description, policy):
-    """ Idempotently create the IAM Role """
+    """Idempotently create the IAM Role"""
     iam = boto3.client("iam")
     iam_resource = boto3.resource("iam")
     role = iam_resource.Role(role_name)
@@ -65,7 +65,7 @@ def _create_role(role_name, description, policy):
 
 
 def _create_dynamodb_role(settings, bucket):
-    """ Create the AWS Role needed for Lambda with a DynamoDB cache """
+    """Create the AWS Role needed for Lambda with a DynamoDB cache"""
     # Jump through hoops to get the table names
     from pypicloud.cache.dynamo import DynamoPackage, PackageSummary
 
@@ -136,7 +136,7 @@ def _create_dynamodb_role(settings, bucket):
 
 
 def _create_default_role(settings, bucket):
-    """ Create the AWS Role needed for Lambda with most caches """
+    """Create the AWS Role needed for Lambda with most caches"""
     policy = (
         """{
         "Version": "2012-10-17",
@@ -165,7 +165,7 @@ def _create_default_role(settings, bucket):
 
 
 def make_virtualenv(env):
-    """ Create a virtualenv """
+    """Create a virtualenv"""
     if find_executable("virtualenv") is not None:
         cmd = ["virtualenv"] + [env]
         subprocess.check_call(cmd)
@@ -183,7 +183,7 @@ def make_virtualenv(env):
 
 
 def build_lambda_bundle(argv=None):
-    """ Build the zip bundle that will be deployed to AWS Lambda """
+    """Build the zip bundle that will be deployed to AWS Lambda"""
     if argv is None:
         argv = sys.argv[1:]
     parser = argparse.ArgumentParser(description=build_lambda_bundle.__doc__)
@@ -201,7 +201,7 @@ def build_lambda_bundle(argv=None):
 
 
 def _build_lambda_bundle(settings):
-    """ Build the lambda bundle """
+    """Build the lambda bundle"""
     venv_dir = tempfile.mkdtemp()
     try:
         print("Creating virtualenv %s" % venv_dir)

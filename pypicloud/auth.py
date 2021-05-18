@@ -14,7 +14,7 @@ from pyramid.security import Everyone, authenticated_userid
 # Copied from
 # http://docs.pylonsproject.org/projects/pyramid_cookbook/en/latest/auth/basic.html
 def get_basicauth_credentials(request):
-    """ Get the user/password from HTTP basic auth """
+    """Get the user/password from HTTP basic auth"""
     authorization = AUTHORIZATION(request.environ)
     try:
         authmeth, auth = authorization.split(" ", 1)
@@ -51,7 +51,7 @@ class BasicAuthenticationPolicy(object):
     """
 
     def authenticated_userid(self, request):
-        """ Verify login and return the authed userid """
+        """Verify login and return the authed userid"""
         credentials = get_basicauth_credentials(request)
         if credentials is None:
             return None
@@ -61,27 +61,27 @@ class BasicAuthenticationPolicy(object):
         return None
 
     def unauthenticated_userid(self, request):
-        """ Return userid without performing auth """
+        """Return userid without performing auth"""
         return request.userid
 
     def effective_principals(self, request):
-        """ Get the authed groups for the active user """
+        """Get the authed groups for the active user"""
         if request.userid is None:
             return [Everyone]
         return request.access.user_principals(request.userid)
 
     def remember(self, request, principal, **kw):
-        """ HTTP Headers to remember credentials """
+        """HTTP Headers to remember credentials"""
         return []
 
     def forget(self, request):
-        """ HTTP headers to forget credentials """
+        """HTTP headers to forget credentials"""
         return []
 
 
 class SessionAuthPolicy(object):
 
-    """ Simple auth policy using beaker sessions """
+    """Simple auth policy using beaker sessions"""
 
     def authenticated_userid(self, request):
         """Return the authenticated userid or ``None`` if no
@@ -128,12 +128,12 @@ class SessionAuthPolicy(object):
 
 
 def _is_logged_in(request):
-    """ Check if there is a logged-in user in the session """
+    """Check if there is a logged-in user in the session"""
     return request.userid is not None
 
 
 def _request_login(request):
-    """ Return a 401 to force pip to upload its HTTP basic auth credentials """
+    """Return a 401 to force pip to upload its HTTP basic auth credentials"""
     response = HTTPUnauthorized()
     realm = WWW_AUTHENTICATE.tuples('Basic realm="%s"' % request.registry.realm)
     response.headers.update(realm)
@@ -154,7 +154,7 @@ def _forbid(request):
 
 
 def includeme(config):
-    """ Configure the app """
+    """Configure the app"""
     config.set_authorization_policy(ACLAuthorizationPolicy())
     config.set_authentication_policy(config.registry.authentication_policy)
     config.add_authentication_policy(SessionAuthPolicy())

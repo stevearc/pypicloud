@@ -40,7 +40,7 @@ association_table = Table(
 
 class KeyVal(Base):
 
-    """ Simple model for storing key-value pairs """
+    """Simple model for storing key-value pairs"""
 
     __tablename__ = "pypicloud_keyvals"
     key = Column(String(length=255), primary_key=True)
@@ -53,7 +53,7 @@ class KeyVal(Base):
 
 class User(Base):
 
-    """ User record """
+    """User record"""
 
     __tablename__ = "pypicloud_users"
     username = Column(String(length=255), primary_key=True)
@@ -79,7 +79,7 @@ class User(Base):
 
 class Group(Base):
 
-    """ Group record """
+    """Group record"""
 
     __tablename__ = "pypicloud_groups"
     name = Column(String(length=255), primary_key=True)
@@ -92,7 +92,7 @@ class Group(Base):
 
 class Permission(Base):
 
-    """ Base class for user and group permissions """
+    """Base class for user and group permissions"""
 
     __abstract__ = True
     package = Column(String(length=255), primary_key=True)
@@ -106,7 +106,7 @@ class Permission(Base):
 
     @property
     def permissions(self):
-        """ Construct permissions list """
+        """Construct permissions list"""
         perms = []
         if self.read:
             perms.append("read")
@@ -117,7 +117,7 @@ class Permission(Base):
 
 class UserPermission(Permission):
 
-    """ Permissions for a user on a package """
+    """Permissions for a user on a package"""
 
     __tablename__ = "pypicloud_user_permissions"
     username = Column(
@@ -136,7 +136,7 @@ class UserPermission(Permission):
 
 class GroupPermission(Permission):
 
-    """ Permissions for a group on a package """
+    """Permissions for a group on a package"""
 
     __tablename__ = "pypicloud_group_permissions"
     groupname = Column(
@@ -166,7 +166,7 @@ class SQLAccessBackend(IMutableAccessBackend):
 
     @property
     def db(self):
-        """ Lazy-create the DB session """
+        """Lazy-create the DB session"""
         if self._db is None:
             self._db = self._dbmaker()
             if self.request is not None:

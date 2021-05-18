@@ -16,13 +16,13 @@ LOG = logging.getLogger(__name__)
 @view_config(context=Root, request_method="GET", subpath=(), renderer="base.jinja2")
 @addslash
 def get_index(request):
-    """ Render a home screen """
+    """Render a home screen"""
     return {"version": __version__}
 
 
 @view_config(route_name="health", renderer="json")
 def health_endpoint(request):
-    """ Simple health endpoint """
+    """Simple health endpoint"""
     ret = {}
     ok, ret["access"] = request.access.check_health()
     if not ok:

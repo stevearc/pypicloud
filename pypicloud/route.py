@@ -5,7 +5,7 @@ from typing import Any, Callable, Dict
 
 class IStaticResource(object):
 
-    """ Simple resource base class for static-mapping of paths """
+    """Simple resource base class for static-mapping of paths"""
 
     __name__ = ""
     __parent__ = None
@@ -23,7 +23,7 @@ class IStaticResource(object):
 
 class IResourceFactory(object):
 
-    """ Resource that generates child resources from a factory """
+    """Resource that generates child resources from a factory"""
 
     __name__ = ""
     __parent__ = None
@@ -43,7 +43,7 @@ class IResourceFactory(object):
 
 class SimpleResource(object):
 
-    """ Resource for simple pip calls """
+    """Resource for simple pip calls"""
 
     def __init__(self, request):
         self.request = request
@@ -57,7 +57,7 @@ class SimpleResource(object):
 
 class SimplePackageResource(object):
 
-    """ Resource for requesting simple endpoint package versions """
+    """Resource for requesting simple endpoint package versions"""
 
     __parent__ = None
     __name__ = None
@@ -70,7 +70,7 @@ class SimplePackageResource(object):
 
 class APIPackagingResource(IResourceFactory):
 
-    """ Resource for api package queries """
+    """Resource for api package queries"""
 
     def __init__(self, request):
         super(APIPackagingResource, self).__init__(request)
@@ -79,7 +79,7 @@ class APIPackagingResource(IResourceFactory):
 
 class APIPackageResource(IResourceFactory):
 
-    """ Resource for requesting package versions """
+    """Resource for requesting package versions"""
 
     def __init__(self, request, name):
         super(APIPackageResource, self).__init__(request)
@@ -92,7 +92,7 @@ class APIPackageResource(IResourceFactory):
 
 class APIPackageFileResource(object):
 
-    """ Resource for api endpoints dealing with a single package version """
+    """Resource for api endpoints dealing with a single package version"""
 
     __parent__ = None
     __name__ = None
@@ -105,24 +105,24 @@ class APIPackageFileResource(object):
 
 class APIResource(IStaticResource):
 
-    """ Resource for api calls """
+    """Resource for api calls"""
 
     subobjects = {"package": APIPackagingResource}
 
 
 class AdminResource(IStaticResource):
 
-    """ Resource for admin calls """
+    """Resource for admin calls"""
 
 
 class PackagesResource(IStaticResource):
 
-    """ Resource for cleaner buildout config """
+    """Resource for cleaner buildout config"""
 
 
 class Root(IStaticResource):
 
-    """ Root context for PyPI Cloud """
+    """Root context for PyPI Cloud"""
 
     subobjects = {
         "api": APIResource,

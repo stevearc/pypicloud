@@ -8,14 +8,14 @@ from . import MockServerTest
 
 class TestPackages(MockServerTest):
 
-    """ Unit tests for the /packages endpoints """
+    """Unit tests for the /packages endpoints"""
 
     def setUp(self):
         super(TestPackages, self).setUp()
         self.request.access = MagicMock()
 
     def test_list_packages(self):
-        """ Should return packages with their names and urls """
+        """Should return packages with their names and urls"""
         self.request.db = MagicMock()
         self.request.db.distinct.return_value = ["a", "b", "c"]
         self.request.access.has_permission.side_effect = (
@@ -23,10 +23,10 @@ class TestPackages(MockServerTest):
         )
 
         def get_packages(x):
-            """ Returns a list of mocked package objects for this package """
+            """Returns a list of mocked package objects for this package"""
 
             def mm(package_name):
-                """ Mock packages for packages_to_dict """
+                """Mock packages for packages_to_dict"""
                 p = MagicMock()
                 p.filename = package_name
                 p.get_url.return_value = package_name + ".ext"

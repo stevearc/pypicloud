@@ -15,7 +15,7 @@ from . import DummyCache, DummyStorage, make_package
 
 
 def _auth(username, password):
-    """ Generate a basic auth header """
+    """Generate a basic auth header"""
     base64string = (
         base64.b64encode(("%s:%s" % (username, password)).encode("utf8"))
         .decode("utf8")
@@ -28,7 +28,7 @@ def _auth(username, password):
 
 class GlobalDummyStorage(DummyStorage):
 
-    """ Dummy storage with class-level package storage """
+    """Dummy storage with class-level package storage"""
 
     global_packages = {}
 
@@ -39,7 +39,7 @@ class GlobalDummyStorage(DummyStorage):
 
 class GlobalDummyCache(DummyCache):
 
-    """ Dummy cache with class-level package storage """
+    """Dummy cache with class-level package storage"""
 
     global_packages = defaultdict(list)
 
@@ -90,21 +90,21 @@ class TestEndpointSecurity(unittest.TestCase):
         self.app.reset()
 
     def test_api_pkg_unauthed(self):
-        """ /api/package/<pkg> requires read perms """
+        """/api/package/<pkg> requires read perms"""
         response = self.app.get(
             "/api/package/%s/" % self.package.name, expect_errors=True
         )
         self.assertEqual(response.status_int, 401)
 
     def test_api_pkg_authed(self):
-        """ /api/package/<pkg> requires read perms """
+        """/api/package/<pkg> requires read perms"""
         response = self.app.get(
             "/api/package/%s/" % self.package.name, headers=_auth("user", "user")
         )
         self.assertEqual(response.status_int, 200)
 
     def test_api_pkg_versions_unauthed(self):
-        """ /api/package/<pkg>/<filename> requires write perms """
+        """/api/package/<pkg>/<filename> requires write perms"""
         params = {"content": webtest.forms.Upload("filename.txt", b"datadatadata")}
         url = "/api/package/%s/%s/" % (self.package.name, self.package.filename)
         response = self.app.post(
@@ -113,7 +113,7 @@ class TestEndpointSecurity(unittest.TestCase):
         self.assertEqual(response.status_int, 403)
 
     def test_api_pkg_versions_authed(self):
-        """ /api/package/<pkg>/<filename> requires write perms """
+        """/api/package/<pkg>/<filename> requires write perms"""
         package = make_package(self.package.name, "1.5")
         params = {"content": webtest.forms.Upload(package.filename, b"datadatadata")}
         url = "/api/package/%s/%s" % (package.name, package.filename)
@@ -121,7 +121,7 @@ class TestEndpointSecurity(unittest.TestCase):
         self.assertEqual(response.status_int, 200)
 
     def test_api_delete_unauthed(self):
-        """ delete /api/package/<pkg>/<filename> requires write perms """
+        """delete /api/package/<pkg>/<filename> requires write perms"""
         url = "/api/package/%s/%s" % (self.package.name, self.package.filename)
         response = self.app.delete(
             url, expect_errors=True, headers=_auth("user", "user")
@@ -129,13 +129,13 @@ class TestEndpointSecurity(unittest.TestCase):
         self.assertEqual(response.status_int, 403)
 
     def test_api_delete_authed(self):
-        """ delete /api/package/<pkg>/<filename> requires write perms """
+        """delete /api/package/<pkg>/<filename> requires write perms"""
         url = "/api/package/%s/%s" % (self.package.name, self.package.filename)
         response = self.app.delete(url, headers=_auth("user2", "user2"))
         self.assertEqual(response.status_int, 200)
 
     def test_api_rebuild_admin(self):
-        """ /api/rebuild requires admin """
+        """/api/rebuild requires admin"""
         response = self.app.get(
             "/api/rebuild/", expect_errors=True, headers=_auth("user2", "user2")
         )

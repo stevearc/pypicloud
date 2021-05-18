@@ -14,7 +14,7 @@ from .base import IStorage
 
 class FileStorage(IStorage):
 
-    """ Stores package files on the filesystem """
+    """Stores package files on the filesystem"""
 
     def __init__(self, request=None, **kwargs):
         self.directory = kwargs.pop("directory")
@@ -30,17 +30,17 @@ class FileStorage(IStorage):
         return kwargs
 
     def get_path(self, package):
-        """ Get the fully-qualified file path for a package """
+        """Get the fully-qualified file path for a package"""
         return os.path.join(
             self.directory, package.name, package.version, package.filename
         )
 
     def path_to_meta_path(self, path):
-        """ Construct the filename for a metadata file """
+        """Construct the filename for a metadata file"""
         return path + ".meta"
 
     def get_metadata_path(self, package):
-        """ Get the fully-qualified file path for a package metadata file """
+        """Get the fully-qualified file path for a package metadata file"""
         return self.path_to_meta_path(self.get_path(package))
 
     def list(self, factory=Package):

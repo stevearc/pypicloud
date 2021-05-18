@@ -12,7 +12,7 @@ LOG = logging.getLogger(__name__)
 
 class SimpleJsonLocator(object):
 
-    """ Simple replacement for distlib SimpleScrapingLocator """
+    """Simple replacement for distlib SimpleScrapingLocator"""
 
     def __init__(self, base_index):
         self.base_index = base_index
@@ -81,7 +81,7 @@ class FormattedScrapingLocator(SimpleScrapingLocator):
 # distlib, but we actually want ALL wheels so we can display them to the
 # clients.  So we have to monkey patch the method. I'm sorry.
 def is_compatible(wheel, tags=None):
-    """ Hacked function to monkey patch into distlib """
+    """Hacked function to monkey patch into distlib"""
     return True
 
 

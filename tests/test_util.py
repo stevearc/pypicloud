@@ -8,32 +8,32 @@ from pypicloud import util
 
 class TestParse(unittest.TestCase):
 
-    """ Tests for parse_filename """
+    """Tests for parse_filename"""
 
     def test_valid_source(self):
-        """ Parse a valid source package """
+        """Parse a valid source package"""
         name, version = util.parse_filename("mypkg-1.1.tar.gz")
         self.assertEqual(name, "mypkg")
         self.assertEqual(version, "1.1")
 
     def test_invalid_source(self):
-        """ Parse fails on invalid package name """
+        """Parse fails on invalid package name"""
         with self.assertRaises(ValueError):
             util.parse_filename("invalid_package_name.tar.gz")
 
     def test_valid_wheel(self):
-        """ Parse a valid wheel package """
+        """Parse a valid wheel package"""
         name, version = util.parse_filename("mypkg-1.1-py2.py3-none-any.whl")
         self.assertEqual(name, "mypkg")
         self.assertEqual(version, "1.1")
 
     def test_invalid_file_ext(self):
-        """ Parse fails on invalid file extension """
+        """Parse fails on invalid file extension"""
         with self.assertRaises(ValueError):
             util.parse_filename("mypkg-1.1.pdf")
 
     def test_use_name(self):
-        """ Can pass in name to assist parsing """
+        """Can pass in name to assist parsing"""
         name, version = util.parse_filename("mypkg-1.1-py2.py3-none-any.whl", "mypkg")
         self.assertEqual(name, "mypkg")
         self.assertEqual(version, "1.1")
@@ -41,20 +41,20 @@ class TestParse(unittest.TestCase):
 
 class TestNormalizeName(unittest.TestCase):
 
-    """ Tests for normalize_name """
+    """Tests for normalize_name"""
 
     def test_normalize_namespace_package(self):
-        """ Namespace packages must be normalized according to PEP503 """
+        """Namespace packages must be normalized according to PEP503"""
         self.assertEqual(util.normalize_name("repoze.lru"), "repoze-lru")
 
 
 class TestTimedCache(unittest.TestCase):
 
-    """ Tests for the TimedCache class """
+    """Tests for the TimedCache class"""
 
     @patch("pypicloud.util.time")
     def test_evict(self, time):
-        """ Cache evicts value after expiration """
+        """Cache evicts value after expiration"""
         cache = util.TimedCache(5)
         time.time.return_value = 0
         cache["a"] = 1
@@ -66,7 +66,7 @@ class TestTimedCache(unittest.TestCase):
 
     @patch("pypicloud.util.time")
     def test_evict_get(self, time):
-        """ Cache .get() evicts value after expiration """
+        """Cache .get() evicts value after expiration"""
         cache = util.TimedCache(5)
         time.time.return_value = 0
         cache["a"] = 1
@@ -74,41 +74,41 @@ class TestTimedCache(unittest.TestCase):
         self.assertEqual(cache.get("a", 5), 5)
 
     def test_negative_cache_time(self):
-        """ cache_time cannot be negative """
+        """cache_time cannot be negative"""
         with self.assertRaises(ValueError):
             util.TimedCache(-4)
 
     @patch("pypicloud.util.time")
     def test_cache_time_zero(self, time):
-        """ Cache time of 0 never caches """
+        """Cache time of 0 never caches"""
         cache = util.TimedCache(0)
         time.time.return_value = 0
         cache["a"] = 1
         self.assertTrue("a" not in cache)
 
     def test_factory(self):
-        """ Factory function populates cache """
+        """Factory function populates cache"""
         cache = util.TimedCache(None, lambda a: a)
         self.assertEqual(cache["a"], "a")
 
     def test_factory_none(self):
-        """ When factory function returns None, no value """
+        """When factory function returns None, no value"""
         cache = util.TimedCache(None, lambda a: None)
         with self.assertRaises(KeyError):
             cache["a"]  # pylint: disable=W0104
 
     def test_factory_get(self):
-        """ Factory function populates cache from .get() """
+        """Factory function populates cache from .get()"""
         cache = util.TimedCache(None, lambda a: a)
         self.assertEqual(cache.get("a"), "a")
 
     def test_factory_get_none(self):
-        """ Factory function populates cache from .get() """
+        """Factory function populates cache from .get()"""
         cache = util.TimedCache(None, lambda a: None)
         self.assertEqual(cache.get("a", "f"), "f")
 
     def test_get(self):
-        """ .get() functions as per dict """
+        """.get() functions as per dict"""
         cache = util.TimedCache(None)
         cache["a"] = 1
         self.assertEqual(cache.get("a"), 1)
@@ -116,7 +116,7 @@ class TestTimedCache(unittest.TestCase):
 
     @patch("pypicloud.util.time")
     def test_set_no_expire(self, time):
-        """ set_expire with None will never expire value """
+        """set_expire with None will never expire value"""
         cache = util.TimedCache(5)
         cache.set_expire("a", 1, None)
         time.time.return_value = 8
@@ -124,7 +124,7 @@ class TestTimedCache(unittest.TestCase):
 
     @patch("pypicloud.util.time")
     def test_set_expire(self, time):
-        """ set_expire is calculated from now """
+        """set_expire is calculated from now"""
         cache = util.TimedCache(5)
         time.time.return_value = 0
         cache.set_expire("a", 1, 30)
@@ -136,7 +136,7 @@ class TestTimedCache(unittest.TestCase):
 
     @patch("pypicloud.util.time")
     def test_set_expire_clear(self, time):
-        """ set_expire with 0 will evict value """
+        """set_expire with 0 will evict value"""
         cache = util.TimedCache(5)
         time.time.return_value = 0
         cache["a"] = 1
@@ -147,26 +147,26 @@ class TestTimedCache(unittest.TestCase):
 
 
 class TestGetPackagetype(unittest.TestCase):
-    """ Tests for get_packagetype """
+    """Tests for get_packagetype"""
 
     def test_sdist(self):
-        """ get package type for sdist """
+        """get package type for sdist"""
         packagetype = util.get_packagetype("mypkg-1.1.tar.gz")
         self.assertEqual(packagetype, "sdist")
 
     def test_egg(self):
-        """ get package type for bdist_egg """
+        """get package type for bdist_egg"""
         packagetype = util.get_packagetype("mypkg-1.1-py3.7-linux-x86_64.egg")
         self.assertEqual(packagetype, "bdist_egg")
 
     def test_wheel(self):
-        """ get package type for bdist_wheel """
+        """get package type for bdist_wheel"""
         packagetype = util.get_packagetype(
             "mypkg-1.1-cp38-cp38-manylinux2010_x86_64.whl"
         )
         self.assertEqual(packagetype, "bdist_wheel")
 
     def test_invalid(self):
-        """ get package type for invalid file name """
+        """get package type for invalid file name"""
         packagetype = util.get_packagetype("mypkg-1.1.tar")
         self.assertEqual(packagetype, "")

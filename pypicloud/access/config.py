@@ -10,7 +10,7 @@ LOG = logging.getLogger(__name__)
 
 class ConfigAccessBackend(IJsonAccessBackend):
 
-    """ Access Backend that uses values set in the config file """
+    """Access Backend that uses values set in the config file"""
 
     def __init__(self, request=None, data=None, **kwargs):
         super(ConfigAccessBackend, self).__init__(request, **kwargs)
@@ -58,7 +58,7 @@ class ConfigAccessBackend(IJsonAccessBackend):
 
     @staticmethod
     def _perms_from_short(value):
-        """ Convert a 'r' or 'rw' specification to a list of permissions """
+        """Convert a 'r' or 'rw' specification to a list of permissions"""
         value = value or ""
         if len(value) > 2:
             return aslist(value)
@@ -88,7 +88,7 @@ class ConfigAccessBackend(IJsonAccessBackend):
                 lines.append("    {0}".format(member))
 
         def encode_permissions(perms):
-            """ Encode a permissions list as the r/rw specification """
+            """Encode a permissions list as the r/rw specification"""
             ret = ""
             if "read" in perms:
                 ret += "r"

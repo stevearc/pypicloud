@@ -21,7 +21,7 @@ from . import make_package
 
 class TestDynamoCache(unittest.TestCase):
 
-    """ Tests for the DynamoCache """
+    """Tests for the DynamoCache"""
 
     dynamo = None
 
@@ -59,14 +59,14 @@ class TestDynamoCache(unittest.TestCase):
             self.engine.scan(model).delete()
 
     def _save_pkgs(self, *pkgs):
-        """ Save a DynamoPackage to the db """
+        """Save a DynamoPackage to the db"""
         for pkg in pkgs:
             self.engine.save(pkg)
             summary = PackageSummary(pkg)
             self.engine.save(summary, overwrite=True)
 
     def test_add_missing(self):
-        """ Add missing packages to cache """
+        """Add missing packages to cache"""
         keys = [make_package(factory=DynamoPackage)]
         self.storage.list.return_value = keys
         self.db.reload_from_storage()
@@ -76,7 +76,7 @@ class TestDynamoCache(unittest.TestCase):
         self.assertEqual(len(all_summaries), 1)
 
     def test_remove_extra(self):
-        """ Remove extra packages from cache """
+        """Remove extra packages from cache"""
         keys = [
             make_package(factory=DynamoPackage),
             make_package("mypkg2", "1.3.4", factory=DynamoPackage),
@@ -91,7 +91,7 @@ class TestDynamoCache(unittest.TestCase):
         self.assertEqual(self.engine.scan(PackageSummary).count(), 1)
 
     def test_remove_extra_leave_concurrent(self):
-        """ Removing extra packages will leave packages that were uploaded concurrently """
+        """Removing extra packages will leave packages that were uploaded concurrently"""
         pkgs = [
             make_package(factory=DynamoPackage),
             make_package("mypkg2", factory=DynamoPackage),
@@ -104,7 +104,7 @@ class TestDynamoCache(unittest.TestCase):
         return_values = [lambda: pkgs[1:2], lambda: pkgs[1:]]
 
         def list_storage(factory):
-            """ mocked method for listing storage packages """
+            """mocked method for listing storage packages"""
             # The first time we list from storage, concurrently "upload"
             # pkgs[2]
             if len(return_values) == 2:
@@ -121,7 +121,7 @@ class TestDynamoCache(unittest.TestCase):
         self.assertEqual(self.engine.scan(PackageSummary).count(), 2)
 
     def test_remove_extra_concurrent_deletes(self):
-        """ Remove packages from cache that were concurrently deleted """
+        """Remove packages from cache that were concurrently deleted"""
         pkgs = [
             make_package(factory=DynamoPackage),
             make_package("mypkg2", factory=DynamoPackage),
@@ -139,7 +139,7 @@ class TestDynamoCache(unittest.TestCase):
         self.assertEqual(self.engine.scan(PackageSummary).count(), 1)
 
     def test_add_missing_more_recent(self):
-        """ If we sync a more recent package, update the summary """
+        """If we sync a more recent package, update the summary"""
         pkgs = [
             make_package(
                 last_modified=utcnow() - timedelta(hours=1),
@@ -158,7 +158,7 @@ class TestDynamoCache(unittest.TestCase):
         self.assertEqual(summary["last_modified"], pkgs[1].last_modified)
 
     def test_same_package_name_version(self):
-        """ Storage can have packages with the same name and version (different filename) """
+        """Storage can have packages with the same name and version (different filename)"""
         pkgs = [
             make_package(filename="mypkg-1.1-win32.whl", factory=DynamoPackage),
             make_package(filename="mypkg-1.1-macosx.whl", factory=DynamoPackage),
@@ -174,7 +174,7 @@ class TestDynamoCache(unittest.TestCase):
 
 class TestRedisCache(unittest.TestCase):
 
-    """ Tests for the RedisCache """
+    """Tests for the RedisCache"""
 
     @classmethod
     def setUpClass(cls):
@@ -207,14 +207,14 @@ class TestRedisCache(unittest.TestCase):
         self.redis.flushdb()
 
     def _save_pkgs(self, *pkgs):
-        """ Save packages to the db """
+        """Save packages to the db"""
         pipe = self.redis.pipeline()
         for pkg in pkgs:
             self.db.save(pkg, pipe)
         pipe.execute()
 
     def test_add_missing(self):
-        """ Add missing packages to cache """
+        """Add missing packages to cache"""
         keys = [make_package()]
         self.storage.list.return_value = keys
         self.db.reload_from_storage()
@@ -223,7 +223,7 @@ class TestRedisCache(unittest.TestCase):
         self.assertEqual(len(self.db.summary()), 1)
 
     def test_remove_extra(self):
-        """ Remove extra packages from cache """
+        """Remove extra packages from cache"""
         keys = [make_package(), make_package("mypkg2", "1.3.4")]
         self.db.save(keys[0])
         self.db.save(keys[1])
@@ -235,7 +235,7 @@ class TestRedisCache(unittest.TestCase):
         self.assertEqual(len(self.db.summary()), 1)
 
     def test_remove_extra_leave_concurrent(self):
-        """ Removing extra packages will leave packages that were uploaded concurrently """
+        """Removing extra packages will leave packages that were uploaded concurrently"""
         pkgs = [make_package(), make_package("mypkg2")]
         self.db.save(pkgs[0])
         self.db.save(pkgs[1])
@@ -245,7 +245,7 @@ class TestRedisCache(unittest.TestCase):
         return_values = [lambda: pkgs[1:2], lambda: pkgs[1:]]
 
         def list_storage(factory):
-            """ mocked method for listing storage packages """
+            """mocked method for listing storage packages"""
             # The first time we list from storage, concurrently "upload"
             # pkgs[2]
             if len(return_values) == 2:
@@ -262,7 +262,7 @@ class TestRedisCache(unittest.TestCase):
         self.assertEqual(len(self.db.summary()), 2)
 
     def test_remove_extra_concurrent_deletes(self):
-        """ Remove packages from cache that were concurrently deleted """
+        """Remove packages from cache that were concurrently deleted"""
         pkgs = [make_package(), make_package("mypkg2")]
         self.db.save(pkgs[0])
 
@@ -277,7 +277,7 @@ class TestRedisCache(unittest.TestCase):
         self.assertEqual(len(self.db.summary()), 1)
 
     def test_add_missing_more_recent(self):
-        """ If we sync a more recent package, update the summary """
+        """If we sync a more recent package, update the summary"""
         pkgs = [
             make_package(last_modified=utcnow() - timedelta(hours=1)),
             make_package(version="1.5"),
@@ -293,7 +293,7 @@ class TestRedisCache(unittest.TestCase):
         self.assertEqual(summary["last_modified"].hour, pkgs[1].last_modified.hour)
 
     def test_same_package_name_version(self):
-        """ Storage can have packages with the same name and version (different filename) """
+        """Storage can have packages with the same name and version (different filename)"""
         pkgs = [
             make_package(filename="mypkg-1.1-win32.whl"),
             make_package(filename="mypkg-1.1-macosx.whl"),
@@ -309,7 +309,7 @@ class TestRedisCache(unittest.TestCase):
 
 class TestSQLiteCache(unittest.TestCase):
 
-    """ Tests for the SQLCache """
+    """Tests for the SQLCache"""
 
     DB_URL = "sqlite://"
 
@@ -343,7 +343,7 @@ class TestSQLiteCache(unittest.TestCase):
         self.request._process_finished_callbacks()
 
     def _make_package(self, *args, **kwargs):
-        """ Wrapper around make_package """
+        """Wrapper around make_package"""
         # Some SQL dbs are rounding the timestamps (looking at you MySQL >:|
         # which is a problem if they round UP to the future, as our
         # calculations depend on the timestamps being monotonically increasing.
@@ -353,7 +353,7 @@ class TestSQLiteCache(unittest.TestCase):
         return make_package(*args, **kwargs)
 
     def test_add_missing(self):
-        """ Add missing packages to cache """
+        """Add missing packages to cache"""
         keys = [self._make_package()]
         self.storage.list.return_value = keys
         self.db.reload_from_storage()
@@ -361,7 +361,7 @@ class TestSQLiteCache(unittest.TestCase):
         self.assertItemsEqual(all_pkgs, keys)
 
     def test_remove_extra(self):
-        """ Remove extra packages from cache """
+        """Remove extra packages from cache"""
         keys = [self._make_package(), self._make_package("mypkg2", "1.3.4")]
         self.db.save(keys[0])
         self.db.save(keys[1])
@@ -371,7 +371,7 @@ class TestSQLiteCache(unittest.TestCase):
         self.assertItemsEqual(all_pkgs, keys[:1])
 
     def test_remove_extra_leave_concurrent(self):
-        """ Removing extra packages will leave packages that were uploaded concurrently """
+        """Removing extra packages will leave packages that were uploaded concurrently"""
         pkgs = [self._make_package(), self._make_package("mypkg2")]
         self.db.save(pkgs[0])
         self.db.save(pkgs[1])
@@ -381,7 +381,7 @@ class TestSQLiteCache(unittest.TestCase):
         return_values = [lambda: pkgs[1:2], lambda: pkgs[1:]]
 
         def list_storage(factory):
-            """ mocked method for listing storage packages """
+            """mocked method for listing storage packages"""
             # The first time we list from storage, concurrently "upload"
             # pkgs[2]
             if len(return_values) == 2:
@@ -398,7 +398,7 @@ class TestSQLiteCache(unittest.TestCase):
         self.assertItemsEqual(all_pkgs, pkgs[1:])
 
     def test_remove_extra_concurrent_deletes(self):
-        """ Remove packages from cache that were concurrently deleted """
+        """Remove packages from cache that were concurrently deleted"""
         pkgs = [self._make_package(), self._make_package("mypkg2")]
         self.db.save(pkgs[0])
 
@@ -412,7 +412,7 @@ class TestSQLiteCache(unittest.TestCase):
         self.assertItemsEqual(all_pkgs, pkgs[:1])
 
     def test_add_missing_more_recent(self):
-        """ If we sync a more recent package, update the summary """
+        """If we sync a more recent package, update the summary"""
         pkgs = [
             self._make_package(last_modified=utcnow() - timedelta(hours=1)),
             self._make_package(version="1.5"),
@@ -424,7 +424,7 @@ class TestSQLiteCache(unittest.TestCase):
         self.assertItemsEqual(all_pkgs, pkgs)
 
     def test_same_package_name_version(self):
-        """ Storage can have packages with the same name and version (different filename) """
+        """Storage can have packages with the same name and version (different filename)"""
         pkgs = [
             self._make_package(filename="mypkg-1.1-win32.whl"),
             self._make_package(filename="mypkg-1.1-macosx.whl"),
@@ -437,12 +437,12 @@ class TestSQLiteCache(unittest.TestCase):
 
 
 class TestMySQLCache(TestSQLiteCache):
-    """ Test the SQLAlchemy cache on a MySQL DB """
+    """Test the SQLAlchemy cache on a MySQL DB"""
 
     DB_URL = "mysql://root@127.0.0.1:3306/test?charset=utf8mb4"
 
 
 class TestPostgresCache(TestSQLiteCache):
-    """ Test the SQLAlchemy cache on a Postgres DB """
+    """Test the SQLAlchemy cache on a Postgres DB"""
 
     DB_URL = "postgresql://postgres@127.0.0.1:5432/postgres"

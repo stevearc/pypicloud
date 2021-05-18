@@ -32,7 +32,7 @@ from . import make_package
 
 class TestS3Storage(unittest.TestCase):
 
-    """ Tests for storing packages in S3 """
+    """Tests for storing packages in S3"""
 
     def setUp(self):
         super(TestS3Storage, self).setUp()
@@ -55,7 +55,7 @@ class TestS3Storage(unittest.TestCase):
         self.s3_mock.stop()
 
     def test_list(self):
-        """ Can construct a package from a S3 Key """
+        """Can construct a package from a S3 Key"""
         name, version, filename, summary = "mypkg", "1.2", "pkg.tar.gz", "text"
         key = self.bucket.Object(name + "/" + filename)
         key.put(
@@ -69,7 +69,7 @@ class TestS3Storage(unittest.TestCase):
         self.assertEqual(package.summary, summary)
 
     def test_list_no_metadata(self):
-        """ Test that list works on old keys with no metadata """
+        """Test that list works on old keys with no metadata"""
         name, version = "mypkg", "1.2"
         filename = "%s-%s.tar.gz" % (name, version)
         key = self.bucket.Object(name + "/" + filename)
@@ -81,7 +81,7 @@ class TestS3Storage(unittest.TestCase):
         self.assertEqual(package.summary, None)
 
     def test_get_url(self):
-        """ Mock s3 and test package url generation """
+        """Mock s3 and test package url generation"""
         package = make_package()
         response = self.storage.download_response(package)
 
@@ -97,7 +97,7 @@ class TestS3Storage(unittest.TestCase):
         )
 
     def test_delete(self):
-        """ delete() should remove package from storage """
+        """delete() should remove package from storage"""
         package = make_package()
         self.storage.upload(package, BytesIO())
         self.storage.delete(package)
@@ -105,7 +105,7 @@ class TestS3Storage(unittest.TestCase):
         self.assertEqual(len(keys), 0)
 
     def test_upload(self):
-        """ Uploading package sets metadata and sends to S3 """
+        """Uploading package sets metadata and sends to S3"""
         package = make_package(requires_python="3.6")
         datastr = b"foobar"
         data = BytesIO(datastr)
@@ -122,7 +122,7 @@ class TestS3Storage(unittest.TestCase):
         )
 
     def test_upload_prepend_hash(self):
-        """ If prepend_hash = True, attach a hash to the file path """
+        """If prepend_hash = True, attach a hash to the file path"""
         self.storage.prepend_hash = True
         package = make_package()
         data = BytesIO()
@@ -137,7 +137,7 @@ class TestS3Storage(unittest.TestCase):
         self.assertIsNotNone(match)
 
     def test_create_bucket_eu(self):
-        """ If S3 bucket doesn't exist, create it """
+        """If S3 bucket doesn't exist, create it"""
         settings = {
             "storage.bucket": "new_bucket",
             "storage.region_name": "eu-central-1",
@@ -149,7 +149,7 @@ class TestS3Storage(unittest.TestCase):
         bucket.load()
 
     def test_create_bucket_us(self):
-        """ If S3 bucket doesn't exist, create it """
+        """If S3 bucket doesn't exist, create it"""
         settings = {"storage.bucket": "new_bucket", "storage.region_name": "us-west-1"}
         S3Storage.configure(settings)
 
@@ -157,7 +157,7 @@ class TestS3Storage(unittest.TestCase):
         bucket.load()
 
     def test_object_acl(self):
-        """ Can specify an object ACL for S3 objects """
+        """Can specify an object ACL for S3 objects"""
         settings = dict(self.settings)
         settings["storage.object_acl"] = "authenticated-read"
         kwargs = S3Storage.configure(settings)
@@ -183,7 +183,7 @@ class TestS3Storage(unittest.TestCase):
         )
 
     def test_storage_class(self):
-        """ Can specify a storage class for S3 objects """
+        """Can specify a storage class for S3 objects"""
         settings = dict(self.settings)
         settings["storage.storage_class"] = "STANDARD_IA"
         kwargs = S3Storage.configure(settings)
@@ -194,16 +194,16 @@ class TestS3Storage(unittest.TestCase):
         self.assertItemsEqual(storage_class, "STANDARD_IA")
 
     def test_check_health_success(self):
-        """ check_health returns True for good connection """
+        """check_health returns True for good connection"""
         ok, msg = self.storage.check_health()
         self.assertTrue(ok)
 
     def test_check_health_fail(self):
-        """ check_health returns False for bad connection """
+        """check_health returns False for bad connection"""
         dbmock = self.storage.bucket.meta.client = MagicMock()
 
         def throw(*_, **__):
-            """ Throw an exception """
+            """Throw an exception"""
             raise ClientError({"Error": {}}, "OP")
 
         dbmock.head_bucket.side_effect = throw
@@ -211,7 +211,7 @@ class TestS3Storage(unittest.TestCase):
         self.assertFalse(ok)
 
     def test_unicode_summary(self):
-        """ Unicode characters in summary will be converted to ascii """
+        """Unicode characters in summary will be converted to ascii"""
         package = make_package(summary="text 🤪")
         datastr = b"foobar"
         data = BytesIO(datastr)
@@ -227,7 +227,7 @@ class TestS3Storage(unittest.TestCase):
 
 class TestCloudFrontS3Storage(unittest.TestCase):
 
-    """ Tests for storing packages on S3 with CloudFront in front """
+    """Tests for storing packages on S3 with CloudFront in front"""
 
     def setUp(self):
         super(TestCloudFrontS3Storage, self).setUp()
@@ -263,7 +263,7 @@ class TestCloudFrontS3Storage(unittest.TestCase):
         self.storage = CloudFrontS3Storage(MagicMock(), **kwargs)
 
     def test_get_url(self):
-        """ Mock s3 and test package url generation """
+        """Mock s3 and test package url generation"""
         package = make_package(version="1.1+g12345")
         response = self.storage.download_response(package)
 
@@ -281,7 +281,7 @@ class TestCloudFrontS3Storage(unittest.TestCase):
 
 class TestFileStorage(unittest.TestCase):
 
-    """ Tests for storing packages as local files """
+    """Tests for storing packages as local files"""
 
     def setUp(self):
         super(TestFileStorage, self).setUp()
@@ -296,7 +296,7 @@ class TestFileStorage(unittest.TestCase):
         shutil.rmtree(self.tempdir)
 
     def test_upload(self):
-        """ Uploading package saves file """
+        """Uploading package saves file"""
         package = make_package(requires_python="3.6")
         datastr = b"foobar"
         data = BytesIO(datastr)
@@ -311,7 +311,7 @@ class TestFileStorage(unittest.TestCase):
             self.assertEqual(json.loads(mfile.read()), package.get_metadata())
 
     def test_list(self):
-        """ Can iterate over uploaded packages """
+        """Can iterate over uploaded packages"""
         package = make_package()
         path = self.storage.get_path(package)
         meta_file = self.storage.get_metadata_path(package)
@@ -329,7 +329,7 @@ class TestFileStorage(unittest.TestCase):
         self.assertEqual(pkg.summary, package.summary)
 
     def test_delete(self):
-        """ delete() should remove package from storage """
+        """delete() should remove package from storage"""
         package = make_package()
         path = self.storage.get_path(package)
         meta_path = self.storage.get_metadata_path(package)
@@ -343,7 +343,7 @@ class TestFileStorage(unittest.TestCase):
         self.assertFalse(os.path.exists(meta_path))
 
     def test_create_package_dir(self):
-        """ configure() will create the package dir if it doesn't exist """
+        """configure() will create the package dir if it doesn't exist"""
         tempdir = tempfile.mkdtemp()
         os.rmdir(tempdir)
         settings = {"storage.dir": tempdir}
@@ -354,13 +354,13 @@ class TestFileStorage(unittest.TestCase):
             os.rmdir(tempdir)
 
     def test_check_health(self):
-        """ Base check_health returns True """
+        """Base check_health returns True"""
         ok, msg = self.storage.check_health()
         self.assertTrue(ok)
 
 
 class MockGCSBlob(object):
-    """ Mock object representing the google.cloud.storage.Blob class """
+    """Mock object representing the google.cloud.storage.Blob class"""
 
     def __init__(self, name, bucket):
         self.name = name
@@ -384,12 +384,12 @@ class MockGCSBlob(object):
         self.bucket._upload_blob(self)
 
     def _upload_from_file(self, fp, predefined_acl):
-        """ Mock the upload_from_file() method on google.cloud.storage.Blob """
+        """Mock the upload_from_file() method on google.cloud.storage.Blob"""
         self._acl = predefined_acl
         self.upload_from_string(fp.read())
 
     def _delete(self):
-        """ Mock the delete() method on google.cloud.storage.Blob """
+        """Mock the delete() method on google.cloud.storage.Blob"""
         self.bucket._delete_blob(self.name)
 
     def _generate_signed_url(self, expiration, credentials, version):
@@ -410,7 +410,7 @@ class MockGCSBlob(object):
 
 
 class MockGCSBucket(object):
-    """ Mock object representing the google.cloud.storage.Bucket class """
+    """Mock object representing the google.cloud.storage.Bucket class"""
 
     def __init__(self, name, client):
         self.name = name
@@ -439,11 +439,11 @@ class MockGCSBucket(object):
         self._blobs.pop(blob_name)
 
     def _blob(self, blob_name):
-        """ Mock the blob() method on google.cloud.storage.Bucket """
+        """Mock the blob() method on google.cloud.storage.Bucket"""
         return MockGCSBlob(blob_name, self)
 
     def _list_blobs(self, prefix=None):
-        """ Mock the list_blobs() method on google.cloud.storage.Bucket """
+        """Mock the list_blobs() method on google.cloud.storage.Bucket"""
         return [
             item
             for item in self._blobs.values()
@@ -451,16 +451,16 @@ class MockGCSBucket(object):
         ]
 
     def _exists(self):
-        """ Mock the exists() method on google.cloud.storage.Bucket """
+        """Mock the exists() method on google.cloud.storage.Bucket"""
         return self._created
 
     def _create(self):
-        """ Mock the create() method on google.cloud.storage.Bucket """
+        """Mock the create() method on google.cloud.storage.Bucket"""
         self._created = True
 
 
 class MockGCSClient(object):
-    """ Mock object representing the google.cloud.storage.Client class """
+    """Mock object representing the google.cloud.storage.Client class"""
 
     def __init__(self):
         self.bucket = MagicMock(wraps=self._bucket)
@@ -480,7 +480,7 @@ class MockGCSClient(object):
         return self
 
     def _bucket(self, bucket_name):
-        """ Mock the bucket() method on google.cloud.storage.Bucket """
+        """Mock the bucket() method on google.cloud.storage.Bucket"""
         if bucket_name not in self._buckets:
             self._buckets[bucket_name] = MockGCSBucket(bucket_name, self)
 
@@ -489,7 +489,7 @@ class MockGCSClient(object):
 
 class TestGoogleCloudStorage(unittest.TestCase):
 
-    """ Tests for storing packages in GoogleCloud """
+    """Tests for storing packages in GoogleCloud"""
 
     def setUp(self):
         super(TestGoogleCloudStorage, self).setUp()
@@ -514,7 +514,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
         os.remove(self._config_file)
 
     def test_list(self):
-        """ Can construct a package from a GoogleCloudStorage Blob """
+        """Can construct a package from a GoogleCloudStorage Blob"""
         name, version, filename, summary = "mypkg", "1.2", "pkg.tar.gz", "text"
 
         blob = self.bucket.blob(name + "/" + filename)
@@ -532,7 +532,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
         self.assertEqual(self.bucket.create.call_count, 0)
 
     def test_get_url(self):
-        """ Mock gcs and test package url generation """
+        """Mock gcs and test package url generation"""
         package = make_package()
         response = self.storage.download_response(package)
 
@@ -545,7 +545,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
         self.assertTrue(int(query["Expires"][0]) > time.time())
 
     def test_delete(self):
-        """ delete() should remove package from storage """
+        """delete() should remove package from storage"""
         package = make_package()
         self.storage.upload(package, BytesIO())
         self.storage.delete(package)
@@ -553,7 +553,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
         self.assertEqual(len(keys), 0)
 
     def test_upload(self):
-        """ Uploading package sets metadata and sends to S3 """
+        """Uploading package sets metadata and sends to S3"""
         package = make_package(requires_python="3.6")
         datastr = b"foobar"
         data = BytesIO(datastr)
@@ -570,7 +570,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
         self.assertEqual(self.bucket.create.call_count, 0)
 
     def test_upload_prepend_hash(self):
-        """ If prepend_hash = True, attach a hash to the file path """
+        """If prepend_hash = True, attach a hash to the file path"""
         self.storage.prepend_hash = True
         package = make_package()
         data = BytesIO()
@@ -586,7 +586,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
         self.assertIsNotNone(match)
 
     def test_create_bucket(self):
-        """ If GCS bucket doesn't exist, create it """
+        """If GCS bucket doesn't exist, create it"""
         settings = {
             "storage.bucket": "new_bucket",
             "storage.region_name": "us-east-1",
@@ -614,7 +614,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
         self.assertEqual(blob._acl, "authenticated-read")
 
     def test_storage_class(self):
-        """ Can specify a storage class for GCS objects """
+        """Can specify a storage class for GCS objects"""
         settings = dict(self.settings)
         settings["storage.storage_class"] = "COLDLINE"
         kwargs = GoogleCloudStorage.configure(settings)
@@ -626,7 +626,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
         blob.update_storage_class.assert_called_with("COLDLINE")
 
     def test_client_without_credentials(self):
-        """ Can create a client without passing in application credentials """
+        """Can create a client without passing in application credentials"""
         kwargs = GoogleCloudStorage.configure(
             {"storage.bucket": "new_bucket", "storage.region_name": "us-east-1"}
         )
@@ -634,7 +634,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
 
 
 class TestAzureStorage(unittest.TestCase):
-    """ Tests for storing packages in Azure Blob Storage """
+    """Tests for storing packages in Azure Blob Storage"""
 
     @classmethod
     def setUpClass(cls):
@@ -686,7 +686,7 @@ class TestAzureStorage(unittest.TestCase):
         self.assertItemsEqual(query.keys(), ["se", "sp", "spr", "sv", "sr", "sig"])
 
     def test_delete(self):
-        """ delete() should remove package from storage """
+        """delete() should remove package from storage"""
         with vcr.use_cassette(
             "tests/vcr_cassettes/test_delete.yaml", filter_headers=["authorization"]
         ):
@@ -697,7 +697,7 @@ class TestAzureStorage(unittest.TestCase):
             self.assertEqual(len(packages), 0)
 
     def test_check_health_success(self):
-        """ check_health returns True for good connection """
+        """check_health returns True for good connection"""
         with vcr.use_cassette(
             "tests/vcr_cassettes/test_check.yaml", filter_headers=["authorization"]
         ):
@@ -705,7 +705,7 @@ class TestAzureStorage(unittest.TestCase):
             self.assertTrue(ok)
 
     def test_check_health_fail(self):
-        """ check_health returns False for bad connection """
+        """check_health returns False for bad connection"""
         with vcr.use_cassette(
             "tests/vcr_cassettes/test_check_fail.yaml",
             filter_headers=["authorization"],

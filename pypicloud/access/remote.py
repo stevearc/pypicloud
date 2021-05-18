@@ -30,7 +30,7 @@ class RemoteAccessBackend(IAccessBackend):
         return kwargs
 
     def _req(self, uri, params=None):
-        """ Hit a server endpoint and return the json response """
+        """Hit a server endpoint and return the json response"""
         try:
             import requests
         except ImportError as e:  # pragma: no cover

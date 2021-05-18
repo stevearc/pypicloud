@@ -16,7 +16,7 @@ SENTINEL = object()
 
 
 def parse_filename(filename: str, name: Optional[str] = None) -> Tuple[str, str]:
-    """ Parse a name and version out of a filename """
+    """Parse a name and version out of a filename"""
     version = None
     for ext in ALL_EXTENSIONS:
         if filename.endswith(ext):
@@ -38,7 +38,7 @@ def parse_filename(filename: str, name: Optional[str] = None) -> Tuple[str, str]
 
 
 def get_packagetype(name: str) -> str:
-    """ Get package type out of a filename """
+    """Get package type out of a filename"""
     if name.endswith(".tar.gz"):
         return "sdist"
     elif name.endswith(".egg"):
@@ -50,7 +50,7 @@ def get_packagetype(name: str) -> str:
 
 
 def normalize_name(name: str) -> str:
-    """ Normalize a python package name """
+    """Normalize a python package name"""
     # Lifted directly from PEP503:
     # https://www.python.org/dev/peps/pep-0503/#id4
     return re.sub(r"[-_.]+", "-", name).lower()
@@ -159,14 +159,14 @@ class TimedCache(dict):
         self._times = {}  # type: Dict[str, float]
 
     def _has_expired(self, key):
-        """ Check if a key is both present and expired """
+        """Check if a key is both present and expired"""
         if key not in self._times or self._cache_time is None:
             return False
         updated = self._times[key]
         return updated is not None and time.time() - updated > self._cache_time
 
     def _evict(self, key):
-        """ Remove a key if it has expired """
+        """Remove a key if it has expired"""
         if self._has_expired(key):
             del self[key]
 

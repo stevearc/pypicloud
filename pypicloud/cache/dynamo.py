@@ -27,7 +27,7 @@ LOG = logging.getLogger(__name__)
 
 class DynamoPackage(Package, Model):
 
-    """ Python package stored in DynamoDB """
+    """Python package stored in DynamoDB"""
 
     __metadata__ = {"global_indexes": [GlobalIndex("name-index", "name")]}
     filename = Field(hash_key=True)
@@ -46,7 +46,7 @@ class DynamoPackage(Package, Model):
 
 class PackageSummary(Model):
 
-    """ Aggregate data about packages """
+    """Aggregate data about packages"""
 
     name = Field(hash_key=True)
     summary = Field()
@@ -60,7 +60,7 @@ class PackageSummary(Model):
 
 class DynamoCache(ICache):
 
-    """ Caching database that uses DynamoDB """
+    """Caching database that uses DynamoDB"""
 
     def __init__(self, request=None, engine=None, graceful_reload=False, **kwargs):
         super(DynamoCache, self).__init__(request, **kwargs)
@@ -134,7 +134,7 @@ class DynamoCache(ICache):
         self._maybe_delete_summary(package.name)
 
     def _maybe_delete_summary(self, package_name):
-        """ Check for any package with the name. Delete summary if 0 """
+        """Check for any package with the name. Delete summary if 0"""
         remaining = (
             self.engine(DynamoPackage)
             .filter(DynamoPackage.name == package_name)

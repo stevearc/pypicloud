@@ -9,7 +9,7 @@ from .sql import SQLCache
 
 
 def get_cache_impl(settings):
-    """ Get the cache class from settings """
+    """Get the cache class from settings"""
     resolver = DottedNameResolver(__name__)
     dotted_cache = settings.get("pypi.db", "sql")
     if dotted_cache == "sql":
@@ -22,7 +22,7 @@ def get_cache_impl(settings):
 
 
 def includeme(config):
-    """ Get and configure the cache db wrapper """
+    """Get and configure the cache db wrapper"""
     settings = config.get_settings()
     cache_impl = get_cache_impl(settings)
     kwargs = cache_impl.configure(settings)

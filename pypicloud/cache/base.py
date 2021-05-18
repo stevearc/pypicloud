@@ -17,7 +17,7 @@ LOG = logging.getLogger(__name__)
 
 class ICache(object):
 
-    """ Base class for a caching database that stores package metadata """
+    """Base class for a caching database that stores package metadata"""
 
     def __init__(
         self,
@@ -50,7 +50,7 @@ class ICache(object):
 
     @classmethod
     def configure(cls, settings):
-        """ Configure the cache method with app settings """
+        """Configure the cache method with app settings"""
         return {
             "storage": get_storage_impl(settings),
             "allow_overwrite": asbool(settings.get("pypi.allow_overwrite", False)),
@@ -62,7 +62,7 @@ class ICache(object):
 
     @classmethod
     def postfork(cls, **kwargs):
-        """ This method will be called after uWSGI forks """
+        """This method will be called after uWSGI forks"""
 
     def get_url(self, package: Package) -> str:
         """
@@ -80,11 +80,11 @@ class ICache(object):
         return self.storage.get_url(package)
 
     def download_response(self, package: Package):
-        """ Pass through to storage """
+        """Pass through to storage"""
         return self.storage.download_response(package)
 
     def reload_from_storage(self, clear: bool = True) -> None:
-        """ Make sure local database is populated with packages """
+        """Make sure local database is populated with packages"""
         if clear:
             self.clear_all()
         packages = self.storage.list(self.new_package)
@@ -302,7 +302,7 @@ class ICache(object):
         raise NotImplementedError
 
     def clear_all(self) -> None:
-        """ Clear all cached packages from the database """
+        """Clear all cached packages from the database"""
         raise NotImplementedError
 
     def save(self, package: Package) -> None:

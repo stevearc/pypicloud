@@ -17,7 +17,7 @@ from pypicloud.access import SCHEMES, get_pwd_context
 
 
 def gen_password(argv=None):
-    """ Generate a salted password """
+    """Generate a salted password"""
     if argv is None:
         argv = sys.argv[1:]
     parser = argparse.ArgumentParser(gen_password.__doc__)
@@ -38,7 +38,7 @@ def gen_password(argv=None):
 
 
 def _get_password():
-    """ Prompt user for a password twice for safety """
+    """Prompt user for a password twice for safety"""
     while True:
         password = getpass.getpass()
         verify = getpass.getpass()
@@ -57,12 +57,12 @@ NO_DEFAULT = object()
 
 
 def wrapped_input(msg):
-    """ Wraps input for tests """
+    """Wraps input for tests"""
     return input(msg)
 
 
 def prompt(msg, default=NO_DEFAULT, validate=None):
-    """ Prompt user for input """
+    """Prompt user for input"""
     while True:
         response = wrapped_input(msg + " ").strip()
         if not response:
@@ -74,7 +74,7 @@ def prompt(msg, default=NO_DEFAULT, validate=None):
 
 
 def prompt_option(text, choices, default=NO_DEFAULT):
-    """ Prompt the user to choose one of a list of options """
+    """Prompt the user to choose one of a list of options"""
     while True:
         for i, msg in enumerate(choices):
             print("[%d] %s" % (i + 1, msg))
@@ -87,7 +87,7 @@ def prompt_option(text, choices, default=NO_DEFAULT):
 
 
 def promptyn(msg, default=None):
-    """ Display a blocking prompt until the user confirms """
+    """Display a blocking prompt until the user confirms"""
     while True:
         yes = "Y" if default else "y"
         if default or default is None:
@@ -104,7 +104,7 @@ def promptyn(msg, default=None):
 
 
 def bucket_validate(name):
-    """ Check for valid bucket name """
+    """Check for valid bucket name"""
     if name.startswith("."):
         print("Bucket names cannot start with '.'")
         return False
@@ -118,7 +118,7 @@ def bucket_validate(name):
 
 
 def storage_account_name_validate(name):
-    """ Check for valid storage account name """
+    """Check for valid storage account name"""
     if "." in name:
         print("Storage account names cannot contain '.'")
         return False
@@ -126,7 +126,7 @@ def storage_account_name_validate(name):
 
 
 def make_config(argv=None):
-    """ Create a server config file """
+    """Create a server config file"""
     if argv is None:
         argv = sys.argv[1:]
     parser = argparse.ArgumentParser(description=make_config.__doc__)
@@ -275,7 +275,7 @@ def migrate_packages(argv=None):
 
 
 def export_access(argv=None):
-    """ Dump the access control data to a universal format """
+    """Dump the access control data to a universal format"""
     if argv is None:
         argv = sys.argv[1:]
     parser = argparse.ArgumentParser(description=export_access.__doc__)

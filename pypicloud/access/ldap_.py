@@ -45,7 +45,7 @@ User = namedtuple("User", ["username", "dn", "is_admin"])
 
 
 class LDAP(object):
-    """ Handles interactions with the remote LDAP server """
+    """Handles interactions with the remote LDAP server"""
 
     def __init__(
         self,
@@ -102,7 +102,7 @@ class LDAP(object):
         self._admin_member_type = None
 
     def connect(self):
-        """ Initializes the python-ldap module and does the initial bind """
+        """Initializes the python-ldap module and does the initial bind"""
         if self._ignore_cert:
             ldap.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
         if self._ignore_referrals:
@@ -131,7 +131,7 @@ class LDAP(object):
         return self._admin_member_type
 
     def _bind_to_service(self):
-        """ Bind to the service account or anonymous """
+        """Bind to the service account or anonymous"""
         if self._service_dn:
             # bind with the service_dn
             self._server.simple_bind_s(self._service_dn, self._service_password)
@@ -141,12 +141,12 @@ class LDAP(object):
 
     @reconnect
     def test_connection(self):
-        """ Binds to service. Will throw if bad connection """
+        """Binds to service. Will throw if bad connection"""
         self._bind_to_service()
 
     @reconnect
     def _fetch_user(self, username):
-        """ Fetch a user entry from the LDAP server """
+        """Fetch a user entry from the LDAP server"""
         LOG.debug("LDAP fetching user %s", username)
         search_attrs = []
         if self._admin_field is not None:
@@ -225,7 +225,7 @@ class LDAP(object):
             return attribute
 
     def get_user(self, username):
-        """ Get the User object or None """
+        """Get the User object or None"""
         return self._cache.get(username)
 
     @reconnect

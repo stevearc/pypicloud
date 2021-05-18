@@ -86,7 +86,7 @@ class ObjectStoreStorage(IStorage):
         return kwargs
 
     def calculate_path(self, package):
-        """ Calculates the path of a package """
+        """Calculates the path of a package"""
         path = package.name + "/" + package.filename
         if self.prepend_hash:
             m = md5()
@@ -96,7 +96,7 @@ class ObjectStoreStorage(IStorage):
         return path
 
     def get_path(self, package):
-        """ Get the fully-qualified bucket path for a package """
+        """Get the fully-qualified bucket path for a package"""
         if "path" not in package.data:
             filename = self.calculate_path(package)
             package.data["path"] = self.bucket_prefix + filename

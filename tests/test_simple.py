@@ -26,14 +26,14 @@ class FileUpload(object):
 
 class TestSimple(MockServerTest):
 
-    """ Unit tests for the /simple endpoints """
+    """Unit tests for the /simple endpoints"""
 
     def setUp(self):
         super(TestSimple, self).setUp()
         self.request.access = MagicMock()
 
     def test_upload(self):
-        """ Upload endpoint returns the result of api call """
+        """Upload endpoint returns the result of api call"""
         self.params = {":action": "file_upload"}
         name, version, content = "foo", "bar", FileUpload("testfile", b"test1234")
         content.filename = "foo-1.2.tar.gz"
@@ -42,14 +42,14 @@ class TestSimple(MockServerTest):
         self.assertEqual(pkg, self.request.db.packages[content.filename])
 
     def test_upload_bad_action(self):
-        """ Upload endpoint only respects 'file_upload' action """
+        """Upload endpoint only respects 'file_upload' action"""
         self.params = {":action": "blah"}
         name, version, content = "foo", "bar", "baz"
         response = upload(self.request, content, name, version)
         self.assertEqual(response.status_code, 400)
 
     def test_upload_no_write_permission(self):
-        """ Upload without write permission returns 403 """
+        """Upload without write permission returns 403"""
         self.params = {":action": "file_upload"}
         name, version, content = "foo", "bar", FileUpload("testfile", b"test1234")
         content.filename = "foo-1.2.tar.gz"
@@ -58,7 +58,7 @@ class TestSimple(MockServerTest):
         self.assertEqual(response, self.request.forbid())
 
     def test_upload_duplicate(self):
-        """ Uploading a duplicate package returns 409 """
+        """Uploading a duplicate package returns 409"""
         self.params = {":action": "file_upload"}
         name, version, content = "foo", "1.2", FileUpload("testfile", b"test1234")
         content.filename = "foo-1.2.tar.gz"
@@ -67,7 +67,7 @@ class TestSimple(MockServerTest):
         self.assertEqual(response.status_code, 409)
 
     def test_search(self):
-        """ Pip search executes successfully """
+        """Pip search executes successfully"""
         self.params = {":action": "file_upload"}
         name1, version1, content1 = "foo", "1.1", FileUpload("testfile", b"test1234")
         content1.filename = "bar-1.2.tar.gz"
@@ -82,7 +82,7 @@ class TestSimple(MockServerTest):
         self.assertListEqual(response, expected)
 
     def test_search_permission_filter(self):
-        """ Pip search only gets results that user has read perms for """
+        """Pip search only gets results that user has read perms for"""
         self.params = {":action": "file_upload"}
         name1, version1, content1 = "pkg1", "1.1", FileUpload("testfile", b"test1234")
         content1.filename = "pkg1-1.1.tar.gz"
@@ -101,7 +101,7 @@ class TestSimple(MockServerTest):
         )
 
     def test_list(self):
-        """ Simple list should return api call """
+        """Simple list should return api call"""
         self.request.db = MagicMock()
         self.request.db.distinct.return_value = ["a", "b", "c"]
         self.request.access.has_permission.side_effect = lambda x, _: x == "b"
@@ -109,7 +109,7 @@ class TestSimple(MockServerTest):
         self.assertEqual(result, {"pkgs": ["b"]})
 
     def test_fallback_packages(self):
-        """ Fetch fallback packages """
+        """Fetch fallback packages"""
         self.request.locator = MagicMock()
         version = "1.1"
         name = "foo"
@@ -143,7 +143,7 @@ class TestSimple(MockServerTest):
         )
 
     def test_fallback_packages_redirect(self):
-        """ Fetch fallback packages with redirect URLs """
+        """Fetch fallback packages with redirect URLs"""
         self.request.locator = MagicMock()
         version = "1.1"
         name = "foo"
@@ -174,7 +174,7 @@ class TestSimple(MockServerTest):
         )
 
     def test_disallow_fallback_packages(self):
-        """ Disallow fetch fallback packages """
+        """Disallow fetch fallback packages"""
         self.request.locator = MagicMock()
         version = "1.1"
         name = "foo"
@@ -195,7 +195,7 @@ class TestSimple(MockServerTest):
 
 class PackageReadTestBase(unittest.TestCase):
 
-    """ Base class test for reading packages """
+    """Base class test for reading packages"""
 
     fallback = None
     always_show_upstream = None
@@ -224,7 +224,7 @@ class PackageReadTestBase(unittest.TestCase):
     def get_request(
         self, package=None, perms="", user=None, use_base_url=False, path=None
     ):
-        """ Construct a fake request """
+        """Construct a fake request"""
         request = MagicMock()
         request.registry.fallback = self.fallback
         request.registry.always_show_upstream = self.always_show_upstream
@@ -248,28 +248,28 @@ class PackageReadTestBase(unittest.TestCase):
         return request
 
     def should_ask_auth(self, request):
-        """ When requested, the endpoint should return a 401 """
+        """When requested, the endpoint should return a 401"""
         ret = package_versions(self.package, request)
         self.assertEqual(ret.status_code, 401)
 
     def should_404(self, request):
-        """ When requested, the endpoint should return a 404 """
+        """When requested, the endpoint should return a 404"""
         ret = package_versions(self.package, request)
         self.assertEqual(ret.status_code, 404)
 
     def should_403(self, request):
-        """ When requested, the endpoint should return a 403 """
+        """When requested, the endpoint should return a 403"""
         ret = package_versions(self.package, request)
         self.assertEqual(ret.status_code, 403)
 
     def should_redirect(self, request):
-        """ When requested, the endpoint should redirect to the fallback """
+        """When requested, the endpoint should redirect to the fallback"""
         ret = package_versions(self.package, request)
         self.assertEqual(ret.status_code, 302)
         self.assertEqual(ret.location, self.fallback_url + self.package.name + "/")
 
     def should_base_json_redirect(self, request):
-        """ When requested, the endpoint should redirect to the fallback """
+        """When requested, the endpoint should redirect to the fallback"""
         ret = package_versions_json(self.package, request)
         self.assertEqual(ret.status_code, 302)
         self.assertEqual(
@@ -277,7 +277,7 @@ class PackageReadTestBase(unittest.TestCase):
         )
 
     def should_serve(self, request):
-        """ When requested, the endpoint should serve the packages """
+        """When requested, the endpoint should serve the packages"""
         ret = package_versions(self.package, request)
         self.assertEqual(
             ret,
@@ -310,7 +310,7 @@ class PackageReadTestBase(unittest.TestCase):
         )
 
     def should_serve_hashes(self, request):
-        """ When requested, the endpoint should serve the packages with hashes """
+        """When requested, the endpoint should serve the packages with hashes"""
         ret = package_versions(self.package3, request)
         self.assertEqual(
             ret,
@@ -345,12 +345,12 @@ class PackageReadTestBase(unittest.TestCase):
         )
 
     def should_cache(self, request):
-        """ When requested, the endpoint should serve the fallback packages """
+        """When requested, the endpoint should serve the fallback packages"""
         ret = package_versions(self.package, request)
         self.assertEqual(ret, {"pkgs": self.fallback_packages})
 
     def should_serve_and_redirect(self, request):
-        """ Should serve mixture of package urls and redirect urls """
+        """Should serve mixture of package urls and redirect urls"""
         ret = package_versions(self.package, request)
         f2name = self.package2.filename
         self.assertEqual(
@@ -372,232 +372,232 @@ class PackageReadTestBase(unittest.TestCase):
 
 class TestRedirect(PackageReadTestBase):
 
-    """ Test reading packages with fallback=redirect and always_show_upstream=false """
+    """Test reading packages with fallback=redirect and always_show_upstream=false"""
 
     fallback = "redirect"
     always_show_upstream = False
 
     def test_no_package_no_read_no_user(self):
-        """ No package, no read perms, no user """
+        """No package, no read perms, no user"""
         self.should_redirect(self.get_request())
 
     def test_no_package_no_read_no_user_base_url(self):
-        """ No package, no read perms, no user """
+        """No package, no read perms, no user"""
         self.should_base_json_redirect(
             self.get_request(use_base_url=True, path="/pypi/package/json")
         )
 
     def test_no_package_no_read_user(self):
-        """ No package, no read perms, user """
+        """No package, no read perms, user"""
         self.should_redirect(self.get_request(user="foo"))
 
     def test_no_package_read_no_user(self):
-        """ No package, read perms, no user """
+        """No package, read perms, no user"""
         self.should_redirect(self.get_request(perms="r"))
 
     def test_no_package_read_user(self):
-        """ No package, read perms, user """
+        """No package, read perms, user"""
         self.should_redirect(self.get_request(perms="r", user="foo"))
 
     def test_no_package_write_no_user(self):
-        """ No package, write perms, no user """
+        """No package, write perms, no user"""
         self.should_redirect(self.get_request(perms="rc"))
 
     def test_no_package_write_user(self):
-        """ No package, write perms, user """
+        """No package, write perms, user"""
         self.should_redirect(self.get_request(perms="rc", user="foo"))
 
     def test_package_no_read_no_user(self):
-        """ Package, no read perms, no user. """
+        """Package, no read perms, no user."""
         self.should_ask_auth(self.get_request(self.package, ""))
 
     def test_package_no_read_user(self):
-        """ Package, no read perms, user. """
+        """Package, no read perms, user."""
         self.should_redirect(self.get_request(self.package, "", "foo"))
 
     def test_package_read_no_user(self):
-        """ Package, read perms, no user. """
+        """Package, read perms, no user."""
         self.should_serve(self.get_request(self.package, "r"))
 
     def test_package_read_user(self):
-        """ Package, read perms, user. """
+        """Package, read perms, user."""
         self.should_serve(self.get_request(self.package, "r", "foo"))
 
     def test_package_write_no_user(self):
-        """ Package, write perms, no user. """
+        """Package, write perms, no user."""
         self.should_serve(self.get_request(self.package, "rc"))
 
     def test_package_write_user(self):
-        """ Package, write perms, user. """
+        """Package, write perms, user."""
         self.should_serve(self.get_request(self.package, "rc", "foo"))
 
 
 class TestRedirectAlwaysShow(PackageReadTestBase):
 
-    """ Test reading packages with fallback=redirect and always_show_upstream=truue """
+    """Test reading packages with fallback=redirect and always_show_upstream=truue"""
 
     fallback = "redirect"
     always_show_upstream = True
 
     def test_no_package_no_read_no_user(self):
-        """ No package, no read perms, no user """
+        """No package, no read perms, no user"""
         self.should_redirect(self.get_request())
 
     def test_no_package_no_read_user(self):
-        """ No package, no read perms, user """
+        """No package, no read perms, user"""
         self.should_redirect(self.get_request(user="foo"))
 
     def test_no_package_read_no_user(self):
-        """ No package, read perms, no user """
+        """No package, read perms, no user"""
         self.should_redirect(self.get_request(perms="r"))
 
     def test_no_package_read_user(self):
-        """ No package, read perms, user """
+        """No package, read perms, user"""
         self.should_redirect(self.get_request(perms="r", user="foo"))
 
     def test_no_package_write_no_user(self):
-        """ No package, write perms, no user """
+        """No package, write perms, no user"""
         self.should_redirect(self.get_request(perms="rc"))
 
     def test_no_package_write_user(self):
-        """ No package, write perms, user """
+        """No package, write perms, user"""
         self.should_redirect(self.get_request(perms="rc", user="foo"))
 
     def test_package_no_read_no_user(self):
-        """ Package, no read perms, no user. """
+        """Package, no read perms, no user."""
         self.should_ask_auth(self.get_request(self.package, ""))
 
     def test_package_no_read_user(self):
-        """ Package, no read perms, user. """
+        """Package, no read perms, user."""
         self.should_redirect(self.get_request(self.package, "", "foo"))
 
     def test_package_read_no_user(self):
-        """ Package, read perms, no user. """
+        """Package, read perms, no user."""
         req = self.get_request(self.package, "r", "foo")
         self.should_serve_and_redirect(req)
 
     def test_package_read_user(self):
-        """ Package, read perms, user. """
+        """Package, read perms, user."""
         req = self.get_request(self.package, "r", "foo")
         self.should_serve_and_redirect(req)
 
     def test_package_write_no_user(self):
-        """ Package, write perms, no user. """
+        """Package, write perms, no user."""
         req = self.get_request(self.package, "r", "foo")
         self.should_serve_and_redirect(req)
 
     def test_package_write_user(self):
-        """ Package, write perms, user. """
+        """Package, write perms, user."""
         req = self.get_request(self.package, "r", "foo")
         self.should_serve_and_redirect(req)
 
 
 class TestCache(PackageReadTestBase):
 
-    """ Test reading packages with fallback=cache and always_show_upstream=false """
+    """Test reading packages with fallback=cache and always_show_upstream=false"""
 
     fallback = "cache"
     always_show_upstream = False
 
     def test_no_package_no_read_no_user(self):
-        """ No package, no read perms, no user """
+        """No package, no read perms, no user"""
         self.should_ask_auth(self.get_request())
 
     def test_no_package_no_read_user(self):
-        """ No package, no read perms, user """
+        """No package, no read perms, user"""
         self.should_404(self.get_request(user="foo"))
 
     def test_no_package_read_no_user(self):
-        """ No package, read perms, no user """
+        """No package, read perms, no user"""
         self.should_ask_auth(self.get_request(perms="r"))
 
     def test_no_package_read_user(self):
-        """ No package, read perms, user """
+        """No package, read perms, user"""
         self.should_404(self.get_request(perms="r", user="foo"))
 
     def test_no_package_write_no_user(self):
-        """ No package, write perms, no user """
+        """No package, write perms, no user"""
         self.should_cache(self.get_request(perms="rc"))
 
     def test_no_package_write_user(self):
-        """ No package, write perms, user """
+        """No package, write perms, user"""
         self.should_cache(self.get_request(perms="rc", user="foo"))
 
     def test_package_no_read_no_user(self):
-        """ Package, no read perms, no user. """
+        """Package, no read perms, no user."""
         self.should_ask_auth(self.get_request(self.package, ""))
 
     def test_package_no_read_user(self):
-        """ Package, no read perms, user. """
+        """Package, no read perms, user."""
         self.should_404(self.get_request(self.package, "", "foo"))
 
     def test_package_read_no_user(self):
-        """ Package, read perms, no user. """
+        """Package, read perms, no user."""
         self.should_serve(self.get_request(self.package, "r"))
 
     def test_package_read_user(self):
-        """ Package, read perms, user. """
+        """Package, read perms, user."""
         self.should_serve(self.get_request(self.package, "r", "foo"))
 
     def test_package_write_no_user(self):
-        """ Package, write perms, no user. """
+        """Package, write perms, no user."""
         self.should_serve(self.get_request(self.package, "rc"))
 
     def test_package_write_user(self):
-        """ Package, write perms, user. """
+        """Package, write perms, user."""
         self.should_serve(self.get_request(self.package, "rc", "foo"))
 
 
 class TestCacheAlwaysShow(PackageReadTestBase):
 
-    """ Test reading packages with fallback=cache and always_show_upstream=true """
+    """Test reading packages with fallback=cache and always_show_upstream=true"""
 
     fallback = "cache"
     always_show_upstream = True
 
     def test_no_package_no_read_no_user(self):
-        """ No package, no read perms, no user """
+        """No package, no read perms, no user"""
         self.should_ask_auth(self.get_request())
 
     def test_no_package_no_read_user(self):
-        """ No package, no read perms, user """
+        """No package, no read perms, user"""
         self.should_redirect(self.get_request(user="foo"))
 
     def test_no_package_read_no_user(self):
-        """ No package, read perms, no user """
+        """No package, read perms, no user"""
         self.should_ask_auth(self.get_request(perms="r"))
 
     def test_no_package_read_user(self):
-        """ No package, read perms, user """
+        """No package, read perms, user"""
         self.should_redirect(self.get_request(perms="r", user="foo"))
 
     def test_no_package_write_no_user(self):
-        """ No package, write perms, no user """
+        """No package, write perms, no user"""
         self.should_cache(self.get_request(perms="rc"))
 
     def test_no_package_write_user(self):
-        """ No package, write perms, user """
+        """No package, write perms, user"""
         self.should_cache(self.get_request(perms="rc", user="foo"))
 
     def test_package_no_read_no_user(self):
-        """ Package, no read perms, no user. """
+        """Package, no read perms, no user."""
         self.should_ask_auth(self.get_request(self.package, ""))
 
     def test_package_no_read_user(self):
-        """ Package, no read perms, user. """
+        """Package, no read perms, user."""
         self.should_redirect(self.get_request(self.package, "", "foo"))
 
     def test_package_read_no_user(self):
-        """ Package, read perms, no user. """
+        """Package, read perms, no user."""
         self.should_ask_auth(self.get_request(self.package, "r"))
 
     def test_package_read_user(self):
-        """ Package, read perms, user. """
+        """Package, read perms, user."""
         req = self.get_request(self.package, "r", "foo")
         self.should_serve_and_redirect(req)
 
     def test_package_write_no_user(self):
-        """ Package, write perms, no user. """
+        """Package, write perms, no user."""
         # Should serve package urls and fallback urls
         req = self.get_request(self.package, "rc")
         ret = package_versions(self.package, req)
@@ -619,7 +619,7 @@ class TestCacheAlwaysShow(PackageReadTestBase):
         )
 
     def test_package_write_user(self):
-        """ Package, write perms, user. """
+        """Package, write perms, user."""
         # Should serve package urls and fallback urls
         req = self.get_request(self.package, "rc", "foo")
         ret = package_versions(self.package, req)
@@ -643,58 +643,58 @@ class TestCacheAlwaysShow(PackageReadTestBase):
 
 class TestNoFallback(PackageReadTestBase):
 
-    """ Tests for reading packages with fallback=none """
+    """Tests for reading packages with fallback=none"""
 
     fallback = "none"
 
     def test_no_package_no_read_no_user(self):
-        """ No package, no read perms, no user """
+        """No package, no read perms, no user"""
         self.should_ask_auth(self.get_request())
 
     def test_no_package_no_read_user(self):
-        """ No package, no read perms, user """
+        """No package, no read perms, user"""
         self.should_404(self.get_request(user="foo"))
 
     def test_no_package_read_no_user(self):
-        """ No package, read perms, no user """
+        """No package, read perms, no user"""
         self.should_404(self.get_request(perms="r"))
 
     def test_no_package_read_user(self):
-        """ No package, read perms, user """
+        """No package, read perms, user"""
         self.should_404(self.get_request(perms="r", user="foo"))
 
     def test_no_package_write_no_user(self):
-        """ No package, write perms, no user """
+        """No package, write perms, no user"""
         self.should_404(self.get_request(perms="rc"))
 
     def test_no_package_write_user(self):
-        """ No package, write perms, user """
+        """No package, write perms, user"""
         self.should_404(self.get_request(perms="rc", user="foo"))
 
     def test_package_no_read_no_user(self):
-        """ Package, no read perms, no user. """
+        """Package, no read perms, no user."""
         self.should_ask_auth(self.get_request(self.package, ""))
 
     def test_package_no_read_user(self):
-        """ Package, no read perms, user. """
+        """Package, no read perms, user."""
         self.should_404(self.get_request(self.package, "", "foo"))
 
     def test_package_read_no_user(self):
-        """ Package, read perms, no user. """
+        """Package, read perms, no user."""
         self.should_serve(self.get_request(self.package, "r"))
 
     def test_package_read_hashes_no_user(self):
-        """ Package, read perms, no user. """
+        """Package, read perms, no user."""
         self.should_serve_hashes(self.get_request(self.package3, "r"))
 
     def test_package_read_user(self):
-        """ Package, read perms, user. """
+        """Package, read perms, user."""
         self.should_serve(self.get_request(self.package, "r", "foo"))
 
     def test_package_write_no_user(self):
-        """ Package, write perms, no user. """
+        """Package, write perms, no user."""
         self.should_serve(self.get_request(self.package, "rc"))
 
     def test_package_write_user(self):
-        """ Package, write perms, user. """
+        """Package, write perms, user."""
         self.should_serve(self.get_request(self.package, "rc", "foo"))
