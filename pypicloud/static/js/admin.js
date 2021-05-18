@@ -21,7 +21,7 @@ function permissionConfig(
     var itemName = "group";
     var title = '<i class="fa fa-users" title="Groups"></i> Groups';
   }
-  var editUrl = function(name, permission) {
+  var editUrl = function (name, permission) {
     if (pageType === "package") {
       return (
         $scope.ADMIN +
@@ -55,17 +55,17 @@ function permissionConfig(
     '<button class="btn btn-success btn-sm" ',
     "ng-style=\"_.contains(item.permissions, 'write') ? {visibility: 'hidden'} : {}\" ",
     'ng-click="addPermission(item); $event.stopPropagation()">+</button>',
-    "</div>"
+    "</div>",
   ].join("\n");
-  var removePermission = function(item) {
+  var removePermission = function (item) {
     if (item.permissions.length === 1) {
       var idx = permissions.indexOf(item);
       permissions.splice(idx, 1);
       allItems.push(item[itemName]);
       $http({
         method: "delete",
-        url: editUrl(item[itemName], "read")
-      }).error(function(data, status, headers, config) {
+        url: editUrl(item[itemName], "read"),
+      }).error(function (data, status, headers, config) {
         permissions.splice(idx, 0, item);
         idx = allItems.indexOf(item[itemName]);
         allItems.splice(idx, 1);
@@ -75,25 +75,25 @@ function permissionConfig(
       var removed = item.permissions.splice(1, 1)[0];
       $http({
         method: "delete",
-        url: editUrl(item[itemName], "write")
-      }).error(function(data, status, headers, config) {
+        url: editUrl(item[itemName], "write"),
+      }).error(function (data, status, headers, config) {
         item.permissions.splice(1, 0, removed);
         alert("Error removing permission");
       });
     }
   };
 
-  var addCallback = function(name) {
+  var addCallback = function (name) {
     var idx = allItems.indexOf(name);
     allItems.splice(idx, 1);
     var newItem = {
-      permissions: ["read"]
+      permissions: ["read"],
     };
     newItem[itemName] = name;
     permissions.push(newItem);
     $http
       .put(editUrl(name, "read"))
-      .error(function(data, status, headers, config) {
+      .error(function (data, status, headers, config) {
         allItems.splice(idx, 0, name);
         idx = permissions.indexOf(newItem);
         permissions.splice(idx, 1);
@@ -101,19 +101,19 @@ function permissionConfig(
       });
   };
 
-  var addPermission = function(item) {
+  var addPermission = function (item) {
     item.permissions.push("write");
     $http
       .put(editUrl(item[itemName], "write"))
-      .error(function(data, status, headers, config) {
+      .error(function (data, status, headers, config) {
         item.permissions.splice(1, 1);
         alert("Error adding permission");
       });
   };
 
   var columns = [
-    "{{ item." + itemName + " }}",
-    "{{ item.permissions.join(' / ') }}"
+    "{{ item." + itemName + " | sanitize }}",
+    "{{ item.permissions.join(' / ') | sanitize }}",
   ];
 
   return {
@@ -123,14 +123,14 @@ function permissionConfig(
     addItems: allItems,
     items: permissions,
     disableEdits: !ACCESS_MUTABLE,
-    rowClick: function(item) {
+    rowClick: function (item) {
       $location.path("/admin/" + itemType + "/" + item[itemName]);
     },
     addCallback: addCallback,
     deleteCallback: true,
     addPermission: addPermission,
     removePermission: removePermission,
-    deleteButtonElement: deleteButtonElement
+    deleteButtonElement: deleteButtonElement,
   };
 }
 
@@ -138,27 +138,27 @@ angular
   .module("pypicloud")
   .config([
     "$routeProvider",
-    function($routeProvider) {
+    function ($routeProvider) {
       $routeProvider.when("/admin", {
         templateUrl: STATIC + "partial/admin/index.html",
-        controller: "AdminCtrl"
+        controller: "AdminCtrl",
       });
 
       $routeProvider.when("/admin/user/:username", {
         templateUrl: STATIC + "partial/admin/user.html",
-        controller: "AdminUserCtrl"
+        controller: "AdminUserCtrl",
       });
 
       $routeProvider.when("/admin/group/:name", {
         templateUrl: STATIC + "partial/admin/group.html",
-        controller: "AdminGroupCtrl"
+        controller: "AdminGroupCtrl",
       });
 
       $routeProvider.when("/admin/package/:name", {
         templateUrl: STATIC + "partial/admin/package.html",
-        controller: "AdminPackageCtrl"
+        controller: "AdminPackageCtrl",
       });
-    }
+    },
   ])
   .controller("AdminCtrl", [
     "$rootScope",
@@ -166,30 +166,30 @@ angular
     "$http",
     "$location",
     "$timeout",
-    function($rootScope, $scope, $http, $location, $timeout) {
+    function ($rootScope, $scope, $http, $location, $timeout) {
       $scope.users = null;
       $scope.pendingUsers = null;
       $scope.groups = null;
       $scope.packages = null;
       $scope.pageSize = 10;
 
-      $scope.toggleAllowRegister = function() {
+      $scope.toggleAllowRegister = function () {
         ALLOW_REGISTER = !ALLOW_REGISTER;
         $rootScope.ALLOW_REGISTER = ALLOW_REGISTER;
         $http
           .post($scope.ADMIN + "register", { allow: ALLOW_REGISTER })
-          .error(function(data, status, headers, config) {
+          .error(function (data, status, headers, config) {
             ALLOW_REGISTER = !ALLOW_REGISTER;
             $rootScope.ALLOW_REGISTER = ALLOW_REGISTER;
             alert("Error toggling registration");
           });
       };
 
-      $scope.toggleShowCreateUser = function() {
+      $scope.toggleShowCreateUser = function () {
         $scope.showCreateUser = !$scope.showCreateUser;
       };
 
-      $scope.createUser = function() {
+      $scope.createUser = function () {
         var username = $scope.newUsername;
         var password = $scope.newPassword;
         if (_.contains(_.pluck($scope.users, "username"), username)) {
@@ -197,12 +197,12 @@ angular
         }
         var newUser = {
           username: username,
-          admin: false
+          admin: false,
         };
         $scope.users.push(newUser);
         $http
           .put($scope.ADMIN + "user/" + username, { password: password })
-          .error(function(data, status, headers, config) {
+          .error(function (data, status, headers, config) {
             var idx = $scope.users.indexOf(newUser);
             $scope.users.splice(idx, 1);
             $scope.showCreateUser = true;
@@ -216,21 +216,21 @@ angular
         $scope.newPassword = "";
       };
 
-      $scope.toggleShowCreateToken = function() {
+      $scope.toggleShowCreateToken = function () {
         $scope.showCreateToken = !$scope.showCreateToken;
       };
 
-      $scope.createToken = function() {
+      $scope.createToken = function () {
         var username = $scope.newUsername;
         if (_.contains(_.pluck($scope.users, "username"), username)) {
           return;
         }
         $http
           .get($scope.ADMIN + "token/" + username)
-          .error(function(data, status, headers, config) {
+          .error(function (data, status, headers, config) {
             alert("Error creating token: " + data.message);
           })
-          .success(function(data, status, headers, config) {
+          .success(function (data, status, headers, config) {
             $scope.showCreateToken = false;
             $scope.newUsername = "";
             $scope.signupToken = data.token;
@@ -238,7 +238,7 @@ angular
           });
       };
 
-      $scope.copyToken = function(e) {
+      $scope.copyToken = function (e) {
         var selection = document.getSelection();
         var range = document.createRange();
         range.selectNodeContents(e.currentTarget);
@@ -247,7 +247,7 @@ angular
         if (document.execCommand) {
           document.execCommand("copy");
           $scope.showCopied = true;
-          $timeout(function() {
+          $timeout(function () {
             $scope.showCopied = false;
           }, 3000);
         }
@@ -261,8 +261,8 @@ angular
         }
         $http({
           method: "delete",
-          url: $scope.ADMIN + "user/" + user.username
-        }).error(function(data, status, headers, config) {
+          url: $scope.ADMIN + "user/" + user.username,
+        }).error(function (data, status, headers, config) {
           $scope.users.splice(idx, 0, user);
           alert("User delete failed");
         });
@@ -272,7 +272,7 @@ angular
 
       $http
         .get($scope.ADMIN + "user")
-        .success(function(data, status, headers, config) {
+        .success(function (data, status, headers, config) {
           $scope.users = data;
           // Add 'admin' text so it's searchable
           for (var i = 0; i < $scope.users.length; i++) {
@@ -285,14 +285,14 @@ angular
             items: $scope.users,
             searchable: true,
             columns: [
-              "{{ item.admin ? '<i class=\"fa fa-lock\" title=\"Admin\"></i>' : '' }} {{ item.username }}"
+              "{{ item.admin ? '<i class=\"fa fa-lock\" title=\"Admin\"></i>' : '' }} {{ item.username | sanitize }}",
             ],
-            rowClick: function(user) {
+            rowClick: function (user) {
               $location.path("/admin/user/" + user.username);
             },
             disableEdits: !ACCESS_MUTABLE,
             ordering: "username",
-            deleteCallback: deleteUser
+            deleteCallback: deleteUser,
           };
         });
 
@@ -302,8 +302,8 @@ angular
         }
         $http({
           method: "delete",
-          url: $scope.ADMIN + "group/" + group
-        }).error(function(data, status, headers, config) {
+          url: $scope.ADMIN + "group/" + group,
+        }).error(function (data, status, headers, config) {
           alert("Error deleting group");
           $scope.groups.splice(idx, 0, group);
         });
@@ -320,7 +320,7 @@ angular
         $scope.groups.push(group);
         $http
           .put($scope.ADMIN + "group/" + group)
-          .error(function(data, status, headers, config) {
+          .error(function (data, status, headers, config) {
             var idx = $scope.groups.indexOf(group);
             $scope.groups.splice(idx, 1);
             alert("Error adding group");
@@ -328,7 +328,7 @@ angular
       }
       $http
         .get($scope.ADMIN + "group")
-        .success(function(data, status, headers, config) {
+        .success(function (data, status, headers, config) {
           data.push("everyone");
           data.push("authenticated");
           $scope.groups = data;
@@ -342,42 +342,42 @@ angular
               "ng-show=\"showDelete && !_.contains(['everyone', 'authenticated'], item)\"",
               'class="btn btn-danger btn-xs">',
               "{{ deleteText }}",
-              "</button>"
+              "</button>",
             ].join("\n"),
-            columns: ["{{ item }}"],
-            rowClick: function(group) {
+            columns: ["{{ item | sanitize }}"],
+            rowClick: function (group) {
               $location.path("/admin/group/" + group);
             },
             deleteCallback: deleteGroup,
-            addCallback: addGroup
+            addCallback: addGroup,
           };
         });
 
-      var fetchPackages = function() {
+      var fetchPackages = function () {
         $scope.packages = null;
         $scope.packageTableArgs = null;
         $http
           .get($scope.API + "package/")
-          .success(function(data, status, headers, config) {
+          .success(function (data, status, headers, config) {
             $scope.packages = data.packages;
             $scope.packageTableArgs = {
               title: '<i class="fa fa-gift" title="Packages"></i> Packages',
               items: $scope.packages,
               searchable: true,
-              columns: ["{{ item }}"],
+              columns: ["{{ item | sanitize }}"],
               disableEdits: !ACCESS_MUTABLE,
-              rowClick: function(pkg) {
+              rowClick: function (pkg) {
                 $location.path("/admin/package/" + pkg);
-              }
+              },
             };
           });
       };
       fetchPackages();
 
-      $scope.approveUser = function(username) {
+      $scope.approveUser = function (username) {
         $http
           .post($scope.ADMIN + "user/" + username + "/approve")
-          .error(function(data, status, headers, config) {
+          .error(function (data, status, headers, config) {
             $scope.pendingUsers.splice(idx, 0, username);
             idx = $scope.users.indexOf(newUser);
             $scope.users.splice(idx, 1);
@@ -387,16 +387,16 @@ angular
         $scope.pendingUsers.splice(idx, 1);
         var newUser = {
           username: username,
-          admin: false
+          admin: false,
         };
         $scope.users.push(newUser);
       };
 
-      $scope.rejectUser = function(username) {
+      $scope.rejectUser = function (username) {
         $http({
           method: "delete",
-          url: $scope.ADMIN + "user/" + username
-        }).error(function(data, status, headers, config) {
+          url: $scope.ADMIN + "user/" + username,
+        }).error(function (data, status, headers, config) {
           $scope.pendingUsers.splice(idx, 0, username);
           alert("Error rejecting user");
         });
@@ -407,43 +407,43 @@ angular
       if (ACCESS_MUTABLE) {
         $http
           .get($scope.ADMIN + "pending_users")
-          .success(function(data, status, headers, config) {
+          .success(function (data, status, headers, config) {
             $scope.pendingUsers = data;
           });
       }
 
-      $scope.rebuildPackages = function() {
+      $scope.rebuildPackages = function () {
         $scope.building = true;
         $http
           .get($scope.ADMIN + "rebuild")
-          .success(function(data, status, headers, config) {
+          .success(function (data, status, headers, config) {
             $scope.building = false;
             fetchPackages();
           })
-          .error(function(data, status, headers, config) {
+          .error(function (data, status, headers, config) {
             $scope.building = false;
             alert("Error while rebuilding cache");
           });
       };
-    }
+    },
   ])
   .controller("AdminUserCtrl", [
     "$scope",
     "$http",
     "$routeParams",
     "$location",
-    function($scope, $http, $routeParams, $location) {
+    function ($scope, $http, $routeParams, $location) {
       $scope.username = $routeParams.username;
       $scope.user = null;
       $scope.permissions = null;
 
-      $scope.toggleAdmin = function() {
+      $scope.toggleAdmin = function () {
         $scope.user.admin = !$scope.user.admin;
         $http
           .post($scope.ADMIN + "user/" + $scope.username + "/admin", {
-            admin: $scope.user.admin
+            admin: $scope.user.admin,
           })
-          .error(function(data, status, headers, config) {
+          .error(function (data, status, headers, config) {
             $scope.user.admin = !$scope.user.admin;
             alert("Error toggling admin status");
           });
@@ -451,16 +451,16 @@ angular
 
       $http
         .get($scope.ADMIN + "user/" + $scope.username)
-        .success(function(data, status, headers, config) {
+        .success(function (data, status, headers, config) {
           $scope.user = data;
           $scope.user.groups.push("everyone");
           $scope.user.groups.push("authenticated");
 
           $http
             .get($scope.ADMIN + "group")
-            .success(function(data, status, headers, config) {
+            .success(function (data, status, headers, config) {
               $scope.groups = _.difference(data, $scope.user.groups);
-              var editUrl = function(group) {
+              var editUrl = function (group) {
                 return (
                   $scope.ADMIN + "user/" + $scope.username + "/group/" + group
                 );
@@ -468,8 +468,8 @@ angular
               $scope.groupTableArgs = {
                 title: '<i class="fa fa-users" title="Groups"></i> Groups',
                 items: $scope.user.groups,
-                columns: ["{{ item }}"],
-                rowClick: function(group) {
+                columns: ["{{ item | sanitize }}"],
+                rowClick: function (group) {
                   $location.path("/admin/group/" + group);
                 },
                 addItems: $scope.groups,
@@ -479,46 +479,46 @@ angular
                   "ng-show=\"showDelete && !_.contains(['everyone', 'authenticated'], item)\"",
                   'class="btn btn-danger btn-xs">',
                   "{{ deleteText }}",
-                  "</button>"
+                  "</button>",
                 ].join("\n"),
-                addCallback: function(group) {
+                addCallback: function (group) {
                   var idx = $scope.groups.indexOf(group);
                   $scope.groups.splice(idx, 1);
                   $scope.user.groups.push(group);
                   $http
                     .put(editUrl(group))
-                    .error(function(data, status, headers, config) {
+                    .error(function (data, status, headers, config) {
                       $scope.groups.splice(idx, 0, group);
                       idx = $scope.user.groups.indexOf(group);
                       $scope.user.groups.splice(idx, 1);
                       alert("Error adding user to group");
                     });
                 },
-                deleteCallback: function(group) {
+                deleteCallback: function (group) {
                   var idx = $scope.user.groups.indexOf(group);
                   $scope.user.groups.splice(idx, 1);
                   $scope.groups.push(group);
                   $http({
                     method: "delete",
-                    url: editUrl(group)
-                  }).error(function(data, status, headers, config) {
+                    url: editUrl(group),
+                  }).error(function (data, status, headers, config) {
                     $scope.user.groups.splice(idx, 0, group);
                     idx = $scope.groups.indexOf(group);
                     $scope.groups.splice(idx, 1);
                     alert("Error removing user to group");
                   });
-                }
+                },
               };
             });
         });
 
       $http
         .get($scope.ADMIN + "user/" + $scope.username + "/permissions")
-        .success(function(data, status, headers, config) {
+        .success(function (data, status, headers, config) {
           $scope.permissions = data;
           $http
             .get($scope.API + "package")
-            .success(function(data, status, headers, config) {
+            .success(function (data, status, headers, config) {
               $scope.packages = _.difference(
                 data.packages,
                 _.pluck($scope.permissions, "package")
@@ -536,14 +536,14 @@ angular
               );
             });
         });
-    }
+    },
   ])
   .controller("AdminGroupCtrl", [
     "$scope",
     "$http",
     "$routeParams",
     "$location",
-    function($scope, $http, $routeParams, $location) {
+    function ($scope, $http, $routeParams, $location) {
       $scope.name = $routeParams.name;
       $scope.members = null;
       $scope.packages = null;
@@ -554,18 +554,18 @@ angular
       }
 
       var url = $scope.ADMIN + "group/" + $routeParams.name;
-      $http.get(url).success(function(data, status, headers, config) {
+      $http.get(url).success(function (data, status, headers, config) {
         $scope.members = data.members;
         $scope.permissions = data.packages;
 
         $http
           .get($scope.ADMIN + "user")
-          .success(function(data, status, headers, config) {
+          .success(function (data, status, headers, config) {
             $scope.users = _.difference(
               _.pluck(data, "username"),
               $scope.members
             );
-            var editUrl = function(username) {
+            var editUrl = function (username) {
               return (
                 $scope.ADMIN + "user/" + username + "/group/" + $scope.name
               );
@@ -573,30 +573,30 @@ angular
             $scope.userTableArgs = {
               title: '<i class="fa fa-user" title="Members"></i> Members',
               items: $scope.members,
-              columns: ["{{ item }}"],
-              rowClick: function(user) {
+              columns: ["{{ item | sanitize }}"],
+              rowClick: function (user) {
                 $location.path("/admin/user/" + user);
               },
               addItems: $scope.users,
               disableEdits: !ACCESS_MUTABLE,
-              addCallback: function(user) {
+              addCallback: function (user) {
                 var idx = $scope.users.indexOf(user);
                 $scope.users.splice(idx, 1);
                 $scope.members.push(user);
                 $http
                   .put(editUrl(user))
-                  .error(function(data, status, headers, config) {
+                  .error(function (data, status, headers, config) {
                     $scope.users.splice(idx, 0, user);
                     idx = $scope.members.indexOf(user);
                     $scope.members.splice(idx, 1);
                     alert("Error adding user to group");
                   });
               },
-              deleteCallback: function(user) {
+              deleteCallback: function (user) {
                 var idx = $scope.members.indexOf(user);
                 $scope.members.splice(idx, 1);
                 $scope.users.push(user);
-                $http({ method: "delete", url: editUrl(user) }).error(function(
+                $http({ method: "delete", url: editUrl(user) }).error(function (
                   data,
                   status,
                   headers,
@@ -607,13 +607,13 @@ angular
                   $scope.users.splice(idx, 1);
                   alert("Error removing user from group");
                 });
-              }
+              },
             };
           });
 
         $http
           .get($scope.API + "package")
-          .success(function(data, status, headers, config) {
+          .success(function (data, status, headers, config) {
             $scope.packages = _.difference(
               data.packages,
               _.pluck($scope.permissions, "package")
@@ -630,26 +630,26 @@ angular
             );
           });
       });
-    }
+    },
   ])
   .controller("AdminPackageCtrl", [
     "$scope",
     "$http",
     "$routeParams",
     "$location",
-    function($scope, $http, $routeParams, $location) {
+    function ($scope, $http, $routeParams, $location) {
       $scope.name = $routeParams.name;
       $scope.userPermissions = null;
       $scope.groupPermissions = null;
 
       var url = $scope.ADMIN + "package/" + $routeParams.name;
-      $http.get(url).success(function(data, status, headers, config) {
+      $http.get(url).success(function (data, status, headers, config) {
         $scope.userPermissions = data.user;
         $scope.groupPermissions = data.group;
 
         $http
           .get($scope.ADMIN + "user")
-          .success(function(data, status, headers, config) {
+          .success(function (data, status, headers, config) {
             $scope.users = _.difference(
               _.pluck(data, "username"),
               _.pluck($scope.userPermissions, "username")
@@ -668,7 +668,7 @@ angular
 
         $http
           .get($scope.ADMIN + "group")
-          .success(function(data, status, headers, config) {
+          .success(function (data, status, headers, config) {
             data.push("everyone");
             data.push("authenticated");
             $scope.groups = _.difference(
@@ -687,5 +687,5 @@ angular
             );
           });
       });
-    }
+    },
   ]);

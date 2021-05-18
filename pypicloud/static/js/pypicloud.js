@@ -1,7 +1,7 @@
 /**
  * @format
  */
-String.prototype.endsWith = function(suffix) {
+String.prototype.endsWith = function (suffix) {
   return this.indexOf(suffix, this.length - suffix.length) !== -1;
 };
 
@@ -10,49 +10,50 @@ angular
     "ui.bootstrap",
     "ngRoute",
     "angularFileUpload",
-    "ngCookies"
+    "ngCookies",
+    "ngSanitize",
   ])
   .config([
     "$routeProvider",
-    function($routeProvider) {
+    function ($routeProvider) {
       $routeProvider.when("/", {
         templateUrl: STATIC + "partial/index.html",
-        controller: "IndexCtrl"
+        controller: "IndexCtrl",
       });
 
       $routeProvider.when("/package/:pkg", {
         templateUrl: STATIC + "partial/package.html",
-        controller: "PackageCtrl"
+        controller: "PackageCtrl",
       });
 
       $routeProvider.when("/new_admin", {
         templateUrl: STATIC + "partial/new_admin.html",
-        controller: "NewAdminCtrl"
+        controller: "NewAdminCtrl",
       });
 
       $routeProvider.when("/account", {
         templateUrl: STATIC + "partial/account.html",
-        controller: "AccountCtrl"
+        controller: "AccountCtrl",
       });
 
       $routeProvider.otherwise({
-        redirectTo: "/"
+        redirectTo: "/",
       });
-    }
+    },
   ])
   .config([
     "$compileProvider",
-    function($compileProvider) {
+    function ($compileProvider) {
       $compileProvider.directive("compileUnsafe", [
         "$compile",
-        function($compile) {
-          return function(scope, element, attrs) {
+        function ($compile) {
+          return function (scope, element, attrs) {
             scope.$watch(
-              function(scope) {
+              function (scope) {
                 // watch the 'compile' expression for changes
                 return scope.$eval(attrs.compileUnsafe);
               },
-              function(value) {
+              function (value) {
                 // when the 'compile' expression changes
                 // assign it into the current DOM element
                 element.html(value);
@@ -63,19 +64,19 @@ angular
               }
             );
           };
-        }
+        },
       ]);
-    }
+    },
   ])
   .directive("ngSetFocus", [
     "$timeout",
-    function($timeout) {
-      return function(scope, element, attrs) {
+    function ($timeout) {
+      return function (scope, element, attrs) {
         scope.$watch(
           attrs.ngSetFocus,
-          function(newValue) {
+          function (newValue) {
             if (newValue) {
-              $timeout(function() {
+              $timeout(function () {
                 element[0].focus();
               });
             }
@@ -83,48 +84,56 @@ angular
           true
         );
       };
-    }
+    },
   ])
   .run([
     "$rootScope",
     "$location",
     "$routeParams",
-    function($rootScope, $location, $routeParams) {
-      $rootScope.$on("$routeChangeSuccess", function(scope, current, pre) {
+    function ($rootScope, $location, $routeParams) {
+      $rootScope.$on("$routeChangeSuccess", function (scope, current, pre) {
         $rootScope.location = {
-          path: $location.path()
+          path: $location.path(),
         };
       });
-    }
+    },
   ])
-  .filter("startFrom", function() {
-    return function(input, start) {
+  .filter("sanitize", [
+    "$sanitize",
+    function ($sanitize) {
+      return function (input) {
+        return $sanitize(input);
+      };
+    },
+  ])
+  .filter("startFrom", function () {
+    return function (input, start) {
       start = parseInt(start, 10);
       return input.slice(start);
     };
   })
   .directive("visible", [
     "$parse",
-    function($parse) {
+    function ($parse) {
       return {
         restrict: "A",
-        link: function(scope, element, attrs) {
+        link: function (scope, element, attrs) {
           scope.$watch(
-            function() {
+            function () {
               return $parse(attrs.visible)(scope);
             },
-            function(visible) {
+            function (visible) {
               element.css("visibility", visible ? "visible" : "hidden");
             }
           );
-        }
+        },
       };
-    }
+    },
   ])
   .controller("BaseCtrl", [
     "$rootScope",
     "$location",
-    function($rootScope, $location) {
+    function ($rootScope, $location) {
       $rootScope._ = _;
       $rootScope.USER = USER;
       $rootScope.ROOT = ROOT;
@@ -148,7 +157,7 @@ angular
         $location.path("/new_admin");
       }
 
-      $rootScope.getDevice = function() {
+      $rootScope.getDevice = function () {
         var envs = ["xs", "sm", "md", "lg"];
 
         var el = document.createElement("div");
@@ -167,32 +176,32 @@ angular
       };
 
       $rootScope.device = $rootScope.getDevice();
-      $rootScope.getWidth = function() {
+      $rootScope.getWidth = function () {
         return window.innerWidth;
       };
-      $rootScope.$watch($rootScope.getWidth, function(newValue, oldValue) {
+      $rootScope.$watch($rootScope.getWidth, function (newValue, oldValue) {
         if (newValue != oldValue) {
           $rootScope.device = $rootScope.getDevice();
         }
       });
-      window.onresize = function() {
+      window.onresize = function () {
         $rootScope.$apply();
       };
-    }
+    },
   ])
   .controller("NavbarCtrl", [
     "$scope",
-    function($scope) {
+    function ($scope) {
       $scope.navCollapsed = $scope.device === "xs";
       $scope.options = [];
-    }
+    },
   ])
   .controller("IndexCtrl", [
     "$scope",
     "$http",
     "$location",
     "$cookies",
-    function($scope, $http, $location, $cookies) {
+    function ($scope, $http, $location, $cookies) {
       $scope.$cookies = $cookies;
       $scope.packages = null;
       $scope.pageSize = 10;
@@ -205,51 +214,51 @@ angular
 
       $scope.showUpload = USER != null || _.contains(DEFAULT_WRITE, "everyone");
 
-      var addPackages = function(packages) {
+      var addPackages = function (packages) {
         var allNames = _.pluck($scope.packages, "name");
-        var uniquePkgs = _.uniq(packages, false, function(pkg) {
+        var uniquePkgs = _.uniq(packages, false, function (pkg) {
           return pkg.name;
         });
-        _.each(packages, function(pkg) {
+        _.each(packages, function (pkg) {
           if (!_.contains(allNames, pkg.name)) {
             $scope.packages.push(pkg);
           }
         });
       };
 
-      $scope.toggleUpload = function() {
+      $scope.toggleUpload = function () {
         $scope.uploadCollapsed = !$scope.uploadCollapsed;
       };
 
       $http
         .get($scope.API + "package/", { params: { verbose: true } })
-        .success(function(data, status, headers, config) {
+        .success(function (data, status, headers, config) {
           $scope.packages = data.packages;
         })
-        .error(function(data, status, headers, config) {
+        .error(function (data, status, headers, config) {
           console.error("Fetching packages failed");
         });
 
-      $scope.showPackage = function(pkg) {
+      $scope.showPackage = function (pkg) {
         $location.path("/package/" + pkg);
       };
 
-      $scope.uploadFinished = function(response) {
+      $scope.uploadFinished = function (response) {
         addPackages([response]);
         $scope.uploadCollapsed = true;
       };
 
-      $scope.closePipHelp = function() {
+      $scope.closePipHelp = function () {
         $cookies.seenPipHelp = "true";
       };
-    }
+    },
   ])
   .controller("LoginCtrl", [
     "$scope",
     "$http",
     "$window",
     "$location",
-    function($scope, $http, $window, $location) {
+    function ($scope, $http, $window, $location) {
       $scope.error = false;
       $scope.loggingIn = false;
 
@@ -262,42 +271,42 @@ angular
         $scope.secureCookieError = true;
       }
 
-      $scope.toggleTokenRegistration = function() {
+      $scope.toggleTokenRegistration = function () {
         $scope.useToken = !$scope.useToken;
       };
 
-      $scope.submit = function(username, password) {
+      $scope.submit = function (username, password) {
         $scope.loggingIn = true;
         var data = {
           username: username,
-          password: password
+          password: password,
         };
         $http
           .post(ROOT + "login", data)
-          .success(function(data, status, headers, config) {
+          .success(function (data, status, headers, config) {
             $scope.loggingIn = false;
             $scope.error = false;
             $window.location = data.next;
           })
-          .error(function(data, status, headers, config) {
+          .error(function (data, status, headers, config) {
             $scope.loggingIn = false;
             $scope.error = true;
             $scope.errorMsg = "Username or password invalid";
           });
       };
 
-      $scope.register = function(username, password) {
+      $scope.register = function (username, password) {
         var data = {
           username: username,
-          password: password
+          password: password,
         };
         $http
           .put(ROOT + "login", data)
-          .success(function(data, status, headers, config) {
+          .success(function (data, status, headers, config) {
             $scope.error = false;
             $scope.registered = username;
           })
-          .error(function(data, status, headers, config) {
+          .error(function (data, status, headers, config) {
             $scope.error = true;
             if (status === 400) {
               $scope.errorMsg =
@@ -312,20 +321,20 @@ angular
           });
       };
 
-      $scope.tokenRegister = function(token, password) {
+      $scope.tokenRegister = function (token, password) {
         var data = {
           token: token,
-          password: password
+          password: password,
         };
         $scope.registering = true;
         $http
           .put(ROOT + "tokenRegister", data)
-          .success(function(data, status, headers, config) {
+          .success(function (data, status, headers, config) {
             $scope.error = false;
             $scope.registering = false;
             $window.location = data.next;
           })
-          .error(function(data, status, headers, config) {
+          .error(function (data, status, headers, config) {
             $scope.error = true;
             $scope.registering = false;
             if (status === 400) {
@@ -338,14 +347,14 @@ angular
             }
           });
       };
-    }
+    },
   ])
   .controller("PackageCtrl", [
     "$scope",
     "$http",
     "$route",
     "$fileUploader",
-    function($scope, $http, $route, $fileUploader) {
+    function ($scope, $http, $route, $fileUploader) {
       $scope.package_name = $route.current.params.pkg;
       $scope.showPreRelease = true;
       $scope.packages = null;
@@ -353,7 +362,7 @@ angular
       $scope.maxSize = 8;
       $scope.currentPage = 1;
 
-      $scope.filterPreRelease = function(pkg) {
+      $scope.filterPreRelease = function (pkg) {
         if ($scope.showPreRelease) {
           return true;
         }
@@ -362,56 +371,56 @@ angular
 
       $http
         .get($scope.API + "package/" + $scope.package_name)
-        .success(function(data, status, headers, config) {
+        .success(function (data, status, headers, config) {
           $scope.packages = data.packages;
           $scope.filtered = data.packages;
           $scope.can_write = data.write;
         })
-        .error(function(data, status, headers, config) {
+        .error(function (data, status, headers, config) {
           console.error(
             "Fetching package list failed for:",
             $scope.package_name
           );
         });
 
-      $scope.deletePackage = function(pkg) {
+      $scope.deletePackage = function (pkg) {
         var index = $scope.packages.indexOf(pkg);
         pkg.deleting = true;
         var data = {
-          name: $scope.package_name
+          name: $scope.package_name,
         };
         var url =
           $scope.API + "package/" + $scope.package_name + "/" + pkg.filename;
         $http({ method: "delete", url: url })
-          .success(function(data, status, headers, config) {
+          .success(function (data, status, headers, config) {
             $scope.packages.splice(index, 1);
           })
-          .error(function(data, status, headers, config) {
+          .error(function (data, status, headers, config) {
             pkg.deleting = false;
             alert("Error deleting package");
           });
       };
 
-      $scope.uploadFinished = function(response) {
+      $scope.uploadFinished = function (response) {
         $scope.packages.unshift(response);
         $scope.uploadCollapsed = true;
       };
-    }
+    },
   ])
   .controller("UploadCtrl", [
     "$scope",
     "$fileUploader",
-    function($scope, $fileUploader) {
+    function ($scope, $fileUploader) {
       var uploader = ($scope.uploader = $fileUploader.create({
         scope: $scope,
-        alias: "content"
+        alias: "content",
       }));
 
-      $scope.canUpload = function() {
+      $scope.canUpload = function () {
         return uploader.queue.length === 1 && !$scope.uploading;
       };
 
-      $scope.uploadPackage = function() {
+      $scope.uploadPackage = function () {
         $scope.uploading = true;
         var item = uploader.queue[0];
         var filename = item.file.name;
@@ -424,7 +433,7 @@ angular
         item.upload();
       };
 
-      uploader.bind("success", function(event, xhr, item, response) {
+      uploader.bind("success", function (event, xhr, item, response) {
         uploader.clearQueue();
         $scope.uploading = false;
         if ($scope.uploadFinished !== undefined) {
@@ -432,17 +441,17 @@ angular
         }
       });
 
-      uploader.bind("error", function(event, xhr, item, response) {
+      uploader.bind("error", function (event, xhr, item, response) {
         $scope.uploading = false;
         alert("Error during upload! " + response);
       });
-    }
+    },
   ])
   .controller("TableCtrl", [
     "$scope",
     "$sce",
     "$interpolate",
-    function($scope, $sce, $interpolate) {
+    function ($scope, $sce, $interpolate) {
       $scope.currentPage = 1;
       $scope.searchable = false;
       $scope.searchStrict = false;
@@ -464,13 +473,13 @@ angular
 
       // Set arguments from parent scope
       if (_.isObject($scope.tableArgs)) {
-        _.each($scope.tableArgs, function(value, key) {
+        _.each($scope.tableArgs, function (value, key) {
           $scope[key] = value;
         });
       }
 
       if ($scope.rowClick === null) {
-        $scope.rowClick = function() {};
+        $scope.rowClick = function () {};
         $scope.clickable = false;
       } else {
         $scope.clickable = true;
@@ -478,11 +487,11 @@ angular
 
       // TODO: put a scope.watch() on tableArgs
 
-      $scope.compile = function(html, item) {
+      $scope.compile = function (html, item) {
         return $sce.trustAsHtml($interpolate(html)({ item: item }));
       };
 
-      $scope.toggleShowAdd = function() {
+      $scope.toggleShowAdd = function () {
         $scope.showAdd = !$scope.showAdd;
         if (!$scope.showAdd) {
           $scope.newItem = "";
@@ -491,40 +500,40 @@ angular
         }
       };
 
-      $scope.addItem = function() {
+      $scope.addItem = function () {
         $scope.errorMsg = $scope.addCallback($scope.newItem);
         if ($scope.errorMsg === undefined) {
           $scope.newItem = "";
         }
       };
-    }
+    },
   ])
   .controller("NewAdminCtrl", [
     "$scope",
     "$http",
     "$location",
-    function($scope, $http, $location) {
-      $scope.register = function(username, password) {
+    function ($scope, $http, $location) {
+      $scope.register = function (username, password) {
         var data = {
           username: username,
-          password: password
+          password: password,
         };
         $http
           .put(ROOT + "login", data)
-          .success(function(data, status, headers, config) {
+          .success(function (data, status, headers, config) {
             window.location = ROOT;
           })
-          .error(function(data, status, headers, config) {
+          .error(function (data, status, headers, config) {
             alert("Error registering admin user");
           });
       };
-    }
+    },
   ])
   .controller("AccountCtrl", [
     "$scope",
     "$http",
-    function($scope, $http) {
-      $scope.changePassword = function(oldPassword, newPassword) {
+    function ($scope, $http) {
+      $scope.changePassword = function (oldPassword, newPassword) {
         if (
           !oldPassword ||
           !newPassword ||
@@ -536,22 +545,22 @@ angular
         }
         var data = {
           new_password: newPassword,
-          old_password: oldPassword
+          old_password: oldPassword,
         };
         $scope.changingPasswordNetwork = true;
         $http
           .post($scope.API + "user/password", data)
-          .success(function(data, status, headers, config) {
+          .success(function (data, status, headers, config) {
             $scope.changingPasswordNetwork = false;
             $scope.changingPassword = false;
             $scope.newPassword = "";
             $scope.oldPassword = "";
             $scope.passError = null;
           })
-          .error(function(data, status, headers, config) {
+          .error(function (data, status, headers, config) {
             $scope.changingPasswordNetwork = false;
             $scope.passError = "Invalid password!";
           });
       };
-    }
+    },
   ]);
