@@ -2,6 +2,11 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.2.1 - 2021/5/18
+-----------------
+* Fix a XSS vulnerability (:issue:`280`)
+* Remove storage limit of package summary (:pr:`276`)
+
 1.2.0 - 2021/3/1
 ----------------
 * Add more package info to JSON API (:pr:`269`)
