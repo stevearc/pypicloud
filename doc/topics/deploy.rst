@@ -58,7 +58,7 @@ uWSGI has native support for `SSL termination
 use NGINX or an ELB to do the SSL termination plus load balancing. For this and
 other reverse proxy behaviors, you will need uWSGI to generate URLs that match
 what your proxy expects. You can do this with `paste
-middleware <http://pythonpaste.org/deploy/modules/config.html>`__. For example, to
+middleware <https://docs.pylonsproject.org/projects/pastedeploy/en/latest/modules/config.html#paste.deploy.config.PrefixMiddleware>`__. For example, to
 enforce https:
 
 .. code-block:: ini
@@ -69,3 +69,7 @@ enforce https:
     [filter:proxy-prefix]
     use = egg:PasteDeploy#prefix
     scheme = https
+
+To see more details about how this middleware works and what the other options
+are, the code can be found `on github
+<https://github.com/Pylons/pastedeploy/blob/df109cacddc56af8cfe75fc7df39af6e1f2cd92d/paste/deploy/config.py#L197>`__.
