@@ -1,5 +1,6 @@
 """ Tests for login views """
-from mock import MagicMock, patch
+from mock import MagicMock, PropertyMock, patch
+from pyramid.testing import DummyRequest
 
 from pypicloud.views import login
 
@@ -13,15 +14,17 @@ class TestLoginPage(MockServerTest):
     def setUp(self):
         super(TestLoginPage, self).setUp()
         self.request.app_url = lambda *x: "/" + "/".join(x)
-        self.request.userid = None
 
     def test_user_fetch_login(self):
         """If a logged-in user is fetching /login, redirect to /"""
-        self.request.userid = "dsa"
-        self.request.url = "/login"
-        ret = login.get_login_page(self.request)
-        self.assertEqual(ret.status_code, 302)
-        self.assertEqual(ret.location, "/")
+        with patch.object(
+            DummyRequest, "authenticated_userid", new_callable=PropertyMock
+        ) as auid:
+            auid.return_value = "dsa"
+            self.request.url = "/login"
+            ret = login.get_login_page(self.request)
+            self.assertEqual(ret.status_code, 302)
+            self.assertEqual(ret.location, "/")
 
     def test_anon_fetch_login(self):
         """Anonymous user fetching /login renders login page"""

@@ -8,7 +8,9 @@ from paste.httpheaders import AUTHORIZATION, WWW_AUTHENTICATE
 # pylint: enable=E0611
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.httpexceptions import HTTPForbidden, HTTPUnauthorized
-from pyramid.security import Everyone, authenticated_userid
+from pyramid.interfaces import ISecurityPolicy
+from pyramid.security import Everyone
+from zope.interface import implementer
 
 
 # Copied from
@@ -34,102 +36,68 @@ def get_basicauth_credentials(request):
     return None
 
 
-class BasicAuthenticationPolicy(object):
+@implementer(ISecurityPolicy)
+class PypicloudSecurityPolicy:
+    def __init__(self):
+        self.acl_policy = ACLAuthorizationPolicy()
 
-    """A :app:`Pyramid` :term:`authentication policy` which
-    obtains data from basic authentication headers.
-
-    Constructor Arguments
-
-    ``check``
-
-        A callback passed the credentials and the request,
-        expected to return None if the userid doesn't exist or a sequence
-        of group identifiers (possibly empty) if the user does exist.
-        Required.
-
-    """
-
-    def authenticated_userid(self, request):
-        """Verify login and return the authed userid"""
+    def identity(self, request):
+        """Return the :term:`identity` of the current user.  The object can be
+        of any shape, such as a simple ID string or an ORM object.
+        """
+        # First try fetching from the session
+        userid = request.session.get("user", None)
+        if userid is not None:
+            return userid
+        # Then fall back to HTTP basic auth
         credentials = get_basicauth_credentials(request)
         if credentials is None:
             return None
         userid = credentials["login"]
-        if request.access.verify_user(credentials["login"], credentials["password"]):
+        if request.access.verify_user(userid, credentials["password"]):
             return userid
         return None
 
-    def unauthenticated_userid(self, request):
-        """Return userid without performing auth"""
-        return request.userid
-
-    def effective_principals(self, request):
-        """Get the authed groups for the active user"""
-        if request.userid is None:
-            return [Everyone]
-        return request.access.user_principals(request.userid)
-
-    def remember(self, request, principal, **kw):
-        """HTTP Headers to remember credentials"""
-        return []
-
-    def forget(self, request):
-        """HTTP headers to forget credentials"""
-        return []
-
-
-class SessionAuthPolicy(object):
-
-    """Simple auth policy using beaker sessions"""
-
     def authenticated_userid(self, request):
-        """Return the authenticated userid or ``None`` if no
-        authenticated userid can be found. This method of the policy
-        should ensure that a record exists in whatever persistent store is
-        used related to the user (the user should not have been deleted);
-        if a record associated with the current id does not exist in a
-        persistent store, it should return ``None``."""
-        return request.session.get("user", None)
+        """Return a :term:`userid` string identifying the trusted and
+        verified user, or ``None`` if unauthenticated.
 
-    def unauthenticated_userid(self, request):
-        """Return the *unauthenticated* userid.  This method performs the
-        same duty as ``authenticated_userid`` but is permitted to return the
-        userid based only on data present in the request; it needn't (and
-        shouldn't) check any persistent store to ensure that the user record
-        related to the request userid exists."""
-        return request.userid
+        If the result is ``None``, then
+        :attr:`pyramid.request.Request.is_authenticated` will return ``False``.
+        """
+        return self.identity(request)
 
     def effective_principals(self, request):
-        """Return a sequence representing the effective principals
-        including the userid and any groups belonged to by the current
-        user, including 'system' groups such as
-        ``pyramid.security.Everyone`` and
-        ``pyramid.security.Authenticated``."""
-        if request.userid is None:
+        userid = self.authenticated_userid(request)
+        if userid is None:
             return [Everyone]
-        return request.access.user_principals(request.userid)
+        return request.access.user_principals(userid)
 
-    def remember(self, request, principal, **_):
+    def permits(self, request, context, permission):
+        """Return an instance of :class:`pyramid.security.Allowed` if a user
+        of the given identity is allowed the ``permission`` in the current
+        ``context``, else return an instance of
+        :class:`pyramid.security.Denied`.
         """
-        This implementation is slightly different than expected. The
-        application should call remember(userid) rather than
-        remember(principal)
+        principals = self.effective_principals(request)
+        return self.acl_policy.permits(context, principals, permission)
 
+    def remember(self, request, userid, **kw):
+        """Return a set of headers suitable for 'remembering' the
+        :term:`userid` named ``userid`` when set in a response.  An individual
+        security policy and its consumers can decide on the composition and
+        meaning of ``**kw``.
         """
-        request.session["user"] = principal
+        request.session["user"] = userid
         return []
 
-    def forget(self, request):
+    def forget(self, request, **kw):
         """Return a set of headers suitable for 'forgetting' the
-        current user on subsequent requests."""
+        current user on subsequent requests.  An individual security policy and
+        its consumers can decide on the composition and meaning of ``**kw``.
+        """
         request.session.delete()
         return []
-
-
-def _is_logged_in(request):
-    """Check if there is a logged-in user in the session"""
-    return request.userid is not None
 
 
 def _request_login(request):
@@ -147,7 +115,7 @@ def _forbid(request):
     This is required to force pip to upload its HTTP basic auth credentials
 
     """
-    if request.is_logged_in:
+    if request.is_authenticated:
         return HTTPForbidden()
     else:
         return _request_login(request)
@@ -155,15 +123,9 @@ def _forbid(request):
 
 def includeme(config):
     """Configure the app"""
-    config.set_authorization_policy(ACLAuthorizationPolicy())
-    config.set_authentication_policy(config.registry.authentication_policy)
-    config.add_authentication_policy(SessionAuthPolicy())
-    config.add_authentication_policy(BasicAuthenticationPolicy())
-    config.add_request_method(authenticated_userid, name="userid", reify=True)
+    config.set_security_policy(PypicloudSecurityPolicy())
     config.add_request_method(_forbid, name="forbid")
     config.add_request_method(_request_login, name="request_login")
-    config.add_request_method(_is_logged_in, name="is_logged_in", reify=True)
 
     settings = config.get_settings()
-    realm = settings.get("pypi.realm", "pypi")
-    config.registry.realm = realm
+    config.registry.realm = settings.get("pypi.realm", "pypi")

@@ -4,7 +4,16 @@ import logging
 
 import zope.sqlalchemy
 from pyramid.settings import asbool
-from sqlalchemy import Column, DateTime, String, and_, distinct, engine_from_config, or_
+from sqlalchemy import (
+    Column,
+    DateTime,
+    String,
+    Text,
+    and_,
+    distinct,
+    engine_from_config,
+    or_,
+)
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.mutable import Mutable
@@ -96,7 +105,7 @@ class SQLPackage(Package, Base):
     version = Column(String(1000, convert_unicode=True), nullable=False)
     last_modified = Column(TZAwareDateTime(), index=True, nullable=False)
     # TEXT, as pypi does the same, and using String(N) would mismatch with pypi
-    summary = Column(TEXT, index=True, nullable=True)
+    summary = Column(Text(), index=True, nullable=True)
     data = Column(JSONEncodedDict(), nullable=False)
 
 

@@ -116,7 +116,7 @@ class TestBaseCache(unittest.TestCase):
             "pkg2.tar.gz", BytesIO(b"test1234"), "pkg2", "0.1dev2", "summary"
         )
         summaries = cache.summary()
-        self.assertItemsEqual(
+        self.assertCountEqual(
             summaries,
             [
                 {
@@ -282,7 +282,7 @@ class TestSQLiteCache(unittest.TestCase):
         self.storage.list.return_value = keys
         self.db.reload_from_storage()
         all_pkgs = self.sql.query(SQLPackage).all()
-        self.assertItemsEqual(all_pkgs, keys)
+        self.assertCountEqual(all_pkgs, keys)
 
     def test_fetch(self):
         """fetch() retrieves a package from the database"""
@@ -305,7 +305,7 @@ class TestSQLiteCache(unittest.TestCase):
         ]
         self.sql.add_all(pkgs)
         saved_pkgs = self.db.all("mypkg")
-        self.assertItemsEqual(saved_pkgs, pkgs[:2])
+        self.assertCountEqual(saved_pkgs, pkgs[:2])
 
     def test_distinct(self):
         """distinct() returns all unique package names"""
@@ -316,7 +316,7 @@ class TestSQLiteCache(unittest.TestCase):
         ]
         self.sql.add_all(pkgs)
         saved_pkgs = self.db.distinct()
-        self.assertItemsEqual(saved_pkgs, set([p.name for p in pkgs]))
+        self.assertCountEqual(saved_pkgs, set([p.name for p in pkgs]))
 
     def test_search_or(self):
         """search() returns packages that match the query"""
@@ -335,7 +335,7 @@ class TestSQLiteCache(unittest.TestCase):
         self.sql.add_all(pkgs)
         criteria = {"name": ["mypkg"], "summary": ["mypkg"]}
         packages = self.db.search(criteria, "or")
-        self.assertItemsEqual(packages, pkgs[:-1])
+        self.assertCountEqual(packages, pkgs[:-1])
 
     def test_search_and(self):
         """search() returns packages that match the query"""
@@ -354,7 +354,7 @@ class TestSQLiteCache(unittest.TestCase):
         self.sql.add_all(pkgs)
         criteria = {"name": ["my", "pkg"], "summary": ["this", "mypkg"]}
         packages = self.db.search(criteria, "and")
-        self.assertItemsEqual(packages, pkgs[:-1])
+        self.assertCountEqual(packages, pkgs[:-1])
 
     def test_summary(self):
         """summary constructs per-package metadata summary"""
@@ -363,7 +363,7 @@ class TestSQLiteCache(unittest.TestCase):
         p1 = self.db.upload("pkg1a2.tar.gz", BytesIO(b"test1234"), "pkg1", "1.1.1a2")
         p2 = self.db.upload("pkg2.tar.gz", BytesIO(b"test1234"), "pkg2", "0.1dev2")
         s1, s2 = self.db.summary()  # pylint: disable=E0632
-        # Order them correctly. assertItemsEqual isn't playing nice in py2.6
+        # Order them correctly. assertCountEqual isn't playing nice in py2.6
         if s1["name"] == "pkg2":
             s1, s2 = s2, s1
         # last_modified may be rounded when stored in MySQL,
@@ -572,7 +572,7 @@ class TestRedisCache(unittest.TestCase):
         for pkg in pkgs:
             self.db.save(pkg)
         saved_pkgs = self.db.all("mypkg")
-        self.assertItemsEqual(saved_pkgs, pkgs[:2])
+        self.assertCountEqual(saved_pkgs, pkgs[:2])
 
     def test_distinct(self):
         """distinct() returns all unique package names"""
@@ -585,7 +585,7 @@ class TestRedisCache(unittest.TestCase):
             self.db.save(pkg)
         saved_pkgs = self.db.distinct()
 
-        self.assertItemsEqual(saved_pkgs, set([p.name for p in pkgs]))
+        self.assertCountEqual(saved_pkgs, set([p.name for p in pkgs]))
 
     def test_delete_package(self):
         """Deleting the last package of a name removes from distinct()"""
@@ -619,7 +619,7 @@ class TestRedisCache(unittest.TestCase):
             self.db.save(pkg)
         criteria = {"name": ["mypkg"], "summary": ["mypkg"]}
         packages = self.db.search(criteria, "or")
-        self.assertItemsEqual(packages, pkgs[:-1])
+        self.assertCountEqual(packages, pkgs[:-1])
 
     def test_search_and(self):
         """search() returns packages that match the query"""
@@ -639,7 +639,7 @@ class TestRedisCache(unittest.TestCase):
             self.db.save(pkg)
         criteria = {"name": ["my", "pkg"], "summary": ["this", "mypkg"]}
         packages = self.db.search(criteria, "and")
-        self.assertItemsEqual(packages, pkgs[:-1])
+        self.assertCountEqual(packages, pkgs[:-1])
 
     def test_multiple_packages_same_version(self):
         """Can upload multiple packages that have the same version"""
@@ -664,7 +664,7 @@ class TestRedisCache(unittest.TestCase):
             "pkg2.tar.gz", BytesIO(b"test1234"), "pkg2", "0.1dev2", "summary"
         )
         summaries = self.db.summary()
-        self.assertItemsEqual(
+        self.assertCountEqual(
             summaries,
             [
                 {"name": "pkg1", "summary": "summary", "last_modified": ANY},
@@ -805,7 +805,7 @@ class TestDynamoCache(unittest.TestCase):
         self.storage.list.return_value = keys
         self.db.reload_from_storage()
         all_pkgs = self.engine.scan(DynamoPackage).all()
-        self.assertItemsEqual(all_pkgs, keys)
+        self.assertCountEqual(all_pkgs, keys)
 
     def test_fetch(self):
         """fetch() retrieves a package from the database"""
@@ -828,7 +828,7 @@ class TestDynamoCache(unittest.TestCase):
         ]
         self._save_pkgs(*pkgs)
         saved_pkgs = self.db.all("mypkg")
-        self.assertItemsEqual(saved_pkgs, pkgs[:2])
+        self.assertCountEqual(saved_pkgs, pkgs[:2])
 
     def test_distinct(self):
         """distinct() returns all unique package names"""
@@ -839,7 +839,7 @@ class TestDynamoCache(unittest.TestCase):
         ]
         self._save_pkgs(*pkgs)
         saved_pkgs = self.db.distinct()
-        self.assertItemsEqual(saved_pkgs, set([p.name for p in pkgs]))
+        self.assertCountEqual(saved_pkgs, set([p.name for p in pkgs]))
 
     def test_search_or(self):
         """search() returns packages that match the query"""
@@ -858,7 +858,7 @@ class TestDynamoCache(unittest.TestCase):
         self._save_pkgs(*pkgs)
         criteria = {"name": ["mypkg"], "summary": ["mypkg"]}
         packages = self.db.search(criteria, "or")
-        self.assertItemsEqual(packages, pkgs[:-1])
+        self.assertCountEqual(packages, pkgs[:-1])
 
     def test_search_and(self):
         """search() returns packages that match the query"""
@@ -877,7 +877,7 @@ class TestDynamoCache(unittest.TestCase):
         self._save_pkgs(*pkgs)
         criteria = {"name": ["my", "pkg"], "summary": ["this", "mypkg"]}
         packages = self.db.search(criteria, "and")
-        self.assertItemsEqual(packages, pkgs[:-1])
+        self.assertCountEqual(packages, pkgs[:-1])
 
     def test_summary(self):
         """summary constructs per-package metadata summary"""
@@ -890,7 +890,7 @@ class TestDynamoCache(unittest.TestCase):
             "pkg2.tar.gz", BytesIO(b"test1234"), "pkg2", "0.1dev2", "summary"
         )
         summaries = self.db.summary()
-        self.assertItemsEqual(
+        self.assertCountEqual(
             summaries,
             [
                 {

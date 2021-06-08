@@ -71,7 +71,7 @@ class TestDynamoCache(unittest.TestCase):
         self.storage.list.return_value = keys
         self.db.reload_from_storage()
         all_pkgs = self.engine.scan(DynamoPackage).all()
-        self.assertItemsEqual(all_pkgs, keys)
+        self.assertCountEqual(all_pkgs, keys)
         all_summaries = self.engine.scan(PackageSummary).all()
         self.assertEqual(len(all_summaries), 1)
 
@@ -86,7 +86,7 @@ class TestDynamoCache(unittest.TestCase):
         self.storage.list.return_value = keys[:1]
         self.db.reload_from_storage()
         all_pkgs = self.engine.scan(DynamoPackage).all()
-        self.assertItemsEqual(all_pkgs, keys[:1])
+        self.assertCountEqual(all_pkgs, keys[:1])
         # It should have removed the summary as well
         self.assertEqual(self.engine.scan(PackageSummary).count(), 1)
 
@@ -117,7 +117,7 @@ class TestDynamoCache(unittest.TestCase):
 
         self.db.reload_from_storage()
         all_pkgs = self.engine.scan(DynamoPackage).all()
-        self.assertItemsEqual(all_pkgs, pkgs[1:])
+        self.assertCountEqual(all_pkgs, pkgs[1:])
         self.assertEqual(self.engine.scan(PackageSummary).count(), 2)
 
     def test_remove_extra_concurrent_deletes(self):
@@ -135,7 +135,7 @@ class TestDynamoCache(unittest.TestCase):
 
         self.db.reload_from_storage()
         all_pkgs = self.engine.scan(DynamoPackage).all()
-        self.assertItemsEqual(all_pkgs, pkgs[:1])
+        self.assertCountEqual(all_pkgs, pkgs[:1])
         self.assertEqual(self.engine.scan(PackageSummary).count(), 1)
 
     def test_add_missing_more_recent(self):
@@ -151,7 +151,7 @@ class TestDynamoCache(unittest.TestCase):
         self.storage.list.return_value = pkgs
         self.db.reload_from_storage()
         all_pkgs = self.engine.scan(DynamoPackage).all()
-        self.assertItemsEqual(all_pkgs, pkgs)
+        self.assertCountEqual(all_pkgs, pkgs)
         summaries = self.db.summary()
         self.assertEqual(len(summaries), 1)
         summary = summaries[0]
@@ -219,7 +219,7 @@ class TestRedisCache(unittest.TestCase):
         self.storage.list.return_value = keys
         self.db.reload_from_storage()
         all_pkgs = self.db._load_all_packages()
-        self.assertItemsEqual(all_pkgs, keys)
+        self.assertCountEqual(all_pkgs, keys)
         self.assertEqual(len(self.db.summary()), 1)
 
     def test_remove_extra(self):
@@ -230,7 +230,7 @@ class TestRedisCache(unittest.TestCase):
         self.storage.list.return_value = keys[:1]
         self.db.reload_from_storage()
         all_pkgs = self.db._load_all_packages()
-        self.assertItemsEqual(all_pkgs, keys[:1])
+        self.assertCountEqual(all_pkgs, keys[:1])
         # It should have removed the summary as well
         self.assertEqual(len(self.db.summary()), 1)
 
@@ -258,7 +258,7 @@ class TestRedisCache(unittest.TestCase):
 
         self.db.reload_from_storage()
         all_pkgs = self.db._load_all_packages()
-        self.assertItemsEqual(all_pkgs, pkgs[1:])
+        self.assertCountEqual(all_pkgs, pkgs[1:])
         self.assertEqual(len(self.db.summary()), 2)
 
     def test_remove_extra_concurrent_deletes(self):
@@ -273,7 +273,7 @@ class TestRedisCache(unittest.TestCase):
 
         self.db.reload_from_storage()
         all_pkgs = self.db._load_all_packages()
-        self.assertItemsEqual(all_pkgs, pkgs[:1])
+        self.assertCountEqual(all_pkgs, pkgs[:1])
         self.assertEqual(len(self.db.summary()), 1)
 
     def test_add_missing_more_recent(self):
@@ -286,7 +286,7 @@ class TestRedisCache(unittest.TestCase):
         self.storage.list.return_value = pkgs
         self.db.reload_from_storage()
         all_pkgs = self.db._load_all_packages()
-        self.assertItemsEqual(all_pkgs, pkgs)
+        self.assertCountEqual(all_pkgs, pkgs)
         summaries = self.db.summary()
         self.assertEqual(len(summaries), 1)
         summary = summaries[0]
@@ -358,7 +358,7 @@ class TestSQLiteCache(unittest.TestCase):
         self.storage.list.return_value = keys
         self.db.reload_from_storage()
         all_pkgs = self.sql.query(SQLPackage).all()
-        self.assertItemsEqual(all_pkgs, keys)
+        self.assertCountEqual(all_pkgs, keys)
 
     def test_remove_extra(self):
         """Remove extra packages from cache"""
@@ -368,7 +368,7 @@ class TestSQLiteCache(unittest.TestCase):
         self.storage.list.return_value = keys[:1]
         self.db.reload_from_storage()
         all_pkgs = self.sql.query(SQLPackage).all()
-        self.assertItemsEqual(all_pkgs, keys[:1])
+        self.assertCountEqual(all_pkgs, keys[:1])
 
     def test_remove_extra_leave_concurrent(self):
         """Removing extra packages will leave packages that were uploaded concurrently"""
@@ -395,7 +395,7 @@ class TestSQLiteCache(unittest.TestCase):
 
         self.db.reload_from_storage()
         all_pkgs = self.sql.query(SQLPackage).all()
-        self.assertItemsEqual(all_pkgs, pkgs[1:])
+        self.assertCountEqual(all_pkgs, pkgs[1:])
 
     def test_remove_extra_concurrent_deletes(self):
         """Remove packages from cache that were concurrently deleted"""
@@ -409,7 +409,7 @@ class TestSQLiteCache(unittest.TestCase):
 
         self.db.reload_from_storage()
         all_pkgs = self.sql.query(SQLPackage).all()
-        self.assertItemsEqual(all_pkgs, pkgs[:1])
+        self.assertCountEqual(all_pkgs, pkgs[:1])
 
     def test_add_missing_more_recent(self):
         """If we sync a more recent package, update the summary"""
@@ -421,7 +421,7 @@ class TestSQLiteCache(unittest.TestCase):
         self.storage.list.return_value = pkgs
         self.db.reload_from_storage()
         all_pkgs = self.sql.query(SQLPackage).all()
-        self.assertItemsEqual(all_pkgs, pkgs)
+        self.assertCountEqual(all_pkgs, pkgs)
 
     def test_same_package_name_version(self):
         """Storage can have packages with the same name and version (different filename)"""

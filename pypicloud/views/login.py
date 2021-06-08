@@ -17,7 +17,7 @@ from pypicloud.route import Root
 )
 def get_login_page(request):
     """Catch login and redirect to login wall"""
-    if request.userid is not None:
+    if request.authenticated_userid is not None:
         # User is logged in and fetching /login, so redirect to /
         return HTTPFound(location=request.app_url())
     return {}

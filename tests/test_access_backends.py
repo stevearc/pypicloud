@@ -5,8 +5,9 @@ import unittest
 
 import transaction
 import zope.sqlalchemy
-from mock import MagicMock, patch
+from mock import MagicMock, PropertyMock, patch
 from mockldap import MockLdap
+from pyramid import testing
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.security import Authenticated, Everyone
 from pyramid.testing import DummyRequest
@@ -85,9 +86,14 @@ class BaseACLTest(unittest.TestCase):
     """Base test for anything checking ACLs"""
 
     def setUp(self):
+        super().setUp()
+        self.config = testing.setUp()
         self.request = DummyRequest()
-        self.request.userid = None
         self.auth = ACLAuthorizationPolicy()
+
+    def tearDown(self):
+        super().tearDown()
+        testing.tearDown()
 
     def allowed(self, context, perm):
         """Get all allowed principals from a context or an ACL"""
@@ -116,7 +122,7 @@ class TestBaseBackend(BaseACLTest):
         patch.object(self.backend, "is_admin").start()
         patch.object(self.backend, "group_permissions").start()
         patch.object(self.backend, "user_permissions").start()
-        self.request.access = self.backend
+        self.request = DummyRequest(access=self.backend)
 
     def tearDown(self):
         super(TestBaseBackend, self).tearDown()
@@ -259,10 +265,13 @@ class TestBaseBackend(BaseACLTest):
 
     def test_admin_has_permission(self):
         """Admins always have permission"""
-        self.request.userid = "abc"
-        access = IAccessBackend(self.request)
-        access.is_admin = lambda x: True
-        self.assertTrue(access.has_permission("p1", "write"))
+        with patch.object(
+            DummyRequest, "authenticated_userid", new_callable=PropertyMock
+        ) as auid:
+            auid.return_value = "abc"
+            access = IAccessBackend(self.request)
+            access.is_admin = lambda _: True
+            self.assertTrue(access.has_permission("p1", "write"))
 
     def test_has_permission_default_read(self):
         """If no user/group permissions on a package, use default_read"""
@@ -287,7 +296,7 @@ class TestBaseBackend(BaseACLTest):
         with patch.object(access, "groups") as groups:
             groups.return_value = ["brotatos"]
             principals = access.user_principals("abc")
-        self.assertItemsEqual(
+        self.assertCountEqual(
             principals, [Everyone, Authenticated, "admin", "group:brotatos", "user:abc"]
         )
 
@@ -331,9 +340,7 @@ class TestConfigBackend(BaseACLTest):
     def _backend(self, settings):
         """Wrapper to instantiate a ConfigAccessBackend"""
         kwargs = ConfigAccessBackend.configure(settings)
-        request = DummyRequest()
-        request.userid = None
-        return ConfigAccessBackend(request, **kwargs)
+        return ConfigAccessBackend(self.request, **kwargs)
 
     def test_build_group(self):
         """Group specifications create user map to groups"""
@@ -343,11 +350,11 @@ class TestConfigBackend(BaseACLTest):
             "unrelated": "weeeeee",
         }
         backend = self._backend(settings)
-        self.assertItemsEqual(backend.groups(), ["g1", "g2"])
-        self.assertItemsEqual(backend.groups("u1"), ["g1"])
-        self.assertItemsEqual(backend.groups("u2"), ["g1", "g2"])
-        self.assertItemsEqual(backend.groups("u3"), ["g1", "g2"])
-        self.assertItemsEqual(backend.groups("u4"), ["g2"])
+        self.assertCountEqual(backend.groups(), ["g1", "g2"])
+        self.assertCountEqual(backend.groups("u1"), ["g1"])
+        self.assertCountEqual(backend.groups("u2"), ["g1", "g2"])
+        self.assertCountEqual(backend.groups("u3"), ["g1", "g2"])
+        self.assertCountEqual(backend.groups("u4"), ["g2"])
 
     def test_verify(self):
         """Users can log in with correct password"""
@@ -367,7 +374,7 @@ class TestConfigBackend(BaseACLTest):
         """Fetch all members of a group"""
         settings = {"group.g1": "u1 u2 u3"}
         backend = self._backend(settings)
-        self.assertItemsEqual(backend.group_members("g1"), ["u1", "u2", "u3"])
+        self.assertCountEqual(backend.group_members("g1"), ["u1", "u2", "u3"])
 
     def test_all_group_permissions(self):
         """Fetch all group permissions on a package"""
@@ -376,23 +383,27 @@ class TestConfigBackend(BaseACLTest):
         perms = backend.group_permissions("mypkg")
         self.assertEqual(perms, {"g1": ["read"], "g2": ["read", "write"]})
 
-    @patch("pypicloud.access.base.effective_principals")
-    def test_everyone_permission(self, principals):
+    def test_everyone_permission(self):
         """All users have 'everyone' permissions"""
         settings = {"package.mypkg.group.everyone": "r"}
-        principals.return_value = [Everyone]
-        backend = self._backend(settings)
-        self.assertTrue(backend.has_permission("mypkg", "read"))
-        self.assertFalse(backend.has_permission("mypkg", "write"))
+        with patch.object(
+            DummyRequest, "effective_principals", new_callable=PropertyMock
+        ) as principals:
+            principals.return_value = [Everyone]
+            backend = self._backend(settings)
+            self.assertTrue(backend.has_permission("mypkg", "read"))
+            self.assertFalse(backend.has_permission("mypkg", "write"))
 
-    @patch("pypicloud.access.base.effective_principals")
-    def test_authenticated_permission(self, principals):
+    def test_authenticated_permission(self):
         """All logged-in users have 'authenticated' permissions"""
         settings = {"package.mypkg.group.authenticated": "r"}
-        principals.return_value = [Authenticated]
-        backend = self._backend(settings)
-        self.assertTrue(backend.has_permission("mypkg", "read"))
-        self.assertFalse(backend.has_permission("mypkg", "write"))
+        with patch.object(
+            DummyRequest, "effective_principals", new_callable=PropertyMock
+        ) as principals:
+            principals.return_value = [Authenticated]
+            backend = self._backend(settings)
+            self.assertTrue(backend.has_permission("mypkg", "read"))
+            self.assertFalse(backend.has_permission("mypkg", "write"))
 
     def test_all_user_perms(self):
         """Fetch permissions on a package for all users"""
@@ -410,7 +421,7 @@ class TestConfigBackend(BaseACLTest):
         }
         backend = self._backend(settings)
         packages = backend.user_package_permissions("u1")
-        self.assertItemsEqual(
+        self.assertCountEqual(
             packages,
             [
                 {"package": "pkg1", "permissions": ["read"]},
@@ -427,7 +438,7 @@ class TestConfigBackend(BaseACLTest):
         }
         backend = self._backend(settings)
         packages = backend.user_package_permissions("u1")
-        self.assertItemsEqual(
+        self.assertCountEqual(
             packages,
             [
                 {"package": "pkg1", "permissions": ["read"]},
@@ -444,7 +455,7 @@ class TestConfigBackend(BaseACLTest):
         }
         backend = self._backend(settings)
         packages = backend.group_package_permissions("g1")
-        self.assertItemsEqual(
+        self.assertCountEqual(
             packages,
             [
                 {"package": "pkg1", "permissions": ["read"]},
@@ -457,7 +468,7 @@ class TestConfigBackend(BaseACLTest):
         settings = {"user.foo": "pass", "user.bar": "pass", "auth.admins": ["foo"]}
         backend = self._backend(settings)
         users = backend.user_data()
-        self.assertItemsEqual(
+        self.assertCountEqual(
             users,
             [{"username": "foo", "admin": True}, {"username": "bar", "admin": False}],
         )
@@ -709,7 +720,7 @@ class TestSQLiteBackend(unittest.TestCase):
         self.db.add_all([user, g1, g2])
         transaction.commit()
         groups = self.access.groups("foo")
-        self.assertItemsEqual(groups, ["brotatos", "sharkfest"])
+        self.assertCountEqual(groups, ["brotatos", "sharkfest"])
 
     def test_groups(self):
         """Retrieve all groups from database"""
@@ -721,7 +732,7 @@ class TestSQLiteBackend(unittest.TestCase):
         self.db.add(user)
         transaction.commit()
         groups = self.access.groups()
-        self.assertItemsEqual(groups, ["brotatos", "sharkfest"])
+        self.assertCountEqual(groups, ["brotatos", "sharkfest"])
 
     def test_group_members(self):
         """Fetch all members of a group"""
@@ -733,7 +744,7 @@ class TestSQLiteBackend(unittest.TestCase):
         self.db.add_all([u1, u2, u3, g1])
         transaction.commit()
         users = self.access.group_members("g1")
-        self.assertItemsEqual(users, ["u1", "u2"])
+        self.assertCountEqual(users, ["u1", "u2"])
 
     def test_all_user_permissions(self):
         """Retrieve all user permissions on package from database"""
@@ -799,7 +810,7 @@ class TestSQLiteBackend(unittest.TestCase):
         self.db.add_all([u1, u2, g1])
         transaction.commit()
         users = self.access.user_data()
-        self.assertItemsEqual(
+        self.assertCountEqual(
             users,
             [{"username": "foo", "admin": True}, {"username": "bar", "admin": False}],
         )
@@ -1100,8 +1111,8 @@ class TestSQLiteBackend(unittest.TestCase):
 
         # groups
         self.assertEqual(len(data["groups"]), 2)
-        self.assertItemsEqual(data["groups"]["g1"], ["user2"])
-        self.assertItemsEqual(data["groups"]["g2"], ["user2", "user3"])
+        self.assertCountEqual(data["groups"]["g1"], ["user2"])
+        self.assertCountEqual(data["groups"]["g2"], ["user2", "user3"])
 
         # user package perms
         self.assertEqual(
@@ -1154,7 +1165,7 @@ class TestSQLiteBackend(unittest.TestCase):
                 for key, val in obj1.items():
                     assert_nice_equals(val, obj2[key])
             elif isinstance(obj1, list):
-                self.assertItemsEqual(obj1, obj2)
+                self.assertCountEqual(obj1, obj2)
             else:
                 self.assertEqual(obj1, obj2)
 
@@ -1234,7 +1245,6 @@ class TestLDAPBackend(BaseACLTest):
         settings = dict(((k, v) for (k, v) in settings.items() if v is not None))
         kwargs = LDAPAccessBackend.configure(settings)
         request = DummyRequest()
-        request.userid = None
         return LDAPAccessBackend(request, **kwargs)
 
     def test_verify(self):
@@ -1352,7 +1362,6 @@ class BaseLDAPTest(BaseACLTest):
         settings = dict(((k, v) for (k, v) in settings.items() if v is not None))
         kwargs = LDAPAccessBackend.configure(settings)
         request = DummyRequest()
-        request.userid = None
         return LDAPAccessBackend(request, **kwargs)
 
 
@@ -1394,7 +1403,7 @@ class TestLDAPMockBackend(BaseLDAPTest):
     def test_single_user_data(self):
         """Get data for a single user"""
         user = self.backend.user_data("u1")
-        self.assertItemsEqual(user, {"username": "u1", "admin": False, "groups": []})
+        self.assertCountEqual(user, {"username": "u1", "admin": False, "groups": []})
 
     def test_service_username(self):
         """service_username allows the service account to be admin"""
@@ -1502,7 +1511,7 @@ class TestMockLDAPBackendWithConfig(BaseLDAPTest):
         """Fetch all members of a group"""
         settings = {"group.g1": "u1 u2 u3"}
         backend = self._backend(settings)
-        self.assertItemsEqual(backend.group_members("g1"), ["u1", "u2", "u3"])
+        self.assertCountEqual(backend.group_members("g1"), ["u1", "u2", "u3"])
 
     def test_all_group_permissions(self):
         """Fetch all group permissions on a package"""
@@ -1527,7 +1536,7 @@ class TestMockLDAPBackendWithConfig(BaseLDAPTest):
         }
         backend = self._backend(settings)
         packages = backend.user_package_permissions("u1")
-        self.assertItemsEqual(
+        self.assertCountEqual(
             packages,
             [
                 {"package": "pkg1", "permissions": ["read"]},
@@ -1544,7 +1553,7 @@ class TestMockLDAPBackendWithConfig(BaseLDAPTest):
         }
         backend = self._backend(settings)
         packages = backend.user_package_permissions("u1")
-        self.assertItemsEqual(
+        self.assertCountEqual(
             packages,
             [
                 {"package": "pkg1", "permissions": ["read"]},
@@ -1561,7 +1570,7 @@ class TestMockLDAPBackendWithConfig(BaseLDAPTest):
         }
         backend = self._backend(settings)
         packages = backend.group_package_permissions("g1")
-        self.assertItemsEqual(
+        self.assertCountEqual(
             packages,
             [
                 {"package": "pkg1", "permissions": ["read"]},
@@ -1574,7 +1583,7 @@ class TestMockLDAPBackendWithConfig(BaseLDAPTest):
         settings = {"user.u1": "_", "user.bar": "_"}
         backend = self._backend(settings)
         users = backend.user_data()
-        self.assertItemsEqual(
+        self.assertCountEqual(
             users,
             [{"username": "u1", "admin": False}, {"username": "bar", "admin": False}],
         )
@@ -1663,17 +1672,17 @@ class TestAWSSecretsManagerBackend(unittest.TestCase):
     def test_user_groups(self):
         """Retrieve a user's groups from database"""
         groups = self.access.groups("user")
-        self.assertItemsEqual(groups, ["group2"])
+        self.assertCountEqual(groups, ["group2"])
 
     def test_groups(self):
         """Retrieve all groups from database"""
         groups = self.access.groups()
-        self.assertItemsEqual(groups, ["group1", "group2"])
+        self.assertCountEqual(groups, ["group1", "group2"])
 
     def test_group_members(self):
         """Fetch all members of a group"""
         users = self.access.group_members("group2")
-        self.assertItemsEqual(users, ["admin", "user"])
+        self.assertCountEqual(users, ["admin", "user"])
 
     def test_all_user_permissions(self):
         """Retrieve all user permissions on package from database"""
@@ -1698,7 +1707,7 @@ class TestAWSSecretsManagerBackend(unittest.TestCase):
     def test_user_data(self):
         """Retrieve all users"""
         users = self.access.user_data()
-        self.assertItemsEqual(
+        self.assertCountEqual(
             users,
             [
                 {"username": "admin", "admin": True},
@@ -1785,22 +1794,22 @@ class TestAWSSecretsManagerBackend(unittest.TestCase):
     def test_add_user_to_group(self):
         """Can add a user to a group"""
         self.access.edit_user_group("user", "group1", True)
-        self.assertItemsEqual(self.access.groups("user"), ["group1", "group2"])
+        self.assertCountEqual(self.access.groups("user"), ["group1", "group2"])
 
     def test_remove_user_from_group(self):
         """Can remove a user from a group"""
         self.access.edit_user_group("user", "group2", False)
-        self.assertItemsEqual(self.access.groups("user"), [])
+        self.assertCountEqual(self.access.groups("user"), [])
 
     def test_create_group(self):
         """Can create a group"""
         self.access.create_group("group3")
-        self.assertItemsEqual(self.access.groups(), ["group1", "group2", "group3"])
+        self.assertCountEqual(self.access.groups(), ["group1", "group2", "group3"])
 
     def test_delete_group(self):
         """Can delete groups"""
         self.access.delete_group("group1")
-        self.assertItemsEqual(self.access.groups(), ["group2"])
+        self.assertCountEqual(self.access.groups(), ["group2"])
 
     def test_grant_user_read_permission(self):
         """Can give users read permissions on a package"""

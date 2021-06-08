@@ -90,7 +90,7 @@ class TestS3Storage(unittest.TestCase):
         self.assertEqual(parts.hostname, "mybucket.s3.amazonaws.com")
         self.assertEqual(parts.path, "/" + self.storage.get_path(package))
         query = parse_qs(parts.query)
-        self.assertItemsEqual(query.keys(), ["Expires", "Signature", "AWSAccessKeyId"])
+        self.assertCountEqual(query.keys(), ["Expires", "Signature", "AWSAccessKeyId"])
         self.assertTrue(int(query["Expires"][0]) > time.time())
         self.assertEqual(
             query["AWSAccessKeyId"][0], self.settings["storage.aws_access_key_id"]
@@ -165,7 +165,7 @@ class TestS3Storage(unittest.TestCase):
         package = make_package()
         storage.upload(package, BytesIO())
         acl = list(self.bucket.objects.all())[0].Object().Acl()
-        self.assertItemsEqual(
+        self.assertCountEqual(
             acl.grants,
             [
                 {
@@ -191,7 +191,7 @@ class TestS3Storage(unittest.TestCase):
         package = make_package()
         storage.upload(package, BytesIO())
         storage_class = list(self.bucket.objects.all())[0].Object().storage_class
-        self.assertItemsEqual(storage_class, "STANDARD_IA")
+        self.assertCountEqual(storage_class, "STANDARD_IA")
 
     def test_check_health_success(self):
         """check_health returns True for good connection"""
@@ -272,7 +272,7 @@ class TestCloudFrontS3Storage(unittest.TestCase):
         self.assertEqual(parts.netloc, "abcdef.cloudfront.net")
         self.assertEqual(parts.path, "/bcc4/mypkg/mypkg-1.1%2Bg12345.tar.gz")
         query = parse_qs(parts.query)
-        self.assertItemsEqual(query.keys(), ["Key-Pair-Id", "Expires", "Signature"])
+        self.assertCountEqual(query.keys(), ["Key-Pair-Id", "Expires", "Signature"])
         self.assertTrue(int(query["Expires"][0]) > time.time())
         self.assertEqual(
             query["Key-Pair-Id"][0], self.settings["storage.cloud_front_key_id"]
@@ -541,7 +541,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
         self.assertEqual(parts.hostname, "storage.googleapis.com")
         self.assertEqual(parts.path, "/mybucket/" + self.storage.get_path(package))
         query = parse_qs(parts.query)
-        self.assertItemsEqual(query.keys(), ["Expires", "Signature", "GoogleAccessId"])
+        self.assertCountEqual(query.keys(), ["Expires", "Signature", "GoogleAccessId"])
         self.assertTrue(int(query["Expires"][0]) > time.time())
 
     def test_delete(self):
@@ -683,7 +683,7 @@ class TestAzureStorage(unittest.TestCase):
             + self.storage.get_path(package),
         )
         query = parse_qs(parts.query)
-        self.assertItemsEqual(query.keys(), ["se", "sp", "spr", "sv", "sr", "sig"])
+        self.assertCountEqual(query.keys(), ["se", "sp", "spr", "sv", "sr", "sig"])
 
     def test_delete(self):
         """delete() should remove package from storage"""

@@ -1,8 +1,9 @@
 """ Tests for API endpoints """
 from io import BytesIO
 
-from mock import MagicMock, patch
+from mock import MagicMock, PropertyMock, patch
 from pyramid.httpexceptions import HTTPBadRequest, HTTPForbidden
+from pyramid.testing import DummyRequest
 
 from pypicloud.views import api
 
@@ -82,17 +83,23 @@ class TestApi(MockServerTest):
 
     def test_change_password(self):
         """Change password forwards to access"""
-        self.request.userid = "u"
-        api.change_password(self.request, "a", "b")
-        self.access.edit_user_password.assert_called_with("u", "b")
+        with patch.object(
+            DummyRequest, "authenticated_userid", new_callable=PropertyMock
+        ) as auid:
+            auid.return_value = "u"
+            api.change_password(self.request, "a", "b")
+            self.access.edit_user_password.assert_called_with("u", "b")
 
     def test_change_password_no_verify(self):
         """Change password fails if invalid credentials"""
-        self.request.userid = "u"
-        self.access.verify_user.return_value = False
-        ret = api.change_password(self.request, "a", "b")
-        self.assertTrue(isinstance(ret, HTTPForbidden))
-        self.access.verify_user.assert_called_with("u", "a")
+        with patch.object(
+            DummyRequest, "authenticated_userid", new_callable=PropertyMock
+        ) as auid:
+            auid.return_value = "u"
+            self.access.verify_user.return_value = False
+            ret = api.change_password(self.request, "a", "b")
+            self.assertTrue(isinstance(ret, HTTPForbidden))
+            self.access.verify_user.assert_called_with("u", "a")
 
     def test_download(self):
         """Downloading package returns download response from db"""
@@ -106,6 +113,9 @@ class TestApi(MockServerTest):
     def test_download_with_stream_files(self):
         """Downloading package returns download response from db with max age"""
         db = self.request.db = MagicMock()
+        data = MagicMock()
+        db.storage.open.return_value.__enter__.return_value = data
+        data.read.return_value = b""
         self.request.registry.stream_files = True
         self.request.registry.package_max_age = 30
         context = MagicMock()
@@ -113,7 +123,9 @@ class TestApi(MockServerTest):
         db.fetch.assert_called_with(context.filename)
         db.storage.open.assert_called_once_with(db.fetch())
         db.download_response.assert_not_called()
-        ret.headers.update.assert_any_call([("Cache-Control", "public, max-age=30")])
+        self.assertDictContainsSubset(
+            {"Cache-Control": "public, max-age=30"}, ret.headers
+        )
 
     def test_download_fallback_no_cache(self):
         """Downloading missing package on non-'cache' fallback returns 404"""
@@ -156,7 +168,7 @@ class TestApi(MockServerTest):
         self.request.fallback_simple = "https://pypi.org/simple"
         self.request.access.can_update_cache.return_value = True
         db.fetch.return_value = None
-        fetch_dist.return_value = (MagicMock(), MagicMock())
+        fetch_dist.return_value = (MagicMock(), b"fds")
         context = MagicMock()
         context.filename = "package.tar.gz"
         url = "https://pypi.org/simple/%s" % context.filename
@@ -172,7 +184,9 @@ class TestApi(MockServerTest):
             dist["requires_python"],
         )
         self.assertEqual(ret.body, fetch_dist()[1])
-        ret.headers.update.assert_any_call([("Cache-Control", "public, max-age=0")])
+        self.assertDictContainsSubset(
+            {"Cache-Control": "public, max-age=0"}, ret.headers
+        )
 
     @patch("pypicloud.views.api.fetch_dist")
     def test_download_fallback_cache_max_age(self, fetch_dist):
@@ -184,7 +198,7 @@ class TestApi(MockServerTest):
         self.request.access.can_update_cache.return_value = True
         self.request.registry.package_max_age = 30
         db.fetch.return_value = None
-        fetch_dist.return_value = (MagicMock(), MagicMock())
+        fetch_dist.return_value = (MagicMock(), b"abc")
         context = MagicMock()
         context.filename = "package.tar.gz"
         url = "https://pypi.org/simple/%s" % context.filename
@@ -193,4 +207,6 @@ class TestApi(MockServerTest):
         ret = api.download_package(context, self.request)
         fetch_dist.assert_called_once()
         self.assertEqual(ret.body, fetch_dist()[1])
-        ret.headers.update.assert_any_call([("Cache-Control", "public, max-age=30")])
+        self.assertDictContainsSubset(
+            {"Cache-Control": "public, max-age=30"}, ret.headers
+        )

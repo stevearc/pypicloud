@@ -218,7 +218,7 @@ def _simple_redirect(context, request):
     packages = request.db.all(normalized_name)
     if packages:
         if not request.access.has_permission(normalized_name, "read"):
-            if request.is_logged_in:
+            if request.is_authenticated:
                 return _redirect(context, request)
             else:
                 return request.request_login()
@@ -234,7 +234,7 @@ def _simple_redirect_always_show(context, request):
     packages = request.db.all(normalized_name)
     if packages:
         if not request.access.has_permission(normalized_name, "read"):
-            if request.is_logged_in:
+            if request.is_authenticated:
                 return _redirect(context, request)
             else:
                 return request.request_login()
@@ -254,7 +254,7 @@ def _simple_cache(context, request):
     normalized_name = normalize_name(context.name)
 
     if not request.access.has_permission(normalized_name, "read"):
-        if request.is_logged_in:
+        if request.is_authenticated:
             return HTTPNotFound("No packages found named %r" % normalized_name)
         else:
             return request.request_login()
@@ -264,7 +264,7 @@ def _simple_cache(context, request):
         return _pkg_response(packages_to_dict(request, packages))
 
     if not request.access.can_update_cache():
-        if request.is_logged_in:
+        if request.is_authenticated:
             return HTTPNotFound("No packages found named %r" % normalized_name)
         else:
             return request.request_login()
@@ -278,7 +278,7 @@ def _simple_cache_always_show(context, request):
     normalized_name = normalize_name(context.name)
 
     if not request.access.has_permission(normalized_name, "read"):
-        if request.is_logged_in:
+        if request.is_authenticated:
             return _redirect(context, request)
         else:
             return request.request_login()
@@ -286,7 +286,7 @@ def _simple_cache_always_show(context, request):
     packages = request.db.all(normalized_name)
     if packages:
         if not request.access.can_update_cache():
-            if request.is_logged_in:
+            if request.is_authenticated:
                 pkgs = get_fallback_packages(request, context.name)
                 stored_pkgs = packages_to_dict(request, packages)
                 # Overwrite existing package urls
@@ -304,7 +304,7 @@ def _simple_cache_always_show(context, request):
             return _pkg_response(pkgs)
     else:
         if not request.access.can_update_cache():
-            if request.is_logged_in:
+            if request.is_authenticated:
                 return _redirect(context, request)
             else:
                 return request.request_login()
@@ -318,7 +318,7 @@ def _simple_serve(context, request):
     normalized_name = normalize_name(context.name)
 
     if not request.access.has_permission(normalized_name, "read"):
-        if request.is_logged_in:
+        if request.is_authenticated:
             return HTTPNotFound("No packages found named %r" % normalized_name)
         else:
             return request.request_login()

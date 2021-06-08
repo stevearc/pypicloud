@@ -196,7 +196,7 @@ def register(request, password):
 @argify
 def change_password(request, old_password, new_password):
     """Change a user's password"""
-    if not request.access.verify_user(request.userid, old_password):
+    if not request.access.verify_user(request.authenticated_userid, old_password):
         return HTTPForbidden()
-    request.access.edit_user_password(request.userid, new_password)
+    request.access.edit_user_password(request.authenticated_userid, new_password)
     return request.response

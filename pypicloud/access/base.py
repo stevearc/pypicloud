@@ -7,14 +7,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from passlib.apps import LazyCryptContext
 from passlib.utils import sys_bits
-from pyramid.security import (
-    ALL_PERMISSIONS,
-    Allow,
-    Authenticated,
-    Deny,
-    Everyone,
-    effective_principals,
-)
+from pyramid.security import ALL_PERMISSIONS, Allow, Authenticated, Deny, Everyone
 from pyramid.settings import aslist
 
 from pypicloud.util import get_environ_setting
@@ -188,12 +181,12 @@ class IAccessBackend(object):
 
     def has_permission(self, package: str, perm: str) -> bool:
         """Check if this user has a permission for a package"""
-        current_userid = self.request.userid
+        current_userid = self.request.authenticated_userid
         if current_userid is not None and self.is_admin(current_userid):
             return True
 
         perms = self.allowed_permissions(package)
-        for principal in effective_principals(self.request):
+        for principal in self.request.effective_principals:
             if perm in perms.get(principal, []):
                 return True
         return False
@@ -269,7 +262,7 @@ class IAccessBackend(object):
         """
         Return True if the user has permissions to update the pypi cache
         """
-        return self.in_any_group(self.request.userid, self.cache_update)
+        return self.in_any_group(self.request.authenticated_userid, self.cache_update)
 
     def need_admin(self) -> bool:
         """

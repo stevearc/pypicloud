@@ -6,13 +6,10 @@ from collections import defaultdict
 from mock import MagicMock
 from pyramid.testing import DummyRequest
 
-from pypicloud.auth import _is_logged_in
 from pypicloud.cache import ICache
 from pypicloud.dateutil import utcnow
 from pypicloud.models import Package
 from pypicloud.storage import IStorage
-
-unittest.TestCase.assertItemsEqual = unittest.TestCase.assertCountEqual
 
 
 os.environ["AWS_SECRET_ACCESS_KEY"] = "access_key"
@@ -119,12 +116,8 @@ class MockServerTest(unittest.TestCase):
     """Base class for tests that need in-memory ICache objects"""
 
     def setUp(self):
-        self.request = DummyRequest()
-        self.request.registry = MagicMock()
-        self.request.userid = None
-        self.request.__class__.is_logged_in = property(_is_logged_in)
+        self.request = DummyRequest(registry=MagicMock(), forbid=MagicMock())
         self.db = self.request.db = DummyCache(self.request)
         self.request.path_url = "/path/"
-        self.request.forbid = MagicMock()
         self.params = {}
         self.request.param = lambda x, y=None: self.params.get(x, y)

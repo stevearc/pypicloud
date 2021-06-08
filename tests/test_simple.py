@@ -96,7 +96,7 @@ class TestSimple(MockServerTest):
         self.request.access.has_permission.side_effect = lambda x, _: x == "pkg1"
         criteria = {"name": ["pkg"]}
         response = search(self.request, criteria, "and")
-        self.assertItemsEqual(
+        self.assertCountEqual(
             response, [{"name": "pkg1", "version": "1.1", "summary": ""}]
         )
 
@@ -232,10 +232,10 @@ class PackageReadTestBase(unittest.TestCase):
         request.registry.fallback_base_url = (
             self.fallback_base_url if use_base_url else None
         )
-        request.userid = user
+        request.authenticated_userid = user
+        request.is_authenticated = user is not None
         request.access.can_update_cache = lambda: "c" in perms
         request.access.has_permission.side_effect = lambda n, p: "r" in perms
-        request.is_logged_in = user is not None
         request.request_login = MethodType(_request_login, request)
         pkgs = []
         if package is not None:
