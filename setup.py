@@ -11,6 +11,7 @@ CHANGES = open(os.path.join(HERE, "CHANGES.rst")).read()
 CHANGES = re.sub(r"\(\s*:(issue|pr|sha):.*?\)", "", CHANGES)
 CHANGES = re.sub(r":ref:`(.*?) <.*>`", r"\1", CHANGES)
 
+REQUIREMENTS_TEST = open(os.path.join(HERE, "requirements_test.txt")).readlines()
 REQUIREMENTS = [
     "boto3>=1.7.0",
     # beaker needs this
@@ -39,27 +40,7 @@ EXTRAS = {
 
 EXTRAS["all_plugins"] = sum(EXTRAS.values(), [])
 
-EXTRAS["test"] = EXTRAS["all_plugins"] + [
-    "mock",
-    "mockldap",
-    "moto",
-    "mysqlclient",
-    "nose",
-    "psycopg2-binary",
-    "requests",
-    "webtest",
-    "vcrpy",
-]
-
 EXTRAS["server"] = ["waitress"]
-EXTRAS["lint"] = [
-    "docutils",
-    "black",
-    "pylint==2.7.1",
-    "mypy",
-    "sqlalchemy-stubs",
-    "isort",
-]
 
 
 if __name__ == "__main__":
@@ -107,7 +88,7 @@ if __name__ == "__main__":
             "paste.app_factory": ["main = pypicloud:main"],
         },
         install_requires=REQUIREMENTS,
-        tests_require=REQUIREMENTS + EXTRAS["test"],
+        tests_require=REQUIREMENTS + REQUIREMENTS_TEST,
         test_suite="tests",
         extras_require=EXTRAS,
     )

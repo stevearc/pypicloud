@@ -1,0 +1,10 @@
+coverage
+mock
+mockldap
+moto
+mysqlclient
+nose
+psycopg2-binary
+requests
+webtest
+vcrpy

@@ -1,0 +1,11 @@
+-rrequirements_test.txt
+black
+docutils
+isort
+mypy
+pylint==2.7.1
+sqlalchemy-stubs
+types-pkg_resources
+types-protobuf
+types-redis
+types-requests
