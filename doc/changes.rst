@@ -2,10 +2,15 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.2.2 - 2021/6/8
+----------------
+* Upgrade to Pyramid 2.0
+* Remove the SQL index from package summary field (will take effect when you rebuild your cache, but a rebuild is not required)
+
 1.2.1 - 2021/5/18
 -----------------
 * Fix a XSS vulnerability (:issue:`280`)
-* Remove storage limit of package summary (:pr:`276`)
+* Remove storage limit of package summary (:pr:`276`) (will take effect when you rebuild your cache, but a rebuild is not required unless you hit this issue)
 
 1.2.0 - 2021/3/1
 ----------------
