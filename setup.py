@@ -60,7 +60,6 @@ EXTRAS["lint"] = [
     "sqlalchemy-stubs",
     "isort",
 ]
-EXTRAS["doc"] = ["numpydoc", "sphinx", "sphinx_rtd_theme"]
 
 
 if __name__ == "__main__":

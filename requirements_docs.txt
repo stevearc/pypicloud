@@ -1,6 +1,5 @@
 flywheel
 google-cloud-storage
-mysqlclient
 numpydoc
 psycopg2-binary
 redis
