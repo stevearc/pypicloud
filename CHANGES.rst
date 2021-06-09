@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.2.3 - 2021/6/9
+----------------
+* Add Pyramid>=2.0 to dependencies (:issue:`283`)
+
 1.2.2 - 2021/6/8
 ----------------
 * Upgrade to Pyramid 2.0
