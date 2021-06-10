@@ -9,7 +9,7 @@ from paste.httpheaders import AUTHORIZATION, WWW_AUTHENTICATE
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.httpexceptions import HTTPForbidden, HTTPUnauthorized
 from pyramid.interfaces import ISecurityPolicy
-from pyramid.security import Everyone
+from pyramid.security import Allowed, Denied
 from zope.interface import implementer
 
 
@@ -67,20 +67,21 @@ class PypicloudSecurityPolicy:
         """
         return self.identity(request)
 
-    def effective_principals(self, request):
-        userid = self.authenticated_userid(request)
-        if userid is None:
-            return [Everyone]
-        return request.access.user_principals(userid)
-
     def permits(self, request, context, permission):
         """Return an instance of :class:`pyramid.security.Allowed` if a user
         of the given identity is allowed the ``permission`` in the current
         ``context``, else return an instance of
         :class:`pyramid.security.Denied`.
         """
-        principals = self.effective_principals(request)
-        return self.acl_policy.permits(context, principals, permission)
+        if isinstance(context, str):
+            # We assume that context is the name of a package
+            if request.access.has_permission(context, permission):
+                return Allowed("Allowed by ACL")
+            return Denied("Permission not granted")
+        else:
+            userid = self.authenticated_userid(request)
+            principals = request.access.user_principals(userid)
+            return self.acl_policy.permits(context, principals, permission)
 
     def remember(self, request, userid, **kw):
         """Return a set of headers suitable for 'remembering' the

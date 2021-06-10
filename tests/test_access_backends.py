@@ -386,22 +386,18 @@ class TestConfigBackend(BaseACLTest):
     def test_everyone_permission(self):
         """All users have 'everyone' permissions"""
         settings = {"package.mypkg.group.everyone": "r"}
-        with patch.object(
-            DummyRequest, "effective_principals", new_callable=PropertyMock
-        ) as principals:
+        backend = self._backend(settings)
+        with patch.object(backend, "user_principals") as principals:
             principals.return_value = [Everyone]
-            backend = self._backend(settings)
             self.assertTrue(backend.has_permission("mypkg", "read"))
             self.assertFalse(backend.has_permission("mypkg", "write"))
 
     def test_authenticated_permission(self):
         """All logged-in users have 'authenticated' permissions"""
         settings = {"package.mypkg.group.authenticated": "r"}
-        with patch.object(
-            DummyRequest, "effective_principals", new_callable=PropertyMock
-        ) as principals:
+        backend = self._backend(settings)
+        with patch.object(backend, "user_principals") as principals:
             principals.return_value = [Authenticated]
-            backend = self._backend(settings)
             self.assertTrue(backend.has_permission("mypkg", "read"))
             self.assertFalse(backend.has_permission("mypkg", "write"))
 

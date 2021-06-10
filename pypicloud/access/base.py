@@ -12,6 +12,8 @@ from pyramid.settings import aslist
 
 from pypicloud.util import get_environ_setting
 
+Admin = "admin"
+
 # Roughly tuned using https://bitbucket.org/ecollins/passlib/raw/default/choose_rounds.py
 # For 10ms. This differs from the passlib recommendation of 350ms due to the difference in use case
 DEFAULT_ROUNDS = {
@@ -89,7 +91,7 @@ class IAccessBackend(object):
     mutable = False
     ROOT_ACL = [
         (Allow, Authenticated, "login"),
-        (Allow, "admin", ALL_PERMISSIONS),
+        (Allow, Admin, ALL_PERMISSIONS),
         (Deny, Everyone, ALL_PERMISSIONS),
     ]
 
@@ -186,12 +188,12 @@ class IAccessBackend(object):
             return True
 
         perms = self.allowed_permissions(package)
-        for principal in self.request.effective_principals:
+        for principal in self.user_principals(current_userid):
             if perm in perms.get(principal, []):
                 return True
         return False
 
-    def user_principals(self, username: str) -> List[str]:
+    def user_principals(self, username: Optional[str]) -> List[str]:
         """
         Get a list of principals for a user
 
@@ -204,9 +206,11 @@ class IAccessBackend(object):
         principals : list
 
         """
+        if username is None:
+            return [Everyone]
         principals = ["user:" + username, Everyone, Authenticated]
         if self.is_admin(username):
-            principals.append("admin")
+            principals.append(Admin)
         for group in self.groups(username):
             principals.append("group:" + group)
         return principals
@@ -234,7 +238,7 @@ class IAccessBackend(object):
             return False
         elif group in ("authenticated", Authenticated):
             return True
-        elif group == "admin" and self.is_admin(username):
+        elif group in ("admin", Admin) and self.is_admin(username):
             return True
         else:
             return group in self.groups(username)

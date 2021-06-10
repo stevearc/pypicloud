@@ -2,7 +2,6 @@
 from base64 import b64encode
 
 from mock import MagicMock, PropertyMock, patch
-from pyramid.security import Everyone
 from pyramid.testing import DummyRequest
 
 from pypicloud import auth
@@ -108,18 +107,6 @@ class TestBasicAuthPolicy(MockServerTest):
         userid = self.policy.authenticated_userid(self.request)
         self.assertEqual(userid, "dsa")
 
-    def test_principals_userid_no_credentials(self):
-        """Only [Everyone] if no credentials"""
-        principals = self.policy.effective_principals(self.request)
-        self.assertCountEqual(principals, [Everyone])
-
-    def test_principals(self):
-        """Return principals from access if auth succeeds"""
-        self.get_creds.return_value = {"login": "dsa", "password": ""}
-        principals = self.policy.effective_principals(self.request)
-        self.request.access.user_principals.assert_called_with("dsa")
-        self.assertEqual(principals, self.request.access.user_principals())
-
     def test_remember(self):
         """Remember headers are empty"""
         headers = self.policy.remember(self.request, "principal")
@@ -158,19 +145,6 @@ class TestSessionAuthPolicy(MockServerTest):
         self.request.session["user"] = "dsa"
         userid = self.policy.authenticated_userid(self.request)
         self.assertEqual(userid, "dsa")
-
-    def test_principals_userid_no_credentials(self):
-        """Only [Everyone] if no credentials"""
-        principals = self.policy.effective_principals(self.request)
-        self.assertCountEqual(principals, [Everyone])
-
-    def test_principals(self):
-        """Return principals from access if auth succeeds"""
-        with patch.object(auth.PypicloudSecurityPolicy, "authenticated_userid") as auid:
-            auid.return_value = "dsa"
-            principals = self.policy.effective_principals(self.request)
-            self.request.access.user_principals.assert_called_with("dsa")
-            self.assertEqual(principals, self.request.access.user_principals())
 
     def test_remember(self):
         """Remember headers are empty"""
