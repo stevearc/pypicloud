@@ -83,6 +83,7 @@ MutableDict.associate_with(JSONEncodedDict)
 
 class TZAwareDateTime(TypeDecorator):  # pylint: disable=W0223
     impl = DateTime
+    cache_ok = True
 
     def process_bind_param(self, value, dialect):
         if value.tzinfo is None:
