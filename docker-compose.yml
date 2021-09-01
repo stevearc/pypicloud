@@ -5,7 +5,6 @@ services:
     volumes:
       - .:/pypicloud
     working_dir: /pypicloud
-    user: ${UID}:1000
     init: true
     environment:
       REDIS_HOST: redis
