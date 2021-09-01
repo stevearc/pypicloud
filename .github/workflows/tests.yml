@@ -1,0 +1,24 @@
+name: Python package
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        toxenv: [py37, py38, py39, lint]
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Build containers
+      run: ./compose build
+    - name: Run test
+      run: ./compose run tox -e ${{ matrix.toxenv }}
+    - name: Publish coverage
+      if: ${{ matrix.toxenv == 'py38' }}
+      run: ./compose run tox -e coveralls
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

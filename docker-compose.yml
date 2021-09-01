@@ -9,8 +9,13 @@ services:
     environment:
       REDIS_HOST: redis
       POSTGRES_HOST: postgres
+      POSTGRES_DB: postgres
       MYSQL_HOST: mysql
+      MYSQL_PASSWORD: iamroot
+      MYSQL_DB: test
       LDAP_HOST: ldap
+      GITHUB_TOKEN: $GITHUB_TOKEN
+      COVERALLS_REPO_TOKEN: $GITHUB_TOKEN
     user: ${CURRENT_UID:?"Please run as follows 'CURRENT_UID=$(id -u):$(id -g) docker-compose up'"}
     stdin_open: true
     tty: true
@@ -21,16 +26,36 @@ services:
       - ldap
   redis:
     image: "redis"
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 2
+      start_period: 10s
   postgres:
     image: 'postgres'
     environment:
       POSTGRES_PASSWORD: ''
       POSTGRES_DB: postgres
+      POSTGRES_HOST_AUTH_METHOD: trust
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 2
+      start_period: 40s
   mysql:
     image: 'mysql'
+    command: --character-set-server=utf8mb4
     environment:
       MYSQL_DATABASE: test
-      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+      MYSQL_ROOT_PASSWORD: iamroot
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 2
+      start_period: 40s
   ldap:
     image: 'osixia/openldap'
     volumes:
