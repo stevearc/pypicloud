@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """ Tests for database cache implementations """
 import calendar
+import os
 import unittest
 from io import BytesIO
 
@@ -18,6 +19,7 @@ from pypicloud.cache.sql import SQLPackage
 from pypicloud.storage import IStorage
 
 from . import DummyCache, DummyStorage, make_package
+from .db_utils import get_mysql_url, get_postgres_url, get_sqlite_url
 
 # pylint: disable=W0707
 
@@ -177,16 +179,19 @@ class TestSQLiteCache(unittest.TestCase):
 
     """Tests for the SQLAlchemy cache"""
 
-    DB_URL = "sqlite://"
+    @classmethod
+    def get_db_url(cls) -> str:
+        return get_sqlite_url()
 
     @classmethod
     def setUpClass(cls):
         super(TestSQLiteCache, cls).setUpClass()
-        settings = {"pypi.storage": "tests.DummyStorage", "db.url": cls.DB_URL}
+        db_url = cls.get_db_url()
+        settings = {"pypi.storage": "tests.DummyStorage", "db.url": db_url}
         try:
             cls.kwargs = SQLCache.configure(settings)
         except OperationalError:
-            raise unittest.SkipTest("Couldn't connect to database")
+            raise unittest.SkipTest(f"Couldn't connect to database {db_url}")
 
     def setUp(self):
         super(TestSQLiteCache, self).setUp()
@@ -420,13 +425,17 @@ class TestSQLiteCache(unittest.TestCase):
 class TestMySQLCache(TestSQLiteCache):
     """Test the SQLAlchemy cache on a MySQL DB"""
 
-    DB_URL = "mysql://root@127.0.0.1:3306/test?charset=utf8mb4"
+    @classmethod
+    def get_db_url(cls) -> str:
+        return get_mysql_url()
 
 
 class TestPostgresCache(TestSQLiteCache):
     """Test the SQLAlchemy cache on a Postgres DB"""
 
-    DB_URL = "postgresql://postgres@127.0.0.1:5432/postgres"
+    @classmethod
+    def get_db_url(cls) -> str:
+        return get_postgres_url()
 
 
 class TestRedisCache(unittest.TestCase):
@@ -436,13 +445,16 @@ class TestRedisCache(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super(TestRedisCache, cls).setUpClass()
-        settings = {"pypi.storage": "tests.DummyStorage", "db.url": "redis://localhost"}
+        redis_host = os.environ.get("REDIS_HOST", "localhost")
+        redis_port = os.environ.get("REDIS_PORT", "6379")
+        redis_url = f"redis://{redis_host}:{redis_port}"
+        settings = {"pypi.storage": "tests.DummyStorage", "db.url": redis_url}
         cls.kwargs = RedisCache.configure(settings)
         cls.redis = cls.kwargs["db"]
         try:
             cls.redis.flushdb()
         except redis.exceptions.ConnectionError:
-            msg = "Redis not found on port 6379"
+            msg = f"Redis not found at {redis_url}"
             setattr(cls, "setUp", lambda cls: unittest.TestCase.skipTest(cls, msg))
 
     def setUp(self):

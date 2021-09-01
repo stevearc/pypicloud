@@ -1,0 +1,39 @@
+version: "3.9"
+services:
+  shell:
+    build: ./docker
+    volumes:
+      - .:/pypicloud
+    working_dir: /pypicloud
+    user: ${UID}:1000
+    init: true
+    environment:
+      REDIS_HOST: redis
+      POSTGRES_HOST: postgres
+      MYSQL_HOST: mysql
+      LDAP_HOST: ldap
+    user: ${CURRENT_UID:?"Please run as follows 'CURRENT_UID=$(id -u):$(id -g) docker-compose up'"}
+    stdin_open: true
+    tty: true
+    depends_on:
+      - redis
+      - postgres
+      - mysql
+      - ldap
+  redis:
+    image: "redis"
+  postgres:
+    image: 'postgres'
+    environment:
+      POSTGRES_PASSWORD: ''
+      POSTGRES_DB: postgres
+  mysql:
+    image: 'mysql'
+    environment:
+      MYSQL_DATABASE: test
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+  ldap:
+    image: 'osixia/openldap'
+    volumes:
+      - ./ldap:/container/service/slapd/assets/config/bootstrap/ldif/custom
+    command: ['--loglevel', 'debug', '--copy-service']

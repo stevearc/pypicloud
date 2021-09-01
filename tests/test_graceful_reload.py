@@ -15,6 +15,7 @@ from pypicloud.dateutil import utcnow
 from pypicloud.storage import IStorage
 
 from . import make_package
+from .db_utils import get_mysql_url, get_postgres_url, get_sqlite_url
 
 # pylint: disable=W0707
 
@@ -311,20 +312,23 @@ class TestSQLiteCache(unittest.TestCase):
 
     """Tests for the SQLCache"""
 
-    DB_URL = "sqlite://"
+    @classmethod
+    def get_db_url(cls) -> str:
+        return get_sqlite_url()
 
     @classmethod
     def setUpClass(cls):
         super(TestSQLiteCache, cls).setUpClass()
+        db_url = cls.get_db_url()
         settings = {
             "pypi.storage": "tests.DummyStorage",
-            "db.url": cls.DB_URL,
+            "db.url": db_url,
             "db.graceful_reload": True,
         }
         try:
             cls.kwargs = SQLCache.configure(settings)
         except OperationalError:
-            raise unittest.SkipTest("Couldn't connect to database")
+            raise unittest.SkipTest(f"Couldn't connect to database {db_url}")
 
     def setUp(self):
         super(TestSQLiteCache, self).setUp()
@@ -439,10 +443,14 @@ class TestSQLiteCache(unittest.TestCase):
 class TestMySQLCache(TestSQLiteCache):
     """Test the SQLAlchemy cache on a MySQL DB"""
 
-    DB_URL = "mysql://root@127.0.0.1:3306/test?charset=utf8mb4"
+    @classmethod
+    def get_db_url(cls) -> str:
+        return get_mysql_url()
 
 
 class TestPostgresCache(TestSQLiteCache):
     """Test the SQLAlchemy cache on a Postgres DB"""
 
-    DB_URL = "postgresql://postgres@127.0.0.1:5432/postgres"
+    @classmethod
+    def get_db_url(cls) -> str:
+        return get_postgres_url()

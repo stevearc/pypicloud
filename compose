@@ -1,0 +1,19 @@
+#!/bin/bash
+set -e
+
+CURRENT_UID=$(id -u):$(id -g)
+export CURRENT_UID
+
+if [ -z "$1" ] || [ "$1" == "-h" ]; then
+  echo "$0 [test,shell,run,down]"
+elif [ "$1" == "test" ]; then
+  docker-compose run --rm shell tox
+elif [ "$1" == "run" ]; then
+  shift
+  docker-compose run --rm shell "$@"
+elif [ "$1" == "shell" ]; then
+  docker-compose up --build --remove-orphans -d shell
+  docker attach pypicloud_shell_1
+elif [ "$1" == "down" ]; then
+  docker-compose down --remove-orphans
+fi

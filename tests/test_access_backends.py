@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """ Tests for access backends """
 import json
+import os
 import unittest
 
 import transaction
@@ -35,6 +36,8 @@ from pypicloud.access.sql import (
     association_table,
 )
 from pypicloud.route import Root
+
+from .db_utils import get_mysql_url, get_postgres_url, get_sqlite_url
 
 pwd_context = get_pwd_context()  # pylint: disable=C0103
 
@@ -639,16 +642,19 @@ class TestRemoteBackend(unittest.TestCase):
 class TestSQLiteBackend(unittest.TestCase):
     """Tests for the SQL access backend"""
 
-    DB_URL = "sqlite://"
+    @classmethod
+    def get_db_url(cls) -> str:
+        return get_sqlite_url()
 
     @classmethod
     def setUpClass(cls):
         super(TestSQLiteBackend, cls).setUpClass()
-        cls.settings = {"auth.db.url": cls.DB_URL}
+        db_url = cls.get_db_url()
+        cls.settings = {"auth.db.url": db_url}
         try:
             cls.kwargs = SQLAccessBackend.configure(cls.settings)
         except OperationalError:
-            raise unittest.SkipTest("Couldn't connect to database")
+            raise unittest.SkipTest(f"Couldn't connect to database {db_url}")
 
     def setUp(self):
         super(TestSQLiteBackend, self).setUp()
@@ -1202,24 +1208,29 @@ class TestSQLiteBackend(unittest.TestCase):
 class TestMySQLBackend(TestSQLiteBackend):
     """Test the SQLAlchemy access backend on a MySQL DB"""
 
-    DB_URL = "mysql://root@127.0.0.1:3306/test?charset=utf8mb4"
+    @classmethod
+    def get_db_url(cls) -> str:
+        return get_mysql_url()
 
 
 class TestPostgresBackend(TestSQLiteBackend):
     """Test the SQLAlchemy access backend on a Postgres DB"""
 
-    DB_URL = "postgresql://postgres@127.0.0.1:5432/postgres"
+    @classmethod
+    def get_db_url(cls) -> str:
+        return get_postgres_url()
 
 
 class TestLDAPBackend(BaseACLTest):
     @classmethod
     def setUpClass(cls):
         super(TestLDAPBackend, cls).setUpClass()
-        l = ldap.initialize("ldap://localhost")
+        host = os.environ.get("LDAP_HOST", "localhost")
+        l = ldap.initialize(f"ldap://{host}")
         try:
             l.simple_bind_s("", "")
         except ldap.SERVER_DOWN:
-            raise unittest.SkipTest("Couldn't connect to LDAP")
+            raise unittest.SkipTest(f"Couldn't connect to LDAP at {host}")
 
     def setUp(self):
         super(TestLDAPBackend, self).setUp()
@@ -1227,8 +1238,9 @@ class TestLDAPBackend(BaseACLTest):
 
     def _backend(self, settings_override=None):
         """Wrapper to instantiate a LDAPAccessBackend"""
+        host = os.environ.get("LDAP_HOST", "localhost")
         settings = {
-            "auth.ldap.url": "ldap://localhost/",
+            "auth.ldap.url": f"ldap://{host}/",
             "auth.ldap.cache_time": 0,
             "auth.ldap.service_dn": "cn=admin,dc=example,dc=org",
             "auth.ldap.service_password": "admin",
