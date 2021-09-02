@@ -14,8 +14,10 @@ services:
       MYSQL_PASSWORD: iamroot
       MYSQL_DB: test
       LDAP_HOST: ldap
+      GITHUB_ACTIONS: $GITHUB_ACTIONS
       GITHUB_TOKEN: $GITHUB_TOKEN
-      COVERALLS_REPO_TOKEN: $GITHUB_TOKEN
+      GITHUB_REF: $GITHUB_REF
+      GITHUB_HEAD_REF: $GITHUB_HEAD_REF
     user: ${CURRENT_UID:?"Please run as follows 'CURRENT_UID=$(id -u):$(id -g) docker-compose up'"}
     stdin_open: true
     tty: true
