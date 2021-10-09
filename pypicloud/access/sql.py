@@ -176,6 +176,7 @@ class SQLAccessBackend(IMutableAccessBackend):
     @classmethod
     def configure(cls, settings):
         kwargs = super(SQLAccessBackend, cls).configure(settings)
+        settings.read_prefix_from_environ("auth.db.")
         engine = engine_from_config(settings, prefix="auth.db.")
         kwargs["dbmaker"] = sessionmaker(bind=engine)
         # Create SQL schema if not exists

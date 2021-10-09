@@ -12,6 +12,7 @@ from pyramid_beaker import session_factory_from_settings
 
 from .locator import FormattedScrapingLocator, SimpleJsonLocator
 from .route import Root
+from .util import EnvironSettings
 
 __version__ = "1.2.4"
 LOG = logging.getLogger(__name__)
@@ -51,6 +52,13 @@ def includeme(config):
     """Set up and configure the pypicloud app"""
     config.set_root_factory(Root)
     settings = config.get_settings()
+    if getattr(config.registry, "settings", None) is not settings:
+        LOG.warning(
+            "Settings are not where we expected. Fetching settings from environment variables is disabled. Please file an issue with pypicloud"
+        )
+    else:
+        settings = EnvironSettings(settings)
+        config.registry.settings = settings
     config.add_route("health", "/health")
     config.include("pyramid_tm")
     # Beaker should be set by default to invalidate corrupt sessions, otherwise
@@ -98,6 +106,7 @@ def includeme(config):
     config.include("pyramid_jinja2")
 
     # BEAKER CONFIGURATION
+    settings.read_prefix_from_environ("session.")
     config.registry.secure_cookie = asbool(settings.get("session.secure", False))
     settings.setdefault("session.type", "cookie")
     settings.setdefault("session.httponly", "true")

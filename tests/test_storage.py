@@ -26,6 +26,7 @@ from pypicloud.storage import (
     S3Storage,
     get_storage_impl,
 )
+from pypicloud.util import EnvironSettings
 
 from . import make_package
 
@@ -38,11 +39,14 @@ class TestS3Storage(unittest.TestCase):
         super(TestS3Storage, self).setUp()
         self.s3_mock = mock_s3()
         self.s3_mock.start()
-        self.settings = {
-            "storage.bucket": "mybucket",
-            "storage.aws_access_key_id": "abc",
-            "storage.aws_secret_access_key": "bcd",
-        }
+        self.settings = EnvironSettings(
+            {
+                "storage.bucket": "mybucket",
+                "storage.aws_access_key_id": "abc",
+                "storage.aws_secret_access_key": "bcd",
+            },
+            {},
+        )
         self.s3 = boto3.resource("s3")
         self.bucket = self.s3.create_bucket(Bucket="mybucket")
         patch.object(S3Storage, "test", True).start()
@@ -138,11 +142,14 @@ class TestS3Storage(unittest.TestCase):
 
     def test_create_bucket_eu(self):
         """If S3 bucket doesn't exist, create it"""
-        settings = {
-            "storage.bucket": "new_bucket",
-            "storage.region_name": "eu-central-1",
-            "signature_version": "s3v4",
-        }
+        settings = EnvironSettings(
+            {
+                "storage.bucket": "new_bucket",
+                "storage.region_name": "eu-central-1",
+                "signature_version": "s3v4",
+            },
+            {},
+        )
         S3Storage.configure(settings)
 
         bucket = self.s3.Bucket("new_bucket")
@@ -150,7 +157,9 @@ class TestS3Storage(unittest.TestCase):
 
     def test_create_bucket_us(self):
         """If S3 bucket doesn't exist, create it"""
-        settings = {"storage.bucket": "new_bucket", "storage.region_name": "us-west-1"}
+        settings = EnvironSettings(
+            {"storage.bucket": "new_bucket", "storage.region_name": "us-west-1"}, {}
+        )
         S3Storage.configure(settings)
 
         bucket = self.s3.Bucket("new_bucket")
@@ -158,7 +167,7 @@ class TestS3Storage(unittest.TestCase):
 
     def test_object_acl(self):
         """Can specify an object ACL for S3 objects"""
-        settings = dict(self.settings)
+        settings = self.settings.clone()
         settings["storage.object_acl"] = "authenticated-read"
         kwargs = S3Storage.configure(settings)
         storage = S3Storage(MagicMock(), **kwargs)
@@ -184,7 +193,7 @@ class TestS3Storage(unittest.TestCase):
 
     def test_storage_class(self):
         """Can specify a storage class for S3 objects"""
-        settings = dict(self.settings)
+        settings = self.settings.clone()
         settings["storage.storage_class"] = "STANDARD_IA"
         kwargs = S3Storage.configure(settings)
         storage = S3Storage(MagicMock(), **kwargs)
@@ -233,29 +242,32 @@ class TestCloudFrontS3Storage(unittest.TestCase):
         super(TestCloudFrontS3Storage, self).setUp()
         self.s3_mock = mock_s3()
         self.s3_mock.start()
-        self.settings = {
-            "storage.bucket": "mybucket",
-            "storage.aws_access_key_id": "abc",
-            "storage.aws_secret_access_key": "bcd",
-            "storage.cloud_front_domain": "https://abcdef.cloudfront.net",
-            "storage.cloud_front_key_file": "",
-            "storage.cloud_front_key_string": "-----BEGIN RSA PRIVATE KEY-----\n"
-            "MIICXQIBAAKBgQDNBN3WHzIgmOEkBVNdBlTR7iGYyUXDVuFRkJlYp/n1/EZf2YtE\n"
-            "BpxJAgqdwej8beWV16QXOnKXQpsGAeu7x2pvOGFyRGytmLDeUXayfIF/E46w83V2\n"
-            "r53NOBrlezagqCAz9uafocyNaXlxZfp4tx82sEmpSmHGwd//+n6zgXNC0QIDAQAB\n"
-            "AoGAd5EIA1GMPYCLhSNp+82ueARGKcHwYrzviU8ob5D/cVtge5P26YRlbxq2sEyf\n"
-            "oWBCTgJGW5mlrNuWZ4mFPq1NP2X2IU80k/J67KOuOelAykIVQw6q6GAjtmh40x4N\n"
-            "EekoFzxVqoFKqWOJ1UNP0jNOyfzxU5dfzvw5GOEXob9usjECQQD3++wWCoq+YRCz\n"
-            "8qqav2M7leoAnDwmCYKpnugDU0NR61sZADS3kJHnhXAbPFQI4dRfETJOkKE/iDph\n"
-            "G0Rtdfm1AkEA06VoI49wjEMYs4ah3qwpvhuVyxVa9iozIEoDYiVCOOBZw8rX79G4\n"
-            "+5yzC9ehy9ugWttSA2jigNXVB6ORN3+mLQJBAM47lZizBbXUdZahvp5ZgoZgY65E\n"
-            "QIWFrUOxYtS5Hyh2qlk9YZozwhOgVp5f6qdEYGD7pTHPeDqk6aAulBbQYW0CQQC4\n"
-            "hAw2dGd64UQ3v7h/mTkLNKFzXDrhQgkwrVYlyrXhQDcCK2X2/rB3LDYsrOGyCNfU\n"
-            "XkEyF87g44vGDSQdbnxBAkA1Y+lB/pqdyHMv5RFabkBvU0yQDfekAKHeQ6rS+21g\n"
-            "dWedUVc1JNnKtb8W/rMfdjg9YLYqUTvoBvp0DjfwdYc4\n"
-            "-----END RSA PRIVATE KEY-----",
-            "storage.cloud_front_key_id": "key-id",
-        }
+        self.settings = EnvironSettings(
+            {
+                "storage.bucket": "mybucket",
+                "storage.aws_access_key_id": "abc",
+                "storage.aws_secret_access_key": "bcd",
+                "storage.cloud_front_domain": "https://abcdef.cloudfront.net",
+                "storage.cloud_front_key_file": "",
+                "storage.cloud_front_key_string": "-----BEGIN RSA PRIVATE KEY-----\n"
+                "MIICXQIBAAKBgQDNBN3WHzIgmOEkBVNdBlTR7iGYyUXDVuFRkJlYp/n1/EZf2YtE\n"
+                "BpxJAgqdwej8beWV16QXOnKXQpsGAeu7x2pvOGFyRGytmLDeUXayfIF/E46w83V2\n"
+                "r53NOBrlezagqCAz9uafocyNaXlxZfp4tx82sEmpSmHGwd//+n6zgXNC0QIDAQAB\n"
+                "AoGAd5EIA1GMPYCLhSNp+82ueARGKcHwYrzviU8ob5D/cVtge5P26YRlbxq2sEyf\n"
+                "oWBCTgJGW5mlrNuWZ4mFPq1NP2X2IU80k/J67KOuOelAykIVQw6q6GAjtmh40x4N\n"
+                "EekoFzxVqoFKqWOJ1UNP0jNOyfzxU5dfzvw5GOEXob9usjECQQD3++wWCoq+YRCz\n"
+                "8qqav2M7leoAnDwmCYKpnugDU0NR61sZADS3kJHnhXAbPFQI4dRfETJOkKE/iDph\n"
+                "G0Rtdfm1AkEA06VoI49wjEMYs4ah3qwpvhuVyxVa9iozIEoDYiVCOOBZw8rX79G4\n"
+                "+5yzC9ehy9ugWttSA2jigNXVB6ORN3+mLQJBAM47lZizBbXUdZahvp5ZgoZgY65E\n"
+                "QIWFrUOxYtS5Hyh2qlk9YZozwhOgVp5f6qdEYGD7pTHPeDqk6aAulBbQYW0CQQC4\n"
+                "hAw2dGd64UQ3v7h/mTkLNKFzXDrhQgkwrVYlyrXhQDcCK2X2/rB3LDYsrOGyCNfU\n"
+                "XkEyF87g44vGDSQdbnxBAkA1Y+lB/pqdyHMv5RFabkBvU0yQDfekAKHeQ6rS+21g\n"
+                "dWedUVc1JNnKtb8W/rMfdjg9YLYqUTvoBvp0DjfwdYc4\n"
+                "-----END RSA PRIVATE KEY-----",
+                "storage.cloud_front_key_id": "key-id",
+            },
+            {},
+        )
         s3 = boto3.resource("s3")
         self.bucket = s3.create_bucket(Bucket="mybucket")
         patch.object(CloudFrontS3Storage, "test", True).start()

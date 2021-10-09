@@ -5,7 +5,7 @@ from json import JSONDecodeError
 import boto3
 from botocore.exceptions import ClientError
 
-from pypicloud.util import get_settings
+from pypicloud.util import EnvironSettings
 
 from .base_json import IMutableJsonAccessBackend
 
@@ -28,13 +28,12 @@ class AWSSecretsManagerAccessBackend(IMutableJsonAccessBackend):
         self.dirty = False
 
     @classmethod
-    def configure(cls, settings):
+    def configure(cls, settings: EnvironSettings):
         kwargs = super(AWSSecretsManagerAccessBackend, cls).configure(settings)
         kwargs["secret_id"] = settings["auth.secret_id"]
         kwargs["kms_key_id"] = settings.get("auth.kms_key_id")
         session = boto3.session.Session(
-            **get_settings(
-                settings,
+            **settings.get_as_dict(
                 "auth.",
                 region_name=str,
                 aws_access_key_id=str,

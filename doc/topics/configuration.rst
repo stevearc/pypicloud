@@ -1,6 +1,10 @@
 Configuration Options
 =====================
-This is a list of all configuration parameters for pypicloud
+This is a list of all configuration parameters for pypicloud. In general, any of
+these can be overridden by environment variables. To override a setting, create
+an environment variable that is all uppercase, convert ``.`` to ``_``, and
+prefix with ``PPC_``. For example: ``pypi.fallback = none`` becomes
+``PPC_PYPI_FALLBACK=none``.
 
 PyPICloud
 ^^^^^^^^^

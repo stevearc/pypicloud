@@ -10,7 +10,7 @@ from passlib.utils import sys_bits
 from pyramid.security import ALL_PERMISSIONS, Allow, Authenticated, Deny, Everyone
 from pyramid.settings import aslist
 
-from pypicloud.util import get_environ_setting
+from pypicloud.util import EnvironSettings
 
 Admin = "admin"
 
@@ -116,7 +116,7 @@ class IAccessBackend(object):
         self.signing_key = signing_key
 
     @classmethod
-    def configure(cls, settings) -> Dict[str, Any]:
+    def configure(cls, settings: EnvironSettings) -> Dict[str, Any]:
         """Configure the access backend with app settings"""
         rounds = settings.get("auth.rounds")
         scheme = settings.get("auth.scheme")
@@ -131,7 +131,7 @@ class IAccessBackend(object):
             ),
             "pwd_context": get_pwd_context(scheme, rounds),
             "token_expiration": int(settings.get("auth.token_expire", ONE_WEEK)),
-            "signing_key": get_environ_setting(settings, "auth.signing_key"),
+            "signing_key": settings.get("auth.signing_key"),
         }
 
     @classmethod

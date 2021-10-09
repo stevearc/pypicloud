@@ -170,6 +170,7 @@ class SQLCache(ICache):
     def configure(cls, settings):
         kwargs = super(SQLCache, cls).configure(settings)
         graceful_reload = asbool(settings.pop("db.graceful_reload", False))
+        settings.read_prefix_from_environ("db.")
         engine = engine_from_config(settings, prefix="db.")
         # Create SQL schema if not exists
         create_schema(engine)

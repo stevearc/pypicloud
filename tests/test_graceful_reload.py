@@ -13,6 +13,7 @@ from pypicloud.cache.dynamo import DynamoCache, DynamoPackage, PackageSummary
 from pypicloud.cache.sql import SQLPackage
 from pypicloud.dateutil import utcnow
 from pypicloud.storage import IStorage
+from pypicloud.util import EnvironSettings
 
 from . import make_package
 from .db_utils import get_mysql_url, get_postgres_url, get_sqlite_url
@@ -320,11 +321,14 @@ class TestSQLiteCache(unittest.TestCase):
     def setUpClass(cls):
         super(TestSQLiteCache, cls).setUpClass()
         db_url = cls.get_db_url()
-        settings = {
-            "pypi.storage": "tests.DummyStorage",
-            "db.url": db_url,
-            "db.graceful_reload": True,
-        }
+        settings = EnvironSettings(
+            {
+                "pypi.storage": "tests.DummyStorage",
+                "db.url": db_url,
+                "db.graceful_reload": True,
+            },
+            {},
+        )
         try:
             cls.kwargs = SQLCache.configure(settings)
         except OperationalError:

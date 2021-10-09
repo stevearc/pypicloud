@@ -30,7 +30,9 @@ automatic.
 Config File
 -----------
 The simplest access control available (which is the default) pulls user, group,
-and package permission information directly from the config file.
+and package permission information directly from the config file. Note that
+unlike other options in the config file, you can NOT override these settings
+with environment variables.
 
 Here is a sample configuration to get you started:
 

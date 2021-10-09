@@ -4,7 +4,18 @@ import os
 import re
 import time
 import unicodedata
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    ItemsView,
+    Iterator,
+    KeysView,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
 from distlib.locators import Locator
 from distlib.util import split_filename
@@ -100,35 +111,115 @@ def create_matcher(queries: List[str], query_type: str) -> Callable[[str], bool]
         return lambda x: all((q in x.lower() for q in queries))
 
 
-def get_environ_setting(settings: dict, key: str, default=None):
-    env_key = "PPC_" + key.upper().replace(".", "_")
-    return os.environ.get(env_key, settings.get(key, default))
+class EnvironSettings:
+    def __init__(self, settings: Dict[str, Any], env: Dict[str, str] = None):
+        self._settings = settings
+        if env is None:
+            self._env = dict(os.environ)
+        else:
+            self._env = env
 
+    @staticmethod
+    def _get_environ_key(key: str) -> str:
+        return "PPC_" + key.upper().replace(".", "_")
 
-def get_settings(settings: dict, prefix: str, **kwargs) -> dict:
-    """
-    Convenience method for fetching settings
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._settings)
 
-    Returns a dict; any settings that were missing from the config file will
-    not be present in the returned dict (as opposed to being present with a
-    None value)
+    def keys(self) -> KeysView[str]:
+        return self._settings.keys()
 
-    Parameters
-    ----------
-    settings : dict
-        The settings dict
-    prefix : str
-        String to prefix all keys with when fetching value from settings
-    **kwargs : dict
-        Mapping of setting name to conversion function (e.g. str or asbool)
+    def items(self) -> ItemsView[str, Any]:
+        return self._settings.items()
 
-    """
-    computed = {}
-    for name, fxn in kwargs.items():
-        val = settings.get(prefix + name)
-        if val is not None:
-            computed[name] = fxn(val)
-    return computed
+    def __contains__(self, key: str) -> bool:
+        env_key = self._get_environ_key(key)
+        return env_key in self._env or key in self._settings
+
+    def __setitem__(self, key: str, value: str) -> None:
+        env_key = self._get_environ_key(key)
+        self._env.pop(env_key, None)
+        self._settings[key] = value
+
+    def __getitem__(self, key: str) -> str:
+        env_key = self._get_environ_key(key)
+        if env_key in self._env:
+            return self._env[env_key]
+        return self._settings[key]
+
+    def __str__(self) -> str:
+        return str(self._settings)
+
+    def __repr__(self) -> str:
+        return "EnvironSettings(%s)" % self._settings
+
+    def read_prefix_from_environ(self, prefix: str) -> None:
+        if not prefix:
+            return
+        # Make sure the prefix has a '.' at the end (e.g. "sqlalchemy.")
+        if prefix[-1] == "_":
+            prefix = prefix[:-1] + "."
+        elif prefix[-1] != ".":
+            prefix = prefix + "."
+        env_prefix = self._get_environ_key(prefix)
+        for key, val in self._env.items():
+            if key.startswith(env_prefix):
+                setting_key = prefix + key[len(env_prefix) :].lower()
+                self._settings[setting_key] = val
+
+    def get(self, key: str, default: Any = None) -> Any:
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+    def pop(self, key: str, default: Any = SENTINEL) -> Any:
+        env_key = self._get_environ_key(key)
+        if env_key in self._env:
+            self._settings.pop(key, None)
+            return self._env.pop(env_key)
+        try:
+            return self._settings.pop(key)
+        except KeyError:
+            if default is SENTINEL:
+                raise
+            else:
+                return default
+
+    def setdefault(self, key: str, value: Any) -> Any:
+        try:
+            return self[key]
+        except KeyError:
+            self._settings[key] = value
+            return value
+
+    def get_as_dict(
+        self, prefix: str, **kwargs: Callable[[Any], Any]
+    ) -> Dict[str, Any]:
+        """
+        Convenience method for fetching settings
+
+        Returns a dict; any settings that were missing from the config file will
+        not be present in the returned dict (as opposed to being present with a
+        None value)
+
+        Parameters
+        ----------
+        prefix : str
+            String to prefix all keys with when fetching value from settings
+        **kwargs : dict
+            Mapping of setting name to conversion function (e.g. str or asbool)
+
+        """
+        computed = {}
+        for name, fxn in kwargs.items():
+            val = self.get(prefix + name)
+            if val is not None:
+                computed[name] = fxn(val)
+        return computed
+
+    def clone(self) -> "EnvironSettings":
+        return EnvironSettings(dict(self._settings), dict(self._env))
 
 
 class TimedCache(dict):

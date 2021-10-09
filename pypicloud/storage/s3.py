@@ -16,7 +16,7 @@ from pyramid_duh.settings import asdict
 
 from pypicloud.dateutil import utcnow
 from pypicloud.models import Package
-from pypicloud.util import get_settings, normalize_metadata, parse_filename
+from pypicloud.util import EnvironSettings, normalize_metadata, parse_filename
 
 from .object_store import ObjectStoreStorage
 
@@ -51,9 +51,10 @@ class S3Storage(ObjectStoreStorage):
         return {"sse": sse, "bucket": cls.get_bucket(bucket_name, settings)}
 
     @classmethod
-    def get_bucket(cls, bucket_name, settings):
-        config_settings = get_settings(
-            settings,
+    def get_bucket(
+        cls, bucket_name: str, settings: EnvironSettings
+    ) -> "boto3.s3.Bucket":
+        config_settings = settings.get_as_dict(
             "storage.",
             region_name=str,
             signature_version=str,
@@ -65,8 +66,7 @@ class S3Storage(ObjectStoreStorage):
             max_pool_connections=int,
             proxies=asdict,
         )
-        config_settings["s3"] = get_settings(
-            settings,
+        config_settings["s3"] = settings.get_as_dict(
             "storage.",
             use_accelerate_endpoint=asbool,
             payload_signing_enabled=asbool,
@@ -86,8 +86,7 @@ class S3Storage(ObjectStoreStorage):
         s3conn = boto3.resource(
             "s3",
             config=config,
-            **get_settings(
-                settings,
+            **settings.get_as_dict(
                 "storage.",
                 region_name=str,
                 api_version=str,

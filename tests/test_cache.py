@@ -17,6 +17,7 @@ from pypicloud.cache import ICache, RedisCache, SQLCache
 from pypicloud.cache.dynamo import DynamoCache, DynamoPackage, PackageSummary
 from pypicloud.cache.sql import SQLPackage
 from pypicloud.storage import IStorage
+from pypicloud.util import EnvironSettings
 
 from . import DummyCache, DummyStorage, make_package
 from .db_utils import get_mysql_url, get_postgres_url, get_sqlite_url
@@ -187,7 +188,9 @@ class TestSQLiteCache(unittest.TestCase):
     def setUpClass(cls):
         super(TestSQLiteCache, cls).setUpClass()
         db_url = cls.get_db_url()
-        settings = {"pypi.storage": "tests.DummyStorage", "db.url": db_url}
+        settings = EnvironSettings(
+            {"pypi.storage": "tests.DummyStorage", "db.url": db_url}, {}
+        )
         try:
             cls.kwargs = SQLCache.configure(settings)
         except OperationalError:

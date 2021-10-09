@@ -35,6 +35,7 @@ from pypicloud.access.sql import (
     association_table,
 )
 from pypicloud.route import Root
+from pypicloud.util import EnvironSettings
 
 from .db_utils import get_mysql_url, get_postgres_url, get_sqlite_url
 
@@ -244,10 +245,13 @@ class TestBaseBackend(BaseACLTest):
     def test_load_sql_backend(self):
         """keyword 'sql' loads SQLBackend"""
         config = MagicMock()
-        config.get_settings.return_value = {
-            "auth.db.url": "sqlite://",
-            "pypi.auth": "sql",
-        }
+        config.get_settings.return_value = EnvironSettings(
+            {
+                "auth.db.url": "sqlite://",
+                "pypi.auth": "sql",
+            },
+            {},
+        )
         includeme(config)
         config.add_request_method.assert_called_with(
             PartialEq(SQLAccessBackend), name="access", reify=True
@@ -256,10 +260,13 @@ class TestBaseBackend(BaseACLTest):
     def test_load_arbitrary_backend(self):
         """Can pass dotted path to load arbirary backend"""
         config = MagicMock()
-        config.get_settings.return_value = {
-            "auth.db.url": "sqlite://",
-            "pypi.auth": "pypicloud.access.sql.SQLAccessBackend",
-        }
+        config.get_settings.return_value = EnvironSettings(
+            {
+                "auth.db.url": "sqlite://",
+                "pypi.auth": "pypicloud.access.sql.SQLAccessBackend",
+            },
+            {},
+        )
         includeme(config)
         config.add_request_method.assert_called_with(
             PartialEq(SQLAccessBackend), name="access", reify=True
@@ -649,7 +656,7 @@ class TestSQLiteBackend(unittest.TestCase):
     def setUpClass(cls):
         super(TestSQLiteBackend, cls).setUpClass()
         db_url = cls.get_db_url()
-        cls.settings = {"auth.db.url": db_url}
+        cls.settings = EnvironSettings({"auth.db.url": db_url}, {})
         try:
             cls.kwargs = SQLAccessBackend.configure(cls.settings)
         except OperationalError:
@@ -1510,7 +1517,7 @@ class TestAWSSecretsManagerBackend(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super(TestAWSSecretsManagerBackend, cls).setUpClass()
-        cls.settings = {"auth.secret_id": "sekrit"}
+        cls.settings = EnvironSettings({"auth.secret_id": "sekrit"}, {})
         patch.object(aws_secrets_manager, "boto3").start()
         cls.kwargs = aws_secrets_manager.AWSSecretsManagerAccessBackend.configure(
             cls.settings
