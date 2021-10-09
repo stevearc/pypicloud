@@ -245,7 +245,7 @@ class ICache(object):
 
         for key in self.distinct():
             # Search all versions of this package key
-            latest = None
+            latest: Optional[Package] = None
             for package in self.all(key):
                 # Search for a match. If we've already found a match, make sure
                 # we find the most recent version that matches.
@@ -277,7 +277,7 @@ class ICache(object):
                 "summary": "",
                 "last_modified": utcfromtimestamp(0),
             }
-            max_pkg = None
+            max_pkg: Optional[Package] = None
             for package in self.all(name):
                 pkg["last_modified"] = max(pkg["last_modified"], package.last_modified)
                 if max_pkg is None:

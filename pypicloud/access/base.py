@@ -215,13 +215,13 @@ class IAccessBackend(object):
             principals.append("group:" + group)
         return principals
 
-    def in_group(self, username: str, group: str) -> bool:
+    def in_group(self, username: Optional[str], group: str) -> bool:
         """
         Find out if a user is in a group
 
         Parameters
         ----------
-        username : str
+        username : str, None
             Name of user. May be None for the anonymous user.
         group : str
             Name of the group. Supports 'everyone', 'authenticated', and
