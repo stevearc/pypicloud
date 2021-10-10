@@ -7,7 +7,6 @@ import unittest
 import transaction
 import zope.sqlalchemy
 from mock import MagicMock, PropertyMock, patch
-from mockldap import MockLdap
 from pyramid import testing
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.security import Authenticated, Everyone
@@ -1221,10 +1220,10 @@ class TestPostgresBackend(TestSQLiteBackend):
         return get_postgres_url()
 
 
-class TestLDAPBackend(BaseACLTest):
+class BaseLDAPTest(BaseACLTest):
     @classmethod
     def setUpClass(cls):
-        super(TestLDAPBackend, cls).setUpClass()
+        super().setUpClass()
         host = os.environ.get("LDAP_HOST", "localhost")
         l = ldap.initialize(f"ldap://{host}")
         try:
@@ -1233,7 +1232,7 @@ class TestLDAPBackend(BaseACLTest):
             raise unittest.SkipTest(f"Couldn't connect to LDAP at {host}")
 
     def setUp(self):
-        super(TestLDAPBackend, self).setUp()
+        super().setUp()
         self.backend = self._backend()
 
     def _backend(self, settings_override=None):
@@ -1255,6 +1254,8 @@ class TestLDAPBackend(BaseACLTest):
         request = DummyRequest()
         return LDAPAccessBackend(request, **kwargs)
 
+
+class TestLDAPBackend(BaseLDAPTest):
     def test_verify(self):
         """Users can log in with correct password"""
         valid = self.backend.verify_user("pypidev", "pypidev")
@@ -1278,6 +1279,14 @@ class TestLDAPBackend(BaseACLTest):
         """Only specified users have 'admin' permissions"""
         self.assertFalse(self.backend.is_admin("pypidev"))
 
+    def test_disallow_anonymous_bind(self):
+        """Users cannot log in with empty password"""
+        self.assertFalse(self.backend.verify_user("pypidev", ""))
+
+    def test_need_admin(self):
+        """LDAP backend is immutable and never needs admin"""
+        self.assertFalse(self.backend.need_admin())
+
     def test_user_dn_format(self):
         """Can use user_dn_format instead of base_dn"""
         backend = self._backend(
@@ -1289,6 +1298,18 @@ class TestLDAPBackend(BaseACLTest):
         )
         valid = backend.verify_user("pypidev", "pypidev")
         self.assertTrue(valid)
+
+    def test_only_user_dn_format(self):
+        """Cannot use user_dn_format with base_dn"""
+        with self.assertRaises(ValueError):
+            self._backend({"auth.ldap.user_dn_format": "cn={username},ou=users,o=test"})
+
+    def test_mandatory_search(self):
+        """Must use user_dn_format or base_dn"""
+        with self.assertRaises(ValueError):
+            self._backend(
+                {"auth.ldap.base_dn": None, "auth.ldap.user_search_filter": None}
+            )
 
     def test_admin_group_dn(self):
         """Can use admin_group_dn to check for admin privs"""
@@ -1304,136 +1325,27 @@ class TestLDAPBackend(BaseACLTest):
         )
         self.assertTrue(backend.is_admin("pypiadmin"))
 
-
-class BaseLDAPTest(BaseACLTest):
-    """Base class for LDAP tests that enable mocking the LDAP directory"""
-
-    @classmethod
-    def setUpClass(cls):
-        super(BaseLDAPTest, cls).setUpClass()
-        test = ("o=test", {"o": ["test"], "objectClass": ["top"]})
-        users = ("ou=users,o=test", {"ou": ["users"], "objectClass": ["top"]})
-        admin_list = (
-            "cn=adminlist,o=test",
-            {
-                "cn": ["adminlist"],
-                "admins": ["cn=admin,ou=users,o=test"],
-                "objectClass": ["top"],
-            },
-        )
-        service = (
-            "cn=service,ou=users,o=test",
-            {"cn": ["service"], "userPassword": ["snerp"], "objectClass": ["top"]},
-        )
-        u1 = (
-            "cn=u1,ou=users,o=test",
-            {"cn": ["u1"], "userPassword": ["foobar"], "objectClass": ["top"]},
-        )
-        admin = (
-            "cn=admin,ou=users,o=test",
-            {
-                "cn": ["admin"],
-                "userPassword": ["toor"],
-                "roles": ["admin"],
-                "objectClass": ["top"],
-            },
-        )
-        directory = dict([test, users, admin_list, service, u1, admin])
-        cls.mockldap = MockLdap(directory)
-
-    @classmethod
-    def tearDownClass(cls):
-        super(BaseLDAPTest, cls).tearDownClass()
-        del cls.mockldap
-
-    def setUp(self):
-        super(BaseLDAPTest, self).setUp()
-        self.mockldap.start()
-        self.backend = self._backend()
-
-    def tearDown(self):
-        super(BaseLDAPTest, self).tearDown()
-        self.mockldap.stop()
-
-    def _backend(self, settings_override=None):
-        """Wrapper to instantiate a LDAPAccessBackend"""
-        settings = {
-            "auth.ldap.url": "ldap://localhost/",
-            "auth.ldap.service_dn": "cn=service,ou=users,o=test",
-            "auth.ldap.service_password": "snerp",
-            "auth.ldap.base_dn": "ou=users,o=test",
-            "auth.ldap.user_search_filter": "(cn={username})",
-            "auth.ldap.admin_field": "roles",
-            "auth.ldap.admin_value": ["admin"],
-        }
-        settings.update(settings_override or {})
-        settings = dict(((k, v) for (k, v) in settings.items() if v is not None))
-        kwargs = LDAPAccessBackend.configure(settings)
-        request = DummyRequest()
-        return LDAPAccessBackend(request, **kwargs)
-
-
-class TestLDAPMockBackend(BaseLDAPTest):
-    """Test the LDAP access backend by mocking LDAP"""
-
-    def test_verify(self):
-        """Users can log in with correct password"""
-        valid = self.backend.verify_user("u1", "foobar")
-        self.assertTrue(valid)
-
-    def test_no_verify(self):
-        """Verification fails with wrong password"""
-        valid = self.backend.verify_user("u1", "foobarz")
-        self.assertFalse(valid)
-
-    def test_verify_no_user(self):
-        """Verify fails if user is unknown"""
-        valid = self.backend.verify_user("notreal", "foobar")
-        self.assertFalse(valid)
-
-    def test_disallow_anonymous_bind(self):
-        """Users cannot log in with empty password"""
-        valid = self.backend.verify_user("u1", "")
-        self.assertFalse(valid)
-
-    def test_admin(self):
-        """Specified users have 'admin' permissions"""
-        self.assertTrue(self.backend.is_admin("admin"))
-
-    def test_not_admin(self):
-        """Only specified users have 'admin' permissions"""
-        self.assertFalse(self.backend.is_admin("u1"))
-
-    def test_need_admin(self):
-        """LDAP backend is immutable and never needs admin"""
-        self.assertFalse(self.backend.need_admin())
-
-    def test_single_user_data(self):
-        """Get data for a single user"""
-        user = self.backend.user_data("u1")
-        self.assertCountEqual(user, {"username": "u1", "admin": False, "groups": []})
-
     def test_service_username(self):
         """service_username allows the service account to be admin"""
         backend = self._backend({"auth.ldap.service_username": "root"})
         user = backend.user_data("root")
         self.assertEqual(user, {"username": "root", "admin": True, "groups": []})
 
+    def test_single_user_data(self):
+        """Get data for a single user"""
+        user = self.backend.user_data("pypidev")
+        self.assertCountEqual(
+            user, {"username": "pypidev", "admin": False, "groups": []}
+        )
+
     def test_allowed_permissions(self):
         """Default settings will only allow authenticated to read and fallback"""
         perms = self.backend.allowed_permissions("mypkg")
         self.assertEqual(perms, {Authenticated: ("read", "fallback")})
 
-    def test_package_fallback_disallowed(self):
-        """If package is in disallow_fallback list, it won't have fallback permissions"""
-        self.backend.default_read = ["authenticated"]
-        self.backend.disallow_fallback = ["anypkg"]
-        perms = self.backend.allowed_permissions("anypkg")
-        self.assertEqual(perms, {Authenticated: ("read",)})
-
     def test_user_package_perms(self):
         """No user package perms in LDAP"""
-        perms = self.backend.user_package_permissions("u1")
+        perms = self.backend.user_package_permissions("pypidev")
         self.assertEqual(perms, [])
 
     def test_group_package_perms(self):
@@ -1441,29 +1353,12 @@ class TestLDAPMockBackend(BaseLDAPTest):
         perms = self.backend.group_package_permissions("group")
         self.assertEqual(perms, [])
 
-    def test_user_dn_format(self):
-        """Can use user_dn_format instead of base_dn"""
-        backend = self._backend(
-            {
-                "auth.ldap.user_dn_format": "cn={username},ou=users,o=test",
-                "auth.ldap.base_dn": None,
-                "auth.ldap.user_search_filter": None,
-            }
-        )
-        valid = backend.verify_user("u1", "foobar")
-        self.assertTrue(valid)
-
-    def test_only_user_dn_format(self):
-        """Cannot use user_dn_format with base_dn"""
-        with self.assertRaises(ValueError):
-            self._backend({"auth.ldap.user_dn_format": "cn={username},ou=users,o=test"})
-
-    def test_mandatory_search(self):
-        """Must use user_dn_format or base_dn"""
-        with self.assertRaises(ValueError):
-            self._backend(
-                {"auth.ldap.base_dn": None, "auth.ldap.user_search_filter": None}
-            )
+    def test_package_fallback_disallowed(self):
+        """If package is in disallow_fallback list, it won't have fallback permissions"""
+        self.backend.default_read = ["authenticated"]
+        self.backend.disallow_fallback = ["anypkg"]
+        perms = self.backend.allowed_permissions("anypkg")
+        self.assertEqual(perms, {Authenticated: ("read",)})
 
     def test_check_health_success(self):
         """check_health returns True for good connection"""
@@ -1494,12 +1389,12 @@ class TestMockLDAPBackendWithConfig(BaseLDAPTest):
 
     def test_verify(self):
         """Users can log in with correct password"""
-        valid = self.backend.verify_user("u1", "foobar")
+        valid = self.backend.verify_user("pypidev", "pypidev")
         self.assertTrue(valid)
 
     def test_no_verify(self):
         """Verification fails with wrong password"""
-        valid = self.backend.verify_user("u1", "foobarz")
+        valid = self.backend.verify_user("pypidev", "foobarz")
         self.assertFalse(valid)
 
     def test_verify_no_user(self):
@@ -1509,11 +1404,11 @@ class TestMockLDAPBackendWithConfig(BaseLDAPTest):
 
     def test_admin(self):
         """Specified users have 'admin' permissions"""
-        self.assertTrue(self.backend.is_admin("admin"))
+        self.assertTrue(self.backend.is_admin("pypiadmin"))
 
     def test_not_admin(self):
         """Only specified users have 'admin' permissions"""
-        self.assertFalse(self.backend.is_admin("u1"))
+        self.assertFalse(self.backend.is_admin("pypidev"))
 
     def test_group_members(self):
         """Fetch all members of a group"""
@@ -1530,20 +1425,20 @@ class TestMockLDAPBackendWithConfig(BaseLDAPTest):
 
     def test_all_user_perms(self):
         """Fetch permissions on a package for all users"""
-        settings = {"package.mypkg.user.u1": "r", "package.mypkg.user.u2": "rw"}
+        settings = {"package.mypkg.user.pypidev": "r", "package.mypkg.user.u2": "rw"}
         backend = self._backend(settings)
         perms = backend.user_permissions("mypkg")
-        self.assertEqual(perms, {"u1": ["read"], "u2": ["read", "write"]})
+        self.assertEqual(perms, {"pypidev": ["read"], "u2": ["read", "write"]})
 
     def test_user_package_perms(self):
         """Fetch all packages a user has permissions on"""
         settings = {
-            "package.pkg1.user.u1": "r",
-            "package.pkg2.user.u1": "rw",
+            "package.pkg1.user.pypidev": "r",
+            "package.pkg2.user.pypidev": "rw",
             "unrelated.field": "",
         }
         backend = self._backend(settings)
-        packages = backend.user_package_permissions("u1")
+        packages = backend.user_package_permissions("pypidev")
         self.assertCountEqual(
             packages,
             [
@@ -1555,12 +1450,12 @@ class TestMockLDAPBackendWithConfig(BaseLDAPTest):
     def test_long_user_package_perms(self):
         """Can encode user package permissions in verbose form"""
         settings = {
-            "package.pkg1.user.u1": "read ",
-            "package.pkg2.user.u1": "read write",
+            "package.pkg1.user.pypidev": "read ",
+            "package.pkg2.user.pypidev": "read write",
             "unrelated.field": "",
         }
         backend = self._backend(settings)
-        packages = backend.user_package_permissions("u1")
+        packages = backend.user_package_permissions("pypidev")
         self.assertCountEqual(
             packages,
             [
@@ -1588,21 +1483,24 @@ class TestMockLDAPBackendWithConfig(BaseLDAPTest):
 
     def test_user_data(self):
         """Retrieve all users"""
-        settings = {"user.u1": "_", "user.bar": "_"}
+        settings = {"user.pypidev": "_", "user.bar": "_"}
         backend = self._backend(settings)
         users = backend.user_data()
         self.assertCountEqual(
             users,
-            [{"username": "u1", "admin": False}, {"username": "bar", "admin": False}],
+            [
+                {"username": "pypidev", "admin": False},
+                {"username": "bar", "admin": False},
+            ],
         )
 
     def test_single_user_data(self):
         """Get data for a single user"""
-        settings = {"user.admin": "pass", "group.foobars": ["admin"]}
+        settings = {"user.pypiadmin": "pass", "group.foobars": ["pypiadmin"]}
         backend = self._backend(settings)
-        user = backend.user_data("admin")
+        user = backend.user_data("pypiadmin")
         self.assertEqual(
-            user, {"username": "admin", "admin": True, "groups": ["foobars"]}
+            user, {"username": "pypiadmin", "admin": True, "groups": ["foobars"]}
         )
 
 

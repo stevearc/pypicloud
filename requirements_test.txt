@@ -1,6 +1,5 @@
 coverage
 mock
-mockldap
 moto
 mysqlclient
 nose
