@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.3.0 - 2021/10/9
+-----------------
+* Allow config options to be overridden by environment variables (:issue:`270`)
+
 1.2.4 - 2021/6/10
 -----------------
 * Fix missing permissions for non-admin users (:issue:`284`)
