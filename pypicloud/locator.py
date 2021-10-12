@@ -23,7 +23,7 @@ class SimpleJsonLocator(object):
         return self._cache[project_name]
 
     def _get_releases(self, project_name):
-        url = "%s/pypi/%s/json/" % (self.base_index, project_name)
+        url = "%s/pypi/%s/json" % (self.base_index, project_name)
         response = requests.get(url)
         try:
             response.raise_for_status()
