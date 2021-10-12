@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.3.1 - 2021/10/12
+------------------
+* Remove trailing slash from JSON scraper (:issue:`287`)
+
 1.3.0 - 2021/10/9
 -----------------
 * Allow config options to be overridden by environment variables (:issue:`270`)
