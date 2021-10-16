@@ -16,7 +16,12 @@ from pyramid_duh.settings import asdict
 
 from pypicloud.dateutil import utcnow
 from pypicloud.models import Package
-from pypicloud.util import EnvironSettings, normalize_metadata, parse_filename
+from pypicloud.util import (
+    EnvironSettings,
+    PackageParseError,
+    normalize_metadata,
+    parse_filename,
+)
 
 from .object_store import ObjectStoreStorage
 
@@ -135,7 +140,7 @@ class S3Storage(ObjectStoreStorage):
         if name is None or version is None:
             try:
                 name, version = parse_filename(filename)
-            except ValueError:
+            except PackageParseError:
                 LOG.warning("S3 file %s has no package name", obj.key)
                 return None
 

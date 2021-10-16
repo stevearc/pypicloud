@@ -9,7 +9,12 @@ from pyramid_duh import addslash, argify
 from pyramid_rpc.xmlrpc import xmlrpc_method
 
 from pypicloud.route import Root, SimplePackageResource, SimpleResource
-from pypicloud.util import get_packagetype, normalize_name, parse_filename
+from pypicloud.util import (
+    PackageParseError,
+    get_packagetype,
+    normalize_name,
+    parse_filename,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -128,7 +133,10 @@ def package_versions_json(context, request):
     }
     max_version = None
     for filename, pkg in pkgs["pkgs"].items():
-        name, version_str = parse_filename(filename)
+        try:
+            name, version_str = parse_filename(filename)
+        except PackageParseError:
+            continue
         version = pkg_resources.parse_version(version_str)
         if max_version is None or version > max_version:
             max_version = version

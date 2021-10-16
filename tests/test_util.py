@@ -29,7 +29,7 @@ class TestParse(unittest.TestCase):
 
     def test_invalid_file_ext(self):
         """Parse fails on invalid file extension"""
-        with self.assertRaises(ValueError):
+        with self.assertRaises(util.PackageParseError):
             util.parse_filename("mypkg-1.1.pdf")
 
     def test_use_name(self):

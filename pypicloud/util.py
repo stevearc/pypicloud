@@ -26,6 +26,10 @@ ALL_EXTENSIONS = Locator.source_extensions + Locator.binary_extensions
 SENTINEL = object()
 
 
+class PackageParseError(ValueError):
+    pass
+
+
 def parse_filename(filename: str, name: Optional[str] = None) -> Tuple[str, str]:
     """Parse a name and version out of a filename"""
     version = None
@@ -42,7 +46,7 @@ def parse_filename(filename: str, name: Optional[str] = None) -> Tuple[str, str]
                 parsed_name, version = parsed[:2]
             break
     if version is None:
-        raise ValueError("Cannot parse package file '%s'" % filename)
+        raise PackageParseError("Cannot parse package file '%s'" % filename)
     if name is None:
         name = parsed_name
     return normalize_name(name), version
