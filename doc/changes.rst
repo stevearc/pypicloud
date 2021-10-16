@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.3.2 - 2021/10/16
+------------------
+* Fix exception in JSON endpoint (:issue:`290`)
+
 1.3.1 - 2021/10/12
 ------------------
 * Remove trailing slash from JSON scraper (:issue:`287`)
