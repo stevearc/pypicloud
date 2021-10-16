@@ -8,7 +8,7 @@ mypy
 mysqlclient
 nose
 psycopg2-binary
-pylint==2.7.1
+pylint==2.11.1
 requests
 sqlalchemy-stubs
 types-pkg_resources

@@ -315,11 +315,11 @@ class TestFileStorage(unittest.TestCase):
         self.storage.upload(package, data)
         filename = self.storage.get_path(package)
         self.assertTrue(os.path.exists(filename))
-        with open(filename, "r") as ifile:
+        with open(filename, "r", encoding="utf-8") as ifile:
             self.assertEqual(ifile.read(), "foobar")
         meta_file = self.storage.get_metadata_path(package)
         self.assertTrue(os.path.exists(meta_file))
-        with open(meta_file, "r") as mfile:
+        with open(meta_file, "r", encoding="utf-8") as mfile:
             self.assertEqual(json.loads(mfile.read()), package.get_metadata())
 
     def test_list(self):
@@ -328,10 +328,10 @@ class TestFileStorage(unittest.TestCase):
         path = self.storage.get_path(package)
         meta_file = self.storage.get_metadata_path(package)
         os.makedirs(os.path.dirname(path))
-        with open(path, "w") as ofile:
+        with open(path, "w", encoding="utf-8") as ofile:
             ofile.write("foobar")
 
-        with open(meta_file, "w") as mfile:
+        with open(meta_file, "w", encoding="utf-8") as mfile:
             mfile.write(json.dumps({"summary": package.summary}))
 
         pkg = list(self.storage.list(Package))[0]
@@ -346,9 +346,9 @@ class TestFileStorage(unittest.TestCase):
         path = self.storage.get_path(package)
         meta_path = self.storage.get_metadata_path(package)
         os.makedirs(os.path.dirname(path))
-        with open(path, "w") as ofile:
+        with open(path, "w", encoding="utf-8") as ofile:
             ofile.write("foobar")
-        with open(meta_path, "w") as mfile:
+        with open(meta_path, "w", encoding="utf-8") as mfile:
             mfile.write("foobar")
         self.storage.delete(package)
         self.assertFalse(os.path.exists(path))
@@ -507,7 +507,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
         super(TestGoogleCloudStorage, self).setUp()
         self.gcs = MockGCSClient()
         self._config_file = tempfile.mktemp()
-        with open(self._config_file, "w") as ofile:
+        with open(self._config_file, "w", encoding="utf-8") as ofile:
             json.dump({}, ofile)
         patch("google.cloud.storage.Client", self.gcs).start()
         self.settings = {

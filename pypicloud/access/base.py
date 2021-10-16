@@ -784,14 +784,14 @@ class IMutableAccessBackend(IAccessBackend):
         raise NotImplementedError
 
     def edit_user_permission(
-        self, package: str, username: str, perm: Set[str], add: bool
+        self, package_name: str, username: str, perm: Set[str], add: bool
     ) -> None:
         """
         Grant or revoke a permission for a user on a package
 
         Parameters
         ----------
-        package : str
+        package_name : str
         username : str
         perm : {'read', 'write'}
         add : bool
@@ -801,14 +801,14 @@ class IMutableAccessBackend(IAccessBackend):
         raise NotImplementedError
 
     def edit_group_permission(
-        self, package: str, group: str, perm: Set[str], add: bool
+        self, package_name: str, group: str, perm: Set[str], add: bool
     ) -> None:
         """
         Grant or revoke a permission for a group on a package
 
         Parameters
         ----------
-        package : str
+        package_name : str
         group : str
         perm : {'read', 'write'}
         add : bool

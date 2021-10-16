@@ -226,7 +226,9 @@ def _build_lambda_bundle(settings):
 
         # Hack because importing some modules blows up on Lambda
         for mod in ["zope", "repoze"]:
-            open(os.path.join(site_packages, mod, "__init__.py"), "a").close()
+            open(
+                os.path.join(site_packages, mod, "__init__.py"), "a", encoding="utf-8"
+            ).close()
         for root, dirs, files in os.walk(site_packages):
             for filename in files:
                 fullpath = os.path.join(root, filename)

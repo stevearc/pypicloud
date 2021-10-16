@@ -11,7 +11,6 @@ from pypicloud.dateutil import utcnow
 from pypicloud.models import Package
 from pypicloud.storage import IStorage
 
-
 os.environ["AWS_SECRET_ACCESS_KEY"] = "access_key"
 os.environ["AWS_ACCESS_KEY_ID"] = "secret_key"
 
@@ -67,8 +66,8 @@ class DummyStorage(IStorage):
     def download_response(self, package):
         return None
 
-    def upload(self, package, data):
-        self.packages[package.filename] = (package, data)
+    def upload(self, package, datastream):
+        self.packages[package.filename] = (package, datastream)
 
     def delete(self, package):
         del self.packages[package.filename]

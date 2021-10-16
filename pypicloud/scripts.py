@@ -229,7 +229,7 @@ def make_config(argv=None):
         sys.stdout.write(config_file)
         sys.stdout.write(os.linesep)
     else:
-        with open(args.outfile, "w") as ofile:
+        with open(args.outfile, "w", encoding="utf-8") as ofile:
             ofile.write(config_file)
 
         print("Config file written to '%s'" % args.outfile)

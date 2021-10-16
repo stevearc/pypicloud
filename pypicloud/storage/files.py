@@ -57,7 +57,7 @@ class FileStorage(IStorage):
                 metadata = {}
                 metafile = self.path_to_meta_path(fullpath)
                 if os.path.exists(metafile):
-                    with open(metafile, "r") as mfile:
+                    with open(metafile, "r", encoding="utf-8") as mfile:
                         try:
                             metadata = json.load(mfile)
                         except ValueError:
@@ -83,7 +83,7 @@ class FileStorage(IStorage):
         # Store metadata as JSON. This could be expanded in the future
         # to store additional metadata about a package (i.e. author)
         tempfile = os.path.join(destdir, ".metadata." + uid)
-        with open(tempfile, "w") as mfile:
+        with open(tempfile, "w", encoding="utf-8") as mfile:
             json.dump(package.get_metadata(), mfile)
 
         os.rename(tempfile, dest_meta_file)

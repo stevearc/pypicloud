@@ -303,14 +303,14 @@ class SQLAccessBackend(IMutableAccessBackend):
         if user is not None:
             user.admin = admin
 
-    def edit_user_group(self, username, groupname, add):
+    def edit_user_group(self, username, group, add):
         user = self.db.query(User).filter_by(username=username).first()
-        group = self.db.query(Group).filter_by(name=groupname).first()
-        if user is not None and group is not None:
+        groupobj = self.db.query(Group).filter_by(name=group).first()
+        if user is not None and groupobj is not None:
             if add:
-                user.groups.add(group)
+                user.groups.add(groupobj)
             else:
-                user.groups.remove(group)
+                user.groups.remove(groupobj)
 
     def create_group(self, group):
         self.db.add(Group(group))
@@ -320,16 +320,16 @@ class SQLAccessBackend(IMutableAccessBackend):
         clause = association_table.c.group == group
         self.db.execute(association_table.delete(clause))
 
-    def edit_user_permission(self, package, username, perm, add):
+    def edit_user_permission(self, package_name, username, perm, add):
         record = (
             self.db.query(UserPermission)
-            .filter_by(package=package, username=username)
+            .filter_by(package=package_name, username=username)
             .first()
         )
         if record is None:
             if not add:
                 return
-            record = UserPermission(package, username)
+            record = UserPermission(package_name, username)
             self.db.add(record)
         if perm == "read":
             record.read = add
@@ -340,16 +340,16 @@ class SQLAccessBackend(IMutableAccessBackend):
         if not record.read and not record.write:
             self.db.delete(record)
 
-    def edit_group_permission(self, package, group, perm, add):
+    def edit_group_permission(self, package_name, group, perm, add):
         record = (
             self.db.query(GroupPermission)
-            .filter_by(package=package, groupname=group)
+            .filter_by(package=package_name, groupname=group)
             .first()
         )
         if record is None:
             if not add:
                 return
-            record = GroupPermission(package, group)
+            record = GroupPermission(package_name, group)
             self.db.add(record)
         if perm == "read":
             record.read = add

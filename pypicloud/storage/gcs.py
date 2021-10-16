@@ -147,19 +147,17 @@ class GoogleCloudStorage(ObjectStoreStorage):
         return bucket
 
     @classmethod
-    def package_from_object(cls, blob, factory):
+    def package_from_object(cls, obj, factory):
         """Create a package from a GCS object"""
-        filename = posixpath.basename(blob.name)
-        if blob.metadata is None:
+        filename = posixpath.basename(obj.name)
+        if obj.metadata is None:
             return None
-        name = blob.metadata.get("name")
-        version = blob.metadata.get("version")
+        name = obj.metadata.get("name")
+        version = obj.metadata.get("version")
         if name is None or version is None:
             return None
-        metadata = Package.read_metadata(blob.metadata)
-        return factory(
-            name, version, filename, blob.updated, path=blob.name, **metadata
-        )
+        metadata = Package.read_metadata(obj.metadata)
+        return factory(name, version, filename, obj.updated, path=obj.name, **metadata)
 
     @property
     def bucket(self):

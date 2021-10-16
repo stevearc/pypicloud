@@ -17,10 +17,10 @@ try:
 
     if parse_version(__version__) < parse_version("0.2.0"):  # pragma: no cover
         raise ValueError("Pypicloud requires flywheel>=0.2.0")
-except ImportError as e:  # pragma: no cover
+except ImportError as err:  # pragma: no cover
     raise ImportError(
         "You must 'pip install flywheel' before using " "DynamoDB as the cache database"
-    ) from e
+    ) from err
 
 LOG = logging.getLogger(__name__)
 
