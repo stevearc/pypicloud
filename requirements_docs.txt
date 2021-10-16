@@ -1,3 +1,4 @@
+azure-storage-blob
 flywheel
 google-cloud-storage
 numpydoc
