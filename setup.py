@@ -46,7 +46,7 @@ EXTRAS["server"] = ["waitress"]
 if __name__ == "__main__":
     setup(
         name="pypicloud",
-        version="1.3.1",
+        version="1.3.2",
         description="Private PyPI backed by S3",
         long_description=README + "\n\n" + CHANGES,
         classifiers=[
