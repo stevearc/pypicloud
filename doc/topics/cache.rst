@@ -38,6 +38,15 @@ When reloading the cache from storage, keep the cache in a usable state while
 adding and removing the necessary packages. Note that this may take longer
 because multiple passes will be made to ensure correctness. (default ``False``)
 
+``db.poolclass``
+~~~~~~~~~~~~~~~~
+**Argument:** str, optional
+
+Dotted path to the class to use for connection pooling. Set to
+``'sqlalchemy.pool.NullPool'`` to disable connection pooling. See `Connection
+Pooling <https://docs.sqlalchemy.org/en/latest/core/pooling.html>`__ for more
+information.
+
 Redis
 -----
 Set ``pypi.db = redis`` OR ``pypi.db = pypicloud.cache.RedisCache``

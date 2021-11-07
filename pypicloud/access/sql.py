@@ -1,5 +1,6 @@
 """ Access backend for storing permissions in using SQLAlchemy """
 import zope.sqlalchemy
+from pyramid.path import DottedNameResolver
 from sqlalchemy import (
     Boolean,
     Column,
@@ -13,6 +14,8 @@ from sqlalchemy import (
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import backref, sessionmaker
+
+from pypicloud.util import EnvironSettings
 
 from .base import IMutableAccessBackend
 
@@ -174,10 +177,15 @@ class SQLAccessBackend(IMutableAccessBackend):
         return self._db
 
     @classmethod
-    def configure(cls, settings):
+    def configure(cls, settings: EnvironSettings):
         kwargs = super(SQLAccessBackend, cls).configure(settings)
         settings.read_prefix_from_environ("auth.db.")
-        engine = engine_from_config(settings, prefix="auth.db.")
+        engine_opts = {}
+        poolclass = settings.pop("auth.db.poolclass", None)
+        if poolclass is not None:
+            resolver = DottedNameResolver(__name__)
+            engine_opts["poolclass"] = resolver.maybe_resolve(poolclass)
+        engine = engine_from_config(settings, prefix="auth.db.", **engine_opts)
         kwargs["dbmaker"] = sessionmaker(bind=engine)
         # Create SQL schema if not exists
         Base.metadata.create_all(bind=engine)

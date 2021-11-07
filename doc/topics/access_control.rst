@@ -181,6 +181,15 @@ with the prefix ``auth.db.``, so you can pass in any valid parameters that way.
 The database url to use for storing user and group permissions. This may be the
 same database as ``db.url`` (if you are also using the SQL caching database).
 
+``auth.db.poolclass``
+~~~~~~~~~~~~~~~~~~~~~
+**Argument:** str, optional
+
+Dotted path to the class to use for connection pooling. Set to
+``'sqlalchemy.pool.NullPool'`` to disable connection pooling. See `Connection
+Pooling <https://docs.sqlalchemy.org/en/latest/core/pooling.html>`__ for more
+information.
+
 ``auth.rounds``
 ~~~~~~~~~~~~~~~
 **Argument:** int, optional

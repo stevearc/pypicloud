@@ -3,6 +3,7 @@ import json
 import logging
 
 import zope.sqlalchemy
+from pyramid.path import DottedNameResolver
 from pyramid.settings import asbool
 from sqlalchemy import (
     Column,
@@ -23,6 +24,7 @@ from sqlalchemy.types import TEXT, TypeDecorator
 
 from pypicloud.dateutil import UTC, utcnow
 from pypicloud.models import Package
+from pypicloud.util import EnvironSettings
 
 from .base import ICache
 
@@ -167,11 +169,16 @@ class SQLCache(ICache):
             self.db.close()
 
     @classmethod
-    def configure(cls, settings):
+    def configure(cls, settings: EnvironSettings):
         kwargs = super(SQLCache, cls).configure(settings)
         graceful_reload = asbool(settings.pop("db.graceful_reload", False))
         settings.read_prefix_from_environ("db.")
-        engine = engine_from_config(settings, prefix="db.")
+        engine_opts = {}
+        poolclass = settings.pop("db.poolclass", None)
+        if poolclass is not None:
+            resolver = DottedNameResolver(__name__)
+            engine_opts["poolclass"] = resolver.maybe_resolve(poolclass)
+        engine = engine_from_config(settings, prefix="db.", **engine_opts)
         # Create SQL schema if not exists
         create_schema(engine)
         kwargs["dbmaker"] = sessionmaker(bind=engine)
