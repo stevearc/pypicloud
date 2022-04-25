@@ -23,7 +23,7 @@ class FileStorage(IStorage):
     @classmethod
     def configure(cls, settings):
         kwargs = super(FileStorage, cls).configure(settings)
-        directory = os.path.abspath(settings["storage.dir"]).rstrip("/")
+        directory = os.path.abspath(settings["storage.dir"]).rstrip(os.sep)
         if not os.path.exists(directory):
             os.makedirs(directory)
         kwargs["directory"] = directory
@@ -50,8 +50,8 @@ class FileStorage(IStorage):
                     # We don't want to yield for this file
                     continue
 
-                shortpath = root[len(self.directory) :].strip("/")
-                name, version = shortpath.split("/")
+                shortpath = root[len(self.directory) :].strip(os.sep)
+                name, version = shortpath.split(os.sep)
                 fullpath = os.path.join(root, filename)
                 last_modified = utcfromtimestamp(os.path.getmtime(fullpath))
                 metadata = {}
