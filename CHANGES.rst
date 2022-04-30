@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.3.4 - 2022/4/30
+-----------------
+* Fix files storage backend on Windows (:issue:`297`)
+
 1.3.3 - 2021/11/12
 ------------------
 * Add ``db.poolclass`` to configure SQLAlchemy connection pooling (:issue:`291`)
