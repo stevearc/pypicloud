@@ -24,10 +24,10 @@ class SimpleJsonLocator(object):
 
     def _get_releases(self, project_name):
         url = "%s/pypi/%s/json" % (self.base_index, project_name)
-        response = requests.get(url)
         try:
+            response = requests.get(url)
             response.raise_for_status()
-        except requests.HTTPError as e:
+        except requests.RequestException as e:
             LOG.warning("Error fetching '%s' from upstream: %s", project_name, e)
             return []
         data = response.json()
