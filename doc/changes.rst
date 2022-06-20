@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.3.5 - 2022/6/20
+-----------------
+* Handle all errors when fetching from upstream (:pr:`299`)
+
 1.3.4 - 2022/4/30
 -----------------
 * Fix files storage backend on Windows (:issue:`297`)
