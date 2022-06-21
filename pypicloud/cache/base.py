@@ -2,15 +2,14 @@
 import hashlib
 import logging
 import posixpath
-from io import BytesIO
-from typing import Any, BinaryIO, Callable, Dict, List, Optional, Tuple
+from typing import Any, BinaryIO, Dict, List, Optional, Tuple
 
 from pyramid.settings import asbool
 
 from pypicloud.dateutil import utcfromtimestamp
 from pypicloud.models import Package
 from pypicloud.storage import get_storage_impl
-from pypicloud.util import create_matcher, normalize_name, parse_filename
+from pypicloud.util import create_matcher, normalize_name, parse_filename, stream_file
 
 LOG = logging.getLogger(__name__)
 
@@ -140,10 +139,13 @@ class ICache(object):
         if old_pkg is not None and not self.allow_overwrite:
             raise ValueError("Package '%s' already exists!" % filename)
         if self.calculate_hashes:
-            file_data = data.read()
-            metadata["hash_sha256"] = hashlib.sha256(file_data).hexdigest()
-            metadata["hash_md5"] = hashlib.md5(file_data).hexdigest()
-            data = BytesIO(file_data)
+            sha256, md5 = hashlib.sha256(), hashlib.md5()
+            for chunk in stream_file(data):
+                sha256.update(chunk)
+                md5.update(chunk)
+            data.seek(0)
+            metadata["hash_sha256"] = sha256.hexdigest()
+            metadata["hash_md5"] = md5.hexdigest()
 
         new_pkg = self.new_package(name, version, filename, summary=summary, **metadata)
         self.storage.upload(new_pkg, data)

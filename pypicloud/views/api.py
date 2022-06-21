@@ -19,11 +19,10 @@ from pypicloud.route import (
     APIPackagingResource,
     APIResource,
 )
-from pypicloud.util import normalize_name
+from pypicloud.util import normalize_name, stream_file
 
 from .login import handle_register_request
 
-CHUNK_SIZE = 16 * 1024  # read 16M chunks from dist URL
 LOG = logging.getLogger(__name__)
 
 
@@ -73,7 +72,7 @@ def fetch_dist(request, url, name, version, summary, requires_python):
     data_fp = TemporaryFile()  # will be closed by garbage collector
 
     with _open(url, "rb", compression="disable") as url_fp:
-        for chunk in iter(lambda: url_fp.read(CHUNK_SIZE), b""):
+        for chunk in stream_file(url_fp):
             data_fp.write(chunk)
 
     # TODO: digest validation

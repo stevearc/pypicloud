@@ -31,7 +31,7 @@ interactions:
       x-ms-version:
       - '2019-07-07'
     method: PUT
-    uri: https://terrytest2.blob.core.windows.net/pypi/mypkg/pkg.tar.gz
+    uri: https://terrytest2.blob.core.windows.net/pypi/mypkg/pkg.tar.gz?comp=blocklist
   response:
     body:
       string: ''
