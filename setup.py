@@ -13,6 +13,7 @@ CHANGES = re.sub(r":ref:`(.*?) <.*>`", r"\1", CHANGES)
 
 REQUIREMENTS_TEST = open(os.path.join(HERE, "requirements_test.txt")).readlines()
 REQUIREMENTS = [
+    "smart_open[http]",
     "boto3>=1.7.0",
     # beaker needs this
     "cryptography",

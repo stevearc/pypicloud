@@ -1,8 +1,6 @@
 """ Views for simple api calls that return json data """
 import logging
 import posixpath
-from io import BytesIO
-from urllib.request import urlopen
 from tempfile import TemporaryFile
 
 # pylint: disable=E0611
@@ -13,6 +11,7 @@ from pyramid.httpexceptions import HTTPBadRequest, HTTPForbidden, HTTPNotFound
 from pyramid.security import NO_PERMISSION_REQUIRED
 from pyramid.view import view_config
 from pyramid_duh import addslash, argify
+from smart_open import open as _open
 
 from pypicloud.route import (
     APIPackageFileResource,
@@ -72,8 +71,9 @@ def fetch_dist(request, url, name, version, summary, requires_python):
     """Fetch a Distribution and upload it to the storage backend"""
     filename = posixpath.basename(url)
     data_fp = TemporaryFile()  # will be closed by garbage collector
-    with urlopen(url) as url_fp:
-        for chunk in iter(lambda: url_fp.read(CHUNK_SIZE), ""):
+
+    with _open(url, "rb", compression="disable") as url_fp:
+        for chunk in iter(lambda: url_fp.read(CHUNK_SIZE), b""):
             data_fp.write(chunk)
 
     # TODO: digest validation

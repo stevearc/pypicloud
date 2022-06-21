@@ -2,7 +2,6 @@
 import json
 import os
 from binascii import hexlify
-from contextlib import closing
 
 from pyramid.response import FileResponse
 
@@ -118,4 +117,4 @@ class FileStorage(IStorage):
 
     def open(self, package):
         filename = self.get_path(package)
-        return closing(open(filename, "rb"))
+        return open(filename, "rb")
