@@ -1,9 +1,9 @@
 """ Views for simple api calls that return json data """
 import logging
 import posixpath
-from contextlib import closing
 from io import BytesIO
 from urllib.request import urlopen
+from tempfile import TemporaryFile
 
 # pylint: disable=E0611
 from paste.httpheaders import CACHE_CONTROL, CONTENT_DISPOSITION
@@ -24,6 +24,7 @@ from pypicloud.util import normalize_name
 
 from .login import handle_register_request
 
+CHUNK_SIZE = 16 * 1024  # read 16M chunks from dist URL
 LOG = logging.getLogger(__name__)
 
 
@@ -70,16 +71,16 @@ def package_versions(context, request):
 def fetch_dist(request, url, name, version, summary, requires_python):
     """Fetch a Distribution and upload it to the storage backend"""
     filename = posixpath.basename(url)
-    handle = urlopen(url)
-    with closing(handle):
-        data = handle.read()
+    data_fp = TemporaryFile()  # will be closed by garbage collector
+    with urlopen(url) as url_fp:
+        for chunk in iter(lambda: url_fp.read(CHUNK_SIZE), ""):
+            data_fp.write(chunk)
+
     # TODO: digest validation
-    return (
-        request.db.upload(
-            filename, BytesIO(data), name, version, summary, requires_python
-        ),
-        data,
-    )
+    data_fp.seek(0)
+    resp = request.db.upload(filename, data_fp, name, version, summary, requires_python)
+    data_fp.seek(0)
+    return resp, data_fp
 
 
 @view_config(context=APIPackageFileResource, request_method="GET", permission="read")
@@ -102,7 +103,7 @@ def download_package(context, request):
         if dist is None:
             return HTTPNotFound()
         LOG.info("Caching %s from %s", context.filename, request.fallback_simple)
-        package, data = fetch_dist(
+        package, data_fp = fetch_dist(
             request,
             dist["url"],
             dist["name"],
@@ -116,12 +117,13 @@ def download_package(context, request):
             public=True, max_age=request.registry.package_max_age
         )
         request.response.headers.update(cache_control)
-        request.response.body = data
+        request.response.body_file = data_fp
         request.response.content_type = "application/octet-stream"
         return request.response
     if request.registry.stream_files:
-        with request.db.storage.open(package) as data:
-            request.response.body = data.read()
+        # will be closed by garbage collector
+        data_fp = request.db.storage.open(package)
+        request.response.body_file = data_fp
         disp = CONTENT_DISPOSITION.tuples(filename=package.filename)
         request.response.headers.update(disp)
         cache = CACHE_CONTROL.tuples(

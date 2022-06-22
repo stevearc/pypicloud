@@ -168,7 +168,7 @@ class TestApi(MockServerTest):
         self.request.fallback_simple = "https://pypi.org/simple"
         self.request.access.can_update_cache.return_value = True
         db.fetch.return_value = None
-        fetch_dist.return_value = (MagicMock(), b"fds")
+        fetch_dist.return_value = (MagicMock(), BytesIO(b"fds"))
         context = MagicMock()
         context.filename = "package.tar.gz"
         url = "https://pypi.org/simple/%s" % context.filename
@@ -183,7 +183,7 @@ class TestApi(MockServerTest):
             dist["summary"],
             dist["requires_python"],
         )
-        self.assertEqual(ret.body, fetch_dist()[1])
+        self.assertEqual(ret.body, b"fds")
         self.assertDictContainsSubset(
             {"Cache-Control": "public, max-age=0"}, ret.headers
         )
@@ -198,7 +198,7 @@ class TestApi(MockServerTest):
         self.request.access.can_update_cache.return_value = True
         self.request.registry.package_max_age = 30
         db.fetch.return_value = None
-        fetch_dist.return_value = (MagicMock(), b"abc")
+        fetch_dist.return_value = (MagicMock(), BytesIO(b"fds"))
         context = MagicMock()
         context.filename = "package.tar.gz"
         url = "https://pypi.org/simple/%s" % context.filename
@@ -206,7 +206,7 @@ class TestApi(MockServerTest):
         locator.get_releases.return_value = [dist]
         ret = api.download_package(context, self.request)
         fetch_dist.assert_called_once()
-        self.assertEqual(ret.body, fetch_dist()[1])
+        self.assertEqual(ret.body, b"fds")
         self.assertDictContainsSubset(
             {"Cache-Control": "public, max-age=30"}, ret.headers
         )
