@@ -2,15 +2,13 @@
 import logging
 import os
 import posixpath
-from contextlib import contextmanager
 from datetime import timedelta
-from io import BytesIO
-from urllib.request import urlopen
 
 from azure.core.exceptions import ResourceNotFoundError
 from azure.storage.blob import BlobSasPermissions, BlobServiceClient, generate_blob_sas
 from pyramid.httpexceptions import HTTPFound
 from pyramid.settings import asbool
+from smart_open import open as _open
 
 from pypicloud.dateutil import utcnow
 from pypicloud.models import Package
@@ -157,11 +155,6 @@ class AzureBlobStorage(IStorage):
             return False, str(e)
         return True, ""
 
-    @contextmanager
     def open(self, package):
         url = self._generate_url(package)
-        handle = urlopen(url)
-        try:
-            yield BytesIO(handle.read())
-        finally:
-            handle.close()
+        return _open(url, "rb", compression="disable")
