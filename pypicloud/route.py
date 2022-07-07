@@ -135,3 +135,11 @@ class Root(IStaticResource):
     def __init__(self, request):
         super(Root, self).__init__(request)
         self.__acl__ = request.access.ROOT_ACL
+
+    def __getitem__(self, name):
+        try:
+            return super().__getitem__(name)
+        except KeyError:
+            # Allow fetching packages from the root (e.g. https://pypiserver.com/mypackage)
+            # This is for feature parity with pypiserver (see https://github.com/stevearc/pypicloud/issues/305)
+            return SimplePackageResource(self.request, name)
