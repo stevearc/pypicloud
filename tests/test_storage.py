@@ -226,7 +226,7 @@ class TestS3Storage(unittest.TestCase):
         data = BytesIO(datastr)
         self.storage.upload(package, data)
         key = list(self.bucket.objects.all())[0].Object()
-        contents = BytesIO(b"test1234")
+        contents = BytesIO()
         key.download_fileobj(contents)
         self.assertEqual(contents.getvalue(), datastr)
         self.assertEqual(key.metadata["name"], package.name)
@@ -371,6 +371,36 @@ class TestFileStorage(unittest.TestCase):
         self.assertTrue(ok)
 
 
+class MockGCSResponse(object):
+    """Mock the response of google.auth.transport.requests.AuthorizedSession.put."""
+
+    def __init__(self, status_code):
+        self.status_code = status_code
+        self.text = str(status_code)
+
+
+class MockGCSSession(object):
+    """Mock object representing the google.auth.transport.requests.AuthorizedSession class."""
+
+    def __init__(self, *args, **kwargs):
+        """Ignore client._credentials being passed here."""
+        pass
+
+    def put(self, blob, data, headers, **kwargs):
+        """Put a part of multipart upload, assuming blob.create_resumable_upload_session is mocked to return the blob object instead of url."""
+        if blob.name not in blob.bucket._blobs:
+            blob.upload_from_string(b"")
+        blob._content += data
+        if headers.get("Content-Range", "").endswith("*"):
+            return MockGCSResponse(308)
+        else:
+            return MockGCSResponse(200)
+
+    def delete(self, blob, *args, **kwargs):
+        """Cancel a multipart upload, assuming blob.create_resumable_upload_session is mocked to return the blob object instead of url."""
+        blob.delete()
+
+
 class MockGCSBlob(object):
     """Mock object representing the google.cloud.storage.Blob class"""
 
@@ -420,6 +450,9 @@ class MockGCSBlob(object):
         This is a NOOP because we only check to make sure that it was
         called, not that it changed any state on the MockGCSBlob class
         """
+
+    def create_resumable_upload_session(self):
+        return self
 
 
 class MockGCSBucket(object):
@@ -479,6 +512,7 @@ class MockGCSClient(object):
         self.bucket = MagicMock(wraps=self._bucket)
 
         self._buckets = {}
+        self._credentials = MagicMock()
 
     def from_service_account_json(self, *args, **kwargs):
         """Mock the from_service_account_json method from the cloud storage
@@ -511,6 +545,9 @@ class TestGoogleCloudStorage(unittest.TestCase):
         with open(self._config_file, "w", encoding="utf-8") as ofile:
             json.dump({}, ofile)
         patch("google.cloud.storage.Client", self.gcs).start()
+        patch(
+            "google.auth.transport.requests.AuthorizedSession", MockGCSSession
+        ).start()
         self.settings = {
             "storage.bucket": "mybucket",
             "storage.gcp_service_account_json_filename": self._config_file,
@@ -624,7 +661,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
         storage.upload(package, BytesIO(b"test1234"))
 
         blob = self.bucket.list_blobs()[0]
-        self.assertEqual(blob._acl, "authenticated-read")
+        self.assertEqual(blob.acl, "authenticated-read")
 
     def test_storage_class(self):
         """Can specify a storage class for GCS objects"""
@@ -636,7 +673,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
         storage.upload(package, BytesIO(b"test1234"))
 
         blob = self.bucket.list_blobs()[0]
-        blob.update_storage_class.assert_called_with("COLDLINE")
+        self.assertEqual(blob.storage_class, "COLDLINE")
 
     def test_client_without_credentials(self):
         """Can create a client without passing in application credentials"""

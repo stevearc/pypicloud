@@ -204,19 +204,20 @@ class GoogleCloudStorage(ObjectStoreStorage):
         blob = self._get_gcs_blob(package)
 
         with _open(
-            f"gs://{blob.bucket.name}/{blob.name}",
+            f"gs://{self.bucket.name}/{blob.name}",
             "wb",
             compression="disable",
             transport_params={
-                "client": blob.client,
-                "blob_properties": {"metadata": metadata, "acl": self.object_acl},
+                "client": self.bucket.client,
+                "blob_properties": {
+                    "metadata": metadata,
+                    "acl": self.object_acl,
+                    "storage_class": self.storage_class,
+                },
             },
         ) as fp:
             for chunk in stream_file(datastream):
                 fp.write(chunk)  # multipart upload
-
-        if self.storage_class is not None:
-            blob.update_storage_class(self.storage_class)
 
     def delete(self, package):
         """Delete the package"""
