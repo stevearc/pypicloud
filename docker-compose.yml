@@ -27,6 +27,7 @@ services:
       - postgres
       - mysql
       - ldap
+      - azurite
   redis:
     image: "redis"
     healthcheck:
@@ -64,3 +65,9 @@ services:
     volumes:
       - ./ldap:/container/service/slapd/assets/config/bootstrap/ldif/custom
     command: ['--loglevel', 'debug', '--copy-service']
+  azurite:
+    image: 'mcr.microsoft.com/azure-storage/azurite'
+    hostname: "devstoreaccount1.azurite"
+    ports:
+      - "10000:10000"
+    command: ["azurite-blob", "--blobHost=0.0.0.0", "--blobPort=10000"]

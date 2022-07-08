@@ -35,8 +35,14 @@ EXTRAS = {
     "ldap": ["python-ldap"],
     "dynamo": ["flywheel >= 0.2.0"],
     "redis": ["redis"],
-    "gcs": ["google-cloud-storage>=1.10.0", "smart_open[gcs]@git+https://github.com/ddelange/smart_open@patch-1"],
-    "azure-blob": ["azure-storage-blob>=12.3.1", "smart_open[azure]@git+https://github.com/ddelange/smart_open@patch-1"],
+    "gcs": [
+        "google-cloud-storage>=1.10.0",
+        "smart_open[gcs]@git+https://github.com/ddelange/smart_open@patch-1",
+    ],
+    "azure-blob": [
+        "azure-storage-blob>=12.5.0",
+        "smart_open[azure]@git+https://github.com/ddelange/smart_open@patch-1",
+    ],
 }
 
 EXTRAS["all_plugins"] = sum(EXTRAS.values(), [])

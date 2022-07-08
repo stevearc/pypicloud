@@ -4,7 +4,6 @@ import json
 import os
 import re
 import shutil
-import sys
 import tempfile
 import time
 import unittest
@@ -12,7 +11,7 @@ from io import BytesIO
 from urllib.parse import parse_qs, urlparse
 
 import boto3
-import vcr
+from azure.core.exceptions import ResourceExistsError
 from botocore.exceptions import ClientError
 from mock import ANY, MagicMock, patch
 from moto import mock_s3
@@ -27,6 +26,7 @@ from pypicloud.storage import (
     get_storage_impl,
 )
 from pypicloud.util import EnvironSettings
+
 
 from . import make_package
 
@@ -103,7 +103,7 @@ class TestS3Storage(unittest.TestCase):
     def test_delete(self):
         """delete() should remove package from storage"""
         package = make_package()
-        self.storage.upload(package, BytesIO())
+        self.storage.upload(package, BytesIO(b"test1234"))
         self.storage.delete(package)
         keys = list(self.bucket.objects.all())
         self.assertEqual(len(keys), 0)
@@ -115,7 +115,7 @@ class TestS3Storage(unittest.TestCase):
         data = BytesIO(datastr)
         self.storage.upload(package, data)
         key = list(self.bucket.objects.all())[0].Object()
-        contents = BytesIO()
+        contents = BytesIO(b"test1234")
         key.download_fileobj(contents)
         self.assertEqual(contents.getvalue(), datastr)
         self.assertEqual(key.metadata["name"], package.name)
@@ -129,7 +129,7 @@ class TestS3Storage(unittest.TestCase):
         """If prepend_hash = True, attach a hash to the file path"""
         self.storage.prepend_hash = True
         package = make_package()
-        data = BytesIO()
+        data = BytesIO(b"test1234")
         self.storage.upload(package, data)
         key = list(self.bucket.objects.all())[0]
 
@@ -226,7 +226,7 @@ class TestS3Storage(unittest.TestCase):
         data = BytesIO(datastr)
         self.storage.upload(package, data)
         key = list(self.bucket.objects.all())[0].Object()
-        contents = BytesIO()
+        contents = BytesIO(b"test1234")
         key.download_fileobj(contents)
         self.assertEqual(contents.getvalue(), datastr)
         self.assertEqual(key.metadata["name"], package.name)
@@ -560,7 +560,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
     def test_delete(self):
         """delete() should remove package from storage"""
         package = make_package()
-        self.storage.upload(package, BytesIO())
+        self.storage.upload(package, BytesIO(b"test1234"))
         self.storage.delete(package)
         keys = [blob.name for blob in self.bucket.list_blobs()]
         self.assertEqual(len(keys), 0)
@@ -586,7 +586,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
         """If prepend_hash = True, attach a hash to the file path"""
         self.storage.prepend_hash = True
         package = make_package()
-        data = BytesIO()
+        data = BytesIO(b"test1234")
         self.storage.upload(package, data)
 
         blob = self.bucket.list_blobs()[0]
@@ -621,7 +621,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
         kwargs = GoogleCloudStorage.configure(settings)
         storage = GoogleCloudStorage(MagicMock(), **kwargs)
         package = make_package()
-        storage.upload(package, BytesIO())
+        storage.upload(package, BytesIO(b"test1234"))
 
         blob = self.bucket.list_blobs()[0]
         self.assertEqual(blob._acl, "authenticated-read")
@@ -633,7 +633,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
         kwargs = GoogleCloudStorage.configure(settings)
         storage = GoogleCloudStorage(MagicMock(), **kwargs)
         package = make_package()
-        storage.upload(package, BytesIO())
+        storage.upload(package, BytesIO(b"test1234"))
 
         blob = self.bucket.list_blobs()[0]
         blob.update_storage_class.assert_called_with("COLDLINE")
@@ -649,36 +649,33 @@ class TestGoogleCloudStorage(unittest.TestCase):
 class TestAzureStorage(unittest.TestCase):
     """Tests for storing packages in Azure Blob Storage"""
 
-    @classmethod
-    def setUpClass(cls):
-        super(TestAzureStorage, cls).setUpClass()
-        if sys.version_info.major < 3 or sys.version_info.minor < 6:
-            raise unittest.SkipTest("vcrpy does not work on < 3.6 :(")
-
     def setUp(self):
         super(TestAzureStorage, self).setUp()
         self.settings = {
             "pypi.storage": "azure-blob",
-            "storage.storage_account_name": "terrytest2",
-            "storage.storage_account_key": "Aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa==",
+            "storage.storage_account_name": "devstoreaccount1",
+            "storage.storage_account_key": "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==",  # https://github.com/Azure/Azurite#default-storage-account
+            "storage.storage_account_url": "http://devstoreaccount1.azurite:10000",
             "storage.storage_container_name": "pypi",
         }
         storage_func = get_storage_impl(self.settings)
         self.storage = storage_func(MagicMock())
+        try:
+            self.storage.container_client.create_container()
+        except ResourceExistsError:
+            # https://github.com/Azure/Azure-Functions/issues/2166#issuecomment-1159361162
+            pass
 
     def test_list_and_upload(self):
         """List packages from blob storage"""
-        with vcr.use_cassette(
-            "tests/vcr_cassettes/test_list.yaml", filter_headers=["authorization"]
-        ):
-            package = make_package("mypkg", "1.2", "pkg.tar.gz", summary="test")
-            self.storage.upload(package, BytesIO(b"test1234"))
+        package = make_package("mypkg", "1.2", "pkg.tar.gz", summary="test")
+        self.storage.upload(package, BytesIO(b"test1234"))
 
-            package = list(self.storage.list(Package))[0]
-            self.assertEqual(package.name, "mypkg")
-            self.assertEqual(package.version, "1.2")
-            self.assertEqual(package.filename, "pkg.tar.gz")
-            self.assertEqual(package.summary, "test")
+        package = list(self.storage.list(Package))[0]
+        self.assertEqual(package.name, "mypkg")
+        self.assertEqual(package.version, "1.2")
+        self.assertEqual(package.filename, "pkg.tar.gz")
+        self.assertEqual(package.summary, "test")
 
     def test_get_url(self):
         """Test presigned url generation"""
@@ -686,8 +683,8 @@ class TestAzureStorage(unittest.TestCase):
         response = self.storage.download_response(package)
 
         parts = urlparse(response.location)
-        self.assertEqual(parts.scheme, "https")
-        self.assertEqual(parts.hostname, "terrytest2.blob.core.windows.net")
+        self.assertEqual(parts.scheme, "http")
+        self.assertEqual(parts.hostname, "devstoreaccount1.azurite")
         self.assertEqual(
             parts.path,
             "/"
@@ -700,29 +697,13 @@ class TestAzureStorage(unittest.TestCase):
 
     def test_delete(self):
         """delete() should remove package from storage"""
-        with vcr.use_cassette(
-            "tests/vcr_cassettes/test_delete.yaml", filter_headers=["authorization"]
-        ):
-            package = make_package()
-            self.storage.upload(package, BytesIO())
-            self.storage.delete(package)
-            packages = list(self.storage.list(Package))
-            self.assertEqual(len(packages), 0)
+        package = make_package()
+        self.storage.upload(package, BytesIO(b"test1234"))
+        self.storage.delete(package)
+        packages = list(self.storage.list(Package))
+        self.assertEqual(len(packages), 0)
 
     def test_check_health_success(self):
         """check_health returns True for good connection"""
-        with vcr.use_cassette(
-            "tests/vcr_cassettes/test_check.yaml", filter_headers=["authorization"]
-        ):
-            ok, msg = self.storage.check_health()
-            self.assertTrue(ok)
-
-    def test_check_health_fail(self):
-        """check_health returns False for bad connection"""
-        with vcr.use_cassette(
-            "tests/vcr_cassettes/test_check_fail.yaml",
-            filter_headers=["authorization"],
-            record_mode="none",
-        ):
-            ok, msg = self.storage.check_health()
-            self.assertFalse(ok)
+        ok, msg = self.storage.check_health()
+        self.assertTrue(ok)

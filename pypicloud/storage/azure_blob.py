@@ -32,6 +32,7 @@ class AzureBlobStorage(IStorage):
         redirect_urls=None,
         storage_account_name=None,
         storage_account_key=None,
+        storage_account_url=None,
         storage_container_name=None,
     ):
         super(AzureBlobStorage, self).__init__(request)
@@ -42,12 +43,16 @@ class AzureBlobStorage(IStorage):
         self.storage_account_name = storage_account_name
         self.storage_account_key = storage_account_key
         self.storage_container_name = storage_container_name
-        self.azure_storage_account_url = "https://{}.blob.core.windows.net".format(
-            storage_account_name
+        self.azure_storage_account_url = (
+            storage_account_url
+            or "https://{}.blob.core.windows.net".format(storage_account_name)
         )
         self.blob_service_client = BlobServiceClient(
             account_url=self.azure_storage_account_url,
-            credential=self.storage_account_key,
+            credential={  # https://github.com/Azure/azure-sdk-for-python/issues/24957#issuecomment-1164786540
+                "account_name": self.storage_account_name,
+                "account_key": self.storage_account_key,
+            },
         )
         self.container_client = self.blob_service_client.get_container_client(
             self.storage_container_name
@@ -64,6 +69,17 @@ class AzureBlobStorage(IStorage):
         )
         if kwargs["storage_account_name"] is None:
             raise ValueError("You must specify the 'storage.storage_account_name'")
+
+        kwargs["storage_account_url"] = settings.get(
+            "storage.storage_account_url", os.getenv("AZURE_STORAGE_SERVICE_ENDPOINT")
+        )
+        if (
+            kwargs["storage_account_url"] is not None
+            and kwargs["storage_account_name"] not in kwargs["storage_account_url"]
+        ):
+            raise ValueError(
+                "You must specify the 'storage.storage_account_name' to match the 'storage.storage_account_url'"
+            )
 
         kwargs["storage_account_key"] = settings.get(
             "storage.storage_account_key", os.getenv("AZURE_STORAGE_KEY")
