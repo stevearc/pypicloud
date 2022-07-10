@@ -75,7 +75,7 @@ class ObjectStoreStorage(IStorage):
         kwargs["bucket_prefix"] = settings.get("storage.prefix", "")
         kwargs["prepend_hash"] = asbool(settings.get("storage.prepend_hash", True))
         kwargs["object_acl"] = settings.get("storage.object_acl", None)
-        kwargs["storage_class"] = storage_class = settings.get("storage.storage_class")
+        kwargs["storage_class"] = settings.get("storage.storage_class")
         kwargs["redirect_urls"] = asbool(settings.get("storage.redirect_urls", True))
         kwargs["region_name"] = settings.get("storage.region_name")
         kwargs["public_url"] = asbool(settings.get("storage.public_url"))

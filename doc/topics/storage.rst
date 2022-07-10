@@ -361,5 +361,5 @@ Name of the container you wish to store packages in.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string, optional
 
-Storage data service endpoint. If set, must contain ``storage.storage_account_name``. If
-not present, will look for the ``AZURE_STORAGE_SERVICE_ENDPOINT`` environment variable.
+Storage data service endpoint. If not present, will look for the
+``AZURE_STORAGE_SERVICE_ENDPOINT`` environment variable.

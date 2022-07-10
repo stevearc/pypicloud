@@ -115,7 +115,7 @@ class TestS3Storage(unittest.TestCase):
         data = BytesIO(datastr)
         self.storage.upload(package, data)
         key = list(self.bucket.objects.all())[0].Object()
-        contents = BytesIO(b"test1234")
+        contents = BytesIO()
         key.download_fileobj(contents)
         self.assertEqual(contents.getvalue(), datastr)
         self.assertEqual(key.metadata["name"], package.name)
@@ -384,7 +384,7 @@ class MockGCSSession(object):
 
     def __init__(self, *args, **kwargs):
         """Ignore client._credentials being passed here."""
-        pass
+        pass  # pylint: disable=W0107
 
     def put(self, blob, data, headers, **kwargs):
         """Put a part of multipart upload, assuming blob.create_resumable_upload_session is mocked to return the blob object instead of url."""
@@ -416,6 +416,10 @@ class MockGCSBlob(object):
         self.upload_from_file = MagicMock(wraps=self._upload_from_file)
         self.delete = MagicMock(wraps=self._delete)
         self.update_storage_class = MagicMock(wraps=self._update_storage_class)
+
+    @property
+    def size(self):
+        return len(self._content) if self._content else None
 
     def upload_from_string(self, s):
         """Utility method for uploading this blob; not used by the
@@ -454,6 +458,9 @@ class MockGCSBlob(object):
     def create_resumable_upload_session(self):
         return self
 
+    def download_as_bytes(self, start=0, end=None):
+        return self._content[start:end] if end is not None else self._content[start:]
+
 
 class MockGCSBucket(object):
     """Mock object representing the google.cloud.storage.Bucket class"""
@@ -487,6 +494,10 @@ class MockGCSBucket(object):
     def _blob(self, blob_name):
         """Mock the blob() method on google.cloud.storage.Bucket"""
         return MockGCSBlob(blob_name, self)
+
+    def get_blob(self, blob_name):
+        """Mock the get_blob() method on google.cloud.storage.Bucket"""
+        return self._blobs.get(blob_name)
 
     def _list_blobs(self, prefix=None):
         """Mock the list_blobs() method on google.cloud.storage.Bucket"""
@@ -597,20 +608,24 @@ class TestGoogleCloudStorage(unittest.TestCase):
     def test_delete(self):
         """delete() should remove package from storage"""
         package = make_package()
-        self.storage.upload(package, BytesIO(b"test1234"))
+        datastr = b"test1234"
+        self.storage.upload(package, BytesIO(datastr))
+        self.assertEqual(self.storage.open(package).read(), datastr)
+
         self.storage.delete(package)
         keys = [blob.name for blob in self.bucket.list_blobs()]
         self.assertEqual(len(keys), 0)
 
     def test_upload(self):
-        """Uploading package sets metadata and sends to S3"""
+        """Uploading package sets metadata and sends to gcs"""
         package = make_package(requires_python="3.6")
         datastr = b"foobar"
         data = BytesIO(datastr)
         self.storage.upload(package, data)
 
+        self.assertEqual(self.storage.open(package).read(), datastr)
+
         blob = self.bucket.list_blobs()[0]
-        blob.upload_from_file.assert_called_with(data, predefined_acl=None)
 
         self.assertEqual(blob._content, datastr)
         self.assertEqual(blob.metadata["name"], package.name)
@@ -703,10 +718,29 @@ class TestAzureStorage(unittest.TestCase):
             # https://github.com/Azure/Azure-Functions/issues/2166#issuecomment-1159361162
             pass
 
+    def test_illegal_init_options(self):
+        """Check that ValueError is thrown for illegal combinations of Azure settings"""
+        settings = {"pypi.storage": "azure-blob"}
+        # missing account name
+        cases = {
+            "missing account name": {},
+            "missing account key": {"storage.storage_account_name": "devstoreaccount1"},
+            "missing container name": {
+                "storage.storage_account_name": "devstoreaccount1",
+                "storage.storage_account_key": "key",
+            },
+        }
+        for setting in cases.values():
+            with self.assertRaisesRegex(ValueError, "You must specify"):
+                get_storage_impl({**settings, **setting})(MagicMock())
+
     def test_list_and_upload(self):
         """List packages from blob storage"""
         package = make_package("mypkg", "1.2", "pkg.tar.gz", summary="test")
-        self.storage.upload(package, BytesIO(b"test1234"))
+        datastr = b"test1234"
+        self.storage.upload(package, BytesIO(datastr))
+
+        self.assertEqual(self.storage.open(package).read(), datastr)
 
         package = list(self.storage.list(Package))[0]
         self.assertEqual(package.name, "mypkg")

@@ -64,22 +64,14 @@ class AzureBlobStorage(IStorage):
         kwargs["expire_after"] = int(settings.get("storage.expire_after", 60 * 60 * 24))
         kwargs["path_prefix"] = settings.get("storage.prefix", "")
         kwargs["redirect_urls"] = asbool(settings.get("storage.redirect_urls", True))
+        kwargs["storage_account_url"] = settings.get(
+            "storage.storage_account_url", os.getenv("AZURE_STORAGE_SERVICE_ENDPOINT")
+        )
         kwargs["storage_account_name"] = settings.get(
             "storage.storage_account_name", os.getenv("AZURE_STORAGE_ACCOUNT")
         )
         if kwargs["storage_account_name"] is None:
             raise ValueError("You must specify the 'storage.storage_account_name'")
-
-        kwargs["storage_account_url"] = settings.get(
-            "storage.storage_account_url", os.getenv("AZURE_STORAGE_SERVICE_ENDPOINT")
-        )
-        if (
-            kwargs["storage_account_url"] is not None
-            and kwargs["storage_account_name"] not in kwargs["storage_account_url"]
-        ):
-            raise ValueError(
-                "You must specify the 'storage.storage_account_name' to match the 'storage.storage_account_url'"
-            )
 
         kwargs["storage_account_key"] = settings.get(
             "storage.storage_account_key", os.getenv("AZURE_STORAGE_KEY")
@@ -146,15 +138,16 @@ class AzureBlobStorage(IStorage):
             )
         return package.data["path"]
 
-    def upload(self, package, datastream):
-        path = self.get_path(package)
+    def get_uri(self, package):
+        return f"azure://{self.storage_container_name}/{self.get_path(package)}"
 
+    def upload(self, package, datastream):
         metadata = package.get_metadata()
         metadata["name"] = package.name
         metadata["version"] = package.version
 
         with _open(
-            f"azure://{self.storage_container_name}/{path}",
+            self.get_uri(package),
             "wb",
             compression="disable",
             transport_params={
@@ -181,6 +174,15 @@ class AzureBlobStorage(IStorage):
             return False, str(e)
         return True, ""
 
+    # def open(self, package):
+    #     url = self._generate_url(package)
+    #     return _open(url, "rb", compression="disable")
+
     def open(self, package):
-        url = self._generate_url(package)
-        return _open(url, "rb", compression="disable")
+        """Overwrite open method to re-use client instead of using signed url."""
+        return _open(
+            self.get_uri(package),
+            "rb",
+            compression="disable",
+            transport_params={"client": self.container_client},
+        )

@@ -108,7 +108,7 @@ class S3Storage(ObjectStoreStorage):
 
         bucket = s3conn.Bucket(bucket_name)
         try:
-            head = s3conn.meta.client.head_bucket(Bucket=bucket_name)
+            s3conn.meta.client.head_bucket(Bucket=bucket_name)
         except ClientError as e:
             if e.response["Error"]["Code"] == "404":
                 LOG.info("Creating S3 bucket %s", bucket_name)
@@ -197,6 +197,9 @@ class S3Storage(ObjectStoreStorage):
             "without any dots ('.') in the name."
         )
 
+    def get_uri(self, package):
+        return f"s3://{self.bucket.name}/{self.get_path(package)}"
+
     def upload(self, package, datastream):
         kwargs = {}
         if self.sse is not None:
@@ -212,7 +215,7 @@ class S3Storage(ObjectStoreStorage):
         kwargs["Metadata"] = metadata
 
         with _open(
-            f"s3://{self.bucket.name}/{self.get_path(package)}",
+            self.get_uri(package),
             "wb",
             compression="disable",
             transport_params={
@@ -222,6 +225,15 @@ class S3Storage(ObjectStoreStorage):
         ) as fp:
             for chunk in stream_file(datastream):
                 fp.write(chunk)  # multipart upload
+
+    def open(self, package):
+        """Overwrite open method to re-use client instead of using signed url."""
+        return _open(
+            self.get_uri(package),
+            "rb",
+            compression="disable",
+            transport_params={"client": self.bucket.meta.client},
+        )
 
     def delete(self, package):
         self.bucket.delete_objects(

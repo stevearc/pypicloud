@@ -26,7 +26,7 @@ from distlib.wheel import Wheel
 LOG = logging.getLogger(__name__)
 ALL_EXTENSIONS = Locator.source_extensions + Locator.binary_extensions
 SENTINEL = object()
-CHUNK_SIZE = 1 << 18  # read 256kB chunks
+CHUNK_SIZE = 1 << 20  # read 1MB chunks
 
 
 class PackageParseError(ValueError):

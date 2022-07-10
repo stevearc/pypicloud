@@ -196,15 +196,16 @@ class GoogleCloudStorage(ObjectStoreStorage):
         """Get a GCS blob object for the specified package"""
         return self.bucket.blob(self.get_path(package))
 
+    def get_uri(self, package):
+        return f"gs://{self.bucket.name}/{self.get_path(package)}"
+
     def upload(self, package, datastream):
         """Upload the package to GCS"""
         metadata = {"name": package.name, "version": package.version}
         metadata.update(package.get_metadata())
 
-        blob = self._get_gcs_blob(package)
-
         with _open(
-            f"gs://{self.bucket.name}/{blob.name}",
+            self.get_uri(package),
             "wb",
             compression="disable",
             transport_params={
@@ -218,6 +219,15 @@ class GoogleCloudStorage(ObjectStoreStorage):
         ) as fp:
             for chunk in stream_file(datastream):
                 fp.write(chunk)  # multipart upload
+
+    def open(self, package):
+        """Overwrite open method to re-use client instead of using signed url."""
+        return _open(
+            self.get_uri(package),
+            "rb",
+            compression="disable",
+            transport_params={"client": self.bucket.client},
+        )
 
     def delete(self, package):
         """Delete the package"""
