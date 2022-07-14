@@ -14,7 +14,7 @@ from .locator import FormattedScrapingLocator, SimpleJsonLocator
 from .route import Root
 from .util import EnvironSettings
 
-__version__ = "1.3.6"
+__version__ = "1.3.7"
 LOG = logging.getLogger(__name__)
 
 
