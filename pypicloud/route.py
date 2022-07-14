@@ -120,6 +120,17 @@ class PackagesResource(IStaticResource):
     """Resource for cleaner buildout config"""
 
 
+class AccountResource(object):
+
+    """Resource for login/logout endpoints"""
+
+    __name__ = ""
+    __parent__ = None
+
+    def __init__(self, request):
+        self.request = request
+
+
 class Root(IStaticResource):
 
     """Root context for PyPI Cloud"""
@@ -130,6 +141,7 @@ class Root(IStaticResource):
         "simple": SimpleResource,
         "pypi": SimpleResource,
         "packages": PackagesResource,
+        "acct": AccountResource,
     }
 
     def __init__(self, request):

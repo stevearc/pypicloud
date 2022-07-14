@@ -282,7 +282,7 @@ angular
           password: password,
         };
         $http
-          .post(ROOT + "login", data)
+          .post(ROOT + "acct/login", data)
           .success(function (data, status, headers, config) {
             $scope.loggingIn = false;
             $scope.error = false;
@@ -301,7 +301,7 @@ angular
           password: password,
         };
         $http
-          .put(ROOT + "login", data)
+          .put(ROOT + "acct/login", data)
           .success(function (data, status, headers, config) {
             $scope.error = false;
             $scope.registered = username;
@@ -328,7 +328,7 @@ angular
         };
         $scope.registering = true;
         $http
-          .put(ROOT + "tokenRegister", data)
+          .put(ROOT + "acct/tokenRegister", data)
           .success(function (data, status, headers, config) {
             $scope.error = false;
             $scope.registering = false;
@@ -519,7 +519,7 @@ angular
           password: password,
         };
         $http
-          .put(ROOT + "login", data)
+          .put(ROOT + "acct/login", data)
           .success(function (data, status, headers, config) {
             window.location = ROOT;
           })

@@ -21,14 +21,14 @@ class TestLoginPage(MockServerTest):
             DummyRequest, "authenticated_userid", new_callable=PropertyMock
         ) as auid:
             auid.return_value = "dsa"
-            self.request.url = "/login"
+            self.request.url = "/acct/login"
             ret = login.get_login_page(self.request)
             self.assertEqual(ret.status_code, 302)
             self.assertEqual(ret.location, "/")
 
     def test_anon_fetch_login(self):
-        """Anonymous user fetching /login renders login page"""
-        self.request.url = "/login"
+        """Anonymous user fetching /acct/login renders login page"""
+        self.request.url = "/acct/login"
         ret = login.get_login_page(self.request)
         self.assertEqual(ret, {})
 

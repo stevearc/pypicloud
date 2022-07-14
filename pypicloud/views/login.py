@@ -4,11 +4,11 @@ from pyramid.security import NO_PERMISSION_REQUIRED, forget, remember
 from pyramid.view import view_config
 from pyramid_duh import argify
 
-from pypicloud.route import Root
+from pypicloud.route import AccountResource
 
 
 @view_config(
-    context=Root,
+    context=AccountResource,
     name="login",
     request_method="GET",
     permission=NO_PERMISSION_REQUIRED,
@@ -18,7 +18,7 @@ from pypicloud.route import Root
 def get_login_page(request):
     """Catch login and redirect to login wall"""
     if request.authenticated_userid is not None:
-        # User is logged in and fetching /login, so redirect to /
+        # User is logged in and fetching /acct/login, so redirect to /
         return HTTPFound(location=request.app_url())
     return {}
 
@@ -32,7 +32,7 @@ def do_forbidden(request):
 
 
 @view_config(
-    context=Root,
+    context=AccountResource,
     name="login",
     request_method="POST",
     subpath=(),
@@ -82,7 +82,7 @@ def handle_register_request(request, username, password):
 
 
 @view_config(
-    context=Root,
+    context=AccountResource,
     name="tokenRegister",
     request_method="PUT",
     subpath=(),
@@ -104,7 +104,7 @@ def do_token_register(request, token, password):
 
 
 @view_config(
-    context=Root,
+    context=AccountResource,
     name="login",
     request_method="PUT",
     subpath=(),
@@ -117,7 +117,7 @@ def register(request, username, password):
     return handle_register_request(request, username, password)
 
 
-@view_config(context=Root, name="logout", subpath=())
+@view_config(context=AccountResource, name="logout", subpath=())
 def logout(request):
     """Delete the user session"""
     request.response.headers.extend(forget(request))

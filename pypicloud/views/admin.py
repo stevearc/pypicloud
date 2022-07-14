@@ -176,7 +176,7 @@ class AdminEndpoints(object):
         """Create a signup token for a user"""
         username = self.request.named_subpaths["username"]
         token = self.request.access.get_signup_token(username)
-        token_url = self.request.app_url("login") + "#/?token=" + token
+        token_url = self.request.app_url("acct", "login") + "#/?token=" + token
         return {"token": token, "token_url": token_url}
 
     @view_config(name="acl.json.gz", request_method="GET")
