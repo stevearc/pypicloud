@@ -3,7 +3,7 @@ Changelog
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
 1.3.7 - 2022/7/13
-----------------
+-----------------
 * Fix login issues in the web interface (:issue:`307`)
 
 1.3.6 - 2022/7/7
