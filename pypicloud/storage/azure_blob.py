@@ -174,10 +174,6 @@ class AzureBlobStorage(IStorage):
             return False, str(e)
         return True, ""
 
-    # def open(self, package):
-    #     url = self._generate_url(package)
-    #     return _open(url, "rb", compression="disable")
-
     def open(self, package):
         """Overwrite open method to re-use client instead of using signed url."""
         return _open(

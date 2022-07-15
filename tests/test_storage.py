@@ -11,6 +11,7 @@ from io import BytesIO
 from urllib.parse import parse_qs, urlparse
 
 import boto3
+import requests
 from azure.core.exceptions import ResourceExistsError
 from botocore.exceptions import ClientError
 from mock import ANY, MagicMock, patch
@@ -710,6 +711,10 @@ class TestAzureStorage(unittest.TestCase):
             "storage.storage_account_url": "http://devstoreaccount1.azurite:10000",
             "storage.storage_container_name": "pypi",
         }
+        try:
+            requests.get(self.settings["storage.storage_account_url"])
+        except requests.ConnectionError as exc:
+            raise unittest.SkipTest("Couldn't connect to azurite") from exc
         storage_func = get_storage_impl(self.settings)
         self.storage = storage_func(MagicMock())
         try:
