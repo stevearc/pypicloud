@@ -9,6 +9,7 @@ services:
     environment:
       HOME: /pypicloud
       REDIS_HOST: redis
+      REDIS_CLUSTER_HOST: redis-cluster-node-2
       POSTGRES_HOST: postgres
       POSTGRES_DB: postgres
       MYSQL_HOST: mysql
@@ -27,6 +28,7 @@ services:
       - postgres
       - mysql
       - ldap
+      - redis-cluster-node-2
   redis:
     image: "redis"
     healthcheck:
@@ -35,6 +37,26 @@ services:
       timeout: 5s
       retries: 2
       start_period: 10s
+  redis-cluster-node-0:
+    image: docker.io/bitnami/redis-cluster:7.0
+    environment:
+      - 'ALLOW_EMPTY_PASSWORD=yes'
+      - 'REDIS_NODES=redis-cluster-node-0 redis-cluster-node-1 redis-cluster-node-2'
+  redis-cluster-node-1:
+    image: docker.io/bitnami/redis-cluster:7.0
+    environment:
+      - 'ALLOW_EMPTY_PASSWORD=yes'
+      - 'REDIS_NODES=redis-cluster-node-0 redis-cluster-node-1 redis-cluster-node-2'
+  redis-cluster-node-2:
+    image: docker.io/bitnami/redis-cluster:7.0
+    depends_on:
+      - redis-cluster-node-0
+      - redis-cluster-node-1
+    environment:
+      - 'ALLOW_EMPTY_PASSWORD=yes'
+      - 'REDIS_NODES=redis-cluster-node-0 redis-cluster-node-1 redis-cluster-node-2'
+      - 'REDIS_CLUSTER_REPLICAS=0'
+      - 'REDIS_CLUSTER_CREATOR=yes'
   postgres:
     image: 'postgres'
     environment:
