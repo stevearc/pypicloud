@@ -37,14 +37,17 @@ class RedisCache(ICache):
     def configure(cls, settings):
         kwargs = super(RedisCache, cls).configure(settings)
         try:
-            from redis import StrictRedis
+            from redis import RedisCluster, StrictRedis
         except ImportError as e:  # pragma: no cover
             raise ImportError(
                 "You must 'pip install redis' before using " "redis as the database"
             ) from e
         kwargs["graceful_reload"] = asbool(settings.get("db.graceful_reload", False))
         db_url = settings.get("db.url")
-        kwargs["db"] = StrictRedis.from_url(db_url, decode_responses=True)
+        redis_class = (
+            RedisCluster if asbool(settings.get("db.clustered", False)) else StrictRedis
+        )
+        kwargs["db"] = redis_class.from_url(db_url, decode_responses=True)
         return kwargs
 
     def redis_key(self, key):
@@ -296,7 +299,7 @@ class RedisCache(ICache):
         from redis import RedisError
 
         try:
-            self.db.echo("ok")
+            self.db.ping()
         except RedisError as e:
             return (False, str(e))
         else:
