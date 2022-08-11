@@ -68,6 +68,12 @@ When reloading the cache from storage, keep the cache in a usable state while
 adding and removing the necessary packages. Note that this may take longer
 because multiple passes will be made to ensure correctness. (default ``False``)
 
+``db.clustered``
+~~~~~~~~~~~~~~~~
+**Argument:** bool, optional
+
+Whether to use Redis in clustered mode. Defaults to False.
+
 DynamoDB
 --------
 Set ``pypi.db = dynamo`` OR ``pypi.db = pypicloud.cache.dynamo.DynamoCache``
