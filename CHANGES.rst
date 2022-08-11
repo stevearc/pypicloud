@@ -2,6 +2,10 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.3.8 - 2022/8/11
+-----------------
+* Add Redis Cluster support (:pr:`309`)
+
 1.3.7 - 2022/7/13
 -----------------
 * Fix login issues in the web interface (:issue:`307`)
