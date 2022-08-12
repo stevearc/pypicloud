@@ -42,6 +42,7 @@ def upload(
                 name=name,
                 version=version,
                 summary=summary,
+                uploader=request.authenticated_userid,
                 requires_python=requires_python or None,
             )
         except ValueError as e:

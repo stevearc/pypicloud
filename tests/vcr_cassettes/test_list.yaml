@@ -28,6 +28,8 @@ interactions:
       - test
       x-ms-meta-version:
       - '1.2'
+      x-ms-meta-uploader:
+      - 'azure_user'
       x-ms-version:
       - '2019-07-07'
     method: PUT
@@ -167,6 +169,8 @@ interactions:
       - test
       x-ms-meta-version:
       - '1.2'
+      x-ms-meta-uploader:
+      - 'azure_user'
       x-ms-request-id:
       - db2c5cca-601e-004a-1ee1-27b949000000
       x-ms-server-encrypted:

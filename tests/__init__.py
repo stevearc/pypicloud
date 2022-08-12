@@ -21,13 +21,14 @@ def make_package(
     filename=None,
     last_modified=None,
     summary="summary",
+    uploader="test_uploader",
     factory=Package,
     **kwargs
 ):
     """Convenience method for constructing a package"""
     filename = filename or "%s-%s.tar.gz" % (name, version)
     return factory(
-        name, version, filename, last_modified or utcnow(), summary, **kwargs
+        name, version, filename, last_modified or utcnow(), summary, uploader, **kwargs
     )
 
 

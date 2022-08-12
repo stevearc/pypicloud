@@ -109,6 +109,7 @@ class SQLPackage(Package, Base):
     last_modified = Column(TZAwareDateTime(), index=True, nullable=False)
     # TEXT, as pypi does the same, and using String(N) would mismatch with pypi
     summary = Column(Text(), nullable=True)
+    package = Column(Text(), nullable=True)
     data = Column(JSONEncodedDict(), nullable=False)
 
 

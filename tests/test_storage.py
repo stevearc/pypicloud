@@ -60,10 +60,21 @@ class TestS3Storage(unittest.TestCase):
 
     def test_list(self):
         """Can construct a package from a S3 Key"""
-        name, version, filename, summary = "mypkg", "1.2", "pkg.tar.gz", "text"
+        name, version, filename, summary, uploader = (
+            "mypkg",
+            "1.2",
+            "pkg.tar.gz",
+            "text",
+            "mypkg_uploader",
+        )
         key = self.bucket.Object(name + "/" + filename)
         key.put(
-            Metadata={"name": name, "version": version, "summary": summary},
+            Metadata={
+                "name": name,
+                "version": version,
+                "summary": summary,
+                "uploader": uploader,
+            },
             Body="foobar",
         )
         package = list(self.storage.list(Package))[0]
@@ -71,6 +82,7 @@ class TestS3Storage(unittest.TestCase):
         self.assertEqual(package.version, version)
         self.assertEqual(package.filename, filename)
         self.assertEqual(package.summary, summary)
+        self.assertEqual(package.uploader, uploader)
 
     def test_list_no_metadata(self):
         """Test that list works on old keys with no metadata"""
@@ -121,6 +133,7 @@ class TestS3Storage(unittest.TestCase):
         self.assertEqual(key.metadata["name"], package.name)
         self.assertEqual(key.metadata["version"], package.version)
         self.assertEqual(key.metadata["summary"], package.summary)
+        self.assertEqual(key.metadata["uploader"], package.uploader)
         self.assertDictContainsSubset(
             package.get_metadata(), Package.read_metadata(key.metadata)
         )
@@ -332,13 +345,16 @@ class TestFileStorage(unittest.TestCase):
             ofile.write("foobar")
 
         with open(meta_file, "w", encoding="utf-8") as mfile:
-            mfile.write(json.dumps({"summary": package.summary}))
+            mfile.write(
+                json.dumps({"summary": package.summary, "uploader": package.uploader})
+            )
 
         pkg = list(self.storage.list(Package))[0]
         self.assertEqual(pkg.name, package.name)
         self.assertEqual(pkg.version, package.version)
         self.assertEqual(pkg.filename, package.filename)
         self.assertEqual(pkg.summary, package.summary)
+        self.assertEqual(pkg.uploader, package.uploader)
 
     def test_delete(self):
         """delete() should remove package from storage"""
@@ -527,10 +543,21 @@ class TestGoogleCloudStorage(unittest.TestCase):
 
     def test_list(self):
         """Can construct a package from a GoogleCloudStorage Blob"""
-        name, version, filename, summary = "mypkg", "1.2", "pkg.tar.gz", "text"
+        name, version, filename, summary, uploader = (
+            "mypkg",
+            "1.2",
+            "pkg.tar.gz",
+            "text",
+            "gcs_user",
+        )
 
         blob = self.bucket.blob(name + "/" + filename)
-        blob.metadata = {"name": name, "version": version, "summary": summary}
+        blob.metadata = {
+            "name": name,
+            "version": version,
+            "summary": summary,
+            "uploader": uploader,
+        }
         blob.upload_from_string("foobar")
 
         package = list(self.storage.list(Package))[0]
@@ -538,6 +565,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
         self.assertEqual(package.version, version)
         self.assertEqual(package.filename, filename)
         self.assertEqual(package.summary, summary)
+        self.assertEqual(package.uploader, uploader)
 
         self.gcs.bucket.assert_called_with("mybucket")
         self.bucket.list_blobs.assert_called_with(prefix=None)
@@ -566,7 +594,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
 
     def test_upload(self):
         """Uploading package sets metadata and sends to S3"""
-        package = make_package(requires_python="3.6")
+        package = make_package(requires_python="3.6", uploader="gcs_user")
         datastr = b"foobar"
         data = BytesIO(datastr)
         self.storage.upload(package, data)
@@ -577,6 +605,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
         self.assertEqual(blob._content, datastr)
         self.assertEqual(blob.metadata["name"], package.name)
         self.assertEqual(blob.metadata["version"], package.version)
+        self.assertEqual(blob.metadata["uploader"], package.uploader)
         self.assertDictContainsSubset(package.get_metadata(), blob.metadata)
 
         self.assertEqual(self.bucket.create.call_count, 0)
@@ -670,14 +699,17 @@ class TestAzureStorage(unittest.TestCase):
         with vcr.use_cassette(
             "tests/vcr_cassettes/test_list.yaml", filter_headers=["authorization"]
         ):
-            package = make_package("mypkg", "1.2", "pkg.tar.gz", summary="test")
+            package = make_package(
+                "mypkg", "1.2", "pkg.tar.gz", summary="test", uploader="azure_user"
+            )
             self.storage.upload(package, BytesIO(b"test1234"))
 
-            package = list(self.storage.list(Package))[0]
-            self.assertEqual(package.name, "mypkg")
-            self.assertEqual(package.version, "1.2")
-            self.assertEqual(package.filename, "pkg.tar.gz")
-            self.assertEqual(package.summary, "test")
+            pkg = list(self.storage.list(Package))[0]
+            self.assertEqual(pkg.name, package.name)
+            self.assertEqual(pkg.version, package.version)
+            self.assertEqual(pkg.filename, package.filename)
+            self.assertEqual(pkg.summary, package.summary)
+            self.assertEqual(pkg.uploader, package.uploader)
 
     def test_get_url(self):
         """Test presigned url generation"""

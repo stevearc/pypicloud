@@ -35,6 +35,7 @@ class DynamoPackage(Package, Model):
     version = Field()
     last_modified = Field(data_type=datetime)
     summary = Field()
+    uploader = Field()
     data = Field(data_type=dict)
 
     def __init__(self, *args, **kwargs):

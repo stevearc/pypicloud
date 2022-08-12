@@ -153,6 +153,7 @@ def upload_package(context, request, content, summary=None, requires_python=None
             name=context.name,
             summary=summary,
             requires_python=requires_python,
+            uploader=request.authenticated_userid,
         )
     except ValueError as e:  # pragma: no cover
         return HTTPBadRequest(*e.args)

@@ -7,7 +7,7 @@ import pkg_resources
 from .dateutil import UTC, utcnow
 from .util import normalize_name
 
-METADATA_FIELDS = ["requires_python", "summary", "hash_sha256", "hash_md5"]
+METADATA_FIELDS = ["requires_python", "summary", "hash_sha256", "hash_md5", "uploader"]
 
 
 @total_ordering
@@ -28,13 +28,22 @@ class Package(object):
         The datetime when this package was uploaded (default now)
     summary : str, optional
         The summary of the package
+    uploader : str, optional
+        The uploader of the package
     **kwargs :
         Metadata about the package
 
     """
 
     def __init__(
-        self, name, version, filename, last_modified=None, summary=None, **kwargs
+        self,
+        name,
+        version,
+        filename,
+        last_modified=None,
+        summary=None,
+        uploader="",
+        **kwargs
     ):
         self.name = normalize_name(name)
         self.version = version
@@ -48,6 +57,8 @@ class Package(object):
             self.last_modified = self.last_modified.replace(tzinfo=UTC)
         # Disallow empty string
         self.summary = summary or None
+        # Disallow None, as this field is saved in the db and cache
+        self.uploader = uploader or ""
         # Filter out None or empty string
         self.data = {k: v for k, v in kwargs.items() if v}
 
@@ -73,13 +84,10 @@ class Package(object):
         """Read metadata from a blob"""
         metadata = {}
         for field in METADATA_FIELDS:
-            value = blob.get(field)
+            value = blob.get(field) or blob.get(field.replace("_", "-"))
             if value:
                 metadata[field] = value
-                continue
-            value = blob.get(field.replace("_", "-"))
-            if value:
-                metadata[field] = value
+
         return metadata
 
     def get_metadata(self):
@@ -87,6 +95,8 @@ class Package(object):
         metadata = Package.read_metadata(self.data)
         if self.summary:
             metadata["summary"] = self.summary
+        if self.uploader:
+            metadata["uploader"] = self.uploader
         return metadata
 
     def __hash__(self):
@@ -116,6 +126,7 @@ class Package(object):
             "version": self.version,
             "url": self.get_url(request),
             "summary": self.summary,
+            "uploader": self.uploader,
         }
 
     def search_summary(self):

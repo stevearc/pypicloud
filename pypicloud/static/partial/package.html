@@ -43,6 +43,7 @@
             <th>Package</th>
             <th>Version</th>
             <th>Uploaded</th>
+            <th>Uploader</th>
           </tr>
         </thead>
         <tbody>
@@ -60,6 +61,9 @@
                 <i class="fa fa-refresh fa-spin" ng-show="package.deleting"></i>
                 Delete
               </button>
+            </td>
+            <td>
+              {{ package.uploader !== "" ? package.uploader : "&lt;unknown&gt;" }}
             </td>
           </tr>
         </tbody>

@@ -46,3 +46,6 @@ _local.db
 .idea
 .mypy_cache
 .direnv/
+.tox
+.local
+.pylint.d

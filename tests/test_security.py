@@ -137,6 +137,6 @@ class TestEndpointSecurity(unittest.TestCase):
     def test_api_rebuild_admin(self):
         """/api/rebuild requires admin"""
         response = self.app.get(
-            "/api/rebuild/", expect_errors=True, headers=_auth("user2", "user2")
+            "/admin/rebuild/", expect_errors=True, headers=_auth("user2", "user2")
         )
-        self.assertEqual(response.status_int, 404)
+        self.assertEqual(response.status_int, 403)

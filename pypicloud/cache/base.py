@@ -98,6 +98,7 @@ class ICache(object):
         name: Optional[str] = None,
         version: Optional[str] = None,
         summary: Optional[str] = None,
+        uploader: Optional[str] = None,
         requires_python: Optional[str] = None,
     ) -> Package:
         """
@@ -117,6 +118,8 @@ class ICache(object):
             from filename)
         summary : str, optional
             The summary of the package
+        uploader : str, optional
+            The uploader of the package
         requires_python : str, optional
             The Python version requirement
 
@@ -145,7 +148,9 @@ class ICache(object):
             metadata["hash_md5"] = hashlib.md5(file_data).hexdigest()
             data = BytesIO(file_data)
 
-        new_pkg = self.new_package(name, version, filename, summary=summary, **metadata)
+        new_pkg = self.new_package(
+            name, version, filename, summary=summary, uploader=uploader, **metadata
+        )
         self.storage.upload(new_pkg, data)
         self.save(new_pkg)
         return new_pkg

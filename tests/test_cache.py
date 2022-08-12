@@ -283,6 +283,7 @@ class TestSQLiteCache(unittest.TestCase):
                 "1.3.4",
                 "my/other/path",
                 factory=SQLPackage,
+                uploader="test",
                 hash_md5="md5",
                 hash_sha256="sha256",
             ),
@@ -496,6 +497,7 @@ class TestRedisCache(unittest.TestCase):
             "filename": pkg.filename,
             "last_modified": lm_str,
             "summary": pkg.summary,
+            "uploader": pkg.uploader,
         }
         pkg_data.update(pkg.data)
 
