@@ -140,3 +140,12 @@ class TestEndpointSecurity(unittest.TestCase):
             "/admin/rebuild/", expect_errors=True, headers=_auth("user2", "user2")
         )
         self.assertEqual(response.status_int, 403)
+
+    def test_api_unknown_url(self):
+        """unknown url returns 404"""
+        response = self.app.get(
+            "/api/non_existant_url/",
+            expect_errors=True,
+            headers=_auth("user2", "user2"),
+        )
+        self.assertEqual(response.status_int, 404)
