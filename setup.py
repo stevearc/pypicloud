@@ -13,7 +13,7 @@ CHANGES = re.sub(r":ref:`(.*?) <.*>`", r"\1", CHANGES)
 
 REQUIREMENTS_TEST = open(os.path.join(HERE, "requirements_test.txt")).readlines()
 REQUIREMENTS = [
-    "smart_open[s3,http]@git+https://github.com/ddelange/smart_open@patch-1",
+    "smart_open[s3,http]",
     "boto3>=1.7.0",
     # beaker needs this
     "cryptography",
@@ -37,11 +37,11 @@ EXTRAS = {
     "redis": ["redis"],
     "gcs": [
         "google-cloud-storage>=1.10.0",
-        "smart_open[gcs]@git+https://github.com/ddelange/smart_open@patch-1",
+        "smart_open[gcs]",
     ],
     "azure-blob": [
         "azure-storage-blob>=12.5.0",
-        "smart_open[azure]@git+https://github.com/ddelange/smart_open@patch-1",
+        "smart_open[azure]>=6.1.0",  # ref #304
     ],
 }
 
