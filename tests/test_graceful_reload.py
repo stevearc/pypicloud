@@ -1,4 +1,5 @@
 """ Tests for gracefully reloading the caches """
+import os
 import unittest
 from datetime import timedelta
 
@@ -179,12 +180,26 @@ class TestRedisCache(unittest.TestCase):
     """Tests for the RedisCache"""
 
     @classmethod
+    def extra_settings(cls):
+        return dict()
+
+    @classmethod
+    def get_redis_url(cls):
+        redis_host = os.environ.get("REDIS_HOST", "localhost")
+        redis_port = os.environ.get("REDIS_PORT", "6379")
+
+        return f"redis://{redis_host}:{redis_port}"
+
+    @classmethod
     def setUpClass(cls):
         super(TestRedisCache, cls).setUpClass()
+        redis_url = cls.get_redis_url()
+
         settings = {
             "pypi.storage": "tests.DummyStorage",
-            "db.url": "redis://localhost",
+            "db.url": redis_url,
             "db.graceful_reload": True,
+            **cls.extra_settings(),
         }
         cls.kwargs = RedisCache.configure(settings)
         cls.redis = cls.kwargs["db"]
@@ -192,7 +207,7 @@ class TestRedisCache(unittest.TestCase):
         try:
             cls.redis.flushdb()
         except redis.exceptions.ConnectionError:
-            msg = "Redis not found on port 6379"
+            msg = f"Redis not found on {redis_url}"
             setattr(cls, "setUp", lambda cls: unittest.TestCase.skipTest(cls, msg))
 
     @classmethod
@@ -309,8 +324,23 @@ class TestRedisCache(unittest.TestCase):
         self.assertEqual(len(summaries), 1)
 
 
-class TestSQLiteCache(unittest.TestCase):
+class TestClusteredRedisCache(TestRedisCache):
 
+    """Tests for the clustered redis cache"""
+
+    @classmethod
+    def extra_settings(cls):
+        return {"db.clustered": "true"}
+
+    @classmethod
+    def get_redis_url(cls):
+        redis_host = os.environ.get("REDIS_CLUSTER_HOST", "localhost")
+        redis_port = os.environ.get("REDIS_PORT", "6379")
+
+        return f"redis://{redis_host}:{redis_port}"
+
+
+class TestSQLiteCache(unittest.TestCase):
     """Tests for the SQLCache"""
 
     @classmethod

@@ -120,6 +120,17 @@ class PackagesResource(IStaticResource):
     """Resource for cleaner buildout config"""
 
 
+class AccountResource(object):
+
+    """Resource for login/logout endpoints"""
+
+    __name__ = ""
+    __parent__ = None
+
+    def __init__(self, request):
+        self.request = request
+
+
 class Root(IStaticResource):
 
     """Root context for PyPI Cloud"""
@@ -130,8 +141,17 @@ class Root(IStaticResource):
         "simple": SimpleResource,
         "pypi": SimpleResource,
         "packages": PackagesResource,
+        "acct": AccountResource,
     }
 
     def __init__(self, request):
         super(Root, self).__init__(request)
         self.__acl__ = request.access.ROOT_ACL
+
+    def __getitem__(self, name):
+        try:
+            return super().__getitem__(name)
+        except KeyError:
+            # Allow fetching packages from the root (e.g. https://pypiserver.com/mypackage)
+            # This is for feature parity with pypiserver (see https://github.com/stevearc/pypicloud/issues/305)
+            return SimplePackageResource(self.request, name)

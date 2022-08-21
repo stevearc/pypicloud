@@ -1,12 +1,12 @@
 <div ng-controller="IndexCtrl">
-
   <!-- Helper text to tell people how to use this server with pip -->
-  <div class="row hidden-xs hidden-sm" ng-show="!$cookies.seenPipHelp && packages && packages.length > 0">
+  <div
+    class="row hidden-xs hidden-sm"
+    ng-show="!$cookies.seenPipHelp && packages && packages.length > 0"
+  >
     <div class="col-xs-12 col-md-offset-2 col-md-8">
       <alert type="'success'" close="closePipHelp()">
-        <p>
-          You can install packages using:
-        </p>
+        <p>You can install packages using:</p>
         <div class="text-center">
           <code>
             pip install -i {{ DOWNLOAD_URL }}simple/ PACKAGE1 [PACKAGE2 ...]
@@ -16,23 +16,43 @@
     </div>
   </div>
 
-  <div class="row" ng-show="USER === null && packages !== null && packages.length === 0">
+  <div
+    class="row"
+    ng-show="USER === null && packages !== null && packages.length === 0"
+  >
     <div class="col-xs-12 col-md-offset-3 col-md-6">
-      <h4>Hmmmm...Looks pretty empty in here. Try <a ng-href="{{ ROOT }}login">logging in?</a></h4>
+      <h4>
+        Hmmmm...Looks pretty empty in here. Try
+        <a ng-href="{{ ROOT }}acct/login">logging in?</a>
+      </h4>
     </div>
   </div>
 
   <!-- Search header and toggle buttons -->
-  <div class="row" style="margin-top: 10px; margin-bottom: 10px;" ng-show="packages !== null">
+  <div
+    class="row"
+    style="margin-top: 10px; margin-bottom: 10px"
+    ng-show="packages !== null"
+  >
     <div class="col-xs-12 col-md-offset-3 col-md-4">
       <div class="input-group">
         <span class="input-group-addon"><i class="fa fa-search"></i></span>
-        <input class="form-control" ng-model="searchText" ng-change="currentPage = 1" type="text" placeholder="Search" autofocus>
+        <input
+          class="form-control"
+          ng-model="searchText"
+          ng-change="currentPage = 1"
+          type="text"
+          placeholder="Search"
+          autofocus
+        />
       </div>
     </div>
     <div class="col-xs-12 col-md-2 hidden-xs hidden-sm">
       <div ng-show="showUpload">
-        <button class="btn btn-sm btn-default pull-right" ng-click="toggleUpload()">
+        <button
+          class="btn btn-sm btn-default pull-right"
+          ng-click="toggleUpload()"
+        >
           {{ uploadCollapsed ? 'Upload' : 'Cancel' }}
           <i class="fa fa-caret-up" ng-show="!uploadCollapsed"></i>
         </button>
@@ -61,15 +81,27 @@
           </tr>
         </thead>
         <tbody>
-          <tr ng-repeat="package in filtered = (packages | filter:searchText) | orderBy:'name' | startFrom:(currentPage - 1)*pageSize | limitTo:pageSize" ng-click="showPackage(package.name)">
+          <tr
+            ng-repeat="package in filtered = (packages | filter:searchText) | orderBy:'name' | startFrom:(currentPage - 1)*pageSize | limitTo:pageSize"
+            ng-click="showPackage(package.name)"
+          >
             <td>{{ package.name }}</td>
             <td>{{ package.summary }}</td>
-            <td>{{ package.last_modified * 1000 | date:'yyyy-MM-dd HH:mm' }}</td>
+            <td>
+              {{ package.last_modified * 1000 | date:'yyyy-MM-dd HH:mm' }}
+            </td>
           </tr>
         </tbody>
       </table>
       <div class="text-center" ng-show="filtered.length > pageSize">
-        <pagination direction-links="true" total-items="filtered.length" rotate="false" max-size="maxSize" items-per-page="pageSize" page="currentPage"></pagination>
+        <pagination
+          direction-links="true"
+          total-items="filtered.length"
+          rotate="false"
+          max-size="maxSize"
+          items-per-page="pageSize"
+          page="currentPage"
+        ></pagination>
       </div>
     </div>
   </div>

@@ -446,12 +446,26 @@ class TestRedisCache(unittest.TestCase):
     """Tests for the redis cache"""
 
     @classmethod
-    def setUpClass(cls):
-        super(TestRedisCache, cls).setUpClass()
+    def extra_settings(cls):
+        return dict()
+
+    @classmethod
+    def get_redis_url(cls):
         redis_host = os.environ.get("REDIS_HOST", "localhost")
         redis_port = os.environ.get("REDIS_PORT", "6379")
-        redis_url = f"redis://{redis_host}:{redis_port}"
-        settings = {"pypi.storage": "tests.DummyStorage", "db.url": redis_url}
+
+        return f"redis://{redis_host}:{redis_port}"
+
+    @classmethod
+    def setUpClass(cls):
+        super(TestRedisCache, cls).setUpClass()
+        redis_url = cls.get_redis_url()
+
+        settings = {
+            "pypi.storage": "tests.DummyStorage",
+            "db.url": redis_url,
+            **cls.extra_settings(),
+        }
         cls.kwargs = RedisCache.configure(settings)
         cls.redis = cls.kwargs["db"]
         try:
@@ -709,7 +723,7 @@ class TestRedisCache(unittest.TestCase):
             """Throw an exception"""
             raise redis.RedisError("DB exception")
 
-        dbmock.echo.side_effect = throw
+        dbmock.ping.side_effect = throw
         ok, msg = self.db.check_health()
         self.assertFalse(ok)
 
@@ -726,8 +740,23 @@ class TestRedisCache(unittest.TestCase):
         self.assert_in_redis(pkg)
 
 
-class TestDynamoCache(unittest.TestCase):
+class TestClusteredRedisCache(TestRedisCache):
 
+    """Tests for the clustered redis cache"""
+
+    @classmethod
+    def extra_settings(cls):
+        return {"db.clustered": "true"}
+
+    @classmethod
+    def get_redis_url(cls):
+        redis_host = os.environ.get("REDIS_CLUSTER_HOST", "localhost")
+        redis_port = os.environ.get("REDIS_PORT", "6379")
+
+        return f"redis://{redis_host}:{redis_port}"
+
+
+class TestDynamoCache(unittest.TestCase):
     """Tests for the DynamoCache"""
 
     dynamo = None
