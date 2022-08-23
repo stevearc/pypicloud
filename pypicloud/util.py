@@ -5,7 +5,9 @@ import re
 import time
 import unicodedata
 from typing import (
+    IO,
     Any,
+    AnyStr,
     Callable,
     Dict,
     ItemsView,
@@ -24,6 +26,7 @@ from distlib.wheel import Wheel
 LOG = logging.getLogger(__name__)
 ALL_EXTENSIONS = Locator.source_extensions + Locator.binary_extensions
 SENTINEL = object()
+CHUNK_SIZE = 1 << 20  # read 1MB chunks
 
 
 class PackageParseError(ValueError):
@@ -113,6 +116,17 @@ def create_matcher(queries: List[str], query_type: str) -> Callable[[str], bool]
         return lambda x: any((q in x.lower() for q in queries))
     else:
         return lambda x: all((q in x.lower() for q in queries))
+
+
+def stream_file(fp: IO[AnyStr], chunk_size: int = CHUNK_SIZE) -> Iterator[AnyStr]:
+    """
+    Read an (opened) file in chunks of chunk_size bytes
+    """
+    while True:
+        chunk = fp.read(chunk_size)
+        if not chunk:
+            break
+        yield chunk
 
 
 class EnvironSettings:

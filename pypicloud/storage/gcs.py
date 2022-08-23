@@ -1,5 +1,4 @@
 """ Store packages in GCS """
-import io
 import json
 import logging
 import os
@@ -10,8 +9,10 @@ from google.auth import compute_engine
 from google.auth.transport import requests
 from google.cloud import storage
 from pyramid.settings import asbool
+from smart_open import open as _open
 
 from pypicloud.models import Package
+from pypicloud.util import stream_file
 
 from .object_store import ObjectStoreStorage
 
@@ -32,7 +33,7 @@ class GoogleCloudStorage(ObjectStoreStorage):
         project_id=None,
         use_iam_signer=False,
         iam_signer_service_account_email=None,
-        **kwargs
+        **kwargs,
     ):
         super(GoogleCloudStorage, self).__init__(request=request, **kwargs)
 
@@ -81,7 +82,7 @@ class GoogleCloudStorage(ObjectStoreStorage):
             "storage.iam_signer_service_account_email"
         )
         if iam_signer_service_account_email is None and service_account_json_filename:
-            with io.open(service_account_json_filename, "r", encoding="utf-8") as ifile:
+            with open(service_account_json_filename, "r", encoding="utf-8") as ifile:
                 credentials = json.load(ifile)
             iam_signer_service_account_email = credentials.get("client_email")
 
@@ -195,19 +196,38 @@ class GoogleCloudStorage(ObjectStoreStorage):
         """Get a GCS blob object for the specified package"""
         return self.bucket.blob(self.get_path(package))
 
+    def get_uri(self, package):
+        return f"gs://{self.bucket.name}/{self.get_path(package)}"
+
     def upload(self, package, datastream):
         """Upload the package to GCS"""
         metadata = {"name": package.name, "version": package.version}
         metadata.update(package.get_metadata())
 
-        blob = self._get_gcs_blob(package)
+        with _open(
+            self.get_uri(package),
+            "wb",
+            compression="disable",
+            transport_params={
+                "client": self.bucket.client,
+                "blob_properties": {
+                    "metadata": metadata,
+                    "acl": self.object_acl,
+                    "storage_class": self.storage_class,
+                },
+            },
+        ) as fp:
+            for chunk in stream_file(datastream):
+                fp.write(chunk)  # multipart upload
 
-        blob.metadata = metadata
-
-        blob.upload_from_file(datastream, predefined_acl=self.object_acl)
-
-        if self.storage_class is not None:
-            blob.update_storage_class(self.storage_class)
+    def open(self, package):
+        """Overwrite open method to re-use client instead of using signed url."""
+        return _open(
+            self.get_uri(package),
+            "rb",
+            compression="disable",
+            transport_params={"client": self.bucket.client},
+        )
 
     def delete(self, package):
         """Delete the package"""

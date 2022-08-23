@@ -15,5 +15,4 @@ types-pkg_resources
 types-protobuf
 types-redis
 types-requests
-vcrpy
 webtest

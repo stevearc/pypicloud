@@ -12,6 +12,7 @@ from smart_open import open as _open
 
 from pypicloud.dateutil import utcnow
 from pypicloud.models import Package
+from pypicloud.util import stream_file
 
 from .base import IStorage
 
@@ -31,6 +32,7 @@ class AzureBlobStorage(IStorage):
         redirect_urls=None,
         storage_account_name=None,
         storage_account_key=None,
+        storage_account_url=None,
         storage_container_name=None,
     ):
         super(AzureBlobStorage, self).__init__(request)
@@ -41,12 +43,16 @@ class AzureBlobStorage(IStorage):
         self.storage_account_name = storage_account_name
         self.storage_account_key = storage_account_key
         self.storage_container_name = storage_container_name
-        self.azure_storage_account_url = "https://{}.blob.core.windows.net".format(
-            storage_account_name
+        self.azure_storage_account_url = (
+            storage_account_url
+            or "https://{}.blob.core.windows.net".format(storage_account_name)
         )
         self.blob_service_client = BlobServiceClient(
             account_url=self.azure_storage_account_url,
-            credential=self.storage_account_key,
+            credential={  # https://github.com/Azure/azure-sdk-for-python/issues/24957#issuecomment-1164786540
+                "account_name": self.storage_account_name,
+                "account_key": self.storage_account_key,
+            },
         )
         self.container_client = self.blob_service_client.get_container_client(
             self.storage_container_name
@@ -58,6 +64,9 @@ class AzureBlobStorage(IStorage):
         kwargs["expire_after"] = int(settings.get("storage.expire_after", 60 * 60 * 24))
         kwargs["path_prefix"] = settings.get("storage.prefix", "")
         kwargs["redirect_urls"] = asbool(settings.get("storage.redirect_urls", True))
+        kwargs["storage_account_url"] = settings.get(
+            "storage.storage_account_url", os.getenv("AZURE_STORAGE_SERVICE_ENDPOINT")
+        )
         kwargs["storage_account_name"] = settings.get(
             "storage.storage_account_name", os.getenv("AZURE_STORAGE_ACCOUNT")
         )
@@ -118,7 +127,7 @@ class AzureBlobStorage(IStorage):
                 posixpath.basename(blob_properties.name),
                 blob_properties.last_modified,
                 path=blob_properties.name,
-                **Package.read_metadata(metadata.metadata)
+                **Package.read_metadata(metadata.metadata),
             )
 
     def get_path(self, package):
@@ -129,15 +138,25 @@ class AzureBlobStorage(IStorage):
             )
         return package.data["path"]
 
-    def upload(self, package, datastream):
-        path = self.get_path(package)
+    def get_uri(self, package):
+        return f"azure://{self.storage_container_name}/{self.get_path(package)}"
 
+    def upload(self, package, datastream):
         metadata = package.get_metadata()
         metadata["name"] = package.name
         metadata["version"] = package.version
 
-        blob_client = self.container_client.get_blob_client(blob=path)
-        blob_client.upload_blob(data=datastream, metadata=metadata)
+        with _open(
+            self.get_uri(package),
+            "wb",
+            compression="disable",
+            transport_params={
+                "client": self.container_client,
+                "blob_kwargs": {"metadata": metadata},
+            },
+        ) as fp:
+            for chunk in stream_file(datastream):
+                fp.write(chunk)  # multipart upload
 
     def delete(self, package):
         path = self.get_path(package)
@@ -156,5 +175,10 @@ class AzureBlobStorage(IStorage):
         return True, ""
 
     def open(self, package):
-        url = self._generate_url(package)
-        return _open(url, "rb", compression="disable")
+        """Overwrite open method to re-use client instead of using signed url."""
+        return _open(
+            self.get_uri(package),
+            "rb",
+            compression="disable",
+            transport_params={"client": self.container_client},
+        )

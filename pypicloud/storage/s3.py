@@ -13,6 +13,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from pyramid.settings import asbool, falsey
 from pyramid_duh.settings import asdict
+from smart_open import open as _open
 
 from pypicloud.dateutil import utcnow
 from pypicloud.models import Package
@@ -21,6 +22,7 @@ from pypicloud.util import (
     PackageParseError,
     normalize_metadata,
     parse_filename,
+    stream_file,
 )
 
 from .object_store import ObjectStoreStorage
@@ -101,12 +103,12 @@ class S3Storage(ObjectStoreStorage):
                 aws_access_key_id=str,
                 aws_secret_access_key=str,
                 aws_session_token=str,
-            )
+            ),
         )
 
         bucket = s3conn.Bucket(bucket_name)
         try:
-            head = s3conn.meta.client.head_bucket(Bucket=bucket_name)
+            s3conn.meta.client.head_bucket(Bucket=bucket_name)
         except ClientError as e:
             if e.response["Error"]["Code"] == "404":
                 LOG.info("Creating S3 bucket %s", bucket_name)
@@ -195,8 +197,10 @@ class S3Storage(ObjectStoreStorage):
             "without any dots ('.') in the name."
         )
 
+    def get_uri(self, package):
+        return f"s3://{self.bucket.name}/{self.get_path(package)}"
+
     def upload(self, package, datastream):
-        key = self.bucket.Object(self.get_path(package))
         kwargs = {}
         if self.sse is not None:
             kwargs["ServerSideEncryption"] = self.sse
@@ -208,7 +212,28 @@ class S3Storage(ObjectStoreStorage):
         metadata["name"] = package.name
         metadata["version"] = package.version
         metadata = normalize_metadata(metadata)
-        key.put(Metadata=metadata, Body=datastream, **kwargs)
+        kwargs["Metadata"] = metadata
+
+        with _open(
+            self.get_uri(package),
+            "wb",
+            compression="disable",
+            transport_params={
+                "client": self.bucket.meta.client,
+                "client_kwargs": {"S3.Client.create_multipart_upload": kwargs},
+            },
+        ) as fp:
+            for chunk in stream_file(datastream):
+                fp.write(chunk)  # multipart upload
+
+    def open(self, package):
+        """Overwrite open method to re-use client instead of using signed url."""
+        return _open(
+            self.get_uri(package),
+            "rb",
+            compression="disable",
+            transport_params={"client": self.bucket.meta.client},
+        )
 
     def delete(self, package):
         self.bucket.delete_objects(

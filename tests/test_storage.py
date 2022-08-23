@@ -4,7 +4,6 @@ import json
 import os
 import re
 import shutil
-import sys
 import tempfile
 import time
 import unittest
@@ -12,7 +11,8 @@ from io import BytesIO
 from urllib.parse import parse_qs, urlparse
 
 import boto3
-import vcr
+import requests
+from azure.core.exceptions import ResourceExistsError
 from botocore.exceptions import ClientError
 from mock import ANY, MagicMock, patch
 from moto import mock_s3
@@ -27,6 +27,7 @@ from pypicloud.storage import (
     get_storage_impl,
 )
 from pypicloud.util import EnvironSettings
+
 
 from . import make_package
 
@@ -103,7 +104,7 @@ class TestS3Storage(unittest.TestCase):
     def test_delete(self):
         """delete() should remove package from storage"""
         package = make_package()
-        self.storage.upload(package, BytesIO())
+        self.storage.upload(package, BytesIO(b"test1234"))
         self.storage.delete(package)
         keys = list(self.bucket.objects.all())
         self.assertEqual(len(keys), 0)
@@ -129,7 +130,7 @@ class TestS3Storage(unittest.TestCase):
         """If prepend_hash = True, attach a hash to the file path"""
         self.storage.prepend_hash = True
         package = make_package()
-        data = BytesIO()
+        data = BytesIO(b"test1234")
         self.storage.upload(package, data)
         key = list(self.bucket.objects.all())[0]
 
@@ -172,7 +173,7 @@ class TestS3Storage(unittest.TestCase):
         kwargs = S3Storage.configure(settings)
         storage = S3Storage(MagicMock(), **kwargs)
         package = make_package()
-        storage.upload(package, BytesIO())
+        storage.upload(package, BytesIO(b"abc"))
         acl = list(self.bucket.objects.all())[0].Object().Acl()
         self.assertCountEqual(
             acl.grants,
@@ -198,7 +199,7 @@ class TestS3Storage(unittest.TestCase):
         kwargs = S3Storage.configure(settings)
         storage = S3Storage(MagicMock(), **kwargs)
         package = make_package()
-        storage.upload(package, BytesIO())
+        storage.upload(package, BytesIO(b"abc"))
         storage_class = list(self.bucket.objects.all())[0].Object().storage_class
         self.assertCountEqual(storage_class, "STANDARD_IA")
 
@@ -371,6 +372,36 @@ class TestFileStorage(unittest.TestCase):
         self.assertTrue(ok)
 
 
+class MockGCSResponse(object):
+    """Mock the response of google.auth.transport.requests.AuthorizedSession.put."""
+
+    def __init__(self, status_code):
+        self.status_code = status_code
+        self.text = str(status_code)
+
+
+class MockGCSSession(object):
+    """Mock object representing the google.auth.transport.requests.AuthorizedSession class."""
+
+    def __init__(self, *args, **kwargs):
+        """Ignore client._credentials being passed here."""
+        pass  # pylint: disable=W0107
+
+    def put(self, blob, data, headers, **kwargs):
+        """Put a part of multipart upload, assuming blob.create_resumable_upload_session is mocked to return the blob object instead of url."""
+        if blob.name not in blob.bucket._blobs:
+            blob.upload_from_string(b"")
+        blob._content += data
+        if headers.get("Content-Range", "").endswith("*"):
+            return MockGCSResponse(308)
+        else:
+            return MockGCSResponse(200)
+
+    def delete(self, blob, *args, **kwargs):
+        """Cancel a multipart upload, assuming blob.create_resumable_upload_session is mocked to return the blob object instead of url."""
+        blob.delete()
+
+
 class MockGCSBlob(object):
     """Mock object representing the google.cloud.storage.Blob class"""
 
@@ -380,11 +411,16 @@ class MockGCSBlob(object):
         self.updated = None
         self._content = None
         self._acl = None
+        self.client = MockGCSClient()
         self.bucket = bucket
         self.generate_signed_url = MagicMock(wraps=self._generate_signed_url)
         self.upload_from_file = MagicMock(wraps=self._upload_from_file)
         self.delete = MagicMock(wraps=self._delete)
         self.update_storage_class = MagicMock(wraps=self._update_storage_class)
+
+    @property
+    def size(self):
+        return len(self._content) if self._content else None
 
     def upload_from_string(self, s):
         """Utility method for uploading this blob; not used by the
@@ -420,6 +456,12 @@ class MockGCSBlob(object):
         called, not that it changed any state on the MockGCSBlob class
         """
 
+    def create_resumable_upload_session(self):
+        return self
+
+    def download_as_bytes(self, start=0, end=None):
+        return self._content[start:end] if end is not None else self._content[start:]
+
 
 class MockGCSBucket(object):
     """Mock object representing the google.cloud.storage.Bucket class"""
@@ -454,6 +496,10 @@ class MockGCSBucket(object):
         """Mock the blob() method on google.cloud.storage.Bucket"""
         return MockGCSBlob(blob_name, self)
 
+    def get_blob(self, blob_name):
+        """Mock the get_blob() method on google.cloud.storage.Bucket"""
+        return self._blobs.get(blob_name)
+
     def _list_blobs(self, prefix=None):
         """Mock the list_blobs() method on google.cloud.storage.Bucket"""
         return [
@@ -478,6 +524,7 @@ class MockGCSClient(object):
         self.bucket = MagicMock(wraps=self._bucket)
 
         self._buckets = {}
+        self._credentials = MagicMock()
 
     def from_service_account_json(self, *args, **kwargs):
         """Mock the from_service_account_json method from the cloud storage
@@ -510,6 +557,9 @@ class TestGoogleCloudStorage(unittest.TestCase):
         with open(self._config_file, "w", encoding="utf-8") as ofile:
             json.dump({}, ofile)
         patch("google.cloud.storage.Client", self.gcs).start()
+        patch(
+            "google.auth.transport.requests.AuthorizedSession", MockGCSSession
+        ).start()
         self.settings = {
             "storage.bucket": "mybucket",
             "storage.gcp_service_account_json_filename": self._config_file,
@@ -559,20 +609,24 @@ class TestGoogleCloudStorage(unittest.TestCase):
     def test_delete(self):
         """delete() should remove package from storage"""
         package = make_package()
-        self.storage.upload(package, BytesIO())
+        datastr = b"test1234"
+        self.storage.upload(package, BytesIO(datastr))
+        self.assertEqual(self.storage.open(package).read(), datastr)
+
         self.storage.delete(package)
         keys = [blob.name for blob in self.bucket.list_blobs()]
         self.assertEqual(len(keys), 0)
 
     def test_upload(self):
-        """Uploading package sets metadata and sends to S3"""
+        """Uploading package sets metadata and sends to gcs"""
         package = make_package(requires_python="3.6")
         datastr = b"foobar"
         data = BytesIO(datastr)
         self.storage.upload(package, data)
 
+        self.assertEqual(self.storage.open(package).read(), datastr)
+
         blob = self.bucket.list_blobs()[0]
-        blob.upload_from_file.assert_called_with(data, predefined_acl=None)
 
         self.assertEqual(blob._content, datastr)
         self.assertEqual(blob.metadata["name"], package.name)
@@ -585,7 +639,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
         """If prepend_hash = True, attach a hash to the file path"""
         self.storage.prepend_hash = True
         package = make_package()
-        data = BytesIO()
+        data = BytesIO(b"test1234")
         self.storage.upload(package, data)
 
         blob = self.bucket.list_blobs()[0]
@@ -620,10 +674,10 @@ class TestGoogleCloudStorage(unittest.TestCase):
         kwargs = GoogleCloudStorage.configure(settings)
         storage = GoogleCloudStorage(MagicMock(), **kwargs)
         package = make_package()
-        storage.upload(package, BytesIO())
+        storage.upload(package, BytesIO(b"test1234"))
 
         blob = self.bucket.list_blobs()[0]
-        self.assertEqual(blob._acl, "authenticated-read")
+        self.assertEqual(blob.acl, "authenticated-read")
 
     def test_storage_class(self):
         """Can specify a storage class for GCS objects"""
@@ -632,10 +686,10 @@ class TestGoogleCloudStorage(unittest.TestCase):
         kwargs = GoogleCloudStorage.configure(settings)
         storage = GoogleCloudStorage(MagicMock(), **kwargs)
         package = make_package()
-        storage.upload(package, BytesIO())
+        storage.upload(package, BytesIO(b"test1234"))
 
         blob = self.bucket.list_blobs()[0]
-        blob.update_storage_class.assert_called_with("COLDLINE")
+        self.assertEqual(blob.storage_class, "COLDLINE")
 
     def test_client_without_credentials(self):
         """Can create a client without passing in application credentials"""
@@ -648,36 +702,56 @@ class TestGoogleCloudStorage(unittest.TestCase):
 class TestAzureStorage(unittest.TestCase):
     """Tests for storing packages in Azure Blob Storage"""
 
-    @classmethod
-    def setUpClass(cls):
-        super(TestAzureStorage, cls).setUpClass()
-        if sys.version_info.major < 3 or sys.version_info.minor < 6:
-            raise unittest.SkipTest("vcrpy does not work on < 3.6 :(")
-
     def setUp(self):
         super(TestAzureStorage, self).setUp()
         self.settings = {
             "pypi.storage": "azure-blob",
-            "storage.storage_account_name": "terrytest2",
-            "storage.storage_account_key": "Aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa==",
+            "storage.storage_account_name": "devstoreaccount1",
+            "storage.storage_account_key": "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==",  # https://github.com/Azure/Azurite#default-storage-account
+            "storage.storage_account_url": "http://devstoreaccount1.azurite:10000",
             "storage.storage_container_name": "pypi",
         }
+        try:
+            requests.get(self.settings["storage.storage_account_url"])
+        except requests.ConnectionError as exc:
+            raise unittest.SkipTest("Couldn't connect to azurite") from exc
         storage_func = get_storage_impl(self.settings)
         self.storage = storage_func(MagicMock())
+        try:
+            self.storage.container_client.create_container()
+        except ResourceExistsError:
+            # https://github.com/Azure/Azure-Functions/issues/2166#issuecomment-1159361162
+            pass
+
+    def test_illegal_init_options(self):
+        """Check that ValueError is thrown for illegal combinations of Azure settings"""
+        settings = {"pypi.storage": "azure-blob"}
+        # missing account name
+        cases = {
+            "missing account name": {},
+            "missing account key": {"storage.storage_account_name": "devstoreaccount1"},
+            "missing container name": {
+                "storage.storage_account_name": "devstoreaccount1",
+                "storage.storage_account_key": "key",
+            },
+        }
+        for setting in cases.values():
+            with self.assertRaisesRegex(ValueError, "You must specify"):
+                get_storage_impl({**settings, **setting})(MagicMock())
 
     def test_list_and_upload(self):
         """List packages from blob storage"""
-        with vcr.use_cassette(
-            "tests/vcr_cassettes/test_list.yaml", filter_headers=["authorization"]
-        ):
-            package = make_package("mypkg", "1.2", "pkg.tar.gz", summary="test")
-            self.storage.upload(package, BytesIO(b"test1234"))
+        package = make_package("mypkg", "1.2", "pkg.tar.gz", summary="test")
+        datastr = b"test1234"
+        self.storage.upload(package, BytesIO(datastr))
 
-            package = list(self.storage.list(Package))[0]
-            self.assertEqual(package.name, "mypkg")
-            self.assertEqual(package.version, "1.2")
-            self.assertEqual(package.filename, "pkg.tar.gz")
-            self.assertEqual(package.summary, "test")
+        self.assertEqual(self.storage.open(package).read(), datastr)
+
+        package = list(self.storage.list(Package))[0]
+        self.assertEqual(package.name, "mypkg")
+        self.assertEqual(package.version, "1.2")
+        self.assertEqual(package.filename, "pkg.tar.gz")
+        self.assertEqual(package.summary, "test")
 
     def test_get_url(self):
         """Test presigned url generation"""
@@ -685,8 +759,8 @@ class TestAzureStorage(unittest.TestCase):
         response = self.storage.download_response(package)
 
         parts = urlparse(response.location)
-        self.assertEqual(parts.scheme, "https")
-        self.assertEqual(parts.hostname, "terrytest2.blob.core.windows.net")
+        self.assertEqual(parts.scheme, "http")
+        self.assertEqual(parts.hostname, "devstoreaccount1.azurite")
         self.assertEqual(
             parts.path,
             "/"
@@ -699,29 +773,13 @@ class TestAzureStorage(unittest.TestCase):
 
     def test_delete(self):
         """delete() should remove package from storage"""
-        with vcr.use_cassette(
-            "tests/vcr_cassettes/test_delete.yaml", filter_headers=["authorization"]
-        ):
-            package = make_package()
-            self.storage.upload(package, BytesIO())
-            self.storage.delete(package)
-            packages = list(self.storage.list(Package))
-            self.assertEqual(len(packages), 0)
+        package = make_package()
+        self.storage.upload(package, BytesIO(b"test1234"))
+        self.storage.delete(package)
+        packages = list(self.storage.list(Package))
+        self.assertEqual(len(packages), 0)
 
     def test_check_health_success(self):
         """check_health returns True for good connection"""
-        with vcr.use_cassette(
-            "tests/vcr_cassettes/test_check.yaml", filter_headers=["authorization"]
-        ):
-            ok, msg = self.storage.check_health()
-            self.assertTrue(ok)
-
-    def test_check_health_fail(self):
-        """check_health returns False for bad connection"""
-        with vcr.use_cassette(
-            "tests/vcr_cassettes/test_check_fail.yaml",
-            filter_headers=["authorization"],
-            record_mode="none",
-        ):
-            ok, msg = self.storage.check_health()
-            self.assertFalse(ok)
+        ok, msg = self.storage.check_health()
+        self.assertTrue(ok)

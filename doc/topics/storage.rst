@@ -356,3 +356,10 @@ A valid access key, either key1 or key2. If not present, will look for the
 **Argument:** string
 
 Name of the container you wish to store packages in.
+
+``storage.storage_account_url``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+Storage data service endpoint. If not present, will look for the
+``AZURE_STORAGE_SERVICE_ENDPOINT`` environment variable.

@@ -7,6 +7,7 @@ from pyramid.response import FileResponse
 
 from pypicloud.dateutil import utcfromtimestamp
 from pypicloud.models import Package
+from pypicloud.util import stream_file
 
 from .base import IStorage
 
@@ -90,7 +91,7 @@ class FileStorage(IStorage):
         # Write to a temporary file
         tempfile = os.path.join(destdir, "." + package.filename + "." + uid)
         with open(tempfile, "wb") as ofile:
-            for chunk in iter(lambda: datastream.read(16 * 1024), b""):
+            for chunk in stream_file(datastream):
                 ofile.write(chunk)
 
         os.rename(tempfile, destfile)
