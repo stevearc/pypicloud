@@ -19,7 +19,7 @@ from pypicloud.cache.sql import SQLPackage
 from pypicloud.storage import IStorage
 from pypicloud.util import EnvironSettings
 
-from . import DummyCache, DummyStorage, make_package
+from . import DummyAccess, DummyCache, DummyStorage, make_package
 from .db_utils import get_mysql_url, get_postgres_url, get_sqlite_url
 
 # pylint: disable=W0707
@@ -80,7 +80,9 @@ class TestBaseCache(unittest.TestCase):
 
     def test_no_delete(self):
         """If allow_delete=False, packages cannot be deleted"""
-        cache = DummyCache()
+        request = DummyRequest()
+        request.access = DummyAccess()
+        cache = DummyCache(request)
         cache.allow_delete = False
         pkg = make_package()
         with self.assertRaises(ValueError):
@@ -200,6 +202,7 @@ class TestSQLiteCache(unittest.TestCase):
         super(TestSQLiteCache, self).setUp()
         transaction.begin()
         self.request = DummyRequest()
+        self.access = self.request.access = DummyAccess()
         self.request.tm = transaction.manager
         self.db = SQLCache(self.request, **self.kwargs)
         self.sql = self.db.db

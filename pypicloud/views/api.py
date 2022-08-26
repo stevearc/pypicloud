@@ -169,7 +169,12 @@ def delete_package(context, request):
     package = request.db.fetch(context.filename)
     if package is None:
         return HTTPBadRequest("Could not find %s" % context.filename)
-    request.db.delete(package)
+
+    try:
+        request.db.delete(package)
+    except ValueError:
+        return HTTPForbidden("Package deletion is unallowed.")
+
     return request.response
 
 

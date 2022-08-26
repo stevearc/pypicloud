@@ -46,3 +46,4 @@ _local.db
 .idea
 .mypy_cache
 .direnv/
+.local
