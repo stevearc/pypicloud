@@ -57,7 +57,7 @@
             </td>
             <td>
               {{ package.last_modified * 1000 | date:'yyyy-MM-dd HH:mm' }}
-              <button ng-click="deletePackage(package)" visible="ALLOW_DELETE && can_write && (showDelete || package.deleting)" class="btn btn-danger btn-xs pull-right" ng-disabled="package.deleting">
+              <button ng-click="deletePackage(package)" visible="(ALLOW_DELETE && can_write || IS_ADMIN) && (showDelete || package.deleting)" class="btn btn-danger btn-xs pull-right" ng-disabled="package.deleting">
                 <i class="fa fa-refresh fa-spin" ng-show="package.deleting"></i>
                 Delete
               </button>

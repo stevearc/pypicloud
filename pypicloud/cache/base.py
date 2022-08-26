@@ -162,7 +162,7 @@ class ICache(object):
         package : :class:`~pypicloud.models.Package`
 
         """
-        if not self.allow_delete:
+        if not self.allow_delete and not self.request.access.is_admin(self.request.authenticated_userid):
             raise ValueError(
                 "Cannot delete packages. Set pypi.allow_delete = true if you want to enable deletes."
             )
