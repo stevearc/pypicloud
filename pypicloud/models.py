@@ -7,7 +7,7 @@ import pkg_resources
 from .dateutil import UTC, utcnow
 from .util import normalize_name
 
-METADATA_FIELDS = ["requires_python", "summary", "hash_sha256", "hash_md5"]
+METADATA_FIELDS = ["requires_python", "summary", "hash_sha256", "hash_md5", "uploader"]
 
 
 @total_ordering
@@ -116,6 +116,7 @@ class Package(object):
             "version": self.version,
             "url": self.get_url(request),
             "summary": self.summary,
+            "metadata": self.get_metadata(),
         }
 
     def search_summary(self):
