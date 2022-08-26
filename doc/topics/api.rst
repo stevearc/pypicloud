@@ -87,8 +87,7 @@ for ``verbose=false``:
     {
         "packages": [
             "flywheel",
-            "pypicloud",
-            "pyramid"
+            "pypicloud"
         ]
     }
 
@@ -100,15 +99,13 @@ for ``verbose=true``:
         "packages": [
             {
                 "name": "flywheel",
-                "stable": "0.1.0",
-                "unstable": "0.1.0-2-g185e630",
+                "summary": "Object mapper for Amazon's DynamoDB",
                 "last_modified": 1389945600
             },
             {
                 "name": "pypicloud",
-                "stable": "0.1.0",
-                "unstable": "0.1.0-21-g4a739b0",
-                "last_modified": 1390207478
+                "summary": "Private PyPI backed by S3",
+                "last_modified": 1661554901
             }
         ]
     }
@@ -130,16 +127,17 @@ for that package.
         "packages": [
             {
                 "name": "flywheel",
-                "last_modified": 1389945600
-                "version": "0.1.0"
-                "url": "https://pypi.s3.amazonaws.com/34c2/flywheel-0.1.0.tar.gz?Signature=%2FSJidAjDkXbDojzXy8P1rFwe1kw%3D&Expires=1390262542"
-            },
-            {
-                "name": "flywheel",
-                "last_modified": 1390207478
-                "version": "0.1.0-21-g4a739b0",
-                "url": "https://pypi.s3.amazonaws.com/81f2/flywheel-0.1.0-21-g4a739b0.tar.gz?Signature=%2FSJidAjDkXbDojzXy8P1rFwe1kw%3D&Expires=1390262542"
-            },
+                "filename": "flywheel-0.1.0.tar.gz",
+                "last_modified": 1389945600,
+                "version": "0.1.0",
+                "url": "https://pypi.s3.amazonaws.com/34c2/flywheel-0.1.0.tar.gz?Signature=%2FSJidAjDkXbDojzXy8P1rFwe1kw%3D&Expires=1390262542",
+                "metadata": {
+                    "hash_sha256": "46a1fbe91ff724dcff0ebf42558b19a3f8a9967eaa740d76b320935b4de62785",
+                    "hash_md5": "181f7c483604fa496ad500f33effe7eb",
+                    "uploader": "some_user",
+                    "summary": "Object mapper for Amazon's DynamoDB"
+                }
+            }
         ],
         "write": true
     }
