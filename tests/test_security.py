@@ -8,6 +8,7 @@ import webtest
 from passlib.hash import sha256_crypt  # pylint: disable=E0611
 
 from pypicloud import main
+from pypicloud.cache.base import PackageOverridePermissions
 
 from . import DummyCache, DummyStorage, make_package
 
@@ -143,7 +144,8 @@ class TestEndpointSecurityAdmin(unittest.TestCase):
             "pyramid.debug_authorization": True,
             "pypi.db": "tests.test_security.GlobalDummyCache",
             "pypi.storage": "tests.test_security.GlobalDummyStorage",
-            "pypi.allow_delete": False,
+            "pypi.allow_overwrite": PackageOverridePermissions.ADMIN_PERMISSION.value,
+            "pypi.allow_delete": PackageOverridePermissions.ADMIN_PERMISSION.value,
             "session.validate_key": "a",
             "user.user": sha256_crypt.encrypt("user"),
             "user.admin": sha256_crypt.encrypt("admin"),
@@ -166,6 +168,27 @@ class TestEndpointSecurityAdmin(unittest.TestCase):
         GlobalDummyCache.global_packages.clear()
         GlobalDummyStorage.global_packages.clear()
         self.app.reset()
+
+    def test_api_pkg_overwrite_weak_user(self):
+        """/api/package/<pkg>/<filename> validates allow_overwrite setting"""
+
+        params = {
+            "content": webtest.forms.Upload(self.package.filename, b"datadatadata")
+        }
+        url = "/api/package/%s/%s/" % (self.package.name, self.package.filename)
+        response = self.app.post(
+            url, params, expect_errors=True, headers=_auth("user", "user")
+        )
+        self.assertEqual(response.status_int, 409)
+
+    def test_api_pkg_overwrite_admin(self):
+        """/api/package/<pkg>/<filename> validates allow_overwrite setting"""
+        params = {
+            "content": webtest.forms.Upload(self.package.filename, b"datadatadata")
+        }
+        url = "/api/package/%s/%s/" % (self.package.name, self.package.filename)
+        response = self.app.post(url, params, headers=_auth("admin", "admin"))
+        self.assertEqual(response.status_int, 200)
 
     def test_api_pkg_delete_weak_user(self):
         """/api/package/<pkg>/<filename> validates allow_delete setting"""

@@ -4,6 +4,7 @@ import logging
 import posixpath
 from typing import Any, BinaryIO, Dict, List, Optional, Tuple
 
+from aenum import MultiValueEnum
 from pyramid.settings import asbool
 
 from pypicloud.dateutil import utcfromtimestamp
@@ -14,6 +15,12 @@ from pypicloud.util import create_matcher, normalize_name, parse_filename, strea
 LOG = logging.getLogger(__name__)
 
 
+class PackageOverridePermissions(MultiValueEnum):
+    NEVER = "never", "no", "false"
+    WRITE_PERMISSION = "write", "true"
+    ADMIN_PERMISSION = "admin"
+
+
 class ICache(object):
 
     """Base class for a caching database that stores package metadata"""
@@ -22,9 +29,9 @@ class ICache(object):
         self,
         request=None,
         storage=None,
-        allow_overwrite=None,
+        allow_overwrite=PackageOverridePermissions.NEVER,
         calculate_hashes=True,
-        allow_delete=True,
+        allow_delete=PackageOverridePermissions.WRITE_PERMISSION,
     ):
         self.request = request
         self.storage = storage(request)
@@ -52,8 +59,14 @@ class ICache(object):
         """Configure the cache method with app settings"""
         return {
             "storage": get_storage_impl(settings),
-            "allow_overwrite": asbool(settings.get("pypi.allow_overwrite", False)),
-            "allow_delete": asbool(settings.get("pypi.allow_delete", True)),
+            "allow_overwrite": PackageOverridePermissions(
+                settings.get("pypi.allow_overwrite", PackageOverridePermissions.NEVER)
+            ),
+            "allow_delete": PackageOverridePermissions(
+                settings.get(
+                    "pypi.allow_delete", PackageOverridePermissions.WRITE_PERMISSION
+                )
+            ),
             "calculate_hashes": asbool(
                 settings.get("pypi.calculate_package_hashes", True)
             ),
@@ -137,8 +150,20 @@ class ICache(object):
         filename = posixpath.basename(filename)
         old_pkg = self.fetch(filename)
         metadata["requires_python"] = requires_python
-        if old_pkg is not None and not self.allow_overwrite:
-            raise ValueError("Package '%s' already exists!" % filename)
+        if old_pkg is not None:
+            if self.allow_overwrite == PackageOverridePermissions.NEVER:
+                raise ValueError(
+                    "Cannot override already existing package '%s'. "
+                    "Modify pypi.allow_override setting if you want to enable deletes."
+                    % filename
+                )
+
+            if (
+                self.allow_overwrite == PackageOverridePermissions.ADMIN_PERMISSION
+                and not self.request.access.is_admin(self.request.authenticated_userid)
+            ):
+                raise ValueError("Only admins can overwrite packages.")
+
         if self.calculate_hashes:
             sha256, md5 = hashlib.sha256(), hashlib.md5()
             for chunk in stream_file(data):
@@ -162,12 +187,17 @@ class ICache(object):
         package : :class:`~pypicloud.models.Package`
 
         """
-        if not self.allow_delete and not self.request.access.is_admin(
-            self.request.authenticated_userid
-        ):
+        if self.allow_delete == PackageOverridePermissions.NEVER:
             raise ValueError(
-                "Cannot delete packages. Set pypi.allow_delete = true if you want to enable deletes."
+                "Cannot delete package. Modify pypi.allow_delete setting if you want to enable deletes."
             )
+
+        if (
+            self.allow_delete == PackageOverridePermissions.ADMIN_PERMISSION
+            and not self.request.access.is_admin(self.request.authenticated_userid)
+        ):
+            raise ValueError("Only admins can delete package.")
+
         self.storage.delete(package)
         self.clear(package)
 

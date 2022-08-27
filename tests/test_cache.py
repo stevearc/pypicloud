@@ -14,6 +14,7 @@ from pyramid.testing import DummyRequest
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from pypicloud.cache import ICache, RedisCache, SQLCache
+from pypicloud.cache.base import PackageOverridePermissions
 from pypicloud.cache.dynamo import DynamoCache, DynamoPackage, PackageSummary
 from pypicloud.cache.sql import SQLPackage
 from pypicloud.storage import IStorage
@@ -56,7 +57,7 @@ class TestBaseCache(unittest.TestCase):
     def test_upload_overwrite(self):
         """Uploading a preexisting packages overwrites current package"""
         cache = DummyCache()
-        cache.allow_overwrite = True
+        cache.allow_overwrite = PackageOverridePermissions.WRITE_PERMISSION
         name, filename, content = "a", "a-1.tar.gz", BytesIO(b"new")
         cache.upload(filename, BytesIO(b"old"), name)
         cache.upload(filename, content, name)
@@ -72,7 +73,7 @@ class TestBaseCache(unittest.TestCase):
     def test_upload_no_overwrite(self):
         """If allow_overwrite=False duplicate package throws exception"""
         cache = DummyCache()
-        cache.allow_overwrite = False
+        cache.allow_overwrite = PackageOverridePermissions.NEVER
         name, version, filename = "a", "1", "a-1.tar.gz"
         cache.upload(filename, BytesIO(b"test1234"), name, version)
         with self.assertRaises(ValueError):
@@ -83,7 +84,7 @@ class TestBaseCache(unittest.TestCase):
         request = DummyRequest()
         request.access = DummyAccess()
         cache = DummyCache(request)
-        cache.allow_delete = False
+        cache.allow_delete = PackageOverridePermissions.NEVER
         pkg = make_package()
         with self.assertRaises(ValueError):
             cache.delete(pkg)
@@ -91,7 +92,7 @@ class TestBaseCache(unittest.TestCase):
     def test_multiple_packages_same_version(self):
         """Can upload multiple packages that have the same version"""
         cache = DummyCache()
-        cache.allow_overwrite = False
+        cache.allow_overwrite = PackageOverridePermissions.NEVER
         name, version = "a", "1"
         path1 = "old_package_path-1.tar.gz"
         cache.upload(path1, BytesIO(b"test1234"), name, version)
