@@ -98,6 +98,7 @@ class ICache(object):
         version: Optional[str] = None,
         summary: Optional[str] = None,
         requires_python: Optional[str] = None,
+        **metadata
     ) -> Package:
         """
         Save this package to the storage mechanism and to the cache
@@ -135,7 +136,7 @@ class ICache(object):
         name = normalize_name(name)
         filename = posixpath.basename(filename)
         old_pkg = self.fetch(filename)
-        metadata = {"requires_python": requires_python}
+        metadata["requires_python"] = requires_python
         if old_pkg is not None and not self.allow_overwrite:
             raise ValueError("Package '%s' already exists!" % filename)
         if self.calculate_hashes:
