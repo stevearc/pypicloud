@@ -80,7 +80,7 @@ def normalize_metadata_value(value: Union[str, bytes]) -> str:
         value = value.decode("utf-8")
     if isinstance(value, str):
         value = "".join(c for c in unicodedata.normalize("NFKD", value) if ord(c) < 128)
-    return value
+    return re.sub(r"\s+", " ", value)
 
 
 def normalize_metadata(metadata: Dict[str, Union[str, bytes]]) -> Dict[str, str]:
