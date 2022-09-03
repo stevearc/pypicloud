@@ -2,6 +2,11 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.3.10 - 2022/9/3
+-----------------
+* Add uploader to package metadata (:pr:`312`)
+* Normalize whitespace in S3 metadata (:pr:`314`)
+
 1.3.9 - 2022/8/22
 -----------------
 * Stream files to storage backend for lower memory usage (:pr:`304`)
