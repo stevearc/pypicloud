@@ -97,7 +97,7 @@ class RedisCache(ICache):
         return packages
 
     def distinct(self):
-        return list(self.db.smembers(self.redis_set))
+        return sorted(self.db.smembers(self.redis_set))
 
     def summary(self):
         return self._load_summaries(self.db.smembers(self.redis_set))
