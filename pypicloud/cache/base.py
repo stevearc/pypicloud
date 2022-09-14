@@ -4,7 +4,6 @@ import logging
 import posixpath
 from typing import Any, BinaryIO, Dict, List, Optional, Tuple
 
-from aenum import MultiValueEnum
 from pyramid.settings import asbool
 
 from pypicloud.dateutil import utcfromtimestamp
@@ -15,12 +14,6 @@ from pypicloud.util import create_matcher, normalize_name, parse_filename, strea
 LOG = logging.getLogger(__name__)
 
 
-class PackageOverridePermissions(MultiValueEnum):
-    NEVER = "never", "no", "false"
-    WRITE_PERMISSION = "write", "true"
-    ADMIN_PERMISSION = "admin"
-
-
 class ICache(object):
 
     """Base class for a caching database that stores package metadata"""
@@ -29,14 +22,10 @@ class ICache(object):
         self,
         request=None,
         storage=None,
-        allow_overwrite=PackageOverridePermissions.NEVER,
         calculate_hashes=True,
-        allow_delete=PackageOverridePermissions.WRITE_PERMISSION,
     ):
         self.request = request
         self.storage = storage(request)
-        self.allow_overwrite = allow_overwrite
-        self.allow_delete = allow_delete
         self.calculate_hashes = calculate_hashes
 
     def new_package(self, *args, **kwargs) -> Package:
@@ -59,14 +48,6 @@ class ICache(object):
         """Configure the cache method with app settings"""
         return {
             "storage": get_storage_impl(settings),
-            "allow_overwrite": PackageOverridePermissions(
-                settings.get("pypi.allow_overwrite", PackageOverridePermissions.NEVER)
-            ),
-            "allow_delete": PackageOverridePermissions(
-                settings.get(
-                    "pypi.allow_delete", PackageOverridePermissions.WRITE_PERMISSION
-                )
-            ),
             "calculate_hashes": asbool(
                 settings.get("pypi.calculate_package_hashes", True)
             ),
@@ -141,7 +122,7 @@ class ICache(object):
         Raises
         ------
         e : ValueError
-            If the package already exists and allow_overwrite = False
+            If the package already exists and user is unauthorized for overwrites
 
         """
         if version is None or name is None:
@@ -150,19 +131,8 @@ class ICache(object):
         filename = posixpath.basename(filename)
         old_pkg = self.fetch(filename)
         metadata["requires_python"] = requires_python
-        if old_pkg is not None:
-            if self.allow_overwrite == PackageOverridePermissions.NEVER:
-                raise ValueError(
-                    "Cannot override already existing package '%s'. "
-                    "Modify pypi.allow_override setting if you want to enable deletes."
-                    % filename
-                )
-
-            if (
-                self.allow_overwrite == PackageOverridePermissions.ADMIN_PERMISSION
-                and not self.request.access.is_admin(self.request.authenticated_userid)
-            ):
-                raise ValueError("Only admins can overwrite packages.")
+        if old_pkg is not None and self.request.access.can_overwrite_package() is False:
+            raise ValueError("Unauthorized to overwrite packages.")
 
         if self.calculate_hashes:
             sha256, md5 = hashlib.sha256(), hashlib.md5()
@@ -186,17 +156,14 @@ class ICache(object):
         ----------
         package : :class:`~pypicloud.models.Package`
 
-        """
-        if self.allow_delete == PackageOverridePermissions.NEVER:
-            raise ValueError(
-                "Cannot delete package. Modify pypi.allow_delete setting if you want to enable deletes."
-            )
+        Raises
+        ------
+        e : ValueError
+            If user is unauthorized for delete
 
-        if (
-            self.allow_delete == PackageOverridePermissions.ADMIN_PERMISSION
-            and not self.request.access.is_admin(self.request.authenticated_userid)
-        ):
-            raise ValueError("Only admins can delete package.")
+        """
+        if self.request.access.can_delete_package() is False:
+            raise ValueError("Unauthorized to delete packages.")
 
         self.storage.delete(package)
         self.clear(package)

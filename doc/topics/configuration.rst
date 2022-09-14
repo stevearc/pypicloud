@@ -114,19 +114,15 @@ https://github.com/stevearc/pypicloud/tree/master/scripts
 
 ``pypi.allow_overwrite``
 ~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** {'never', 'write', 'admin'}, optional
+**Argument:** list, optional
 
-Allow users to upload packages that will overwrite an existing version (default 'never')
-If configured as 'write', users with write permission to the package will be able to override it.
-If configured as 'admin', only admin users will be able to override it.
+List of groups that are allowed to overwrite existing packages. Defaults to no groups
 
 ``pypi.allow_delete``
 ~~~~~~~~~~~~~~~~~~~~~~~~
-**Argument:** {'never', 'write', 'admin'}, optional
+**Argument:** list, optional
 
-Allow users to delete packages (default 'write')
-If configured as 'write', users with write permission to the package will be able to override it.
-If configured as 'admin', only admin users will be able to override it.
+List of groups that are allowed to delete existing packages. Defaults to authenticated
 
 ``pypi.realm``
 ~~~~~~~~~~~~~~

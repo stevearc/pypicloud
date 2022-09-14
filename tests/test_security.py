@@ -8,7 +8,6 @@ import webtest
 from passlib.hash import sha256_crypt  # pylint: disable=E0611
 
 from pypicloud import main
-from pypicloud.cache.base import PackageOverridePermissions
 
 from . import DummyCache, DummyStorage, make_package
 
@@ -144,8 +143,8 @@ class TestEndpointSecurityAdmin(unittest.TestCase):
             "pyramid.debug_authorization": True,
             "pypi.db": "tests.test_security.GlobalDummyCache",
             "pypi.storage": "tests.test_security.GlobalDummyStorage",
-            "pypi.allow_overwrite": PackageOverridePermissions.ADMIN_PERMISSION.value,
-            "pypi.allow_delete": PackageOverridePermissions.ADMIN_PERMISSION.value,
+            "pypi.allow_overwrite": ["admin"],
+            "pypi.allow_delete": ["admin"],
             "session.validate_key": "a",
             "user.user": sha256_crypt.encrypt("user"),
             "user.admin": sha256_crypt.encrypt("admin"),

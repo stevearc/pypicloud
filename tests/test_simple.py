@@ -59,6 +59,7 @@ class TestSimple(MockServerTest):
 
     def test_upload_duplicate(self):
         """Uploading a duplicate package returns 409"""
+        self.request.access.can_overwrite_package.return_value = False
         self.params = {":action": "file_upload"}
         name, version, content = "foo", "1.2", FileUpload("testfile", b"test1234")
         content.filename = "foo-1.2.tar.gz"
@@ -70,7 +71,7 @@ class TestSimple(MockServerTest):
         """Pip search executes successfully"""
         self.params = {":action": "file_upload"}
         name1, version1, content1 = "foo", "1.1", FileUpload("testfile", b"test1234")
-        content1.filename = "bar-1.2.tar.gz"
+        content1.filename = "foo-1.2.tar.gz"
         name2, version2, content2 = "bar", "1.0", FileUpload("testfile", b"test1234")
         content2.filename = "bar-1.2.tar.gz"
         upload(self.request, content1, name1, version1)

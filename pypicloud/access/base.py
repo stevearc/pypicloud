@@ -102,6 +102,8 @@ class IAccessBackend(object):
         default_write=None,
         disallow_fallback=(),
         cache_update=None,
+        allow_overwrite=None,
+        allow_delete=None,
         pwd_context=None,
         token_expiration=ONE_WEEK,
         signing_key=None,
@@ -111,6 +113,8 @@ class IAccessBackend(object):
         self.default_write = default_write
         self.disallow_fallback = disallow_fallback
         self.cache_update = cache_update
+        self.allow_overwrite = allow_overwrite
+        self.allow_delete = allow_delete
         self.pwd_context = pwd_context
         self.token_expiration = token_expiration
         self.signing_key = signing_key
@@ -128,6 +132,10 @@ class IAccessBackend(object):
             "disallow_fallback": aslist(settings.get("pypi.disallow_fallback", [])),
             "cache_update": aslist(
                 settings.get("pypi.cache_update", ["authenticated"])
+            ),
+            "allow_overwrite": aslist(settings.get("pypi.allow_overwrite", [])),
+            "allow_delete": aslist(
+                settings.get("pypi.allow_delete", ["authenticated"])
             ),
             "pwd_context": get_pwd_context(scheme, rounds),
             "token_expiration": int(settings.get("auth.token_expire", ONE_WEEK)),
@@ -267,6 +275,20 @@ class IAccessBackend(object):
         Return True if the user has permissions to update the pypi cache
         """
         return self.in_any_group(self.request.authenticated_userid, self.cache_update)
+
+    def can_overwrite_package(self) -> bool:
+        """
+        Return True if the user has permissions to overwrite existing packages
+        """
+        return self.in_any_group(
+            self.request.authenticated_userid, self.allow_overwrite
+        )
+
+    def can_delete_package(self) -> bool:
+        """
+        Return True if the user has permissions to delete packages
+        """
+        return self.in_any_group(self.request.authenticated_userid, self.allow_delete)
 
     def need_admin(self) -> bool:
         """
