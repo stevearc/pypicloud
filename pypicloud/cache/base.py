@@ -131,7 +131,7 @@ class ICache(object):
         filename = posixpath.basename(filename)
         old_pkg = self.fetch(filename)
         metadata["requires_python"] = requires_python
-        if old_pkg is not None and self.request.access.can_overwrite_package() is False:
+        if old_pkg is not None and not self.request.access.can_overwrite_package():
             raise ValueError("Unauthorized to overwrite packages.")
 
         if self.calculate_hashes:
@@ -162,7 +162,7 @@ class ICache(object):
             If user is unauthorized for delete
 
         """
-        if self.request.access.can_delete_package() is False:
+        if not self.request.access.can_delete_package():
             raise ValueError("Unauthorized to delete packages.")
 
         self.storage.delete(package)

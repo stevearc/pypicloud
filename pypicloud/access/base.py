@@ -1,6 +1,7 @@
 """ The access backend object base class """
 import hashlib
 import hmac
+import logging
 import time
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -13,6 +14,7 @@ from pyramid.settings import aslist
 from pypicloud.util import EnvironSettings
 
 Admin = "admin"
+LOG = logging.getLogger(__name__)
 
 # Roughly tuned using https://bitbucket.org/ecollins/passlib/raw/default/choose_rounds.py
 # For 10ms. This differs from the passlib recommendation of 350ms due to the difference in use case
@@ -124,6 +126,39 @@ class IAccessBackend(object):
         """Configure the access backend with app settings"""
         rounds = settings.get("auth.rounds")
         scheme = settings.get("auth.scheme")
+
+        if (
+            "pypi.allow_overwrite_groups" in settings
+            or "pypi.allow_overwrite" not in settings
+        ):
+            allow_overwrite = aslist(settings.get("pypi.allow_overwrite_groups", []))
+        else:
+            LOG.warning(
+                "pypi.allow_overwrite is deprecated and "
+                "support will be removed in a future version. "
+                "Please use pypi.allow_overwrite_groups"
+            )
+            allow_overwrite = (
+                ["authenticated"] if settings.get("pypi.allow_overwrite", False) else []
+            )
+
+        if (
+            "pypi.allow_delete_groups" in settings
+            or "pypi.allow_delete" not in settings
+        ):
+            allow_delete = aslist(
+                settings.get("pypi.allow_delete_groups", ["authenticated"])
+            )
+        else:
+            LOG.warning(
+                "pypi.allow_delete is deprecated and "
+                "support will be removed in a future version. "
+                "Please use pypi.allow_delete_groups"
+            )
+            allow_delete = (
+                ["authenticated"] if settings.get("pypi.allow_delete", False) else []
+            )
+
         return {
             "default_read": aslist(
                 settings.get("pypi.default_read", ["authenticated"])
@@ -133,10 +168,8 @@ class IAccessBackend(object):
             "cache_update": aslist(
                 settings.get("pypi.cache_update", ["authenticated"])
             ),
-            "allow_overwrite": aslist(settings.get("pypi.allow_overwrite", [])),
-            "allow_delete": aslist(
-                settings.get("pypi.allow_delete", ["authenticated"])
-            ),
+            "allow_overwrite": allow_overwrite,
+            "allow_delete": allow_delete,
             "pwd_context": get_pwd_context(scheme, rounds),
             "token_expiration": int(settings.get("auth.token_expire", ONE_WEEK)),
             "signing_key": settings.get("auth.signing_key"),

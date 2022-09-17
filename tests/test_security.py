@@ -143,8 +143,8 @@ class TestEndpointSecurityAdmin(unittest.TestCase):
             "pyramid.debug_authorization": True,
             "pypi.db": "tests.test_security.GlobalDummyCache",
             "pypi.storage": "tests.test_security.GlobalDummyStorage",
-            "pypi.allow_overwrite": ["admin"],
-            "pypi.allow_delete": ["admin"],
+            "pypi.allow_overwrite_groups": ["admin"],
+            "pypi.allow_delete_groups": ["admin"],
             "session.validate_key": "a",
             "user.user": sha256_crypt.encrypt("user"),
             "user.admin": sha256_crypt.encrypt("admin"),
@@ -190,7 +190,7 @@ class TestEndpointSecurityAdmin(unittest.TestCase):
         self.assertEqual(response.status_int, 200)
 
     def test_api_pkg_delete_weak_user(self):
-        """/api/package/<pkg>/<filename> validates allow_delete setting"""
+        """/api/package/<pkg>/<filename> validates allow_delete_groups setting"""
 
         response = self.app.delete(
             "/api/package/{package_name}/{filename}".format(
@@ -202,7 +202,7 @@ class TestEndpointSecurityAdmin(unittest.TestCase):
         self.assertEqual(response.status_int, 403)
 
     def test_api_pkg_delete_admin(self):
-        """/api/package/<pkg>/<filename> validates allow_delete setting"""
+        """/api/package/<pkg>/<filename> validates allow_delete_groups setting"""
         response = self.app.delete(
             "/api/package/{package_name}/{filename}".format(
                 package_name=self.package.name, filename=self.package.filename

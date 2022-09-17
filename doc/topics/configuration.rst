@@ -114,11 +114,26 @@ https://github.com/stevearc/pypicloud/tree/master/scripts
 
 ``pypi.allow_overwrite``
 ~~~~~~~~~~~~~~~~~~~~~~~~
+**DEPRECATED** see ``pypi.allow_overwrite_groups``
+**Argument:** bool, optional
+
+
+Allow users to upload packages that will overwrite an existing version (default False)
+
+``pypi.allow_overwrite_groups``
+~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** list, optional
 
 List of groups that are allowed to overwrite existing packages. Defaults to no groups
 
 ``pypi.allow_delete``
+~~~~~~~~~~~~~~~~~~~~~~~~
+**DEPRECATED** see ``pypi.allow_delete_groups``
+**Argument:** bool, optional
+
+Allow users to delete packages (default True)
+
+``pypi.allow_delete_groups``
 ~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** list, optional
 

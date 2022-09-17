@@ -29,7 +29,6 @@ REQUIREMENTS = [
     "requests",
     "transaction",
     "zope.sqlalchemy",
-    "aenum",
 ]
 
 EXTRAS = {
