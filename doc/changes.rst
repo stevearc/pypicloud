@@ -2,6 +2,11 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.3.11 - 2022/9/20
+------------------
+* Sort package names from redis backend (:pr:`316`)
+* Deprecate ``pypi.allow_delete`` and ``pypi.allow_overwrite`` for ``pypi.allow_delete_groups`` and ``pypi.allow_overwrite_groups`` (:pr:`311`)
+
 1.3.10 - 2022/9/3
 -----------------
 * Add uploader to package metadata (:pr:`312`)
