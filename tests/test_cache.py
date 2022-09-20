@@ -19,7 +19,7 @@ from pypicloud.cache.sql import SQLPackage
 from pypicloud.storage import IStorage
 from pypicloud.util import EnvironSettings
 
-from . import DummyCache, DummyStorage, make_package
+from . import DummyAccess, DummyCache, DummyStorage, make_package
 from .db_utils import get_mysql_url, get_postgres_url, get_sqlite_url
 
 # pylint: disable=W0707
@@ -55,8 +55,10 @@ class TestBaseCache(unittest.TestCase):
 
     def test_upload_overwrite(self):
         """Uploading a preexisting packages overwrites current package"""
-        cache = DummyCache()
-        cache.allow_overwrite = True
+        request = DummyRequest()
+        request.access = DummyAccess(request)
+        cache = DummyCache(request)
+        request.access.allow_overwrite = ["everyone"]
         name, filename, content = "a", "a-1.tar.gz", BytesIO(b"new")
         cache.upload(filename, BytesIO(b"old"), name)
         cache.upload(filename, content, name)
@@ -71,25 +73,31 @@ class TestBaseCache(unittest.TestCase):
 
     def test_upload_no_overwrite(self):
         """If allow_overwrite=False duplicate package throws exception"""
-        cache = DummyCache()
-        cache.allow_overwrite = False
+        request = DummyRequest()
+        request.access = DummyAccess(request)
+        cache = DummyCache(request)
+        request.access.allow_overwrite = []
         name, version, filename = "a", "1", "a-1.tar.gz"
         cache.upload(filename, BytesIO(b"test1234"), name, version)
         with self.assertRaises(ValueError):
             cache.upload(filename, BytesIO(b"test1234"), name, version)
 
     def test_no_delete(self):
-        """If allow_delete=False, packages cannot be deleted"""
-        cache = DummyCache()
-        cache.allow_delete = False
+        """If allow_delete=[], packages cannot be deleted"""
+        request = DummyRequest()
+        request.access = DummyAccess(request)
+        cache = DummyCache(request)
+        request.access.allow_delete = []
         pkg = make_package()
         with self.assertRaises(ValueError):
             cache.delete(pkg)
 
     def test_multiple_packages_same_version(self):
         """Can upload multiple packages that have the same version"""
-        cache = DummyCache()
-        cache.allow_overwrite = False
+        request = DummyRequest()
+        request.access = DummyAccess(request)
+        cache = DummyCache(request)
+        request.access.allow_overwrite = []
         name, version = "a", "1"
         path1 = "old_package_path-1.tar.gz"
         cache.upload(path1, BytesIO(b"test1234"), name, version)
@@ -200,6 +208,7 @@ class TestSQLiteCache(unittest.TestCase):
         super(TestSQLiteCache, self).setUp()
         transaction.begin()
         self.request = DummyRequest()
+        self.access = self.request.access = DummyAccess(self.request)
         self.request.tm = transaction.manager
         self.db = SQLCache(self.request, **self.kwargs)
         self.sql = self.db.db
@@ -227,7 +236,7 @@ class TestSQLiteCache(unittest.TestCase):
 
     def test_upload_overwrite(self):
         """Uploading a preexisting packages overwrites current package"""
-        self.db.allow_overwrite = True
+        self.request.access.allow_overwrite = ["everyone"]
         name, filename = "a", "a-1.tar.gz"
         self.db.upload(filename, BytesIO(b"old"), name)
         self.db.upload(filename, BytesIO(b"new"), name)
@@ -255,6 +264,7 @@ class TestSQLiteCache(unittest.TestCase):
 
     def test_delete(self):
         """delete() removes object from database and deletes from storage"""
+        self.request.access.allow_delete = ["everyone"]
         pkg = make_package(factory=SQLPackage)
         self.sql.add(pkg)
         transaction.commit()
@@ -269,6 +279,7 @@ class TestSQLiteCache(unittest.TestCase):
         pkg = make_package(factory=SQLPackage)
         self.sql.add(pkg)
         transaction.commit()
+        self.request.access.can_delete_package = lambda: True
         self.sql.add(pkg)
         self.db.delete(pkg)
         count = self.sql.query(SQLPackage).count()
@@ -389,7 +400,7 @@ class TestSQLiteCache(unittest.TestCase):
 
     def test_multiple_packages_same_version(self):
         """Can upload multiple packages that have the same version"""
-        with patch.object(self.db, "allow_overwrite", False):
+        with patch.object(self.request.access, "allow_overwrite", []):
             name, version = "a", "1"
             path1 = "old_package_path-1.tar.gz"
             self.db.upload(path1, BytesIO(b"test1234"), name, version)
@@ -476,7 +487,9 @@ class TestRedisCache(unittest.TestCase):
 
     def setUp(self):
         super(TestRedisCache, self).setUp()
-        self.db = RedisCache(DummyRequest(), **self.kwargs)
+        self.request = DummyRequest()
+        self.access = self.request.access = DummyAccess(self.request)
+        self.db = RedisCache(self.request, **self.kwargs)
         self.storage = self.db.storage = MagicMock(spec=IStorage)
 
     def tearDown(self):
@@ -521,6 +534,7 @@ class TestRedisCache(unittest.TestCase):
 
     def test_delete(self):
         """delete() removes object from database and deletes from storage"""
+        self.request.access.allow_delete = ["everyone"]
         pkg = make_package()
         key = self.db.redis_key(pkg.filename)
         self.redis[key] = "foobar"
@@ -672,7 +686,7 @@ class TestRedisCache(unittest.TestCase):
 
     def test_multiple_packages_same_version(self):
         """Can upload multiple packages that have the same version"""
-        with patch.object(self.db, "allow_overwrite", False):
+        with patch.object(self.request.access, "allow_overwrite", []):
             name, version = "a", "1"
             path1 = "old_package_path-1.tar.gz"
             self.db.upload(path1, BytesIO(b"test1234"), name, version)
@@ -785,7 +799,9 @@ class TestDynamoCache(unittest.TestCase):
 
     def setUp(self):
         super(TestDynamoCache, self).setUp()
-        self.db = DynamoCache(DummyRequest(), **self.kwargs)
+        self.request = DummyRequest()
+        self.access = self.request.access = DummyAccess(self.request)
+        self.db = DynamoCache(self.request, **self.kwargs)
         self.storage = self.db.storage = MagicMock(spec=IStorage)
 
     def tearDown(self):
@@ -821,6 +837,7 @@ class TestDynamoCache(unittest.TestCase):
 
     def test_delete(self):
         """delete() removes object from database and deletes from storage"""
+        self.request.access.allow_delete = ["everyone"]
         pkg = make_package(factory=DynamoPackage)
         self._save_pkgs(pkg)
         self.db.delete(pkg)
@@ -832,6 +849,7 @@ class TestDynamoCache(unittest.TestCase):
 
     def test_clear(self):
         """clear() removes object from database"""
+        self.request.access.allow_delete = ["everyone"]
         pkg = make_package(factory=DynamoPackage)
         self._save_pkgs(pkg)
         self.db.delete(pkg)
@@ -952,7 +970,7 @@ class TestDynamoCache(unittest.TestCase):
 
     def test_multiple_packages_same_version(self):
         """Can upload multiple packages that have the same version"""
-        with patch.object(self.db, "allow_overwrite", False):
+        with patch.object(self.request.access, "allow_overwrite", []):
             name, version = "a", "1"
             path1 = "old_package_path-1.tar.gz"
             self.db.upload(path1, BytesIO(b"test1234"), name, version)

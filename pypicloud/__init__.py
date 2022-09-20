@@ -4,7 +4,6 @@ import datetime
 import logging
 from urllib.parse import urlencode
 
-import distlib.locators
 from pyramid.config import Configurator
 from pyramid.renderers import JSON, render
 from pyramid.settings import asbool

@@ -1,6 +1,7 @@
 """ The access backend object base class """
 import hashlib
 import hmac
+import logging
 import time
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -13,6 +14,7 @@ from pyramid.settings import aslist
 from pypicloud.util import EnvironSettings
 
 Admin = "admin"
+LOG = logging.getLogger(__name__)
 
 # Roughly tuned using https://bitbucket.org/ecollins/passlib/raw/default/choose_rounds.py
 # For 10ms. This differs from the passlib recommendation of 350ms due to the difference in use case
@@ -102,6 +104,8 @@ class IAccessBackend(object):
         default_write=None,
         disallow_fallback=(),
         cache_update=None,
+        allow_overwrite=None,
+        allow_delete=None,
         pwd_context=None,
         token_expiration=ONE_WEEK,
         signing_key=None,
@@ -111,6 +115,8 @@ class IAccessBackend(object):
         self.default_write = default_write
         self.disallow_fallback = disallow_fallback
         self.cache_update = cache_update
+        self.allow_overwrite = allow_overwrite
+        self.allow_delete = allow_delete
         self.pwd_context = pwd_context
         self.token_expiration = token_expiration
         self.signing_key = signing_key
@@ -120,6 +126,39 @@ class IAccessBackend(object):
         """Configure the access backend with app settings"""
         rounds = settings.get("auth.rounds")
         scheme = settings.get("auth.scheme")
+
+        if (
+            "pypi.allow_overwrite_groups" in settings
+            or "pypi.allow_overwrite" not in settings
+        ):
+            allow_overwrite = aslist(settings.get("pypi.allow_overwrite_groups", []))
+        else:
+            LOG.warning(
+                "pypi.allow_overwrite is deprecated and "
+                "support will be removed in a future version. "
+                "Please use pypi.allow_overwrite_groups"
+            )
+            allow_overwrite = (
+                ["authenticated"] if settings.get("pypi.allow_overwrite", False) else []
+            )
+
+        if (
+            "pypi.allow_delete_groups" in settings
+            or "pypi.allow_delete" not in settings
+        ):
+            allow_delete = aslist(
+                settings.get("pypi.allow_delete_groups", ["authenticated"])
+            )
+        else:
+            LOG.warning(
+                "pypi.allow_delete is deprecated and "
+                "support will be removed in a future version. "
+                "Please use pypi.allow_delete_groups"
+            )
+            allow_delete = (
+                ["authenticated"] if settings.get("pypi.allow_delete", False) else []
+            )
+
         return {
             "default_read": aslist(
                 settings.get("pypi.default_read", ["authenticated"])
@@ -129,6 +168,8 @@ class IAccessBackend(object):
             "cache_update": aslist(
                 settings.get("pypi.cache_update", ["authenticated"])
             ),
+            "allow_overwrite": allow_overwrite,
+            "allow_delete": allow_delete,
             "pwd_context": get_pwd_context(scheme, rounds),
             "token_expiration": int(settings.get("auth.token_expire", ONE_WEEK)),
             "signing_key": settings.get("auth.signing_key"),
@@ -267,6 +308,20 @@ class IAccessBackend(object):
         Return True if the user has permissions to update the pypi cache
         """
         return self.in_any_group(self.request.authenticated_userid, self.cache_update)
+
+    def can_overwrite_package(self) -> bool:
+        """
+        Return True if the user has permissions to overwrite existing packages
+        """
+        return self.in_any_group(
+            self.request.authenticated_userid, self.allow_overwrite
+        )
+
+    def can_delete_package(self) -> bool:
+        """
+        Return True if the user has permissions to delete packages
+        """
+        return self.in_any_group(self.request.authenticated_userid, self.allow_delete)
 
     def need_admin(self) -> bool:
         """

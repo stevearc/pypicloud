@@ -22,14 +22,10 @@ class ICache(object):
         self,
         request=None,
         storage=None,
-        allow_overwrite=None,
         calculate_hashes=True,
-        allow_delete=True,
     ):
         self.request = request
         self.storage = storage(request)
-        self.allow_overwrite = allow_overwrite
-        self.allow_delete = allow_delete
         self.calculate_hashes = calculate_hashes
 
     def new_package(self, *args, **kwargs) -> Package:
@@ -52,8 +48,6 @@ class ICache(object):
         """Configure the cache method with app settings"""
         return {
             "storage": get_storage_impl(settings),
-            "allow_overwrite": asbool(settings.get("pypi.allow_overwrite", False)),
-            "allow_delete": asbool(settings.get("pypi.allow_delete", True)),
             "calculate_hashes": asbool(
                 settings.get("pypi.calculate_package_hashes", True)
             ),
@@ -128,7 +122,7 @@ class ICache(object):
         Raises
         ------
         e : ValueError
-            If the package already exists and allow_overwrite = False
+            If the package already exists and user is unauthorized for overwrites
 
         """
         if version is None or name is None:
@@ -137,8 +131,9 @@ class ICache(object):
         filename = posixpath.basename(filename)
         old_pkg = self.fetch(filename)
         metadata["requires_python"] = requires_python
-        if old_pkg is not None and not self.allow_overwrite:
-            raise ValueError("Package '%s' already exists!" % filename)
+        if old_pkg is not None and not self.request.access.can_overwrite_package():
+            raise ValueError("Unauthorized to overwrite packages.")
+
         if self.calculate_hashes:
             sha256, md5 = hashlib.sha256(), hashlib.md5()
             for chunk in stream_file(data):
@@ -161,11 +156,15 @@ class ICache(object):
         ----------
         package : :class:`~pypicloud.models.Package`
 
+        Raises
+        ------
+        e : ValueError
+            If user is unauthorized for delete
+
         """
-        if not self.allow_delete:
-            raise ValueError(
-                "Cannot delete packages. Set pypi.allow_delete = true if you want to enable deletes."
-            )
+        if not self.request.access.can_delete_package():
+            raise ValueError("Unauthorized to delete packages.")
+
         self.storage.delete(package)
         self.clear(package)
 

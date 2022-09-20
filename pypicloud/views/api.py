@@ -7,7 +7,12 @@ from tempfile import TemporaryFile
 from paste.httpheaders import CACHE_CONTROL, CONTENT_DISPOSITION
 
 # pylint: enable=E0611
-from pyramid.httpexceptions import HTTPBadRequest, HTTPForbidden, HTTPNotFound
+from pyramid.httpexceptions import (
+    HTTPBadRequest,
+    HTTPConflict,
+    HTTPForbidden,
+    HTTPNotFound,
+)
 from pyramid.security import NO_PERMISSION_REQUIRED
 from pyramid.view import view_config
 from pyramid_duh import addslash, argify
@@ -155,7 +160,7 @@ def upload_package(context, request, content, summary=None, requires_python=None
             uploader=request.authenticated_userid,
         )
     except ValueError as e:  # pragma: no cover
-        return HTTPBadRequest(*e.args)
+        return HTTPConflict(*e.args)
 
 
 @view_config(
@@ -169,7 +174,12 @@ def delete_package(context, request):
     package = request.db.fetch(context.filename)
     if package is None:
         return HTTPBadRequest("Could not find %s" % context.filename)
-    request.db.delete(package)
+
+    try:
+        request.db.delete(package)
+    except ValueError:
+        return HTTPForbidden("Package deletion is unallowed.")
+
     return request.response
 
 

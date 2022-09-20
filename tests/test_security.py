@@ -134,9 +134,99 @@ class TestEndpointSecurity(unittest.TestCase):
         response = self.app.delete(url, headers=_auth("user2", "user2"))
         self.assertEqual(response.status_int, 200)
 
-    def test_api_rebuild_admin(self):
-        """/api/rebuild requires admin"""
+
+class TestEndpointSecurityAdmin(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.package = package = make_package()
+        settings = {
+            "pyramid.debug_authorization": True,
+            "pypi.db": "tests.test_security.GlobalDummyCache",
+            "pypi.storage": "tests.test_security.GlobalDummyStorage",
+            "pypi.allow_overwrite_groups": ["admin"],
+            "pypi.allow_delete_groups": ["admin"],
+            "session.validate_key": "a",
+            "user.user": sha256_crypt.encrypt("user"),
+            "user.admin": sha256_crypt.encrypt("admin"),
+            "package.%s.user.user" % package.name: "rw",
+            "auth.admins": ["admin"],
+        }
+        app = main({}, **settings)
+        cls.app = webtest.TestApp(app)
+
+    def setUp(self):
+        cache = GlobalDummyCache()
+        cache.upload(
+            self.package.filename,
+            BytesIO(b"test1234"),
+            self.package.name,
+            self.package.version,
+        )
+
+    def tearDown(self):
+        GlobalDummyCache.global_packages.clear()
+        GlobalDummyStorage.global_packages.clear()
+        self.app.reset()
+
+    def test_api_pkg_overwrite_weak_user(self):
+        """/api/package/<pkg>/<filename> validates allow_overwrite setting"""
+
+        params = {
+            "content": webtest.forms.Upload(self.package.filename, b"datadatadata")
+        }
+        url = "/api/package/%s/%s/" % (self.package.name, self.package.filename)
+        response = self.app.post(
+            url, params, expect_errors=True, headers=_auth("user", "user")
+        )
+        self.assertEqual(response.status_int, 409)
+
+    def test_api_pkg_overwrite_admin(self):
+        """/api/package/<pkg>/<filename> validates allow_overwrite setting"""
+        params = {
+            "content": webtest.forms.Upload(self.package.filename, b"datadatadata")
+        }
+        url = "/api/package/%s/%s/" % (self.package.name, self.package.filename)
+        response = self.app.post(url, params, headers=_auth("admin", "admin"))
+        self.assertEqual(response.status_int, 200)
+
+    def test_api_pkg_delete_weak_user(self):
+        """/api/package/<pkg>/<filename> validates allow_delete_groups setting"""
+
+        response = self.app.delete(
+            "/api/package/{package_name}/{filename}".format(
+                package_name=self.package.name, filename=self.package.filename
+            ),
+            expect_errors=True,
+            headers=_auth("user", "user"),
+        )
+        self.assertEqual(response.status_int, 403)
+
+    def test_api_pkg_delete_admin(self):
+        """/api/package/<pkg>/<filename> validates allow_delete_groups setting"""
+        response = self.app.delete(
+            "/api/package/{package_name}/{filename}".format(
+                package_name=self.package.name, filename=self.package.filename
+            ),
+            headers=_auth("admin", "admin"),
+        )
+        self.assertEqual(response.status_int, 200)
+
+    def test_rebuild_weak_user(self):
+        """/admin/rebuild requires admin"""
         response = self.app.get(
-            "/api/rebuild/", expect_errors=True, headers=_auth("user2", "user2")
+            "/admin/rebuild/", expect_errors=True, headers=_auth("user", "user")
+        )
+        self.assertEqual(response.status_int, 403)
+
+    def test_rebuild_admin(self):
+        """/admin/rebuild requires admin"""
+        response = self.app.get("/admin/rebuild/", headers=_auth("admin", "admin"))
+        self.assertEqual(response.status_int, 200)
+
+    def test_api_unknown_url(self):
+        """unknown url returns 404"""
+        response = self.app.get(
+            "/api/non_existant_url/",
+            expect_errors=True,
         )
         self.assertEqual(response.status_int, 404)

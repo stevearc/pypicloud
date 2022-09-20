@@ -6,6 +6,7 @@ from collections import defaultdict
 from mock import MagicMock
 from pyramid.testing import DummyRequest
 
+from pypicloud.access import IAccessBackend
 from pypicloud.cache import ICache
 from pypicloud.dateutil import utcnow
 from pypicloud.models import Package
@@ -110,6 +111,41 @@ class DummyCache(ICache):
         self.packages[package.filename] = package
 
 
+class DummyAccess(IAccessBackend):
+
+    """In-memory implementation of IAccessBackend"""
+
+    def __init__(self, request=None, **kwargs):
+        super().__init__(request, **kwargs)
+
+    def groups(self, username=None):
+        return []
+
+    def group_members(self, group):
+        return []
+
+    def is_admin(self, username):
+        return False
+
+    def group_permissions(self, package):
+        return {}
+
+    def user_permissions(self, package):
+        return {}
+
+    def user_package_permissions(self, username):
+        return []
+
+    def group_package_permissions(self, group):
+        return []
+
+    def user_data(self, username=None):
+        return []
+
+    def _get_password_hash(self, username):
+        return ""
+
+
 class MockServerTest(unittest.TestCase):
 
     """Base class for tests that need in-memory ICache objects"""
@@ -117,6 +153,7 @@ class MockServerTest(unittest.TestCase):
     def setUp(self):
         self.request = DummyRequest(registry=MagicMock(), forbid=MagicMock())
         self.db = self.request.db = DummyCache(self.request)
+        self.access = self.request.access = DummyAccess(self.request)
         self.request.path_url = "/path/"
         self.params = {}
         self.request.param = lambda x, y=None: self.params.get(x, y)
