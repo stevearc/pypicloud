@@ -212,7 +212,7 @@ class GoogleCloudStorage(ObjectStoreStorage):
                 "client": self.bucket.client,
                 "blob_properties": {
                     "metadata": metadata,
-                    "acl": self.object_acl,
+                    "predefined_acl": self.object_acl,
                     "storage_class": self.storage_class,
                 },
             },

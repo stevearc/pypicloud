@@ -456,7 +456,8 @@ class MockGCSBlob(object):
         called, not that it changed any state on the MockGCSBlob class
         """
 
-    def create_resumable_upload_session(self):
+    def create_resumable_upload_session(self, predefined_acl=None):
+        self._acl = predefined_acl
         return self
 
     def download_as_bytes(self, start=0, end=None):
