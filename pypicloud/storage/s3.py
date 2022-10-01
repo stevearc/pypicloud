@@ -113,7 +113,7 @@ class S3Storage(ObjectStoreStorage):
             if e.response["Error"]["Code"] == "404":
                 LOG.info("Creating S3 bucket %s", bucket_name)
 
-                if config.region_name:
+                if config.region_name and config.region_name != "us-east-1":
                     location = {"LocationConstraint": config.region_name}
                     bucket.create(CreateBucketConfiguration=location)
                 else:
