@@ -18,7 +18,6 @@ from smart_open import open as _open
 from pypicloud.dateutil import utcnow
 from pypicloud.models import Package
 from pypicloud.util import (
-    EnvironSettings,
     PackageParseError,
     normalize_metadata,
     parse_filename,
@@ -32,13 +31,22 @@ LOG = logging.getLogger(__name__)
 
 class S3Storage(ObjectStoreStorage):
 
-    """Storage backend that uses S3"""
+    """Storage backend that uses S3 and support running on EC2 instances with instance profiles.
+
+    bucket_name is not really optional here, but we have to treat it as optional unless
+    we can validate that request isn't actually optional here either, or risk changing argument order.
+    """
 
     test = False
 
-    def __init__(self, request=None, bucket=None, **kwargs):
+    def __init__(
+        self, request=None, bucket_name=None, storage_config=None, resource_config=None, **kwargs
+    ):
         super(S3Storage, self).__init__(request=request, **kwargs)
-        self.bucket = bucket
+        self.bucket_name = bucket_name if bucket_name is not None else ""
+        self.storage_config = storage_config if storage_config is not None else {}
+        self.resource_config = resource_config if resource_config is not None else {}
+        self._bucket = None
 
     @classmethod
     def _subclass_specific_config(cls, settings, common_config):
@@ -55,12 +63,6 @@ class S3Storage(ObjectStoreStorage):
         if bucket_name is None:
             raise ValueError("You must specify the 'storage.bucket'")
 
-        return {"sse": sse, "bucket": cls.get_bucket(bucket_name, settings)}
-
-    @classmethod
-    def get_bucket(
-        cls, bucket_name: str, settings: EnvironSettings
-    ) -> "boto3.s3.Bucket":
         config_settings = settings.get_as_dict(
             "storage.",
             region_name=str,
@@ -80,6 +82,7 @@ class S3Storage(ObjectStoreStorage):
             addressing_style=str,
             signature_version=str,
         )
+
         config = Config(**config_settings)
 
         def verify_value(val):
@@ -90,31 +93,38 @@ class S3Storage(ObjectStoreStorage):
             else:
                 return str(val)
 
-        s3conn = boto3.resource(
-            "s3",
-            config=config,
-            **settings.get_as_dict(
-                "storage.",
-                region_name=str,
-                api_version=str,
-                use_ssl=asbool,
-                verify=verify_value,
-                endpoint_url=str,
-                aws_access_key_id=str,
-                aws_secret_access_key=str,
-                aws_session_token=str,
-            ),
+        resource_config = settings.get_as_dict(
+            "storage.",
+            region_name=str,
+            api_version=str,
+            use_ssl=asbool,
+            verify=verify_value,
+            endpoint_url=str,
+            aws_access_key_id=str,
+            aws_secret_access_key=str,
+            aws_session_token=str,
         )
 
-        bucket = s3conn.Bucket(bucket_name)
+        return {
+            "sse": sse,
+            "bucket_name": bucket_name,
+            "storage_config": config,
+            "resource_config": resource_config,
+        }
+
+    def create_bucket_if_not_exist(self):
+
+        s3Resource = boto3.resource("s3", config=self.storage_config, **self.resource_config)
+
+        bucket = s3Resource.Bucket(self.bucket_name)
         try:
-            s3conn.meta.client.head_bucket(Bucket=bucket_name)
+            s3Resource.meta.client.head_bucket(Bucket=self.bucket_name)
         except ClientError as e:
             if e.response["Error"]["Code"] == "404":
-                LOG.info("Creating S3 bucket %s", bucket_name)
+                LOG.info("Creating S3 bucket %s", self.bucket_name)
 
-                if config.region_name and config.region_name != "us-east-1":
-                    location = {"LocationConstraint": config.region_name}
+                if self.region_name and self.region_name != "us-east-1":
+                    location = {"LocationConstraint": self.region_name}
                     bucket.create(CreateBucketConfiguration=location)
                 else:
                     bucket.create()
@@ -146,9 +156,26 @@ class S3Storage(ObjectStoreStorage):
                 LOG.warning("S3 file %s has no package name", obj.key)
                 return None
 
-        return factory(
-            name, version, filename, obj.last_modified, path=obj.key, **metadata
-        )
+        return factory(name, version, filename, obj.last_modified, path=obj.key, **metadata)
+
+    @property
+    def bucket(self):
+        """Dynamically creates boto3.s3.Bucket resource to ensure automatically refreshing credentials work.
+
+        Taking this approach allows for the credentials to be rotated if they need to be.
+        E.g. when deployed to an EC2 instance using an instance profile.
+        boto3 will handle updating the credentials automatically, but the resource itself can't be kept alive forever, else subsequent calls
+        result in expired credentials errors.
+
+        Separating create_bucket_if_not_exists here from get_bucket to avoid unnecessary increase in bucket.head calls
+        that would be introduced by implementing self.bucket as a property.
+        """
+        if self._bucket is None:
+            self._bucket = self.create_bucket_if_not_exist()
+        else:
+            s3Resource = boto3.resource("s3", config=self.storage_config, **self.resource_config)
+            self._bucket = s3Resource.Bucket(self.bucket_name)
+        return self._bucket
 
     def list(self, factory=Package):
         keys = self.bucket.objects.filter(Prefix=self.bucket_prefix)
@@ -160,21 +187,25 @@ class S3Storage(ObjectStoreStorage):
                 yield pkg
 
     def _generate_url(self, package):
-        """Generate a signed url to the S3 file"""
+        """Generate a signed url to the S3 file
+
+
+        ? question: Does this implementation work if someone is specifying an endpoint_url?
+        """
         if self.public_url:
             if self.region_name:
                 return "https://s3.{0}.amazonaws.com/{1}/{2}".format(
-                    self.region_name, self.bucket.name, self.get_path(package)
+                    self.region_name, self.bucket_name, self.get_path(package)
                 )
             else:
-                if "." in self.bucket.name:
+                if "." in self.bucket_name:
                     self._log_region_warning()
                 return "https://{0}.s3.amazonaws.com/{1}".format(
-                    self.bucket.name, self.get_path(package)
+                    self.bucket_name, self.get_path(package)
                 )
         url = self.bucket.meta.client.generate_presigned_url(
             "get_object",
-            Params={"Bucket": self.bucket.name, "Key": self.get_path(package)},
+            Params={"Bucket": self.bucket_name, "Key": self.get_path(package)},
             ExpiresIn=self.expire_after,
         )
         # There is a special case if your bucket has a '.' in the name. The
@@ -182,7 +213,7 @@ class S3Storage(ObjectStoreStorage):
         # If you provide a region_name, boto should correctly generate a url in
         # the form of `s3.<region>.amazonaws.com`
         # See https://github.com/stevearc/pypicloud/issues/145
-        if "." in self.bucket.name:
+        if "." in self.bucket_name:
             pieces = urlparse(url)
             if pieces.netloc == "s3.amazonaws.com" and self.region_name is None:
                 self._log_region_warning()
@@ -198,7 +229,7 @@ class S3Storage(ObjectStoreStorage):
         )
 
     def get_uri(self, package):
-        return f"s3://{self.bucket.name}/{self.get_path(package)}"
+        return f"s3://{self.bucket_name}/{self.get_path(package)}"
 
     def upload(self, package, datastream):
         kwargs = {}
@@ -236,26 +267,30 @@ class S3Storage(ObjectStoreStorage):
         )
 
     def delete(self, package):
-        self.bucket.delete_objects(
-            Delete={"Objects": [{"Key": self.get_path(package)}]}
-        )
+        self.bucket.delete_objects(Delete={"Objects": [{"Key": self.get_path(package)}]})
 
     def check_health(self):
-        try:
-            self.bucket.meta.client.head_bucket(Bucket=self.bucket.name)
-        except ClientError as e:
-            return False, str(e)
-        else:
-            return True, ""
+        """Check the health.
+
+        suggestion:
+            When deployed in environments that repeatedly hit the pypicloud server for health checks,
+            the below might not be very useful?
+            The bucket will exist and we will have access to it due to calling head_bucket much earlier during initialization.
+            Doing so repeatedly (every 5-10 seconds, etc) increases AWS api costs and seemingly provides little actual value.
+
+            In line with this suggestion, updating this to just always return True, "" for now.
+            I suppose an argument could be made that this validates our connectivity to AWS, but if that is failing we won't need this health check to tell us that...
+        Returns:
+        """
+
+        return True, ""
 
 
 class CloudFrontS3Storage(S3Storage):
 
     """Storage backend that uses S3 and CloudFront"""
 
-    def __init__(
-        self, request=None, domain=None, crypto_pk=None, key_id=None, **kwargs
-    ):
+    def __init__(self, request=None, domain=None, crypto_pk=None, key_id=None, **kwargs):
         super(CloudFrontS3Storage, self).__init__(request, **kwargs)
         self.domain = domain
         self.crypto_pk = crypto_pk
