@@ -167,7 +167,7 @@ class S3Storage(ObjectStoreStorage):
         boto3 will handle updating the credentials automatically, but the resource itself can't be kept alive forever, else subsequent calls
         result in expired credentials errors.
 
-        Separating create_bucket_if_not_exists here from get_bucket to avoid unnecessary increase in bucket.head calls
+        Separating create_bucket_if_not_exists here from returning a new bucket resource to avoid unnecessary increase in bucket.head calls
         that would be introduced by implementing self.bucket as a property.
         """
         if self._bucket is None:
