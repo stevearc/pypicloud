@@ -40,7 +40,12 @@ class S3Storage(ObjectStoreStorage):
     test = False
 
     def __init__(
-        self, request=None, bucket_name=None, storage_config=None, resource_config=None, **kwargs
+        self,
+        request=None,
+        bucket_name=None,
+        storage_config=None,
+        resource_config=None,
+        **kwargs,
     ):
         super(S3Storage, self).__init__(request=request, **kwargs)
         self.bucket_name = bucket_name if bucket_name is not None else ""
@@ -114,7 +119,9 @@ class S3Storage(ObjectStoreStorage):
 
     def create_bucket_if_not_exist(self):
 
-        s3Resource = boto3.resource("s3", config=self.storage_config, **self.resource_config)
+        s3Resource = boto3.resource(
+            "s3", config=self.storage_config, **self.resource_config
+        )
 
         bucket = s3Resource.Bucket(self.bucket_name)
         try:
@@ -156,7 +163,9 @@ class S3Storage(ObjectStoreStorage):
                 LOG.warning("S3 file %s has no package name", obj.key)
                 return None
 
-        return factory(name, version, filename, obj.last_modified, path=obj.key, **metadata)
+        return factory(
+            name, version, filename, obj.last_modified, path=obj.key, **metadata
+        )
 
     @property
     def bucket(self):
@@ -173,7 +182,9 @@ class S3Storage(ObjectStoreStorage):
         if self._bucket is None:
             self._bucket = self.create_bucket_if_not_exist()
         else:
-            s3Resource = boto3.resource("s3", config=self.storage_config, **self.resource_config)
+            s3Resource = boto3.resource(
+                "s3", config=self.storage_config, **self.resource_config
+            )
             self._bucket = s3Resource.Bucket(self.bucket_name)
         return self._bucket
 
@@ -267,7 +278,9 @@ class S3Storage(ObjectStoreStorage):
         )
 
     def delete(self, package):
-        self.bucket.delete_objects(Delete={"Objects": [{"Key": self.get_path(package)}]})
+        self.bucket.delete_objects(
+            Delete={"Objects": [{"Key": self.get_path(package)}]}
+        )
 
     def check_health(self):
         """Check the health.
@@ -290,7 +303,9 @@ class CloudFrontS3Storage(S3Storage):
 
     """Storage backend that uses S3 and CloudFront"""
 
-    def __init__(self, request=None, domain=None, crypto_pk=None, key_id=None, **kwargs):
+    def __init__(
+        self, request=None, domain=None, crypto_pk=None, key_id=None, **kwargs
+    ):
         super(CloudFrontS3Storage, self).__init__(request, **kwargs)
         self.domain = domain
         self.crypto_pk = crypto_pk
