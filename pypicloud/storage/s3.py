@@ -283,20 +283,12 @@ class S3Storage(ObjectStoreStorage):
         )
 
     def check_health(self):
-        """Check the health.
-
-        suggestion:
-            When deployed in environments that repeatedly hit the pypicloud server for health checks,
-            the below might not be very useful?
-            The bucket will exist and we will have access to it due to calling head_bucket much earlier during initialization.
-            Doing so repeatedly (every 5-10 seconds, etc) increases AWS api costs and seemingly provides little actual value.
-
-            In line with this suggestion, updating this to just always return True, "" for now.
-            I suppose an argument could be made that this validates our connectivity to AWS, but if that is failing we won't need this health check to tell us that...
-        Returns:
-        """
-
-        return True, ""
+        try:
+            self.bucket.meta.client.head_bucket(Bucket=self.bucket_name)
+        except ClientError as e:
+            return False, str(e)
+        else:
+            return True, ""
 
 
 class CloudFrontS3Storage(S3Storage):
