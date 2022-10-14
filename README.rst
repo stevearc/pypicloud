@@ -1,5 +1,9 @@
 PyPI Cloud
 ==========
+
+**WARNING**: Pypicloud has transitioned to maintenance mode. For details, see `#325
+<https://github.com/stevearc/pypicloud/issues/325>`_
+
 :Build: |build|_ |coverage|_
 :Documentation: |docs|_
 :PyPI: |downloads|_
