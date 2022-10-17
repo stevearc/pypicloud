@@ -33,11 +33,10 @@ REQUIREMENTS = [
 
 EXTRAS = {
     "ldap": ["python-ldap"],
-    "dynamo": ["flywheel >= 0.2.0"],
+    "dynamo": ["flywheel>=0.2.0"],
     "redis": ["redis"],
     "gcs": [
-        "google-cloud-storage>=2.6.0",  # ref #320
-        "smart_open[gcs]>=6.3.0",
+        "smart_open[gcs]>=7.0.0",  # ref #320
     ],
     "azure-blob": [
         "azure-storage-blob>=12.5.0",

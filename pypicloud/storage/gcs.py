@@ -210,9 +210,9 @@ class GoogleCloudStorage(ObjectStoreStorage):
             compression="disable",
             transport_params={
                 "client": self.bucket.client,
+                "blob_open_kwargs": {"predefined_acl": self.object_acl},
                 "blob_properties": {
                     "metadata": metadata,
-                    "predefined_acl": self.object_acl,
                     "storage_class": self.storage_class,
                 },
             },
