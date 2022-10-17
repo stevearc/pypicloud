@@ -36,6 +36,7 @@ EXTRAS = {
     "dynamo": ["flywheel>=0.2.0"],
     "redis": ["redis"],
     "gcs": [
+        "google-cloud-storage>=1.10.0",
         "smart_open[gcs]>=7.0.0",  # ref #320
     ],
     "azure-blob": [
