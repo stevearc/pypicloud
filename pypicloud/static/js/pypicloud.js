@@ -370,7 +370,7 @@ angular
       };
 
       $http
-        .get($scope.API + "package/" + $scope.package_name)
+        .get($scope.API + "package/" + $scope.package_name + "/")
         .success(function (data, status, headers, config) {
           $scope.packages = data.packages;
           $scope.filtered = data.packages;
