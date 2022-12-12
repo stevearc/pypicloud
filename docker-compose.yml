@@ -30,6 +30,7 @@ services:
       - ldap
       - azurite
       - redis-cluster-node-2
+      - fake-gcs-server
   redis:
     image: "redis"
     healthcheck:
