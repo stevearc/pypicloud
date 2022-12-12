@@ -130,7 +130,7 @@ def stream_file(fp: IO[AnyStr], chunk_size: int = CHUNK_SIZE) -> Iterator[AnyStr
 
 
 class EnvironSettings:
-    def __init__(self, settings: Dict[str, Any], env: Dict[str, str] = None):
+    def __init__(self, settings: Dict[str, Any], env: Optional[Dict[str, str]] = None):
         self._settings = settings
         if env is None:
             self._env = dict(os.environ)
