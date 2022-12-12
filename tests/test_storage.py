@@ -379,13 +379,20 @@ class TestGoogleCloudStorage(unittest.TestCase):
         super(TestGoogleCloudStorage, self).setUp()
         self._config_file = tempfile.mktemp()
         with open(self._config_file, "w", encoding="utf-8") as ofile:
-            json.dump({}, ofile)
+            json.dump(
+                {
+                    "client_email": "a@bc.de",
+                    "token_uri": "foo",
+                    "private_key": "-----BEGIN RSA PRIVATE KEY-----\nbar\n-----END RSA PRIVATE KEY-----\n",
+                },
+                ofile,
+            )
         self.settings = {
             "pypi.storage": "gcs",
             "storage.bucket": "mybucket",
             "storage.gcp_project_id": "test",
-            "storage.gcp_service_account_json_filename": self._config_file,
             "storage.gcp_api_endpoint": "http://fake-gcs-server:4443",
+            "storage.gcp_service_account_json_filename": self._config_file,
         }
         try:
             requests.get(self.settings["storage.gcp_api_endpoint"])
@@ -424,8 +431,6 @@ class TestGoogleCloudStorage(unittest.TestCase):
         response = self.storage.download_response(package)
 
         parts = urlparse(response.location)
-        self.assertEqual(parts.scheme, "https")
-        self.assertEqual(parts.hostname, "storage.googleapis.com")
         self.assertEqual(parts.path, "/mybucket/" + self.storage.get_path(package))
         query = parse_qs(parts.query)
         self.assertCountEqual(query.keys(), ["Expires", "Signature", "GoogleAccessId"])
