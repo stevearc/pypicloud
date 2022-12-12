@@ -10,7 +10,7 @@ class IStorage(object):
 
     """Base class for a backend that stores package files"""
 
-    def __init__(self, request: Request):
+    def __init__(self, request: Request, **kwargs):
         self.request = request
 
     @classmethod
