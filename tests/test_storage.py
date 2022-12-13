@@ -382,9 +382,9 @@ class TestGoogleCloudStorage(unittest.TestCase):
         self._config_file = tempfile.mktemp()
         private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
         pem = private_key.private_bytes(
-            serialization.Encoding.PEM,
-            serialization.PrivateFormat.OpenSSH,
-            serialization.NoEncryption(),
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=serialization.NoEncryption(),
         ).decode("utf-8")
         with open(self._config_file, "w", encoding="utf-8") as ofile:
             json.dump(
