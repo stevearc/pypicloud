@@ -390,7 +390,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
             json.dump(
                 {
                     "client_email": "a@bc.de",
-                    "token_uri": "foo",
+                    "token_uri": "http://fake-gcs-server:4443/oauth2/v3/certs",
                     "private_key": pem,
                 },
                 ofile,
