@@ -14,6 +14,8 @@ import boto3
 import requests
 from azure.core.exceptions import ResourceExistsError
 from botocore.exceptions import ClientError
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
 from mock import ANY, MagicMock, patch
 from moto import mock_s3
 
@@ -378,12 +380,18 @@ class TestGoogleCloudStorage(unittest.TestCase):
     def setUp(self):
         super(TestGoogleCloudStorage, self).setUp()
         self._config_file = tempfile.mktemp()
+        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        pem = private_key.private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.OpenSSH,
+            serialization.NoEncryption(),
+        ).decode("utf-8")
         with open(self._config_file, "w", encoding="utf-8") as ofile:
             json.dump(
                 {
                     "client_email": "a@bc.de",
                     "token_uri": "foo",
-                    "private_key": "-----BEGIN RSA PRIVATE KEY-----\nbar\n-----END RSA PRIVATE KEY-----\n",
+                    "private_key": pem,
                 },
                 ofile,
             )
