@@ -386,6 +386,14 @@ class TestGoogleCloudStorage(unittest.TestCase):
             format=serialization.PrivateFormat.TraditionalOpenSSL,
             encryption_algorithm=serialization.NoEncryption(),
         ).decode("utf-8")
+        # to generate a signed url, the client tries to talk to the oauth2 endpoint (token_uri below), which is not implemented in fake-gcs-server ref https://github.com/fsouza/fake-gcs-server/issues/952#issuecomment-1366690110
+        # patch this request, so we can still use the service account setup for tests as before, instead of switching to AnonymousCredentials
+        patch(
+            # https://github.com/googleapis/google-auth-library-python/blob/v2.15.0/google/oauth2/service_account.py#L429
+            "google.oauth2.service_account._client",
+            # https://github.com/googleapis/google-auth-library-python/blob/v2.15.0/google/oauth2/_client.py#L264
+            **{"jwt_grant.return_value": ("mock42", None, {})}
+        ).start()
         with open(self._config_file, "w", encoding="utf-8") as ofile:
             json.dump(
                 {
@@ -440,9 +448,6 @@ class TestGoogleCloudStorage(unittest.TestCase):
 
         parts = urlparse(response.location)
         self.assertEqual(parts.path, "/mybucket/" + self.storage.get_path(package))
-        query = parse_qs(parts.query)
-        self.assertCountEqual(query.keys(), ["Expires", "Signature", "GoogleAccessId"])
-        self.assertTrue(int(query["Expires"][0]) > time.time())
 
     def test_delete(self):
         """delete() should remove package from storage"""
