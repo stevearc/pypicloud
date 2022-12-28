@@ -398,7 +398,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
             json.dump(
                 {
                     "client_email": "a@bc.de",
-                    "token_uri": "http://fake-gcs-server:4443/oauth2/v3/certs",
+                    "token_uri": "http://localhost:4443/oauth2/v3/certs",
                     "private_key": pem,
                 },
                 ofile,
@@ -407,7 +407,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
             "pypi.storage": "gcs",
             "storage.bucket": "mybucket",
             "storage.gcp_project_id": "test",
-            "storage.gcp_api_endpoint": "http://fake-gcs-server:4443",
+            "storage.gcp_api_endpoint": "http://localhost:4443",
             "storage.gcp_service_account_json_filename": self._config_file,
         }
         try:
