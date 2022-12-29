@@ -413,8 +413,8 @@ class TestGoogleCloudStorage(unittest.TestCase):
             requests.get(self.settings["storage.gcp_api_endpoint"])
         except requests.ConnectionError as exc:
             raise unittest.SkipTest("Couldn't connect to fake-gcs-server") from exc
-        storage_func = get_storage_impl(self.settings)
-        self.storage = storage_func(MagicMock())
+        kwargs = GoogleCloudStorage.configure(self.settings)
+        self.storage = GoogleCloudStorage(MagicMock(), **kwargs)
         self.bucket = self.storage.bucket
 
     def tearDown(self):
@@ -499,8 +499,8 @@ class TestGoogleCloudStorage(unittest.TestCase):
         """
         settings = self.settings.copy()
         settings["storage.object_acl"] = "authenticated-read"
-        storage_func = get_storage_impl(self.settings)
-        storage = storage_func(MagicMock())
+        kwargs = GoogleCloudStorage.configure(self.settings)
+        storage = GoogleCloudStorage(MagicMock(), **kwargs)
         package = make_package()
         storage.upload(package, BytesIO(b"test1234"))
 
@@ -511,8 +511,8 @@ class TestGoogleCloudStorage(unittest.TestCase):
         """Can specify a storage class for GCS objects"""
         settings = self.settings.copy()
         settings["storage.storage_class"] = "COLDLINE"
-        storage_func = get_storage_impl(self.settings)
-        storage = storage_func(MagicMock())
+        kwargs = GoogleCloudStorage.configure(self.settings)
+        storage = GoogleCloudStorage(MagicMock(), **kwargs)
         package = make_package()
         storage.upload(package, BytesIO(b"test1234"))
 
