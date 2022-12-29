@@ -14,8 +14,8 @@ import boto3
 import requests
 from azure.core.exceptions import ResourceExistsError
 from botocore.exceptions import ClientError
-from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 from mock import ANY, MagicMock, patch
 from moto import mock_s3
 
@@ -28,7 +28,6 @@ from pypicloud.storage import (
     get_storage_impl,
 )
 from pypicloud.util import EnvironSettings
-
 
 from . import make_package
 
