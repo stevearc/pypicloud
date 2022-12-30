@@ -237,6 +237,12 @@ The GCS region your bucket is in. If your bucket does not yet exist, it will be
 created in this region on startup. If blank, a default US multi-regional bucket
 will be created.
 
+``storage.gcp_api_endpoint``
+~~~~~~~~~~~~~~~~~~~~~~~~
+**Argument:** string, optional
+
+The storage API URL to which to point the GCS Client. If not provided, will use default.
+
 ``storage.gcp_service_account_json_filename``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Argument:** string, semi-optional

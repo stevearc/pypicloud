@@ -30,6 +30,7 @@ services:
       - ldap
       - azurite
       - redis-cluster-node-2
+      - fake-gcs-server
   redis:
     image: "redis"
     healthcheck:
@@ -93,3 +94,8 @@ services:
     ports:
       - "10000:10000"
     command: ["azurite-blob", "--blobHost=0.0.0.0", "--blobPort=10000"]
+  fake-gcs-server:
+    image: 'fsouza/fake-gcs-server'
+    ports:
+      - '4443:4443'
+    command: ["-scheme", "http"]

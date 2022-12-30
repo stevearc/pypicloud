@@ -7,6 +7,7 @@ import logging
 import os
 import sys
 from base64 import b64encode
+from typing import Optional
 
 import transaction
 from jinja2 import Template
@@ -48,7 +49,9 @@ def _get_password():
             print("Passwords do not match!")
 
 
-def _gen_password(password: str, scheme: str = None, rounds: int = None) -> str:
+def _gen_password(
+    password: str, scheme: Optional[str] = None, rounds: Optional[int] = None
+) -> str:
     pwd_context = get_pwd_context(scheme, rounds)
     return pwd_context.hash(password)
 

@@ -5,6 +5,7 @@ import os
 import posixpath
 from datetime import timedelta
 
+from google.api_core.client_options import ClientOptions
 from google.auth import compute_engine
 from google.auth.transport import requests
 from google.cloud import storage
@@ -74,6 +75,11 @@ class GoogleCloudStorage(ObjectStoreStorage):
                 )
             )
 
+        gcp_api_endpoint = settings.get("storage.gcp_api_endpoint")
+        client_options = None
+        if gcp_api_endpoint:
+            client_options = ClientOptions(api_endpoint=gcp_api_endpoint)
+
         bucket_name = settings.get("storage.bucket")
         if bucket_name is None:
             raise ValueError("You must specify the 'storage.bucket'")
@@ -92,6 +98,7 @@ class GoogleCloudStorage(ObjectStoreStorage):
             "use_iam_signer": asbool(settings.get("storage.gcp_use_iam_signer", False)),
             "iam_signer_service_account_email": iam_signer_service_account_email,
             "bucket_factory": lambda: cls.get_bucket(bucket_name, settings),
+            "client_options": client_options,
         }
 
     @classmethod
@@ -105,6 +112,9 @@ class GoogleCloudStorage(ObjectStoreStorage):
         if client_settings["project_id"]:
             LOG.info("Using GCP project id `%s`", client_settings["project_id"])
             client_args["project"] = client_settings["project_id"]
+
+        if client_settings["client_options"]:
+            client_args["client_options"] = client_settings["client_options"]
 
         service_account_json_filename = client_settings.get(
             "service_account_json_filename"
@@ -210,9 +220,9 @@ class GoogleCloudStorage(ObjectStoreStorage):
             compression="disable",
             transport_params={
                 "client": self.bucket.client,
+                "blob_open_kwargs": {"predefined_acl": self.object_acl},
                 "blob_properties": {
                     "metadata": metadata,
-                    "acl": self.object_acl,
                     "storage_class": self.storage_class,
                 },
             },

@@ -14,10 +14,11 @@ import boto3
 import requests
 from azure.core.exceptions import ResourceExistsError
 from botocore.exceptions import ClientError
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 from mock import ANY, MagicMock, patch
 from moto import mock_s3
 
-from pypicloud.dateutil import utcnow
 from pypicloud.models import Package
 from pypicloud.storage import (
     CloudFrontS3Storage,
@@ -27,7 +28,6 @@ from pypicloud.storage import (
     get_storage_impl,
 )
 from pypicloud.util import EnvironSettings
-
 
 from . import make_package
 
@@ -372,203 +372,50 @@ class TestFileStorage(unittest.TestCase):
         self.assertTrue(ok)
 
 
-class MockGCSResponse(object):
-    """Mock the response of google.auth.transport.requests.AuthorizedSession.put."""
-
-    def __init__(self, status_code):
-        self.status_code = status_code
-        self.text = str(status_code)
-
-
-class MockGCSSession(object):
-    """Mock object representing the google.auth.transport.requests.AuthorizedSession class."""
-
-    def __init__(self, *args, **kwargs):
-        """Ignore client._credentials being passed here."""
-        pass  # pylint: disable=W0107
-
-    def put(self, blob, data, headers, **kwargs):
-        """Put a part of multipart upload, assuming blob.create_resumable_upload_session is mocked to return the blob object instead of url."""
-        if blob.name not in blob.bucket._blobs:
-            blob.upload_from_string(b"")
-        blob._content += data
-        if headers.get("Content-Range", "").endswith("*"):
-            return MockGCSResponse(308)
-        else:
-            return MockGCSResponse(200)
-
-    def delete(self, blob, *args, **kwargs):
-        """Cancel a multipart upload, assuming blob.create_resumable_upload_session is mocked to return the blob object instead of url."""
-        blob.delete()
-
-
-class MockGCSBlob(object):
-    """Mock object representing the google.cloud.storage.Blob class"""
-
-    def __init__(self, name, bucket):
-        self.name = name
-        self.metadata = {}
-        self.updated = None
-        self._content = None
-        self._acl = None
-        self.client = MockGCSClient()
-        self.bucket = bucket
-        self.generate_signed_url = MagicMock(wraps=self._generate_signed_url)
-        self.upload_from_file = MagicMock(wraps=self._upload_from_file)
-        self.delete = MagicMock(wraps=self._delete)
-        self.update_storage_class = MagicMock(wraps=self._update_storage_class)
-
-    @property
-    def size(self):
-        return len(self._content) if self._content else None
-
-    def upload_from_string(self, s):
-        """Utility method for uploading this blob; not used by the
-        GoogleCloudStorage backend, but used to pre-populate the GCS
-        mock for testing
-        """
-        self.updated = utcnow()
-        self._content = s
-        self.bucket._upload_blob(self)
-
-    def _upload_from_file(self, fp, predefined_acl):
-        """Mock the upload_from_file() method on google.cloud.storage.Blob"""
-        self._acl = predefined_acl
-        self.upload_from_string(fp.read())
-
-    def _delete(self):
-        """Mock the delete() method on google.cloud.storage.Blob"""
-        self.bucket._delete_blob(self.name)
-
-    def _generate_signed_url(self, expiration, credentials, version):
-        """Mock the generate_signed_url() method on
-        google.cloud.storage.Blob
-        """
-        return "https://storage.googleapis.com/{bucket_name}/{blob_name}?Expires={expires}&GoogleAccessId=my-service-account%40my-project.iam.gserviceaccount.com&Signature=MySignature".format(
-            bucket_name=self.bucket.name,
-            blob_name=self.name,
-            expires=int(time.time() + expiration.total_seconds()),
-        )
-
-    def _update_storage_class(self, storage_class):
-        """Mock the update_storage_class() method on google.cloud.storage.Blob.
-        This is a NOOP because we only check to make sure that it was
-        called, not that it changed any state on the MockGCSBlob class
-        """
-
-    def create_resumable_upload_session(self):
-        return self
-
-    def download_as_bytes(self, start=0, end=None):
-        return self._content[start:end] if end is not None else self._content[start:]
-
-
-class MockGCSBucket(object):
-    """Mock object representing the google.cloud.storage.Bucket class"""
-
-    def __init__(self, name, client):
-        self.name = name
-        self.client = client
-
-        self._created = False
-        self.location = None
-
-        self.blob = MagicMock(wraps=self._blob)
-        self.list_blobs = MagicMock(wraps=self._list_blobs)
-        self.exists = MagicMock(wraps=self._exists)
-        self.create = MagicMock(wraps=self._create)
-
-        self._blobs = {}
-
-    def _upload_blob(self, blob):
-        """Method used by the MockGCSBlob class to register blobs after
-        MockGCSBlob.upload is called
-        """
-        self._blobs[blob.name] = blob
-
-    def _delete_blob(self, blob_name):
-        """Method used by the MockGCSBlob class to unregister blobs after
-        MockGCSBlob.delete is called
-        """
-        self._blobs.pop(blob_name)
-
-    def _blob(self, blob_name):
-        """Mock the blob() method on google.cloud.storage.Bucket"""
-        return MockGCSBlob(blob_name, self)
-
-    def get_blob(self, blob_name):
-        """Mock the get_blob() method on google.cloud.storage.Bucket"""
-        return self._blobs.get(blob_name)
-
-    def _list_blobs(self, prefix=None):
-        """Mock the list_blobs() method on google.cloud.storage.Bucket"""
-        return [
-            item
-            for item in self._blobs.values()
-            if prefix is None or item.name.startswith(prefix)
-        ]
-
-    def _exists(self):
-        """Mock the exists() method on google.cloud.storage.Bucket"""
-        return self._created
-
-    def _create(self):
-        """Mock the create() method on google.cloud.storage.Bucket"""
-        self._created = True
-
-
-class MockGCSClient(object):
-    """Mock object representing the google.cloud.storage.Client class"""
-
-    def __init__(self):
-        self.bucket = MagicMock(wraps=self._bucket)
-
-        self._buckets = {}
-        self._credentials = MagicMock()
-
-    def from_service_account_json(self, *args, **kwargs):
-        """Mock the from_service_account_json method from the cloud storage
-        client class, used by the GoogleCloudStorage backend.
-        """
-        return self
-
-    def __call__(self):
-        """Provide a call() method so that we can easily patch an instance
-        of this class in place of the constructor of the mocked class
-        """
-        return self
-
-    def _bucket(self, bucket_name):
-        """Mock the bucket() method on google.cloud.storage.Bucket"""
-        if bucket_name not in self._buckets:
-            self._buckets[bucket_name] = MockGCSBucket(bucket_name, self)
-
-        return self._buckets[bucket_name]
-
-
 class TestGoogleCloudStorage(unittest.TestCase):
 
     """Tests for storing packages in GoogleCloud"""
 
     def setUp(self):
         super(TestGoogleCloudStorage, self).setUp()
-        self.gcs = MockGCSClient()
         self._config_file = tempfile.mktemp()
-        with open(self._config_file, "w", encoding="utf-8") as ofile:
-            json.dump({}, ofile)
-        patch("google.cloud.storage.Client", self.gcs).start()
+        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        pem = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=serialization.NoEncryption(),
+        ).decode("utf-8")
+        # to generate a signed url, the client tries to talk to the oauth2 endpoint (token_uri below), which is not implemented in fake-gcs-server ref https://github.com/fsouza/fake-gcs-server/issues/952#issuecomment-1366690110
+        # patch this request, so we can still use the service account setup for tests as before, instead of switching to AnonymousCredentials
         patch(
-            "google.auth.transport.requests.AuthorizedSession", MockGCSSession
+            # https://github.com/googleapis/google-auth-library-python/blob/v2.15.0/google/oauth2/service_account.py#L429
+            "google.oauth2.service_account._client",
+            # https://github.com/googleapis/google-auth-library-python/blob/v2.15.0/google/oauth2/_client.py#L264
+            **{"jwt_grant.return_value": ("mock42", None, {})}
         ).start()
+        with open(self._config_file, "w", encoding="utf-8") as ofile:
+            json.dump(
+                {
+                    "client_email": "a@bc.de",
+                    "token_uri": "http://localhost:4443/oauth2/v3/certs",
+                    "private_key": pem,
+                },
+                ofile,
+            )
         self.settings = {
+            "pypi.storage": "gcs",
             "storage.bucket": "mybucket",
+            "storage.gcp_project_id": "test",
+            "storage.gcp_api_endpoint": "http://localhost:4443",
             "storage.gcp_service_account_json_filename": self._config_file,
         }
-        self.bucket = self.gcs.bucket("mybucket")
-        self.bucket._created = True
-        patch.object(GoogleCloudStorage, "test", True).start()
+        try:
+            requests.get(self.settings["storage.gcp_api_endpoint"])
+        except requests.ConnectionError as exc:
+            raise unittest.SkipTest("Couldn't connect to fake-gcs-server") from exc
         kwargs = GoogleCloudStorage.configure(self.settings)
         self.storage = GoogleCloudStorage(MagicMock(), **kwargs)
+        self.bucket = self.storage.bucket
 
     def tearDown(self):
         super(TestGoogleCloudStorage, self).tearDown()
@@ -599,12 +446,7 @@ class TestGoogleCloudStorage(unittest.TestCase):
         response = self.storage.download_response(package)
 
         parts = urlparse(response.location)
-        self.assertEqual(parts.scheme, "https")
-        self.assertEqual(parts.hostname, "storage.googleapis.com")
         self.assertEqual(parts.path, "/mybucket/" + self.storage.get_path(package))
-        query = parse_qs(parts.query)
-        self.assertCountEqual(query.keys(), ["Expires", "Signature", "GoogleAccessId"])
-        self.assertTrue(int(query["Expires"][0]) > time.time())
 
     def test_delete(self):
         """delete() should remove package from storage"""
@@ -651,27 +493,13 @@ class TestGoogleCloudStorage(unittest.TestCase):
         match = re.match(pattern, blob.name)
         self.assertIsNotNone(match)
 
-    def test_create_bucket(self):
-        """If GCS bucket doesn't exist, create it"""
-        settings = {
-            "storage.bucket": "new_bucket",
-            "storage.region_name": "us-east-1",
-            "storage.gcp_service_account_json_filename": self._config_file,
-        }
-        arguments = GoogleCloudStorage.configure(settings)
-        arguments["bucket_factory"]()
-
-        self.gcs.bucket.assert_called_with("new_bucket")
-        bucket = self.gcs.bucket("new_bucket")
-        bucket.create.assert_called_once_with()
-
     def test_object_acl(self):
         """Can specify an object ACL for GCS objects.  Just test to make
         sure that the configured ACL is forwarded to the API client
         """
-        settings = dict(self.settings)
+        settings = self.settings.copy()
         settings["storage.object_acl"] = "authenticated-read"
-        kwargs = GoogleCloudStorage.configure(settings)
+        kwargs = GoogleCloudStorage.configure(self.settings)
         storage = GoogleCloudStorage(MagicMock(), **kwargs)
         package = make_package()
         storage.upload(package, BytesIO(b"test1234"))
@@ -681,9 +509,9 @@ class TestGoogleCloudStorage(unittest.TestCase):
 
     def test_storage_class(self):
         """Can specify a storage class for GCS objects"""
-        settings = dict(self.settings)
+        settings = self.settings.copy()
         settings["storage.storage_class"] = "COLDLINE"
-        kwargs = GoogleCloudStorage.configure(settings)
+        kwargs = GoogleCloudStorage.configure(self.settings)
         storage = GoogleCloudStorage(MagicMock(), **kwargs)
         package = make_package()
         storage.upload(package, BytesIO(b"test1234"))
