@@ -2,6 +2,12 @@ Changelog
 =========
 If you are upgrading an existing installation, read :ref:`the instructions <upgrade>`
 
+1.3.12 - 2022/12/29
+-------------------
+* Fix errors with the GCS backend (:pr:`320`)
+* Fix error when 'us-east-1' storage region (:pr:`321`)
+* Reduce unnecessary HTTP redirects (:pr:`326`)
+
 1.3.11 - 2022/9/20
 ------------------
 * Sort package names from redis backend (:pr:`316`)
