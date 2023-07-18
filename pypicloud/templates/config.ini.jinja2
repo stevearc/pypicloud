@@ -8,7 +8,7 @@ pyramid.debug_routematch = false
 pyramid.default_locale_name = en
 
 pypi.default_read =
-    {% if env == 'prod' -%}
+    {% if env == 'prod' or env == 'docker' -%}
       authenticated
     {%- else -%}
       everyone
