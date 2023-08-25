@@ -103,9 +103,9 @@ class SQLPackage(Package, Base):
     """Python package stored in SQLAlchemy"""
 
     __tablename__ = "packages"
-    filename = Column(String(255, convert_unicode=True), primary_key=True)
-    name = Column(String(255, convert_unicode=True), index=True, nullable=False)
-    version = Column(String(1000, convert_unicode=True), nullable=False)
+    filename = Column(String(255), primary_key=True)
+    name = Column(String(255), index=True, nullable=False)
+    version = Column(String(1000), nullable=False)
     last_modified = Column(TZAwareDateTime(), index=True, nullable=False)
     # TEXT, as pypi does the same, and using String(N) would mismatch with pypi
     summary = Column(Text(), nullable=True)
